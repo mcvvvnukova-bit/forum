@@ -1,0 +1,3 @@
+# Manual verification before participant access and lot publication
+
+Customer Companies work with state and large corporate construction contracts, so the platform must protect order visibility and downstream responsibility. We decided that both Customer Companies and Providers can register, but a human Moderator must verify them before they can access core marketplace functionality: Customers before publishing Construction Orders, Providers before viewing orders or responding to Lots. Lots also pass Moderator review before publication. This adds onboarding and publication friction, but it supports trust, reduces low-quality activity, and fits the compliance-sensitive construction context better than immediate self-service access.

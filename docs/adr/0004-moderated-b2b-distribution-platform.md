@@ -1,0 +1,3 @@
+# Moderated B2B order distribution platform
+
+The MVP is a moderated B2B platform for distributing construction order lots, not a public marketplace or a contract-execution system. The platform imports and normalizes estimates, suggests Lots, verifies participants, moderates Lots, shows Published Lots only to fitting Verified Providers, and collects structured Offers while leaving contracts, EDO, payments, and deep transaction workflows for later versions. This shape fits the trust, confidentiality, and compliance sensitivity of state and large corporate construction work better than an open listing board.
