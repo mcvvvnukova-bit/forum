@@ -1,41 +1,41 @@
-# Product Backlog
+# Бэклог продукта
 
-## Top Backlog
+## Приоритетные задачи
 
-**Basic INN verification**:
-Add basic organization and individual entrepreneur checks by INN during participant verification, using an external data source to prefill or validate legal name, status, and registration details for Moderator review.
+**Базовая проверка ИНН**:
+Добавить базовую проверку организаций и индивидуальных предпринимателей по ИНН в рамках верификации участников. Использовать внешний источник данных для предварительного заполнения или проверки юридического наименования, статуса и регистрационных сведений, доступных модератору для рассмотрения.
 
-**Phone verification**:
-Add phone number verification for Customer Companies and Providers after MVP, likely through SMS or messenger-based confirmation.
+**Подтверждение номера телефона**:
+После выпуска MVP добавить подтверждение номера телефона для компаний-заказчиков и поставщиков — вероятно, с помощью SMS или сообщения в мессенджере.
 
-**Helpdesk workflow**:
-Add support ticket statuses, assignment, replies, SLA tracking, and in-platform support history after MVP.
+**Рабочий процесс службы поддержки**:
+После выпуска MVP добавить статусы обращений в поддержку, назначение ответственных, ответы, контроль SLA и историю взаимодействия со службой поддержки внутри платформы.
 
-## Future Versions
+## Будущие версии
 
-**Electronic document exchange**:
-Add EDO workflows for exchanging legally significant documents between Customer Companies and Providers.
+**Электронный документооборот**:
+Добавить процессы ЭДО для обмена юридически значимыми документами между компаниями-заказчиками и поставщиками.
 
-**Contract execution**:
-Support contract and specification generation, negotiation, signing, and storage after winner selection.
+**Оформление договоров**:
+Обеспечить формирование, согласование, подписание и хранение договоров и спецификаций после выбора победителя.
 
-**Closing documents**:
-Support completion acts, invoices, reconciliation documents, and related post-deal paperwork.
+**Закрывающие документы**:
+Обеспечить работу с актами выполненных работ, счетами, актами сверки и другими документами, оформляемыми после завершения сделки.
 
-**Payments and financial workflows**:
-Evaluate whether the platform should support payments, escrow, financing, leasing integrations, or payment status tracking.
+**Платежи и финансовые процессы**:
+Оценить целесообразность поддержки на платформе платежей, эскроу-счетов, интеграций с сервисами финансирования и лизинга, а также отслеживания статусов платежей.
 
-**Customer subscriptions**:
-Evaluate paid plans for Customer Companies based on number of Construction Orders, Lots, imported estimates, users, or moderation priority.
+**Подписки для заказчиков**:
+Рассмотреть платные тарифы для компаний-заказчиков с учетом количества строительных заказов, лотов, импортированных смет, пользователей или приоритета при модерации.
 
-**Provider subscriptions**:
-Evaluate paid plans for Providers based on expanded visibility, analytics, offer limits, team access, or profile promotion, without undermining trust in Offer Ranking.
+**Подписки для поставщиков**:
+Рассмотреть платные тарифы для поставщиков, предусматривающие расширенную видимость, аналитику, лимиты на предложения, командный доступ или продвижение профиля, но не подрывающие доверие к ранжированию предложений.
 
-**Transaction fees**:
-Evaluate whether commission-based monetization is viable if future versions support contract execution, EDO, or payment workflows.
+**Комиссии за сделки**:
+Оценить целесообразность комиссионной модели монетизации, если в будущих версиях появится поддержка оформления договоров, ЭДО или платежных процессов.
 
-**Smart offer ranking**:
-Add transparent category-specific Offer Ranking based on requirement match, completeness, price, timeline, documents, location, rating, payment or delivery terms, and partial-fulfillment coverage.
+**Интеллектуальное ранжирование предложений**:
+Добавить прозрачное ранжирование предложений с учетом специфики категории и таких критериев, как соответствие требованиям, полнота, цена, сроки, документы, местоположение, рейтинг, условия оплаты или поставки и возможность частичного исполнения.
 
-**Advanced reputation model**:
-Expand basic reviews after winner selection with verified execution evidence, such as contract status, completion documents, repeat-customer signals, dispute history, and category-specific reliability metrics.
+**Расширенная модель репутации**:
+Дополнить базовые отзывы после выбора победителя подтвержденными сведениями об исполнении: статусом договора, закрывающими документами, данными о повторных заказах, историей споров и показателями надежности с учетом специфики категории.
