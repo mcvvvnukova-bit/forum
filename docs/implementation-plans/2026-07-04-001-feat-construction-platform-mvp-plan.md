@@ -3,7 +3,7 @@ title: "feat: Build construction order distribution MVP"
 type: feat
 status: active
 date: 2026-07-04
-origin: docs/superpowers/specs/2026-07-04-construction-order-distribution-platform-design.md
+origin: docs/product/README.md
 deepened: 2026-07-04
 ---
 
@@ -11,7 +11,7 @@ deepened: 2026-07-04
 
 ## Overview
 
-Build the first version of the moderated B2B construction order distribution platform described in `docs/superpowers/specs/2026-07-04-construction-order-distribution-platform-design.md`.
+Build the first version of the moderated B2B construction order distribution platform described in `docs/product/README.md` and its module documents.
 
 The recommended implementation shape is a TypeScript modular monolith: a single Next.js App Router application with domain modules under `src/modules`, PostgreSQL as the source of truth, Prisma migrations, S3-compatible object storage for attachments, and a Redis-backed background worker for imports and notifications. This keeps the MVP operationally simpler than microservices while still giving the implementation clear module boundaries.
 
@@ -54,12 +54,12 @@ The product deliberately avoids becoming a public marketplace, contract executio
 
 ### Relevant Repo Context
 
-- `docs/superpowers/specs/2026-07-04-construction-order-distribution-platform-design.md` is the origin design and product source of truth.
+- `docs/product/README.md` and linked module documents are the product source of truth.
 - `CONTEXT.md` defines project language and should stay aligned as implementation terms settle.
-- `docs/adr/0001-manual-provider-verification.md` records manual participant and lot verification.
-- `docs/adr/0002-mvp-stops-at-deal-package.md` records the MVP boundary around deal package formation.
-- `docs/adr/0003-platform-defined-lot-disclosure.md` records platform-defined lot disclosure.
-- `docs/adr/0004-moderated-b2b-distribution-platform.md` records the moderated B2B platform shape.
+- `docs/product/auth-legal-entities.md` records manual participant verification.
+- `docs/product/deal-package.md` records the MVP boundary around deal package formation.
+- `docs/product/lot-creation.md` records platform-defined lot disclosure.
+- `docs/product/README.md` records the moderated B2B platform shape.
 - `Brandbook/` contains brand assets to use for visual identity once UI implementation starts.
 - No existing application code, AGENTS.md, or `docs/solutions/` learnings are present.
 
@@ -256,7 +256,7 @@ flowchart TB
 - Keep public pages minimal: landing, login, registration entry points, password recovery, email confirmation placeholder, legal pages, and contacts.
 
 **Patterns to follow:**
-- Use `docs/superpowers/specs/2026-07-04-construction-order-distribution-platform-design.md` section 10 for public pages and role surfaces.
+- Use `docs/product/landing-page.md`, `docs/product/auth-individuals.md` and `docs/product/auth-legal-entities.md` for public pages and role surfaces.
 - Use `Brandbook/` as the visual source for logo, colors, and brand assets.
 
 **Test scenarios:**
@@ -402,7 +402,7 @@ flowchart TB
 - Make category-specific offer templates configurable by moderator, but not by customer or provider.
 
 **Patterns to follow:**
-- `docs/adr/0001-manual-provider-verification.md`
+- `docs/product/auth-legal-entities.md`
 - `CONTEXT.md` terms: `Customer Verification`, `Provider Verification`, `Moderator`, `Reference Data`, `Offer Template`, `Moderation Rejection`.
 
 **Test scenarios:**
@@ -451,7 +451,7 @@ flowchart TB
 **Execution note:** Add parser and normalization characterization tests with fixtures before refining heuristics.
 
 **Patterns to follow:**
-- `docs/superpowers/specs/2026-07-04-construction-order-distribution-platform-design.md` section 3.
+- `docs/product/order-publication.md` and `docs/product/lot-creation.md`.
 - `CONTEXT.md` terms: `Imported Estimate`, `Normalized Estimate Line`, `Ambiguous Estimate Line`, `Lot Suggestion`.
 
 **Test scenarios:**
@@ -500,7 +500,7 @@ flowchart TB
 - Persist enough fit/visibility evidence to explain why a provider could see a lot at publication time, while still recomputing access on read to respect later blocks or profile changes.
 
 **Patterns to follow:**
-- `docs/adr/0003-platform-defined-lot-disclosure.md`
+- `docs/product/lot-creation.md`
 - `CONTEXT.md` terms: `Lot Lifecycle`, `Lot Disclosure`, `Visible Lot`, `Lot-Provider Fit`, `Lot Notification`, `Blocked Provider`.
 
 **Test scenarios:**
@@ -598,7 +598,7 @@ flowchart TB
 **Execution note:** Implement contact-disclosure tests before wiring UI, because this is privacy-sensitive.
 
 **Patterns to follow:**
-- `docs/adr/0002-mvp-stops-at-deal-package.md`
+- `docs/product/winner-selection.md` and `docs/product/deal-package.md`
 - `CONTEXT.md` terms: `Выбор победителя`, `Deal Package`, `Раскрытие контактов после выбора победителя`, `Customer Contact Disclosure`.
 
 **Test scenarios:**
@@ -694,7 +694,7 @@ flowchart TB
 - Add final E2E workflows that prove an MVP market loop from registration through moderation, estimate import, lot publication, provider offer, winner selection, deal confirmation, and review.
 
 **Patterns to follow:**
-- `docs/superpowers/specs/2026-07-04-construction-order-distribution-platform-design.md` sections 9 and 10.
+- `docs/product/analytics.md`, `docs/product/support.md` and `docs/product/README.md`.
 
 **Test scenarios:**
 - Happy path: customer dashboard shows lot metrics after offer submission and winner selection.
@@ -741,9 +741,9 @@ flowchart TB
 
 ## Sources & References
 
-- Origin design: `docs/superpowers/specs/2026-07-04-construction-order-distribution-platform-design.md`
+- Product documentation: `docs/product/README.md`
 - Domain model: `CONTEXT.md`
-- ADRs: `docs/adr/0001-manual-provider-verification.md`, `docs/adr/0002-mvp-stops-at-deal-package.md`, `docs/adr/0003-platform-defined-lot-disclosure.md`, `docs/adr/0004-moderated-b2b-distribution-platform.md`
+- Module rules: `docs/product/auth-legal-entities.md`, `docs/product/lot-creation.md`, `docs/product/deal-package.md`, `docs/product/README.md`
 - Backlog: `docs/backlog.md`
 - Brand assets: `Brandbook/`
 - Next.js App Router: https://nextjs.org/docs/app

@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Единственный источник данных: `/Users/vvv/Проекты/АСТ Форум/docs/Мероприятия 09-12.2026.md` в актуальном состоянии на момент запуска.
-- Спецификация: `/Users/vvv/Проекты/АСТ Форум/docs/superpowers/specs/2026-08-10-events-docx-design.md`; исходник и spec доступны только для чтения.
+- Спецификация: `/Users/vvv/Проекты/АСТ Форум/docs/implementation-plans/2026-08-10-events-docx-design.md`; исходник и spec доступны только для чтения.
 - Финальный output: `/Users/vvv/Проекты/АСТ Форум/docs/Мероприятия 09-12.2026.docx`; исходный Markdown не переименовывать.
 - Перенести ровно 29 строк: сентябрь — 10, октябрь — 7, ноябрь — 10, декабрь — 2; сохранить порядок, поля, URL и тарифы.
 - Основной текст, статистика, примечания и содержимое таблиц — не меньше 12 pt.
@@ -27,7 +27,7 @@
 ## File Map
 
 - Read: `docs/Мероприятия 09-12.2026.md` — актуальные данные.
-- Read: `docs/superpowers/specs/2026-08-10-events-docx-design.md` — дизайн и QA.
+- Read: `docs/implementation-plans/2026-08-10-events-docx-design.md` — дизайн и QA.
 - Read: `Brandbook/all colors.pdf` — утверждённая палитра.
 - Read: `Brandbook/horizontal logo/png/horizontal logo_FORUM_color_text.png` — логотип.
 - Create temporary: `/tmp/ast_forum_events_docx_20260810/build_events_docx.py` — parser и генератор.
@@ -58,7 +58,7 @@ Run:
 mkdir -p '/tmp/ast_forum_events_docx_20260810/rendered'
 shasum -a 256 \
   '/Users/vvv/Проекты/АСТ Форум/docs/Мероприятия 09-12.2026.md' \
-  '/Users/vvv/Проекты/АСТ Форум/docs/superpowers/specs/2026-08-10-events-docx-design.md' \
+  '/Users/vvv/Проекты/АСТ Форум/docs/implementation-plans/2026-08-10-events-docx-design.md' \
   '/Users/vvv/Проекты/АСТ Форум/Brandbook/all colors.pdf' \
   '/Users/vvv/Проекты/АСТ Форум/Brandbook/horizontal logo/png/horizontal logo_FORUM_color_text.png' \
   > '/tmp/ast_forum_events_docx_20260810/inputs.before.sha256'
@@ -704,7 +704,7 @@ Run:
 ```bash
 shasum -a 256 \
   '/Users/vvv/Проекты/АСТ Форум/docs/Мероприятия 09-12.2026.md' \
-  '/Users/vvv/Проекты/АСТ Форум/docs/superpowers/specs/2026-08-10-events-docx-design.md' \
+  '/Users/vvv/Проекты/АСТ Форум/docs/implementation-plans/2026-08-10-events-docx-design.md' \
   '/Users/vvv/Проекты/АСТ Форум/Brandbook/all colors.pdf' \
   '/Users/vvv/Проекты/АСТ Форум/Brandbook/horizontal logo/png/horizontal logo_FORUM_color_text.png' \
   > '/tmp/ast_forum_events_docx_20260810/inputs.after.sha256'
