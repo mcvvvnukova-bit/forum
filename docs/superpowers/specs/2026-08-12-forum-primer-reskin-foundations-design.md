@@ -175,7 +175,7 @@ The collection remains Light-only for v1. Primitive variables use empty scopes; 
 
 Existing variables should be renamed only when the semantic meaning is incorrect and the ID can be preserved. Specifically:
 
-- redefine `primitive/accent-soft` as the muted brand value `#FFD4B2`;
+- rename `primitive/accent-soft` to `primitive/accent-muted` and set it to `#FFD4B2`, preserving its variable ID;
 - rename `primitive/accent-strong` to `primitive/link` and set it to `#CC4415`;
 - add `primitive/accent-hover` for `#FF7140`;
 - add `primitive/accent-pressed` for `#E64A12`;
