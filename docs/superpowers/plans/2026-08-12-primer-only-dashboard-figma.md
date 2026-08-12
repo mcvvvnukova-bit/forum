@@ -4,7 +4,7 @@
 
 **Goal:** Собрать рядом с исходным экраном отдельный фрейм `Desktop / Обзор / Primer — strict`, в котором все смысловые элементы, кроме брендового логотипа, являются связанными экземплярами официальной Figma-библиотеки Primer.
 
-**Architecture:** Один технический корневой `FRAME` размером 1440 × 1100 содержит только официальные Primer `INSTANCE` и один разрешённый брендовый instance логотипа. Компоненты размещаются непосредственно в корневом фрейме без локальных компонентов, detach и вручную собранных промежуточных UI-блоков; данные задаются только через component properties. Перед любой записью выполняется жёсткий read-only preflight доступности библиотеки, вариантов и текстовых свойств.
+**Architecture:** Один технический корневой `FRAME` размером 1440 × 1100 содержит только официальные Primer `INSTANCE` и один разрешённый брендовый instance логотипа. Компоненты размещаются непосредственно в корневом фрейме без локальных компонентов, detach и вручную собранных промежуточных UI-блоков; данные задаются через component properties, а для неуправляемого текста — через разрешённые text overrides внутри связанного экземпляра. Перед любой записью выполняется жёсткий read-only preflight доступности библиотеки, вариантов и текстовых свойств.
 
 **Tech Stack:** Figma Design file `WT2IPB0eHD9ULCPENEktwp`, Figma Plugin API через `use_figma`, `get_libraries`, `search_design_system`, официальная Figma-библиотека Primer, исходный frame `108:75`.
 
@@ -17,9 +17,10 @@
 - Не использовать локальные компоненты `Primer / FORUM / ...`.
 - Не создавать локальные компоненты, не копировать компоненты Primer и не detach экземпляры.
 - Не создавать обычные текстовые или графические слои вне официальных Primer instances.
-- Тексты задавать только через `instance.setProperties()`.
+- Тексты задавать через `instance.setProperties()` там, где компонент публикует `TEXT` property.
+- Для текста без component property разрешён прямой `characters` override только у `TEXT`-потомка связанного официального Primer instance, после загрузки фактического шрифта этого слоя.
 - Цвета, типографику, интервалы и радиусы брать из официальных Primer components, variables и styles.
-- Если официальный asset или нужное component property недоступны, остановиться до изменения холста.
+- Если официальный asset недоступен либо нужный текст невозможно переопределить внутри связанного официального instance, остановиться до изменения холста.
 
 ---
 
@@ -59,7 +60,7 @@ type PrimerAssetMap = {
 - Consumes: Figma file key `WT2IPB0eHD9ULCPENEktwp`, source node `108:75`.
 - Produces: validated `PrimerAssetMap`, official variable/style keys, source snapshot `{id, name, width, height, childIds}`.
 
-- [ ] **Step 1: Confirm Code Connect is unavailable**
+- [x] **Step 1: Confirm Code Connect is unavailable**
 
 Run:
 
@@ -72,7 +73,7 @@ rg -n 'FigmaConnect|figma\.connect|figma\.com/design' \
 
 Expected: no matching Code Connect files. Record Step 2a-i as `N/A: no Code Connect files found`.
 
-- [ ] **Step 2: Inspect the existing screen without writing**
+- [x] **Step 2: Inspect the existing screen without writing**
 
 Use `use_figma` with `skillNames: "figma-use,figma-generate-design"`. Resolve node `108:75`, switch once to its page, and return:
 
@@ -112,13 +113,13 @@ return {
 
 Expected: source size `1440 × 1100`; existing UI components are local (`remote: false`) and therefore must not be reused.
 
-- [ ] **Step 3: Discover available libraries**
+- [x] **Step 3: Discover available libraries**
 
 Call `get_libraries` for file `WT2IPB0eHD9ULCPENEktwp`, following pagination until either an official library named Primer is found or all pages are exhausted.
 
 Expected: one library entry whose publisher/name identifies the official Primer library. Save its exact `libraryKey`. If absent, stop with no canvas writes.
 
-- [ ] **Step 4: Search the official Primer library**
+- [x] **Step 4: Search the official Primer library**
 
 Restrict every `search_design_system` call with `includeLibraryKeys: [primerLibraryKey]`, `includeComponents: true`, and search these exact queries:
 
@@ -136,7 +137,7 @@ ActionList Item
 
 Expected: every field of `PrimerAssetMap` resolves to an official component or component set key. If any field is unresolved, stop before writing.
 
-- [ ] **Step 5: Validate variants and component properties**
+- [x] **Step 5: Validate variants and component properties**
 
 Use one read-only `use_figma` call that imports the resolved components, creates temporary instances, reads `componentProperties`, and removes all temporary instances before return. Return the completed `PrimerAssetMap`.
 
@@ -152,9 +153,9 @@ Card: value/title/description or arbitrary official content slots
 ActionList Item: title, description, trailing action
 ```
 
-Expected: all Russian content can be assigned with `setProperties()` and no inner text mutation. If any required capability is absent, remove temporary nodes and stop before writing.
+Expected: all Russian content can be assigned through `setProperties()` or, for unmanaged text, through a font-safe `characters` override on a `TEXT` descendant of the linked official instance. If neither path is available, remove temporary nodes and stop before writing.
 
-- [ ] **Step 6: Search Primer variables and styles**
+- [x] **Step 6: Search Primer variables and styles**
 
 Within the same official library, run separate searches for:
 
@@ -176,13 +177,13 @@ Expected: capture keys for the official surface, text, border, spacing/radius va
 - Consumes: validated `PrimerAssetMap`, source snapshot from Task 1.
 - Produces: `strictFrameId: string`.
 
-- [ ] **Step 1: Assert no strict frame already exists**
+- [x] **Step 1: Assert no strict frame already exists**
 
 Use a read-only lookup on page `Личный кабинет юрлица` for the exact name `Desktop / Обзор / Primer — strict`.
 
 Expected: no match. If a match exists, stop and report its node ID instead of creating a duplicate.
 
-- [ ] **Step 2: Create one technical root frame**
+- [x] **Step 2: Create one technical root frame**
 
 Use `use_figma` to create one `FRAME`, name it exactly, resize it to `1440 × 1100`, set clipping on, and place it 200 px to the right of the rightmost top-level node on the source page. Do not create children in this call.
 
@@ -194,7 +195,7 @@ return {createdNodeIds: [strictFrame.id], strictFrameId: strictFrame.id}
 
 Expected: exactly one new node; its `children.length === 0`.
 
-- [ ] **Step 3: Validate the root**
+- [x] **Step 3: Validate the root**
 
 Read back `{id, name, type, width, height, x, y, childCount}`.
 
@@ -206,7 +207,7 @@ Expected: type `FRAME`, exact name, `1440 × 1100`, zero children, no overlap wi
 - Consumes: `strictFrameId`, `PrimerAssetMap.pageHeader`, `PrimerAssetMap.navList`, `PrimerAssetMap.navListGroup`, `PrimerAssetMap.navListItem`, brand logo key.
 - Produces: IDs for header, logo, navigation groups, and navigation items.
 
-- [ ] **Step 1: Import official PageHeader and NavList assets**
+- [x] **Step 1: Import official PageHeader and NavList assets**
 
 Import by the component/component-set keys recorded in `PrimerAssetMap`. Select only official variants and assert `remote === true` on each imported main component.
 
@@ -218,7 +219,7 @@ Create a Primer PageHeader instance, set organization, verification status, help
 
 Expected: root children added by this step are instances only; logo is the sole `remote: false` exception.
 
-- [ ] **Step 3: Place grouped NavList instances**
+- [x] **Step 3: Place grouped NavList instances**
 
 Create official navigation groups and items with these labels:
 
@@ -244,7 +245,7 @@ Set only `Обзор` to the official active/current state. Append every resulti
 
 Expected: all navigation instances are official and remain connected; no raw group-label text nodes exist at root level.
 
-- [ ] **Step 4: Screenshot and inspect the shell**
+- [x] **Step 4: Screenshot and inspect the shell**
 
 Capture the header and navigation regions separately.
 
@@ -267,7 +268,7 @@ Description: Главное по размещению заказов и поис
 
 Use only PageHeader properties. Do not create free-standing text.
 
-- [ ] **Step 2: Add official buttons**
+- [x] **Step 2: Add official buttons**
 
 Create two official Button instances:
 
@@ -280,7 +281,7 @@ Attach through the official PageHeader action slot if available; otherwise appen
 
 Expected: no `secondary` variant and no local `Primer / FORUM / Button` instance.
 
-- [ ] **Step 3: Add the official verification Label**
+- [x] **Step 3: Add the official verification Label**
 
 Create an official Label instance with text `Верифицирована` and the closest available non-danger status scheme.
 
@@ -299,7 +300,7 @@ Set component properties to these triples:
 
 Expected: four connected official Card instances in one row, with no manual card frames or free text.
 
-- [ ] **Step 5: Screenshot and inspect header/metrics**
+- [x] **Step 5: Screenshot and inspect header/metrics**
 
 Expected: all content visible, correct official variants, no placeholder copy, and consistent Primer spacing.
 
@@ -349,7 +350,7 @@ Expected: three headings, seven items, readable metadata and trailing actions; n
 - Consumes: `strictFrameId`, source snapshot, allowed logo key.
 - Produces: final compliance report and screenshot.
 
-- [ ] **Step 1: Audit top-level structure**
+- [x] **Step 1: Audit top-level structure**
 
 Run a read-only traversal:
 
@@ -386,31 +387,31 @@ return {violations}
 
 Expected: `violations` is empty.
 
-- [ ] **Step 2: Assert absence of forbidden local components**
+- [x] **Step 2: Assert absence of forbidden local components**
 
 Return every instance whose main component or parent set name contains `Primer / FORUM`.
 
 Expected: empty array.
 
-- [ ] **Step 3: Recheck the source frame**
+- [x] **Step 3: Recheck the source frame**
 
 Read `{id, name, width, height, childIds}` from node `108:75` and compare with Task 1 snapshot.
 
 Expected: exact match.
 
-- [ ] **Step 4: Assert component text and font provenance**
+- [x] **Step 4: Assert component text and font provenance**
 
 Return every visible text string in the strict frame, its nearest instance ancestor, and the ancestor main component’s `remote` status.
 
 Expected: every required source string is present; every string belongs to an official remote Primer instance or the permitted logo instance. Text styles inside official components remain library-governed.
 
-- [ ] **Step 5: Capture the full strict frame**
+- [x] **Step 5: Capture the full strict frame**
 
 Take a 1× screenshot and compare it with the source frame.
 
 Expected: same information architecture and content, readable at 1440 px, with no clipping, overlap, empty required regions, placeholder content, or accidental local styling.
 
-- [ ] **Step 6: Report completion**
+- [x] **Step 6: Report completion**
 
 Provide the new frame ID, direct link, official component families used, audit result, and the two allowed exceptions: technical root frame and brand logo.
 
@@ -419,11 +420,11 @@ Provide the new frame ID, direct link, official component families used, audit r
 **Files:**
 - Modify: `docs/superpowers/plans/2026-08-12-primer-only-dashboard-figma.md`
 
-- [ ] **Step 1: Check completed boxes only after evidence exists**
+- [x] **Step 1: Check completed boxes only after evidence exists**
 
 Update `- [ ]` to `- [x]` only for steps whose tool result or screenshot has been verified.
 
-- [ ] **Step 2: Verify documentation diff**
+- [x] **Step 2: Verify documentation diff**
 
 Run:
 
@@ -444,3 +445,23 @@ git commit -m "docs: record strict Primer dashboard build"
 ```
 
 Expected: one documentation-only commit; unrelated dirty worktree changes remain unstaged.
+
+---
+
+## Execution evidence — 2026-08-12
+
+- Created frame: `141:225`, `Desktop / Обзор / Primer — strict`, 1440 × 1100 at `(3240, 1000)`.
+- Structural audit: `pass: true`; 47 direct children, all `INSTANCE`; 72 linked instances including nested Primer assets.
+- Local-instance violations: none. The only local component is the permitted brand logo key `0a8b7c07a97bdc6e6ecac92581e2a5ff0ec2bdac`.
+- Source frame `108:75` remained unchanged: 1440 × 1100, direct children `117:85`, `117:93`.
+- Content audit: no missing required strings and no placeholder strings.
+- Font audit: all visible interface text resolves to `SF Pro`. The library's unavailable `SF Pro Text`/`SF Pro Display` names were minimally overridden with the available `SF Pro` family inside linked instances.
+- Official remote families used: `Heading`, `StateLabel`, `Button`, `NavList.GroupHeading`, `NavList.Item/SubItem`, `ActionList.GroupHeading`, `ActionList.Item/Default`, and their remote nested assets.
+- Final frame: `https://www.figma.com/design/WT2IPB0eHD9ULCPENEktwp/Макеты-2.0?node-id=141-225`.
+
+### Confirmed deviations from the initial component map
+
+- The connected Primer kit has no suitable official `PageLayout`, `AppHeader`, or `Card` component.
+- `PageHeader` was inspected but not placed because its available description variants include pull-request metadata and unwanted actions. The same content was composed from official `Heading` and `Button` instances.
+- Metrics use official `Heading` plus `ActionList.Item/Default` instead of unavailable `Card` instances.
+- Attention and order rows use official `ActionList.Item/Default` plus official `Button` instances directly in the technical root, preserving the strict no-local-container rule.
