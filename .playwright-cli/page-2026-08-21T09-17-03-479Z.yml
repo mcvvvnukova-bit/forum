@@ -1,0 +1,9 @@
+- generic [ref=e4]:
+  - generic [ref=e25]:
+    - heading "Check your email" [level=1] [ref=e28]
+    - generic [ref=e29]:
+      - text: A magic sign-in link has been sent to the email
+      - emphasis [ref=e30]: nonexistent-20260821@example.net
+      - text: if an account exists.
+    - button "Back to login" [ref=e31] [cursor=pointer]
+  - region "Notifications alt+T"

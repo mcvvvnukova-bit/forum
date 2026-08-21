@@ -1,0 +1,7 @@
+- generic [ref=e4]:
+  - generic [ref=e6]:
+    - heading "Login to АСТ Форум" [level=2] [ref=e10]
+    - generic [ref=e12]:
+      - textbox "me@domain.com" [active] [ref=e21]
+      - button "Sign In →" [ref=e22] [cursor=pointer]
+  - region "Notifications alt+T"
