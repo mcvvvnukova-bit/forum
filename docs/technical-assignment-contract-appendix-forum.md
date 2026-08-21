@@ -31,7 +31,7 @@
 ### 1.2. Источники требований
 
 - Спецификация продукта: docs/superpowers/specs/2026-07-04-construction-order-distribution-platform-design.md.
-- План реализации MVP: docs/plans/2026-07-04-001-feat-construction-platform-mvp-plan.md.
+- План реализации MVP: docs/implementation-plans/M00-construction-platform-mvp-implementation-plan.md.
 - Доменная модель и терминология: CONTEXT.md.
 - Архитектурные решения: docs/adr/0001-0004.
 - Бэклог и границы будущих версий: docs/backlog.md.
