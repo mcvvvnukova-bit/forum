@@ -79,7 +79,7 @@ FORUM Foundations / 07 Theme Example
 - Consumes: approved spec, Figma file key, known collection/page/frame IDs.
 - Produces: `ReskinState` with a complete pre-mutation snapshot and no pending ambiguity.
 
-- [ ] **Step 1: Re-read approved requirements and confirm no new conflicting source**
+- [x] **Step 1: Re-read approved requirements and confirm no new conflicting source**
 
 Run:
 
@@ -90,7 +90,7 @@ git status --short
 
 Expected: spec contains no unresolved markers; unrelated dirty-worktree changes remain untouched.
 
-- [ ] **Step 2: Inspect the collection, styles, target frame, and fonts read-only**
+- [x] **Step 2: Inspect the collection, styles, target frame, and fonts read-only**
 
 Use one read-only `use_figma` call with `skillNames: "figma-use,figma-generate-library"`. Resolve `33:146`, switch once to its page, then return:
 
@@ -147,7 +147,7 @@ existingDocs is empty, or contains only exact deterministic names from an interr
 
 If any required font style is absent, stop before mutation and report the missing exact font name.
 
-- [ ] **Step 3: Write the initial state ledger**
+- [x] **Step 3: Write the initial state ledger**
 
 Use `apply_patch` to create `/tmp/design-system-state-forum-primer-reskin-v1.json` with the exact returned collection/mode/variable/style IDs. Set:
 
@@ -195,7 +195,7 @@ const primitiveDefs = [
 ]
 ```
 
-- [ ] **Step 1: Update existing primitives without changing IDs**
+- [x] **Step 1: Update existing primitives without changing IDs**
 
 Use one `use_figma` mutation call. Look up variables by exact current names and update these in place:
 
@@ -214,7 +214,7 @@ For each variable: set the exact value for the Light mode, set `scopes = []`, an
 
 Expected: all eight IDs match the preflight snapshot.
 
-- [ ] **Step 2: Migrate the two legacy accent primitive IDs**
+- [x] **Step 2: Migrate the two legacy accent primitive IDs**
 
 In one focused `use_figma` call:
 
@@ -227,7 +227,7 @@ Set `scopes = []`, set WEB code syntax to `var(--forum-primitive-link)` and `var
 
 Expected: no variables remain named `primitive/accent-strong` or `primitive/accent-soft`.
 
-- [ ] **Step 3: Create only the missing primitives**
+- [x] **Step 3: Create only the missing primitives**
 
 In one focused `use_figma` call, idempotently create:
 
@@ -241,7 +241,7 @@ Before each create, query exact name in collection `VariableCollectionId:107:73`
 
 Expected: exactly 13 primitive names from `primitiveDefs`, no duplicate names.
 
-- [ ] **Step 4: Validate primitives read-only and update ledger**
+- [x] **Step 4: Validate primitives read-only and update ledger**
 
 Read all variables in the collection and return only `primitive/*` entries with IDs, values, scopes, and code syntax.
 
@@ -285,7 +285,7 @@ const semanticDefs = [
 ]
 ```
 
-- [ ] **Step 1: Update existing semantic aliases in place**
+- [x] **Step 1: Update existing semantic aliases in place**
 
 Use one `use_figma` call to update exact existing names:
 
@@ -305,7 +305,7 @@ Use `figma.variables.createVariableAlias(primitiveVar)` for every value. Apply e
 
 Expected: existing IDs unchanged; `color/text/on-accent` now aliases `primitive/black`.
 
-- [ ] **Step 2: Migrate legacy semantic IDs**
+- [x] **Step 2: Migrate legacy semantic IDs**
 
 In one focused call:
 
@@ -316,7 +316,7 @@ color/bg/accent-soft → rename to color/bg/accent-muted → alias primitive/acc
 
 Expected: both IDs are preserved; old names no longer exist.
 
-- [ ] **Step 3: Create missing semantic roles idempotently**
+- [x] **Step 3: Create missing semantic roles idempotently**
 
 Create or update exact names:
 
@@ -331,7 +331,7 @@ Apply aliases, scopes, and WEB syntax from `semanticDefs`.
 
 Expected: 15 semantic roles from the definition table and zero hardcoded semantic colors.
 
-- [ ] **Step 4: Normalize existing spacing and radius variables**
+- [x] **Step 4: Normalize existing spacing and radius variables**
 
 Use one focused call to assert and set:
 
@@ -354,7 +354,7 @@ Set WEB syntax for every dimension variable. Preserve every existing ID.
 
 Expected: `radius/lg = 12` and all dimensions have explicit scopes.
 
-- [ ] **Step 5: Audit the full collection and update ledger**
+- [x] **Step 5: Audit the full collection and update ledger**
 
 Read all collection variables. Verify:
 
@@ -394,7 +394,7 @@ const typeDefs = [
 ]
 ```
 
-- [ ] **Step 1: Load exact fonts and upsert the text styles**
+- [x] **Step 1: Load exact fonts and upsert the text styles**
 
 Use one `use_figma` call. First confirm exact styles with `listAvailableFontsAsync()`, then `await Promise.all()` for the four exact font/style pairs. For each definition, find existing style by exact name or create it, then assign:
 
@@ -414,7 +414,7 @@ This updates the existing names `FORUM / Heading / Page`, `FORUM / Body / Small`
 
 Expected: exactly ten exact target style names; no legacy names remain.
 
-- [ ] **Step 2: Validate typography and update ledger**
+- [x] **Step 2: Validate typography and update ledger**
 
 Return each target style's ID, name, `fontName`, `fontSize`, `lineHeight`, `letterSpacing`, and description.
 
@@ -437,7 +437,7 @@ const effectDefs = [
 ]
 ```
 
-- [ ] **Step 1: Upsert exact effect styles**
+- [x] **Step 1: Upsert exact effect styles**
 
 Use one `use_figma` call. Find each style by exact name or create it. Assign one `DROP_SHADOW` effect:
 
@@ -450,7 +450,7 @@ style.effects = [{
 
 Expected: exactly four target styles, each with exactly one effect.
 
-- [ ] **Step 2: Validate effects and update ledger**
+- [x] **Step 2: Validate effects and update ledger**
 
 Return exact IDs and effect arrays. Verify values against `effectDefs`. Update ledger and complete the remaining `P1.f` and `P1.h` items.
 
@@ -460,11 +460,11 @@ Return exact IDs and effect arrays. Verify values against `effectDefs`. Update l
 - Consumes: target frame `33:146`, semantic variable ID map, deterministic section names.
 - Produces: one documentation root and seven empty section frames with exact IDs.
 
-- [ ] **Step 1: Capture the immutable baseline screenshot and metadata**
+- [x] **Step 1: Capture the immutable baseline screenshot and metadata**
 
 Call `get_metadata` and `get_screenshot` for `33:146` before layout mutation. Save the screenshot URL metadata in the ledger under `documentation.baselineScreenshot` and record original size `1440 × 760`.
 
-- [ ] **Step 2: Create or recover the documentation root**
+- [x] **Step 2: Create or recover the documentation root**
 
 Use one `use_figma` call on page `33:137`. If `FORUM Foundations / Root` exists, return its ID after verifying it is inside `33:146`; otherwise create an auto-layout frame with:
 
@@ -483,13 +483,13 @@ Resize `Guidelines content` to `1440 × 6200` initially. Append the root to `33:
 
 Expected: original children remain unchanged; root is a new fourth child below existing content.
 
-- [ ] **Step 3: Create seven deterministic placeholder section frames**
+- [x] **Step 3: Create seven deterministic placeholder section frames**
 
 Create the seven section frames in two or more sequential `use_figma` calls, keeping each call below ten logical operations. Every section is vertical auto layout, 1200 px wide, `itemSpacing = 24`, transparent fill, and `placeholder = true`. Append in exact numeric order.
 
 Expected: exactly seven section children, no duplicates, all placeholder shimmers enabled. Save exact IDs to ledger.
 
-- [ ] **Step 4: Validate the skeleton**
+- [x] **Step 4: Validate the skeleton**
 
 Use `get_metadata` on the root. Expected exact seven-child order, positive widths/heights, root below y=760, original content intact.
 
@@ -499,7 +499,7 @@ Use `get_metadata` on the root. Expected exact seven-child order, positive width
 - Consumes: IDs for sections 01 and 02, variable/style maps.
 - Produces: variable-bound brand and semantic specimens; placeholders removed for both sections.
 
-- [ ] **Step 1: Build Section 01 heading and primitive swatches**
+- [x] **Step 1: Build Section 01 heading and primitive swatches**
 
 Use sequential focused `use_figma` calls. Load `Unbounded SemiBold`, `Golos Text Regular`, and `Golos Text SemiBold`. Create a heading block with:
 
@@ -513,7 +513,7 @@ Create 13 swatch cards in rows of at most four. Every swatch fill must bind to t
 
 Expected: no hardcoded swatch color, no missing token, all labels legible.
 
-- [ ] **Step 2: Build Section 02 semantic roles and states**
+- [x] **Step 2: Build Section 02 semantic roles and states**
 
 Create groups for `Foreground`, `Background`, `Border`, and `Interactive states`. Include a Primary action specimen with:
 
@@ -527,7 +527,7 @@ Link    #CC4415 on white
 
 All fills and text colors bind to semantic variables. Add the note: `Белый текст на Primary Orange не используется: контраст 3.2:1.`
 
-- [ ] **Step 3: Remove placeholders and validate color sections**
+- [x] **Step 3: Remove placeholders and validate color sections**
 
 Set `placeholder = false` on sections 01 and 02. Call `get_metadata` for structure, then `get_screenshot` for each section.
 
@@ -539,7 +539,7 @@ Expected: no clipped token names, no overlap, all specimen colors visually disti
 - Consumes: section IDs 03–05 and all local style/token IDs.
 - Produces: three completed documentation sections.
 
-- [ ] **Step 1: Build Section 03 typography specimens**
+- [x] **Step 1: Build Section 03 typography specimens**
 
 Create headings:
 
@@ -551,13 +551,13 @@ description: Unbounded задаёт характер, Golos Text обслужи�
 
 Create one specimen row per exact Text Style. Apply styles through `setTextStyleIdAsync(styleId)`. Include the exact style name, size/line-height, and usage note. Use representative Russian copy and verify Unbounded is absent from table/form/button examples.
 
-- [ ] **Step 2: Build Section 04 spacing and radius specimens**
+- [x] **Step 2: Build Section 04 spacing and radius specimens**
 
 Create spacing bars for 4, 8, 12, 16, 24, and 32, binding width or gap-capable properties to the corresponding variables where supported. Create radius tiles for 6, 8, 12, and 999, binding corner radius to the corresponding variables.
 
 Label the preservation rule: `Spacing и размеры компонентов Primer не изменяются.`
 
-- [ ] **Step 3: Build Section 05 elevation and focus specimens**
+- [x] **Step 3: Build Section 05 elevation and focus specimens**
 
 Create four white specimen cards and assign the corresponding effect style IDs. Explain:
 
@@ -570,7 +570,7 @@ Focus / Brand — interactive focus treatment
 
 Default card specimen must use border only and no effect.
 
-- [ ] **Step 4: Remove placeholders and validate Sections 03–05**
+- [x] **Step 4: Remove placeholders and validate Sections 03–05**
 
 Set all three placeholders false. Validate metadata and capture one screenshot per section.
 
@@ -582,7 +582,7 @@ Expected: no missing fonts, correct type scale, visible but restrained effects, 
 - Consumes: section IDs 06–07, connected Primer library, local semantic tokens/styles.
 - Produces: two completed sections without detached assets.
 
-- [ ] **Step 1: Build Section 06 Octicons usage guidance**
+- [x] **Step 1: Build Section 06 Octicons usage guidance**
 
 Search or import connected Primer `Icon` plus representative Octicons. Use only connected instances. Show native 16 px and 24 px examples for default, muted, active, and status contexts. Add exact rules:
 
@@ -595,7 +595,7 @@ Success, attention и danger сохраняют собственные цвет�
 
 Do not detach, edit vector geometry, or create a local icon library.
 
-- [ ] **Step 2: Build Section 07 compact FORUM theme example**
+- [x] **Step 2: Build Section 07 compact FORUM theme example**
 
 Create a documentation-only sample panel using auto-layout and local variables/styles. Include:
 
@@ -611,11 +611,11 @@ Text link: Перейти к заказам
 
 This is a visual specimen, not a component library: create frames/text only inside the documentation section, bind every supported visual property to local variables/styles, and do not publish components.
 
-- [ ] **Step 3: Remove placeholders and resize the target frame to content**
+- [x] **Step 3: Remove placeholders and resize the target frame to content**
 
 Set section 06 and 07 placeholders false. Measure root bottom and resize `33:146` height to `ceil(root.y + root.height + 80)`. Do not modify its width or existing top content.
 
-- [ ] **Step 4: Validate Sections 06–07**
+- [x] **Step 4: Validate Sections 06–07**
 
 Use metadata and screenshots. Expected: connected icon instances, native sizes, no detached vectors, clear primary-action contrast, readable Russian text.
 
@@ -625,7 +625,7 @@ Use metadata and screenshots. Expected: connected icon instances, native sizes, 
 - Consumes: completed ledger, collection/style/docs IDs.
 - Produces: final QA report, screenshots, completed state ledger.
 
-- [ ] **Step 1: Run the final variable audit**
+- [x] **Step 1: Run the final variable audit**
 
 Use read-only `use_figma` to return:
 
@@ -642,11 +642,11 @@ hardcoded-semantic list
 
 Expected: one Light mode; no duplicates; no missing required names; empty ALL_SCOPES and hardcoded-semantic lists.
 
-- [ ] **Step 2: Run the final styles audit**
+- [x] **Step 2: Run the final styles audit**
 
 Return all target Text Styles and Effect Styles with exact properties. Expected: ten text styles and four effect styles, exact values, no duplicate target names.
 
-- [ ] **Step 3: Run the documentation structure audit**
+- [x] **Step 3: Run the documentation structure audit**
 
 Use `get_metadata` on `33:146`. Expected:
 
@@ -659,11 +659,11 @@ all nodes fit inside 1440 px target width
 no section overlaps another
 ```
 
-- [ ] **Step 4: Run the remote Primer safety audit**
+- [x] **Step 4: Run the remote Primer safety audit**
 
 Read all instances under `33:146`. For each, resolve `mainComponent` and return `{instanceId, name, mainKey, remote}`. Expected: every Primer-derived icon instance remains connected and remote; no detached icon vectors were introduced.
 
-- [ ] **Step 5: Capture final screenshots**
+- [x] **Step 5: Capture final screenshots**
 
 Capture:
 
@@ -677,7 +677,7 @@ FORUM Foundations / 07 Theme Example
 
 Inspect at sufficient resolution for clipping, overlap, missing fonts, placeholder text, variable resolution, and effect rendering.
 
-- [ ] **Step 6: Mark the state ledger complete**
+- [x] **Step 6: Mark the state ledger complete**
 
 Update:
 
@@ -697,7 +697,7 @@ Update:
 
 Record `P4.a` as `N/A: this foundations-only phase has no code components or Code Connect mappings`.
 
-- [ ] **Step 7: Report the final artifact**
+- [x] **Step 7: Report the final artifact**
 
 Report exact collection/style counts, created/updated objects, validation results, remaining boundary (component forks are a later phase), and link the Figma frame:
 
@@ -711,11 +711,11 @@ https://www.figma.com/design/WT2IPB0eHD9ULCPENEktwp/Макеты-2.0?node-id=33-
 - Consumes: completed Figma QA and checked plan.
 - Produces: one repository commit containing only the updated spec and checked implementation plan.
 
-- [ ] **Step 1: Mark completed plan checkboxes**
+- [x] **Step 1: Mark completed plan checkboxes**
 
 Update only this plan file after each successful task. Do not stage unrelated workspace changes.
 
-- [ ] **Step 2: Validate repository documentation**
+- [x] **Step 2: Validate repository documentation**
 
 Run:
 
@@ -730,7 +730,7 @@ git diff --check -- \
 
 Expected: no placeholder hits and no whitespace errors.
 
-- [ ] **Step 3: Commit only the implementation record**
+- [x] **Step 3: Commit only the implementation record**
 
 ```bash
 git add -- \
