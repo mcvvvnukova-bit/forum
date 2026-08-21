@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>АСТ Форум — Project Roadmap</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3348;
+    --text: #e4e6f0;
+    --text-dim: #8b8fa8;
+    --accent-blue: #6c8cff;
+    --accent-purple: #a78bfa;
+    --accent-green: #34d399;
+    --accent-orange: #fb923c;
+    --accent-pink: #f472b6;
+    --accent-cyan: #22d3ee;
+    --accent-yellow: #fbbf24;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 24px 24px 0;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .tab-btn {
+    padding: 10px 24px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    transition: all .2s;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--surface); }
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--accent-blue);
+    border-bottom-color: var(--surface);
+  }
+  .tab-content { display: none; padding: 32px 24px 80px; max-width: 1400px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  /* Header */
+  .hero {
+    text-align: center;
+    padding: 48px 24px 40px;
+  }
+  .hero h1 {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+  }
+  .hero p {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .hero .subtitle {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    opacity: .7;
+  }
+
+  /* Phase cards */
+  .phase {
+    margin-bottom: 48px;
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .phase-badge {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    white-space: nowrap;
+  }
+  .phase-title {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .phase-meta {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* Card grid */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: transform .2s, border-color .2s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-blue);
+  }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .card p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .card .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 12px;
+    margin-right: 4px;
+  }
+
+  /* Timeline vertical */
+  .timeline {
+    position: relative;
+    padding-left: 48px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, var(--accent-blue), var(--accent-purple), var(--accent-green), var(--accent-orange));
+    border-radius: 2px;
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 36px;
+  }
+  .timeline-dot {
+    position: absolute;
+    left: -40px;
+    top: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid var(--bg);
+    z-index: 2;
+  }
+  .timeline-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-left: 20px;
+  }
+  .timeline-card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .timeline-card .date-range {
+    font-size: 13px;
+    color: var(--accent-blue);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .timeline-card p {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .milestone-list {
+    list-style: none;
+    padding: 0;
+  }
+  .milestone-list li {
+    font-size: 14px;
+    padding: 4px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .milestone-list li::before {
+    content: '→';
+    color: var(--accent-blue);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Gantt */
+  .gantt-wrapper {
+    overflow-x: auto;
+    padding-bottom: 16px;
+  }
+  .gantt {
+    min-width: 1100px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .gantt-header {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .gantt-header .month-label {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px 0;
+    border-left: 1px solid var(--border);
+  }
+  .gantt-row {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+  .gantt-row:last-child { border-bottom: none; }
+  .gantt-label {
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+  }
+  .gantt-label .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .gantt-bar-area {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    position: relative;
+    background: var(--bg);
+  }
+  .gantt-bar-area::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      to right,
+      transparent,
+      transparent calc(100% / 12 - 1px),
+      var(--border) calc(100% / 12 - 1px),
+      var(--border) calc(100% / 12)
+    );
+    pointer-events: none;
+  }
+  .gantt-bar {
+    position: absolute;
+    height: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 2;
+  }
+
+  /* Value section */
+  .value-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  .value-card h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .metric {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .metric .value {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .metric .label {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    margin: 24px 0;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+  }
+
+  /* Section title */
+  .section-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .section-subtitle {
+    font-size: 15px;
+    color: var(--text-dim);
+    margin-bottom: 32px;
+  }
+
+  /* Risk box */
+  .risk-box {
+    background: var(--surface);
+    border-left: 4px solid var(--accent-orange);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 20px 24px;
+    margin-top: 24px;
+  }
+  .risk-box h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--accent-orange);
+  }
+  .risk-box p {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  /* KPI row */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .kpi {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .kpi .val {
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .kpi .lbl {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--text-dim);
+    font-size: 13px;
+    opacity: .6;
+  }
+</style>
+</head>
+<body>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('timeline')">📅 Таймлайн</button>
+  <button class="tab-btn" onclick="showTab('gantt')">📊 Диаграмма Ганта</button>
+  <button class="tab-btn" onclick="showTab('value')">💰 Ценность для инвестора</button>
+</div>
+
+<!-- ==================== TAB 1: TIMELINE ==================== -->
+<div id="tab-timeline" class="tab-content active">
+
+  <div class="hero">
+    <h1>АСТ «Форум»</h1>
+    <p>Дорожная карта развития платформы распределения строительных заказов</p>
+    <div class="subtitle">Версия 1.0 · Август 2026</div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--accent-blue)"></div> MVP-ядро</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--accent-purple)"></div> Расширение</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--accent-green)"></div> Масштабирование</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--accent-orange)"></div> Монетизация</div>
+  </div>
+
+  <!-- Phase 1 -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-badge" style="background:rgba(108,140,255,.15);color:var(--accent-blue)">Фаза 1</div>
+      <div class="phase-title">MVP — Рабочий продукт</div>
+      <div class="phase-meta">Авг – Окт 2026</div>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent-blue)"></div>
+        <div class="timeline-card">
+          <h3>Инфраструктура и регистрация</h3>
+          <div class="date-range">Август 2026</div>
+          <ul class="milestone-list">
+            <li>Лендинг-страница платформы</li>
+            <li>Регистрация и авторизация физлиц (Сбер ID)</li>
+            <li>Регистрация и авторизация юрлиц / ИП (Контур.Диадок)</li>
+            <li>Базовая админ-панель модератора</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent-blue)"></div>
+        <div class="timeline-card">
+          <h3>Публикация заказов и лотов</h3>
+          <div class="date-range">Сентябрь 2026</div>
+          <ul class="milestone-list">
+            <li>Создание проектов и строительных объектов</li>
+            <li>Загрузка и импорт смет (Excel)</li>
+            <li>Разбиение сметы на лоты, модерация</li>
+            <li>Публикация лотов в закрытый пул</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent-blue)"></div>
+        <div class="timeline-card">
+          <h3>Сделки и подтверждение</h3>
+          <div class="date-range">Октябрь 2026</div>
+          <ul class="milestone-list">
+            <li>Рассылка лотов подходящим исполнителям</li>
+            <li>Сбор структурированных предложений</li>
+            <li>Выбор победителя, раскрытие контактов</li>
+            <li>Пакет сделки, отзывы, модерация</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2 -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-badge" style="background:rgba(167,139,250,.15);color:var(--accent-purple)">Фаза 2</div>
+      <div class="phase-title">Расширение функционала</div>
+      <div class="phase-meta">Янв – Мар 2027</div>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent-purple)"></div>
+        <div class="timeline-card">
+          <h3>Аналитика и уведомления</h3>
+          <div class="date-range">Январь 2027</div>
+          <ul class="milestone-list">
+            <li>Дашборды для заказчиков: KPI, воронка, экспорт</li>
+            <li>Расширенные уведомления (Telegram, MAX)</li>
+            <li>Избранное, блокировка поставщиков</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent-purple)"></div>
+        <div class="timeline-card">
+          <h3>Интеграции и API</h3>
+          <div class="date-range">Февраль 2027</div>
+          <ul class="milestone-list">
+            <li>Интеграция с 1С и ГЭСН-расценками</li>
+            <li>Открытый API для ERP-систем</li>
+            <li>Электронный документооборот (ЭДО)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent-purple)"></div>
+        <div class="timeline-card">
+          <h3>Мобильное приложение</h3>
+          <div class="date-range">Март 2027</div>
+          <ul class="milestone-list">
+            <li>Мобильная версия для исполнителей</li>
+            <li>Push-уведомления в реальном времени</li>
+            <li>Сканер документов на объекте</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3 -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-badge" style="background:rgba(52,211,153,.15);color:var(--accent-green)">Фаза 3</div>
+      <div class="phase-title">Масштабирование</div>
+      <div class="phase-meta">Июнь – Дек 2027</div>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent-green)"></div>
+        <div class="timeline-card">
+          <h3>Расширение рынка</h3>
+          <div class="date-range">Июнь – Сентябрь 2027</div>
+          <ul class="milestone-list">
+            <li>Региональная экспансия (Урал, Сибирь, ДВ)</li>
+            <li>Интеграция с госзакупочными платформами (ЕИС, РТС-тендер)</li>
+            <li>Мульти-тенант для крупных застройщиков</li>
+          </ul>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot" style="background:var(--accent-green)"></div>
+        <div class="timeline-card">
+          <h3>AI и автоматизация</h3>
+          <div class="date-range">Октябрь – Декабрь 2027</div>
+          <ul class="milestone-list">
+            <li>AI-рекомендации исполнителей по лотам</li>
+            <li>Автоматическая валидация смет</li>
+            <li>Прогнозирование рисков задержек</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="risk-box">
+    <h4>⚠ Ключевые риски</h4>
+    <p>Зависимость от API Сбер ID / Контур.Диадок · Конкуренция с существующими тендерными площадками · Долгий цикл продаж B2B · Регуляторные изменения в сфере госзакупок</p>
+  </div>
+
+</div>
+
+<!-- ==================== TAB 2: GANTT ==================== -->
+<div id="tab-gantt" class="tab-content">
+
+  <div class="hero">
+    <h1>Диаграмма Ганта</h1>
+    <p>Детальный план реализации по месяцам</p>
+  </div>
+
+  <div class="gantt-wrapper">
+    <div class="gantt">
+      <div class="gantt-header">
+        <div class="gantt-label" style="background:var(--surface2);font-weight:700;">Модуль</div>
+        <div class="month-label" style="background:var(--surface2)">Авг</div>
+        <div class="month-label" style="background:var(--surface2)">Сен</div>
+        <div class="month-label" style="background:var(--surface2)">Окт</div>
+        <div class="month-label" style="background:var(--surface2)">Ноя</div>
+        <div class="month-label" style="background:var(--surface2)">Дек</div>
+        <div class="month-label" style="background:var(--surface2)">Янв</div>
+        <div class="month-label" style="background:var(--surface2)">Фев</div>
+        <div class="month-label" style="background:var(--surface2)">Мар</div>
+        <div class="month-label" style="background:var(--surface2)">Апр</div>
+        <div class="month-label" style="background:var(--surface2)">Май</div>
+        <div class="month-label" style="background:var(--surface2)">Июн</div>
+        <div class="month-label" style="background:var(--surface2)">Июл</div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-blue)"></div>Лендинг</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(0/12*100%);width:calc(1.5/12*100%);background:var(--accent-blue);">Лендинг</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-blue)"></div>Авторизация</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(0.5/12*100%);width:calc(2/12*100%);background:var(--accent-blue);">Сбер ID / Диадок</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-blue)"></div>Проекты и объекты</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(1.5/12*100%);width:calc(1.5/12*100%);background:var(--accent-blue);">Проекты/Объекты</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-blue)"></div>Сметы и лоты</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(2/12*100%);width:calc(2/12*100%);background:var(--accent-blue);">Сметы + Лоты</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-blue)"></div>Рассылка и предложения</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(3/12*100%);width:calc(2/12*100%);background:var(--accent-blue);">Рассылка + Предл.</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-blue)"></div>Сделки и отзывы</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(4/12*100%);width:calc(2/12*100%);background:var(--accent-blue);">Сделки + Отзывы</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-purple)"></div>Аналитика</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(5/12*100%);width:calc(2/12*100%);background:var(--accent-purple);">Дашборды + Экспорт</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-purple)"></div>Интеграции (1С, API)</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(6/12*100%);width:calc(2/12*100%);background:var(--accent-purple);">1С + API + ЭДО</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-green)"></div>Мобильное приложение</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(7/12*100%);width:calc(3/12*100%);background:var(--accent-green);">Mobile + Push</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-green)"></div>Региональная экспансия</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(8/12*100%);width:calc(3/12*100%);background:var(--accent-green);">Урал, Сибирь, ДВ</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-orange)"></div>AI и автоматизация</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(10/12*100%);width:calc(2/12*100%);background:var(--accent-orange);">AI-рекомендации</div>
+        </div>
+      </div>
+
+      <div class="gantt-row">
+        <div class="gantt-label"><div class="dot" style="background:var(--accent-orange)"></div>Монетизация</div>
+        <div class="gantt-bar-area">
+          <div class="gantt-bar" style="left:calc(10.5/12*100%);width:calc(1.5/12*100%);background:var(--accent-orange);">Подписки + Комиссия</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==================== TAB 3: VALUE ==================== -->
+<div id="tab-value" class="tab-content">
+
+  <div class="hero">
+    <h1>Ценность для инвестора</h1>
+    <p>Ключевые вехи, метрики и потенциал возврата инвестиций</p>
+  </div>
+
+  <!-- Phase 1 Value -->
+  <div class="value-card">
+    <h3>🚀 Фаза 1 — MVP (Q3–Q4 2026)</h3>
+    <p style="color:var(--text-dim);font-size:15px;">Рабочий продукт, готовый к первому раунду привлечения. Подтверждение product-market fit.</p>
+    <div class="metrics">
+      <div class="metric">
+        <div class="value" style="color:var(--accent-blue)">3–5</div>
+        <div class="label">Пилотных заказчиков</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-blue)">50+</div>
+        <div class="label">Зарегистрированных исполнителей</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-blue)">100+</div>
+        <div class="label">Активных лотов</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-blue)">&lt;60 дн.</div>
+        <div class="label">Среднее время закрытия лота</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 2 Value -->
+  <div class="value-card">
+    <h3>📈 Фаза 2 — Рост (Q1–Q2 2027)</h3>
+    <p style="color:var(--text-dim);font-size:15px;">Расширение функционала, подготовка к раунду A. Интеграция с экосистемами.</p>
+    <div class="metrics">
+      <div class="metric">
+        <div class="value" style="color:var(--accent-purple)">200+</div>
+        <div class="label">Активных заказчиков</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-purple)">2 000+</div>
+        <div class="label">Исполнителей в базе</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-purple)">1 000+</div>
+        <div class="label">Лотов в месяц</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-purple)">1С / ЭДО</div>
+        <div class="label">Интеграции</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 3 Value -->
+  <div class="value-card">
+    <h3>🌍 Фаза 3 — Масштабирование (H2 2027)</h3>
+    <p style="color:var(--text-dim);font-size:15px;">Региональная экспансия, AI, монетизация. Путь к серийной модели.</p>
+    <div class="metrics">
+      <div class="metric">
+        <div class="value" style="color:var(--accent-green)">5 000+</div>
+        <div class="label">Заказчиков</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-green)">50 000+</div>
+        <div class="label">Исполнителей</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-green)">₽100M+</div>
+        <div class="label">Объём сделок / год</div>
+      </div>
+      <div class="metric">
+        <div class="value" style="color:var(--accent-green)">AI</div>
+        <div class="label">Рекомендации и прогнозы</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAM / Market -->
+  <div class="value-card">
+    <h3>🎯 Рыночный потенциал</h3>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="val" style="color:var(--accent-cyan)">₽18 трлн</div>
+        <div class="lbl">Объём стр. рынка РФ</div>
+      </div>
+      <div class="kpi">
+        <div class="val" style="color:var(--accent-cyan)">~600K</div>
+        <div class="lbl">Строительных компаний</div>
+      </div>
+      <div class="kpi">
+        <div class="val" style="color:var(--accent-cyan)">TAM $5B+</div>
+        <div class="lbl">Global e-procurement</div>
+      </div>
+      <div class="kpi">
+        <div class="val" style="color:var(--accent-cyan)">↑ 15% / г</div>
+        <div class="lbl">Рост цифровизации закупок</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="risk-box">
+    <h4>💡 Ключевые вопросы для инвестора</h4>
+    <p>1. Какой раунд и сумма целевого привлечения? 2. Готовность к пилотам с крупными застройщиками (Самол, Эталон, ПИК)? 3. Стратегия конкурентной дифференциации против тендерных площадок? 4. План по unit-экономике: CAC → LTV?</p>
+  </div>
+
+</div>
+
+<div class="footer">АСТ «Форум» · Roadmap v1.0 · Август 2026 · Конфиденциально</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

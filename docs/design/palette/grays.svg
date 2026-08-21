@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="504" height="316" viewBox="0 0 504 316">
+  <g transform="translate(0, 0)">
+    <rect width="120" height="100" rx="8" fill="#0A0A0A"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Black</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#FFFFFF" opacity="0.8">#0A0A0A</text>
+  </g>
+  <g transform="translate(128, 0)">
+    <rect width="120" height="100" rx="8" fill="#1A1A1A"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Dark 900</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#FFFFFF" opacity="0.8">#1A1A1A</text>
+  </g>
+  <g transform="translate(256, 0)">
+    <rect width="120" height="100" rx="8" fill="#282828"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Dark 800</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#FFFFFF" opacity="0.8">#282828</text>
+  </g>
+  <g transform="translate(384, 0)">
+    <rect width="120" height="100" rx="8" fill="#383838"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Dark 700</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#FFFFFF" opacity="0.8">#383838</text>
+  </g>
+  <g transform="translate(0, 108)">
+    <rect width="120" height="100" rx="8" fill="#4A4A4A"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Gray 600</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#FFFFFF" opacity="0.8">#4A4A4A</text>
+  </g>
+  <g transform="translate(128, 108)">
+    <rect width="120" height="100" rx="8" fill="#5A5A5A"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Gray 500</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#FFFFFF" opacity="0.8">#5A5A5A</text>
+  </g>
+  <g transform="translate(256, 108)">
+    <rect width="120" height="100" rx="8" fill="#7A7A7A"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">Gray 400</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#FFFFFF" opacity="0.8">#7A7A7A</text>
+  </g>
+  <g transform="translate(384, 108)">
+    <rect width="120" height="100" rx="8" fill="#9A9A9A"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#0A0A0A">Gray 300</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#0A0A0A" opacity="0.8">#9A9A9A</text>
+  </g>
+  <g transform="translate(0, 216)">
+    <rect width="120" height="100" rx="8" fill="#B8B8B8"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#0A0A0A">Gray 200</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#0A0A0A" opacity="0.8">#B8B8B8</text>
+  </g>
+  <g transform="translate(128, 216)">
+    <rect width="120" height="100" rx="8" fill="#D6D6D6"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#0A0A0A">Gray 100</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#0A0A0A" opacity="0.8">#D6D6D6</text>
+  </g>
+  <g transform="translate(256, 216)">
+    <rect width="120" height="100" rx="8" fill="#EDEDED"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#0A0A0A">Gray 50</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#0A0A0A" opacity="0.8">#EDEDED</text>
+  </g>
+  <g transform="translate(384, 216)">
+    <rect width="120" height="100" rx="8" fill="#FFFFFF"/>
+    <text x="60.0" y="44.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#0A0A0A">White</text>
+    <text x="60.0" y="62.0" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#0A0A0A" opacity="0.8">#FFFFFF</text>
+  </g>
+</svg>
