@@ -1,369 +1,361 @@
-# Construction Order Distribution Platform
+# Платформа распределения строительных заказов
 
-This context describes a platform for distributing construction work packages in Russia, especially around state and large corporate contracts.
+Этот контекст описывает платформу для распределения пакетов строительных работ в России, прежде всего в рамках государственных контрактов и контрактов с крупными корпоративными заказчиками.
 
-## Language
+## Термины
 
-**Customer Company**:
-A small or medium construction company that performs state contracts or contracts for large corporate clients and uses the platform to distribute part of that work to external performers.
-_Avoid_: End customer, private client, homeowner
+**Компания-заказчик**:
+Малая или средняя строительная компания, которая исполняет государственные контракты или контракты крупных корпоративных заказчиков и использует платформу, чтобы передавать часть этих работ внешним исполнителям.
+_Не использовать_: Конечный заказчик, частный клиент, домовладелец
 
-**Single Participant Role**:
-In the MVP, one registered organization account cannot act as both Customer Company and Provider. A company that needs both roles must register separate accounts and pass separate moderation for each role.
-_Avoid_: Hybrid account, shared customer-provider account
+**Единая роль участника**:
+В MVP одна зарегистрированная учётная запись организации не может одновременно выступать компанией-заказчиком и исполнителем. Компания, которой нужны обе роли, должна зарегистрировать для каждой роли отдельную учётную запись.
+_Не использовать_: Гибридная учётная запись, общая учётная запись заказчика и исполнителя
 
-**Customer Verification**:
-Manual review of a registered Customer Company by a Moderator before it can publish Construction Orders or use core ordering functionality.
-_Avoid_: Self-service customer activation, optional check
+**Регистрация компании-заказчика**:
+Учётная запись компании-заказчика создаётся только после успешной идентификации через Контур.Диадок. Регистрация не предусматривает ручную проверку участника или внутренний статус верификации.
+_Не использовать_: Ожидает проверки, регистрация с одобрением модератора
 
-**Customer Registration Data**:
-The MVP data required for Customer Company registration: company name, INN, legal form, region, contact person's full name and position, email, phone, password, and verification documents.
-_Avoid_: Public customer profile, optional onboarding
-
-**Verified Customer Company**:
-A Customer Company that has passed Customer Verification and is allowed to publish Construction Orders and use relevant platform functionality.
-_Avoid_: Registered customer, public buyer
+**Регистрационные данные заказчика**:
+Данные, необходимые в MVP для регистрации и заполнения профиля компании-заказчика: наименование компании, ИНН, организационно-правовая форма, регион, Ф. И. О. и должность контактного лица, электронная почта, телефон и документы профиля.
+_Не использовать_: Публичный профиль заказчика, необязательное первичное заполнение
 
 **Заказчик**:
-Пользовательская роль Customer Company в MVP. Заказчик управляет профилем компании, загружает сметы, редактирует Construction Orders, утверждает Lots, отвечает на Lot Comments и выбирает Offers.
-_Avoid_: Менеджер заказов, procurement specialist
-
-**Customer Company Users**:
-Multiple users can belong to one Customer Company in the MVP. Customer Company users can have the Заказчик role or the Customer Organization Administrator role.
-_Avoid_: Single-user company only
-
-**Customer Organization Administrator**:
-A Customer Company user role that manages users of the same Customer Company: invitations and deactivation. It does not add business approval powers beyond normal Заказчик access. Changing the Customer Organization Administrator requires a Customer Organization Administrator Change Request.
-_Avoid_: Platform Administrator, Moderator
-
-**Customer Organization Administrator Change Request**:
-A request to a Moderator to change the Customer Organization Administrator after the first verified organization user is assigned automatically.
-_Avoid_: Self-service ownership transfer, support-only informal change
-
-**Customer User Invitation**:
-An existing Customer Organization Administrator can invite another user to the same Customer Company by email. The invited user must confirm email, but the Customer Company does not repeat Customer Verification, and MVP invitations do not restrict email domains.
-_Avoid_: Public join request, repeated company moderation, email domain restriction
-
-**Customer User Deactivation**:
-A Customer Organization Administrator can deactivate a Customer Company user to remove access while preserving created Projects, Construction Objects, Construction Orders, Lots, comments, history, and Audit Trail under the Customer Company. The author is shown as a deactivated user where needed.
-_Avoid_: Hard delete, history removal
-
-**Customer Work Filtering**:
-MVP filtering for a Customer Company's Projects, Construction Objects, Construction Orders, and Lots by status, Project, Construction Object, Lot type, deadline, presence of Offers, winner-selection state, and moderation state.
-_Avoid_: Global marketplace search, public provider search
-
-**Customer Lot Metrics**:
-MVP Customer Company metrics per Lot: number of Offers, Lot status, time remaining until offer deadline, and whether the winner has been selected.
-_Avoid_: Customer BI dashboard, financial analytics
-
-**Primary Contract**:
-A state or large corporate construction contract held by a Customer Company before it decomposes part of the work into platform orders. A Primary Contract can be linked to a Project, but this link is optional.
-_Avoid_: Lead, deal, generic order
-
-**Project**:
-A Customer Company workspace for a construction initiative. A Project can contain multiple Construction Objects and can optionally reference multiple Primary Contracts.
-_Avoid_: Folder, contract in all cases, generic workspace
-
-**Construction Object**:
-A specific construction site, facility, building, section, or location inside a Project. A Construction Object can contain multiple Construction Orders.
-_Avoid_: Project, address only, generic site
-
-**Construction Order**:
-An estimate-based order created by a Customer Company for a Construction Object. It can contain needs for materials, services, and equipment rental and is split into Lots for Providers.
-_Avoid_: Single task, simple listing
-
-**Imported Estimate**:
-The original estimate file and structure uploaded by a Customer Company, preserved so the Customer Company can verify that the platform did not lose or distort the source document.
-_Avoid_: Parsed data only, disposable upload
-
-**Estimate Line**:
-A line inside a Construction Order that describes one needed material, service, or equipment rental item with quantity, location, timing, and requirements.
-_Avoid_: Generic item, product card
-
-**Normalized Estimate Line**:
-An Estimate Line interpreted into platform categories and fields such as request type, category, unit, quantity, object location, timing, requirements, and required documents.
-_Avoid_: Original spreadsheet row, raw text
-
-**Ambiguous Estimate Line**:
-A Normalized Estimate Line that the platform could not classify confidently and must be clarified by a Customer Company or Moderator before it can be included in a Lot.
-_Avoid_: Best guess, invalid row
-
-**Lot**:
-A smaller publishable package split from a Construction Order so performers can make targeted offers only for the Estimate Lines they can fulfill.
-_Avoid_: Small order, generic request, full estimate
-
-**Partial Fulfillment**:
-The Customer Company-selected setting that allows a Provider to submit an Offer for only part of a Lot, allowing the Customer Company to combine several Offers into one winner-selection outcome.
-_Avoid_: Incomplete offer, invalid response
-
-**Visible Lot**:
-A published Lot that matches a Verified Provider's Offer Profile and can be viewed by that Provider.
-_Avoid_: Public order, full estimate access
-
-**Visible Lot Filtering**:
-MVP filtering for a Provider's Visible Lots by type, category, region, offer deadline, and whether the Provider has already submitted an Offer.
-_Avoid_: Public search, provider directory search
-
-**Provider Offer Metrics**:
-MVP Provider metrics for submitted Offers: Offer submission date, related Lot status, and whether the Offer was selected as a winner.
-_Avoid_: Competitive analytics, conversion dashboard
-
-**Lot-Scoped Visibility**:
-Providers can see only the information included in a Visible Lot. Project, Construction Object, Construction Order, Primary Contract, Customer Company, address, or other context is hidden unless it is explicitly included in the Lot.
-_Avoid_: Inherited project visibility, full order context
-
-**Lot-Provider Fit**:
-The eligibility relationship between a Lot and a Verified Provider, based on offer type, category, region or service radius, required legal status and documents, and availability.
-_Avoid_: Recommendation, ranking
-
-**Lot Notification**:
-A notification sent to a Verified Provider when a Published Lot becomes a Visible Lot for that Provider through Lot-Provider Fit. MVP notification channels are email, Telegram, and MAX messenger, selected by the Provider from the channels available on the platform.
-_Avoid_: Broadcast to all providers, unfiltered marketing message
-
-**Participant Notification Settings**:
-The participant-selected notification channels available on the platform. MVP channels are email, Telegram, and MAX messenger for both Customer Companies and Providers.
-_Avoid_: Forced channel, platform-only inbox, internal notification center
-
-**Email Confirmation**:
-MVP registration requires email confirmation before a participant can complete access to platform workflows.
-_Avoid_: Unconfirmed email account, phone-only verification
-
-**Email Password Recovery**:
-MVP account recovery through a password reset flow sent to the user's confirmed email address.
-_Avoid_: Manual support-only password reset
-
-**Support Request**:
-A simple MVP support form in the platform account that sends a message to the platform support email.
-_Avoid_: Full helpdesk, support chat, ticket workflow
-
-**Lot Suggestion**:
-A platform-proposed grouping of Estimate Lines into a Lot that a Customer Company can approve, edit, or reject before publication.
-_Avoid_: Automatic order, final lot
-
-**Lot Disclosure**:
-The platform-defined minimum set of Construction Order, Project, Construction Object, and estimate information included in a Lot for Providers to see. A Customer Company can edit a Lot before moderation, but cannot remove the minimum information required for Providers to prepare Offers.
-_Avoid_: Customer-defined disclosure, inherited full context
-
-**Lot Moderation**:
-Manual review of a Lot by a Moderator before the Lot can be published on the platform.
-_Avoid_: Immediate publication, automatic approval
-
-**Moderation Rejection**:
-A Moderator rejection of a participant, Lot, or review with a reason selected from Reference Data and a Moderator comment.
-_Avoid_: Silent rejection, free-form-only rejection
-
-**Published Lot**:
-A Lot that has passed Lot Moderation and can become visible to fitting Verified Providers.
-_Avoid_: Draft lot, public estimate
-
-**Lot Lifecycle**:
-The MVP state flow for a Lot: Draft, In Moderation, Published, Collecting Offers, Offer Collection Closed, Winner Chosen, and Completed, with side states Rejected by Moderator, Withdrawn, and Offer Deadline Expired. If a Lot receives no Offers, the Customer Company can revise it and send it back to moderation or withdraw it.
-_Avoid_: Work execution lifecycle, payment lifecycle
-
-**Material Request**:
-A Lot or Estimate Line for construction materials needed for a Primary Contract.
-_Avoid_: Product listing, warehouse item
-
-**Service Request**:
-A Lot or Estimate Line for construction, installation, repair, logistics, design, or other services performed by an external company or crew.
-_Avoid_: Work only, subcontract in all cases
-
-**Equipment Rental Request**:
-A Lot or Estimate Line for temporary use of construction equipment with or without an operator.
-_Avoid_: Machinery order, asset booking
-
-**Provider**:
-A platform participant that can respond to Lots with offers. A Provider can be a legal entity, individual entrepreneur, or individual person.
-_Avoid_: Executor as a catch-all, worker in all cases
-
-**Legal Status**:
-The formal status under which a Provider operates: legal entity, individual entrepreneur, or individual person.
-_Avoid_: Provider type, role
-
-**Offer Profile**:
-What a Provider offers commercially on the platform, such as materials, services, equipment rental, leasing, or worker crews. One Provider can have multiple Offer Profiles.
-_Avoid_: Legal status, account type
-
-**Assigned Worker**:
-An employee or worker attached by a legal-entity Provider as a person who will directly perform service work on a Lot.
-_Avoid_: Provider, contractor account
-
-**Leasing Provider**:
-A bank or other organization that provides construction equipment through leasing.
-_Avoid_: Equipment owner in all cases, rental provider
-
-**Individual Service Provider**:
-An individual-person Provider that can respond only to Service Requests.
-_Avoid_: Universal provider, material supplier
-
-**Offer**:
-A final Provider response to a Lot that states what the Provider can supply or perform, under which price, timeline, and conditions. In the MVP, one Provider can submit only one Offer per Lot, and an Offer cannot be saved as a draft, edited after submission, or withdrawn.
-_Avoid_: Bid in all cases, message, application, draft offer, editable offer, duplicate offer
-
-**Offer Template**:
-A category-specific structure managed by a Moderator that defines which fields a Provider must complete when submitting an Offer for a Lot.
-_Avoid_: Universal response form, free-text message
-
-**Offer Attachment**:
-A file attached to an Offer, such as a commercial proposal, certificate, quality passport, license, equipment document, or portfolio material. Offer Attachments are visible to the Customer Company and must not be used to bypass contact restrictions before выбор победителя.
-_Avoid_: Direct contact carrier, unstructured replacement for Offer Template, archive upload
-
-**Allowed Attachment Types**:
-MVP attachment formats are PDF, DOCX, XLSX, JPG, and PNG. Archive files and executable files are not allowed.
-_Avoid_: ZIP, RAR, executable file
-
-**Attachment Size Limits**:
-MVP attachments are limited to 25 MB per file and 200 MB total per Lot or Offer.
-_Avoid_: Project archive storage, unlimited upload
-
-**Offer Ranking**:
-A simple MVP ordering of Offers by submission date. Offers are shown newest first by default, and the Customer Company can change the sort order in the interface.
-_Avoid_: Smart ranking, automatic assignment, winner selection
-
-**Offer Export**:
-An MVP Excel export of Offers for a Lot so a Customer Company can compare submitted Offers outside the platform.
-_Avoid_: Full analytics export, BI reporting
-
-**Выбор победителя**:
-The Customer Company's final selection of one or more Offers for a Lot. A Lot can have multiple winning Providers when the Customer Company chooses several Offers. Выбор победителя can happen before the offer deadline and closes offer collection for the Lot.
-_Avoid_: Platform decision, automatic distribution
-
-**Deal Package**:
-The information bundle created after выбор победителя, including selected Offers, final conditions, documents, contacts, and communication history needed for the parties to continue the deal outside the MVP platform.
-_Avoid_: Contract, payment, completed transaction
-
-**Free MVP**:
-The first platform version does not charge Customer Companies or Providers for registration, lot publication, offers, выбор победителя, or Deal Package formation.
-_Avoid_: Trial plan, commission, paid subscription
-
-**Russian-Only MVP**:
-The MVP interface and product content are in Russian only.
-_Avoid_: Multilingual interface, localization workflow
-
-**Responsive Web MVP**:
-The MVP is a responsive web platform. It does not include native mobile applications.
-_Avoid_: Native iOS app, native Android app, desktop-only interface
-
-**Public MVP Pages**:
-The pre-auth MVP surface includes the landing page, separate Customer Company registration, separate Provider registration, login, password recovery, email confirmation, user agreement, privacy policy, and contacts. It does not include public Lot or Provider catalogs.
-_Avoid_: Public marketplace catalog, public provider directory
-
-**Отзыв после выбора победителя**:
-A rating or review that can be left only for a Provider whose Offer was selected through выбор победителя and whose deal with the Customer Company took place. MVP reviews include a 1-10 score, short text, automatic Lot category, automatic date, and automatic Customer Company reference, and are published only after moderation.
-_Avoid_: Review before выбор победителя, review for non-selected Provider, public comment
-
-**Review Moderation**:
-Manual Moderator review of an Отзыв после выбора победителя before publication to prevent personal data leakage, abusive text, commercial-secret disclosure, or unsupported accusations.
-_Avoid_: Immediate review publication, unmoderated rating
-
-**Review Response**:
-One public Provider response to a published Отзыв после выбора победителя. The response is published only after Review Moderation and does not create a comment thread.
-_Avoid_: Discussion thread, unlimited replies
-
-**Deal Took Place**:
-A Customer Company confirmation that a deal with a selected Provider actually took place after выбор победителя. This confirmation enables an Отзыв после выбора победителя for that Provider.
-_Avoid_: Provider self-confirmation, automatic completion
-
-**Раскрытие контактов после выбора победителя**:
-Прямые контакты исполнителей скрыты до выбора предложения заказчиком. После выбора победителя только заказчику становятся видны контакты всех исполнителей, которые откликнулись на соответствующий Lot; исполнители не видят контакты друг друга.
-_Avoid_: Контакты до отклика, контакты только победителя, контакты между исполнителями
-
-**Lot Comment**:
-Комментарий или вопрос по Lot до выбора победителя. Customer Company видит все комментарии и ответы по Lot, а Provider видит только свои вопросы и ответы Customer Company на свои вопросы.
-_Avoid_: Public chat, direct contact exchange
-
-**Offer Clarification Comment**:
-A Lot Comment from a Provider that clarifies a submitted Offer without changing the Offer itself. The Customer Company decides whether to consider the clarification during выбор победителя.
-_Avoid_: Offer edit, offer withdrawal, duplicate offer
-
-**Lot Clarification**:
-Общее уточнение по Lot, опубликованное Customer Company для всех Providers, которым виден этот Lot. Lot Clarification не раскрывает вопросы или личность конкретного Provider.
-_Avoid_: Shared provider question, anonymous public question
-
-**Lot Attachment**:
-A file attached to a Lot, such as technical requirements, specifications, schemes, photos, estimate fragments, or other context needed to prepare Offers. Lot Attachments are visible according to Lot-Scoped Visibility and are reviewed during Lot Moderation.
-_Avoid_: Full private order file, uncontrolled contact exchange, archive upload
-
-**Moderator**:
-A platform employee who manually verifies participants, reviews Lots before publication, and manages category-specific Offer Templates.
-_Avoid_: Algorithm, automatic checker
-
-**Administrator**:
-A platform employee who manages platform team users, permissions, reference data, system settings, audit access, and disputed account restrictions.
-_Avoid_: Moderator, customer admin
-
-**Platform Team Account**:
-A Moderator or Administrator account created manually by an Administrator. Platform team roles do not support public self-registration.
-_Avoid_: Public moderator signup, self-service admin registration
-
-**Audit Trail**:
-The MVP record of key actions such as verification, Lot publication or rejection, Lot changes, Offer submission, выбор победителя, contact disclosure, Deal Took Place confirmation, reviews, review responses, and participant restrictions.
-_Avoid_: Debug log, analytics event only
-
-**Operational Metrics**:
-MVP platform-team metrics: Customer Companies awaiting verification, Providers awaiting verification, Lots awaiting moderation, reviews awaiting moderation, published Lots, open Lots, Offers submitted, Lots with no Offers, registered Customer Companies, registered Providers, Providers by work category, and average moderation time.
-_Avoid_: BI dashboard, financial analytics
-
-**Reference Data**:
-Platform-managed catalogs used for estimate normalization, Lot creation, Lot-Provider Fit, moderation, and Offer Templates. MVP Reference Data includes Lot categories, service types, material types, equipment types, regions or service zones, units of measure, category document requirements, Offer Templates, moderation rejection reasons, and participant restriction reasons.
-_Avoid_: User tags, free-form categories
-
-**Provider Verification**:
-Manual review of a registered Provider by a Moderator before the Provider can view Construction Orders, Lots, or use core platform functionality.
-_Avoid_: Self-service activation, optional check
-
-**Provider Registration Data**:
-The MVP data required for Provider registration: Legal Status, company name or full name, INN when applicable, region, work or delivery geography, Offer Profiles, contact person, email, phone, password, and verification documents. Legal-entity Providers can add Assigned Workers or crews, and category-specific documents can be added through the Provider profile.
-_Avoid_: Public provider listing, anonymous registration
-
-**Verified Provider**:
-A Provider that has passed Provider Verification and is allowed to access orders and relevant platform functionality.
-_Avoid_: Registered provider, public user
+Пользовательская роль компании-заказчика в MVP. Заказчик управляет профилем компании, загружает сметы, редактирует строительные заказы, утверждает лоты, отвечает на комментарии к лотам и выбирает предложения.
+_Не использовать_: Менеджер заказов, специалист по закупкам
+
+**Пользователи компании-заказчика**:
+В MVP к одной компании-заказчику могут относиться несколько пользователей. Пользователь компании-заказчика может иметь роль «Заказчик» или «Администратор организации-заказчика».
+_Не использовать_: Только один пользователь на компанию
+
+**Администратор организации-заказчика**:
+Роль пользователя компании-заказчика, которая позволяет управлять пользователями той же компании: приглашать и деактивировать их. Роль не даёт дополнительных полномочий по согласованию бизнес-операций сверх обычного доступа Заказчика. Для смены администратора организации-заказчика требуется запрос на смену администратора организации-заказчика.
+_Не использовать_: Администратор платформы, Модератор
+
+**Запрос на смену администратора организации-заказчика**:
+Запрос Модератору на смену администратора организации-заказчика после того, как первый зарегистрированный пользователь организации был назначен на эту роль автоматически.
+_Не использовать_: Самостоятельная передача владения, неформальная смена только через поддержку
+
+**Приглашение пользователя заказчика**:
+Действующий администратор организации-заказчика может по электронной почте пригласить другого пользователя в ту же компанию-заказчика. Приглашённый пользователь должен пройти аутентификацию через требуемого внешнего провайдера. При этом компания-заказчик не проходит ручную проверку, а в MVP приглашения не ограничиваются доменами электронной почты.
+_Не использовать_: Публичный запрос на присоединение, модерация участника, ограничение домена электронной почты
+
+**Деактивация пользователя заказчика**:
+Администратор организации-заказчика может деактивировать пользователя компании-заказчика, чтобы закрыть ему доступ. Созданные проекты, объекты строительства, строительные заказы, лоты, комментарии, история и журнал аудита сохраняются за компанией-заказчиком. При необходимости автор отображается как деактивированный пользователь.
+_Не использовать_: Полное удаление, удаление истории
+
+**Фильтрация работ заказчика**:
+Фильтрация проектов, объектов строительства, строительных заказов и лотов компании-заказчика в MVP по статусу, проекту, объекту строительства, типу лота, сроку, наличию предложений, состоянию выбора победителя и состоянию модерации.
+_Не использовать_: Глобальный поиск по маркетплейсу, публичный поиск исполнителей
+
+**Метрики лота для заказчика**:
+Метрики компании-заказчика по каждому лоту в MVP: количество предложений, статус лота, время до окончания приёма предложений и признак выбора победителя.
+_Не использовать_: BI-панель заказчика, финансовая аналитика
+
+**Основной контракт**:
+Государственный или крупный корпоративный строительный контракт, который компания-заказчик получила до декомпозиции части работ на заказы платформы. Основной контракт можно связать с проектом, но эта связь необязательна.
+_Не использовать_: Лид, сделка, заказ в общем смысле
+
+**Проект**:
+Рабочее пространство компании-заказчика для строительной инициативы. Проект может содержать несколько объектов строительства и при необходимости ссылаться на несколько основных контрактов.
+_Не использовать_: Папка, контракт во всех случаях, рабочее пространство в общем смысле
+
+**Объект строительства**:
+Конкретная строительная площадка, сооружение, здание, участок или локация внутри проекта. Объект строительства может содержать несколько строительных заказов.
+_Не использовать_: Проект, только адрес, площадка в общем смысле
+
+**Строительный заказ**:
+Заказ на основе сметы, который компания-заказчик создаёт для объекта строительства. Он может включать потребности в материалах, услугах и аренде техники и разделяется на лоты для исполнителей.
+_Не использовать_: Отдельная задача, простое объявление
+
+**Импортированная смета**:
+Исходный файл и структура сметы, загруженные компанией-заказчиком и сохранённые, чтобы она могла убедиться, что платформа не потеряла и не исказила исходный документ.
+_Не использовать_: Только разобранные данные, одноразовая загрузка
+
+**Строка сметы**:
+Строка строительного заказа, которая описывает одну необходимую позицию материала, услуги или аренды техники с указанием количества, места, сроков и требований.
+_Не использовать_: Позиция в общем смысле, карточка товара
+
+**Нормализованная строка сметы**:
+Строка сметы, интерпретированная в категории и поля платформы: тип запроса, категория, единица измерения, количество, местоположение объекта, сроки, требования и обязательные документы.
+_Не использовать_: Исходная строка таблицы, необработанный текст
+
+**Неоднозначная строка сметы**:
+Нормализованная строка сметы, которую платформа не смогла уверенно классифицировать. Компания-заказчик или Модератор должны уточнить её до включения в лот.
+_Не использовать_: Наиболее вероятный вариант, некорректная строка
+
+**Лот**:
+Меньший пакет для публикации, выделенный из строительного заказа, чтобы исполнители могли подавать целевые предложения только по тем строкам сметы, которые способны выполнить.
+_Не использовать_: Малый заказ, запрос в общем смысле, полная смета
+
+**Частичное исполнение**:
+Настройка, выбранная компанией-заказчиком и позволяющая исполнителю подать предложение только на часть лота. Благодаря этому компания-заказчик может объединить несколько предложений при выборе победителей.
+_Не использовать_: Неполное предложение, некорректный отклик
+
+**Доступный лот**:
+Опубликованный лот, который соответствует профилю предложений исполнителя и доступен ему для просмотра.
+_Не использовать_: Публичный заказ, доступ к полной смете
+
+**Фильтрация доступных лотов**:
+Фильтрация доступных исполнителю лотов в MVP по типу, категории, региону, сроку подачи предложения и наличию уже поданного этим исполнителем предложения.
+_Не использовать_: Публичный поиск, поиск по каталогу исполнителей
+
+**Метрики предложений для исполнителя**:
+Метрики поданных предложений исполнителя в MVP: дата подачи предложения, статус связанного лота и признак выбора предложения победителем.
+_Не использовать_: Конкурентная аналитика, панель конверсии
+
+**Видимость в пределах лота**:
+Исполнители видят только информацию, включённую в доступный лот. Проект, объект строительства, строительный заказ, основной контракт, компания-заказчик, адрес и другой контекст скрыты, если они явно не включены в лот.
+_Не использовать_: Наследуемая видимость проекта, полный контекст заказа
+
+**Соответствие лота исполнителю**:
+Отношение допустимости между лотом и исполнителем, которое определяется типом предложения, категорией, регионом или радиусом обслуживания, требуемым правовым статусом и документами, а также доступностью.
+_Не использовать_: Рекомендация, ранжирование
+
+**Уведомление о лоте**:
+Уведомление, отправляемое исполнителю, когда опубликованный лот становится для него доступным благодаря соответствию лота исполнителю. В MVP исполнитель выбирает среди доступных на платформе каналов: электронная почта, Telegram и мессенджер MAX.
+_Не использовать_: Рассылка всем исполнителям, нецелевое рекламное сообщение
+
+**Настройки уведомлений участника**:
+Выбранные участником доступные на платформе каналы уведомлений. В MVP и компаниям-заказчикам, и исполнителям доступны электронная почта, Telegram и мессенджер MAX.
+_Не использовать_: Принудительный канал, только входящие на платформе, внутренний центр уведомлений
+
+**Подтверждение электронной почты**:
+В MVP участник должен подтвердить электронную почту при регистрации, прежде чем получит полный доступ к рабочим процессам платформы.
+_Не использовать_: Учётная запись с неподтверждённой почтой, проверка только по телефону
+
+**Внешнее восстановление учётной записи**:
+В MVP участник восстанавливает учётную запись через Sber ID, если он является физическим лицом, или через Контур.Диадок, если он является юридическим лицом или индивидуальным предпринимателем. Платформа не создаёт, не хранит и не сбрасывает локальные пароли участников. Локальные учётные данные разрешены только для создаваемых вручную учётных записей команды платформы.
+_Не использовать_: Письмо для сброса пароля участника, локальный пароль участника, ручной сброс пароля только через поддержку
+
+**Запрос в поддержку**:
+Простая форма поддержки в личном кабинете MVP, которая отправляет сообщение на адрес электронной почты службы поддержки платформы.
+_Не использовать_: Полноценная служба заявок, чат поддержки, процесс обработки тикетов
+
+**Предложение состава лота**:
+Предложенная платформой группировка строк сметы в лот, которую компания-заказчик может утвердить, отредактировать или отклонить до публикации.
+_Не использовать_: Автоматический заказ, окончательный лот
+
+**Состав раскрываемой информации лота**:
+Определённый платформой минимальный набор сведений из строительного заказа, проекта, объекта строительства и сметы, который включается в лот и показывается исполнителям. Компания-заказчик может редактировать лот до модерации, но не может удалить минимальные сведения, необходимые исполнителям для подготовки предложений.
+_Не использовать_: Состав сведений по усмотрению заказчика, весь унаследованный контекст
+
+**Модерация лота**:
+Ручная проверка лота Модератором перед публикацией на платформе.
+_Не использовать_: Немедленная публикация, автоматическое одобрение
+
+**Отклонение при модерации**:
+Отклонение Модератором лота, отзыва или ответа на отзыв с причиной, выбранной из справочников, и комментарием Модератора.
+_Не использовать_: Отклонение без объяснения, только причина в свободной форме
+
+**Опубликованный лот**:
+Лот, который прошёл модерацию и может стать доступным подходящим исполнителям.
+_Не использовать_: Черновик лота, публичная смета
+
+**Жизненный цикл лота**:
+Последовательность состояний лота в MVP: «Черновик», «На модерации», «Опубликован», «Сбор предложений», «Сбор предложений завершён», «Победитель выбран» и «Завершён»; боковые состояния — «Отклонён Модератором», «Отозван» и «Срок подачи предложений истёк». Если по лоту нет предложений, компания-заказчик может изменить его и снова отправить на модерацию либо отозвать.
+_Не использовать_: Жизненный цикл выполнения работ, жизненный цикл оплаты
+
+**Запрос на материалы**:
+Лот или строка сметы на строительные материалы, необходимые для исполнения основного контракта.
+_Не использовать_: Карточка товара, складская позиция
+
+**Запрос на услуги**:
+Лот или строка сметы на строительные, монтажные, ремонтные, логистические, проектные или другие услуги внешней компании или бригады.
+_Не использовать_: Только работы, субподряд во всех случаях
+
+**Запрос на аренду техники**:
+Лот или строка сметы на временное использование строительной техники с оператором или без него.
+_Не использовать_: Заказ техники, бронирование актива
 
 **Исполнитель**:
-Пользовательская роль Provider в MVP. Исполнитель управляет профилем, документами и Offer Profiles, видит подходящие Visible Lots, задаёт вопросы через Lot Comments и отправляет Offers.
-_Avoid_: Менеджер предложений, менеджер откликов, представитель исполнителя
+Участник платформы, который может отвечать на лоты предложениями. Исполнителем может быть юридическое лицо, индивидуальный предприниматель или физическое лицо.
+_Не использовать_: Исполнитель как универсальное обозначение работника, работник во всех случаях
 
-**Provider Users**:
-Multiple users can belong to one legal-entity or individual-entrepreneur Provider in the MVP. Provider users can have the Исполнитель role or the Provider Organization Administrator role. Individual-person Providers do not have a Provider Organization Administrator role.
-_Avoid_: Single-user provider only, organization administrator for individual person
+**Правовой статус**:
+Официальный статус, в котором действует исполнитель: юридическое лицо, индивидуальный предприниматель или физическое лицо.
+_Не использовать_: Тип исполнителя, роль
 
-**Provider User Invitation**:
-A Provider Organization Administrator can invite another user to the same Provider by email. The invited user must confirm email, but the Provider does not repeat Provider Verification, and MVP invitations do not restrict email domains.
-_Avoid_: Public join request, repeated provider moderation, email domain restriction
+**Профиль предложений**:
+Коммерческое предложение исполнителя на платформе: материалы, услуги, аренда техники, лизинг или рабочие бригады. У одного исполнителя может быть несколько профилей предложений.
+_Не использовать_: Правовой статус, тип учётной записи
 
-**Provider User Deactivation**:
-A Provider Organization Administrator can deactivate a Provider user to remove access while preserving created Offers, comments, profile changes, history, and Audit Trail under the Provider. The author is shown as a deactivated user where needed.
-_Avoid_: Hard delete, history removal
+**Назначенный работник**:
+Сотрудник или работник, которого исполнитель — юридическое лицо прикрепляет как человека, непосредственно выполняющего работы по оказанию услуг в рамках лота.
+_Не использовать_: Исполнитель, учётная запись подрядчика
 
-**Provider Organization Administrator**:
-A Provider user role for legal-entity and individual-entrepreneur Providers that manages users of the same Provider: invitations and deactivation. It does not add business approval powers beyond normal Исполнитель access. Changing the Provider Organization Administrator requires a Provider Organization Administrator Change Request.
-_Avoid_: Platform Administrator, Moderator, administrator for individual-person Provider
+**Лизинговый исполнитель**:
+Банк или другая организация, которая предоставляет строительную технику в лизинг.
+_Не использовать_: Владелец техники во всех случаях, арендодатель
 
-**Provider Organization Administrator Change Request**:
-A request to a Moderator to change the Provider Organization Administrator for a legal-entity or individual-entrepreneur Provider after the first verified organization user is assigned automatically.
-_Avoid_: Self-service ownership transfer, support-only informal change
+**Исполнитель услуг — физическое лицо**:
+Исполнитель со статусом физического лица, который может отвечать только на запросы на услуги.
+_Не использовать_: Универсальный исполнитель, поставщик материалов
 
-**Provider Profile Visibility**:
-A Provider profile is visible to a Customer Company only after that Provider submits an Offer to one of that Customer Company's Lots.
-_Avoid_: Public provider catalog, searchable provider directory
+**Предложение**:
+Окончательный ответ исполнителя на лот с указанием того, что он может поставить или выполнить, по какой цене, в какие сроки и на каких условиях. В MVP один исполнитель может подать только одно предложение на лот. Предложение нельзя сохранить как черновик, изменить после подачи или отозвать.
+_Не использовать_: Заявка во всех случаях, сообщение, обращение, черновик предложения, редактируемое предложение, повторное предложение
 
-**Favorite Provider**:
-A Provider marked by a Customer Company as preferred after becoming visible through an Offer or выбор победителя interaction. Favorite status does not bypass Lot-Provider Fit or Lot Moderation and only adds a visual marker in Offer lists.
-_Avoid_: Public subscription, searchable provider catalog
+**Шаблон предложения**:
+Структура для конкретной категории, которой управляет Модератор и которая определяет обязательные для заполнения исполнителем поля при подаче предложения по лоту.
+_Не использовать_: Универсальная форма ответа, сообщение в свободной форме
 
-**Blocked Provider**:
-A Provider marked by a Customer Company as undesirable after becoming visible through an Offer or выбор победителя interaction. A Blocked Provider does not see future Lots from that Customer Company and does not receive Lot Notifications for them, while previous Offers and history remain visible for audit.
-_Avoid_: Platform-wide ban, moderation restriction
+**Вложение предложения**:
+Файл, приложенный к предложению: коммерческое предложение, сертификат, паспорт качества, лицензия, документ на технику или материал портфолио. Вложения предложения доступны компании-заказчику и не должны использоваться для обхода ограничений на передачу контактов до выбора победителя.
+_Не использовать_: Средство передачи прямых контактов, неструктурированная замена шаблона предложения, загрузка архива
+
+**Разрешённые типы вложений**:
+В MVP разрешены форматы PDF, DOCX, XLSX, JPG и PNG. Архивы и исполняемые файлы запрещены.
+_Не использовать_: ZIP, RAR, исполняемый файл
+
+**Ограничения размера вложений**:
+В MVP размер одного вложения ограничен 25 МБ, а общий размер вложений одного лота или предложения — 200 МБ.
+_Не использовать_: Хранилище архивов проекта, неограниченная загрузка
+
+**Сортировка предложений**:
+Простое упорядочивание предложений в MVP по дате подачи. По умолчанию сначала показываются самые новые предложения; компания-заказчик может изменить порядок сортировки в интерфейсе.
+_Не использовать_: Интеллектуальное ранжирование, автоматическое назначение, выбор победителя
+
+**Экспорт предложений**:
+Предусмотренный в MVP экспорт предложений по лоту в Excel, чтобы компания-заказчик могла сравнить их вне платформы.
+_Не использовать_: Полный экспорт аналитики, BI-отчётность
+
+**Выбор победителя**:
+Окончательный выбор компанией-заказчиком одного или нескольких предложений по лоту. У лота может быть несколько исполнителей-победителей, если компания-заказчик выбрала несколько предложений. Победителя можно выбрать до окончания срока подачи предложений; после выбора сбор предложений по лоту закрывается.
+_Не использовать_: Решение платформы, автоматическое распределение
+
+**Пакет сделки**:
+Набор сведений, сформированный после выбора победителя: выбранные предложения, окончательные условия, документы, контакты и история переписки, необходимые сторонам для продолжения сделки вне MVP-платформы.
+_Не использовать_: Контракт, оплата, завершённая транзакция
+
+**Бесплатный MVP**:
+В первой версии платформы с компаний-заказчиков и исполнителей не взимается плата за регистрацию, публикацию лотов, подачу предложений, выбор победителя или формирование пакета сделки.
+_Не использовать_: Пробный тариф, комиссия, платная подписка
+
+**MVP только на русском языке**:
+Интерфейс и содержимое продукта в MVP доступны только на русском языке.
+_Не использовать_: Многоязычный интерфейс, процесс локализации
+
+**Адаптивный веб-MVP**:
+MVP представляет собой адаптивную веб-платформу и не включает нативные мобильные приложения.
+_Не использовать_: Нативное приложение для iOS, нативное приложение для Android, интерфейс только для компьютеров
+
+**Публичные страницы MVP**:
+Доступная до аутентификации часть MVP включает лендинг, отдельную регистрацию компании-заказчика, отдельную регистрацию исполнителя, вход через Sber ID или Контур.Диадок, подтверждение электронной почты, пользовательское соглашение, политику конфиденциальности и контакты. Восстановление доступа участника выполняет соответствующий внешний провайдер идентификации. Публичные каталоги лотов и исполнителей не предусмотрены.
+_Не использовать_: Публичный каталог маркетплейса, публичный каталог исполнителей
+
+**Отзыв после выбора победителя**:
+Оценка или отзыв, который можно оставить только исполнителю, чьё предложение было выбрано победителем и с которым состоялась сделка компании-заказчика. В MVP отзыв содержит оценку от 1 до 10, короткий текст, автоматически указанную категорию лота, дату и компанию-заказчика и публикуется только после модерации.
+_Не использовать_: Отзыв до выбора победителя, отзыв об исполнителе, который не был выбран, публичный комментарий
+
+**Модерация отзыва**:
+Ручная проверка Модератором отзыва после выбора победителя до публикации. Она предотвращает раскрытие персональных данных или коммерческой тайны, публикацию оскорблений и необоснованных обвинений.
+_Не использовать_: Немедленная публикация отзыва, оценка без модерации
+
+**Ответ на отзыв**:
+Один публичный ответ исполнителя на опубликованный отзыв после выбора победителя. Ответ публикуется только после модерации отзыва и не создаёт ветку комментариев.
+_Не использовать_: Ветка обсуждения, неограниченное число ответов
+
+**Подтверждение состоявшейся сделки**:
+Подтверждение компании-заказчика, что после выбора победителя сделка с выбранным исполнителем действительно состоялась. После подтверждения можно оставить этому исполнителю отзыв после выбора победителя.
+_Не использовать_: Самоподтверждение исполнителем, автоматическое завершение
+
+**Раскрытие контактов после выбора победителя**:
+Прямые контакты исполнителей скрыты до выбора предложения заказчиком. После выбора победителя только заказчику становятся видны контакты всех исполнителей, подавших предложения по соответствующему лоту; исполнители не видят контакты друг друга.
+_Не использовать_: Контакты до подачи предложения, контакты только победителя, контакты между исполнителями
+
+**Комментарий к лоту**:
+Комментарий или вопрос по лоту до выбора победителя. Компания-заказчик видит все комментарии и ответы по лоту, а исполнитель — только свои вопросы и ответы компании-заказчика на них.
+_Не использовать_: Публичный чат, обмен прямыми контактами
+
+**Комментарий с уточнением предложения**:
+Комментарий исполнителя к лоту, уточняющий поданное предложение без изменения самого предложения. Компания-заказчик решает, учитывать ли уточнение при выборе победителя.
+_Не использовать_: Изменение предложения, отзыв предложения, повторное предложение
+
+**Общее уточнение по лоту**:
+Уточнение по лоту, опубликованное компанией-заказчиком для всех исполнителей, которым доступен этот лот. Общее уточнение не раскрывает вопрос или личность конкретного исполнителя.
+_Не использовать_: Общий вопрос исполнителя, анонимный публичный вопрос
+
+**Вложение лота**:
+Файл, приложенный к лоту: технические требования, спецификации, схемы, фотографии, фрагменты сметы или другой контекст, необходимый для подготовки предложений. Вложения лота доступны в соответствии с видимостью в пределах лота и проверяются при модерации лота.
+_Не использовать_: Полный закрытый файл заказа, неконтролируемый обмен контактами, загрузка архива
+
+**Модератор**:
+Сотрудник платформы, который проверяет лоты, отзывы и ответы на отзывы перед публикацией и управляет шаблонами предложений для отдельных категорий. Модератор не проверяет регистрацию участников.
+_Не использовать_: Проверяющий участника, сотрудник, одобряющий регистрацию, алгоритм, автоматическая проверка
+
+**Администратор**:
+Сотрудник платформы, который управляет пользователями команды платформы, разрешениями, справочниками, системными настройками, доступом к аудиту и спорными ограничениями учётных записей.
+_Не использовать_: Модератор, администратор заказчика
+
+**Учётная запись команды платформы**:
+Учётная запись Модератора или Администратора, которую Администратор создаёт вручную. Для ролей команды платформы не предусмотрена публичная самостоятельная регистрация.
+_Не использовать_: Публичная регистрация модератора, самостоятельная регистрация администратора
+
+**Журнал аудита**:
+Запись ключевых действий в MVP: внешняя регистрация, публикация или отклонение лота, изменение лота, подача предложения, выбор победителя, раскрытие контактов, подтверждение состоявшейся сделки, отзывы, ответы на отзывы и ограничения участников.
+_Не использовать_: Отладочный журнал, только событие аналитики
+
+**Операционные метрики**:
+Метрики команды платформы в MVP: лоты, ожидающие модерации; отзывы, ожидающие модерации; опубликованные и открытые лоты; поданные предложения; лоты без предложений; зарегистрированные компании-заказчики и исполнители; исполнители по категориям работ; среднее время модерации контента.
+_Не использовать_: BI-панель, финансовая аналитика
+
+**Справочники**:
+Управляемые платформой каталоги для нормализации смет, создания лотов, определения соответствия лота исполнителю, модерации и шаблонов предложений. Справочники MVP включают категории лотов, типы услуг, материалов и техники, регионы или зоны обслуживания, единицы измерения, требования к документам по категориям, шаблоны предложений, причины отклонения при модерации и причины ограничения участников.
+_Не использовать_: Пользовательские теги, категории в свободной форме
+
+**Регистрация исполнителя**:
+Учётная запись исполнителя создаётся только после успешной идентификации через Sber ID для физического лица или Контур.Диадок для юридического лица либо индивидуального предпринимателя. Регистрация не предусматривает ручную проверку участника или внутренний статус верификации.
+_Не использовать_: Ожидает проверки, регистрация с одобрением модератора
+
+**Регистрационные данные исполнителя**:
+Данные, необходимые в MVP для регистрации и заполнения профиля исполнителя: правовой статус, наименование компании или Ф. И. О., ИНН при наличии, регион, география выполнения работ или доставки, профили предложений, контактное лицо, электронная почта, телефон и документы профиля. Исполнители — юридические лица могут добавлять назначенных работников или бригады, а документы для отдельных категорий можно добавлять через профиль исполнителя.
+_Не использовать_: Публичная карточка исполнителя, анонимная регистрация
+
+**Исполнитель (пользовательская роль)**:
+Пользовательская роль исполнителя в MVP. Исполнитель управляет профилем, документами и профилями предложений, видит подходящие доступные лоты, задаёт вопросы в комментариях к лотам и подаёт предложения.
+_Не использовать_: Менеджер предложений, менеджер откликов, представитель исполнителя
+
+**Пользователи исполнителя**:
+В MVP к одному исполнителю — юридическому лицу или индивидуальному предпринимателю — могут относиться несколько пользователей. Пользователь исполнителя может иметь роль «Исполнитель» или «Администратор организации-исполнителя». У исполнителя — физического лица роли администратора организации-исполнителя нет.
+_Не использовать_: Только один пользователь на исполнителя, администратор организации для физического лица
+
+**Приглашение пользователя исполнителя**:
+Администратор организации-исполнителя может по электронной почте пригласить другого пользователя к тому же исполнителю. Приглашённый пользователь должен пройти аутентификацию через требуемого внешнего провайдера. При этом исполнитель не проходит ручную проверку, а в MVP приглашения не ограничиваются доменами электронной почты.
+_Не использовать_: Публичный запрос на присоединение, модерация участника, ограничение домена электронной почты
+
+**Деактивация пользователя исполнителя**:
+Администратор организации-исполнителя может деактивировать пользователя исполнителя, чтобы закрыть ему доступ. Созданные предложения, комментарии, изменения профиля, история и журнал аудита сохраняются за исполнителем. При необходимости автор отображается как деактивированный пользователь.
+_Не использовать_: Полное удаление, удаление истории
+
+**Администратор организации-исполнителя**:
+Роль пользователя исполнителя — юридического лица или индивидуального предпринимателя, которая позволяет управлять пользователями того же исполнителя: приглашать и деактивировать их. Роль не даёт дополнительных полномочий по согласованию бизнес-операций сверх обычного доступа Исполнителя. Для смены администратора организации-исполнителя требуется запрос на смену администратора организации-исполнителя.
+_Не использовать_: Администратор платформы, Модератор, администратор исполнителя — физического лица
+
+**Запрос на смену администратора организации-исполнителя**:
+Запрос Модератору на смену администратора организации-исполнителя для исполнителя — юридического лица или индивидуального предпринимателя после того, как первый зарегистрированный пользователь организации был назначен на эту роль автоматически.
+_Не использовать_: Самостоятельная передача владения, неформальная смена только через поддержку
+
+**Видимость профиля исполнителя**:
+Профиль исполнителя становится доступен компании-заказчику только после того, как исполнитель подал предложение по одному из лотов этой компании.
+_Не использовать_: Публичный каталог исполнителей, каталог исполнителей с поиском
+
+**Избранный исполнитель**:
+Исполнитель, которого компания-заказчик отметила как предпочтительного после того, как он стал видимым в результате подачи предложения или выбора победителя. Статус избранного не позволяет обойти проверку соответствия лота исполнителю или модерацию лота и только добавляет визуальную отметку в списках предложений.
+_Не использовать_: Публичная подписка, каталог исполнителей с поиском
+
+**Заблокированный исполнитель**:
+Исполнитель, которого компания-заказчик отметила как нежелательного после того, как он стал видимым в результате подачи предложения или выбора победителя. Заблокированный исполнитель не видит будущие лоты этой компании-заказчика и не получает уведомления о них. Предыдущие предложения и история сохраняются для аудита.
+_Не использовать_: Блокировка на всей платформе, ограничение при модерации
 
 **Профиль исполнителя до выбора победителя**:
-The non-contact Provider profile information visible to a Customer Company after the Provider submits an Offer and before выбор победителя: name, Legal Status, work geography, Offer Profiles, Lot-relevant documents, Отзывы после выбора победителя, experience description, assigned workers or crews when relevant, the structured Offer, and Lot Comments. Direct contacts remain hidden until выбор победителя.
-_Avoid_: Contact card, public profile, full provider directory
+Неконтактные сведения профиля исполнителя, доступные компании-заказчику после подачи исполнителем предложения и до выбора победителя: наименование или имя, правовой статус, география работ, профили предложений, относящиеся к лоту документы, отзывы после выбора победителя, описание опыта, назначенные работники или бригады при необходимости, структурированное предложение и комментарии к лоту. Прямые контакты остаются скрытыми до выбора победителя.
+_Не использовать_: Карточка контакта, публичный профиль, полный каталог исполнителей
 
-**Customer Profile Visibility**:
-A Customer Company profile is visible to a Provider only when that Provider's Offer has been selected through выбор победителя.
-_Avoid_: Pre-offer customer profile, public customer directory
+**Видимость профиля заказчика**:
+Профиль компании-заказчика становится доступен исполнителю только после выбора предложения этого исполнителя победителем.
+_Не использовать_: Профиль заказчика до подачи предложения, публичный каталог заказчиков
 
-**Customer Contact Disclosure**:
-Customer Company contacts become visible to all Providers selected through выбор победителя for the relevant Lot.
-_Avoid_: Customer contacts before выбор победителя, contacts for non-selected Providers
+**Раскрытие контактов заказчика**:
+Контакты компании-заказчика становятся доступны всем исполнителям, выбранным победителями по соответствующему лоту.
+_Не использовать_: Контакты заказчика до выбора победителя, контакты для исполнителей, не выбранных победителями
