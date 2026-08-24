@@ -197,8 +197,8 @@ async function readCompany(
     inn: parseLegalEntityInn((await session.readLabeledText("ИНН")).trim()),
     name: (await session.readLabeledText("Наименование")).trim(),
     website: optional(await session.readLabeledText("Сайт")),
-    phone: optional(await session.readLabeledText("Телефон")),
-    email: optional(await session.readLabeledText("Email"))?.toLowerCase() ?? null,
+    phone: optional(await session.readFirstLabeledText("Телефон")),
+    email: optional(await session.readFirstLabeledText("Email"))?.toLowerCase() ?? null,
     okvedCode: parseOkvedCode(await session.readLabeledText("ОКВЭД")),
     isPrimary: (await session.readLabeledText("Тип ОКВЭД")) === "Основной",
   };
@@ -360,23 +360,28 @@ class PlaywrightBrowserSession implements BrowserSession {
 
   async readLabeledText(label: string): Promise<string> {
     try {
-      const candidates = await this.#page.locator("dt").all();
-      const exactMatches = [];
-      for (const candidate of candidates) {
-        if ((await candidate.innerText()).trim() === label) exactMatches.push(candidate);
-      }
-      if (exactMatches.length === 0) {
-        throw new Error(`expected at least one exact label ${label}`);
-      }
-      const value = await exactMatches[0].evaluate(
-        (element) => element.nextElementSibling?.textContent ?? "",
-      );
-      if (value.trim() === "") {
-        throw new Error(`labeled value ${label} is empty`);
+      const values = await this.#exactLabeledValues(label);
+      if (values.length !== 1) {
+        throw new Error(`expected exactly one value for label ${label}`);
       }
       this.#record("read-labeled-text", label, "completed");
       this.#assertNoExternalRequests();
-      return value.trim();
+      return values[0];
+    } catch (error) {
+      this.#assertNoExternalRequests();
+      throw new BrowserContractError(messageOf(error));
+    }
+  }
+
+  async readFirstLabeledText(label: string): Promise<string> {
+    try {
+      const values = await this.#exactLabeledValues(label);
+      if (values.length === 0) {
+        throw new Error(`expected at least one value for repeatable label ${label}`);
+      }
+      this.#record("read-first-labeled-text", label, "completed");
+      this.#assertNoExternalRequests();
+      return values[0];
     } catch (error) {
       this.#assertNoExternalRequests();
       throw new BrowserContractError(messageOf(error));
@@ -464,6 +469,19 @@ class PlaywrightBrowserSession implements BrowserSession {
       this.#record(kind, target, "contract-drift");
       throw new BrowserContractError(messageOf(error));
     }
+  }
+
+  async #exactLabeledValues(label: string): Promise<string[]> {
+    const values: string[] = [];
+    for (const candidate of await this.#page.locator("dt").all()) {
+      if ((await candidate.innerText()).trim() !== label) continue;
+      const value = await candidate.evaluate(
+        (element) => element.nextElementSibling?.textContent ?? "",
+      );
+      if (value.trim() === "") throw new Error(`labeled value ${label} is empty`);
+      values.push(value.trim());
+    }
+    return values;
   }
 
   async #sanitizedDom(redactLabeledValues: readonly string[]): Promise<Uint8Array> {

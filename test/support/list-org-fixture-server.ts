@@ -54,6 +54,12 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
         const suffix = scenario === "" ? "" : `&amp;scenario=${encodeURIComponent(scenario)}`;
         body = files.companies[companyMatch[1] as keyof typeof files.companies]
           .replace("{{BACK_HREF}}", `/results/page-${from}?okved=43.11&amp;status=work${suffix}`);
+        if (scenario === "conflicting-identity" && companyMatch[1] === "1001") {
+          body = body.replace(
+            "<dt>ИНН</dt><dd>7707083893</dd>",
+            "<dt>ИНН</dt><dd>7707083893</dd><dt>ИНН</dt><dd>7710140679</dd>",
+          );
+        }
       }
     }
 

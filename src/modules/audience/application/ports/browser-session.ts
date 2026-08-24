@@ -10,6 +10,7 @@ export interface BrowserSession {
   hasLandmark(name: string): Promise<boolean>;
   hasVisibleText(text: string): Promise<boolean>;
   readLabeledText(label: string): Promise<string>;
+  readFirstLabeledText(label: string): Promise<string>;
   linkNamesInLandmark(name: string, accessibleNamePrefix: string): Promise<readonly string[]>;
   fingerprint(): Promise<string>;
   capture(

@@ -83,6 +83,14 @@ describe("ListOrgBrowserSource", () => {
     expect(result.reason).toBe("max_pages");
   });
 
+  it("blocks contract drift when a singleton identity field has conflicting duplicates", async () => {
+    const result = await collect("/search?scenario=conflicting-identity");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("contract_drift");
+    expect(result.companies).toEqual([]);
+  });
+
   it.each([
     ["maxPages", 1.5],
     ["maxPages", Number.NaN],
