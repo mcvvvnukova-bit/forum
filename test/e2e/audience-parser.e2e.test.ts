@@ -307,7 +307,7 @@ describe.sequential("audience parser fixture acceptance", () => {
       [evidenceId, source.rows[0]!.id],
     );
     try {
-      await expect(reconcileRun(runId, repository)).rejects.toThrow("financial projections behind newest evidence: 1");
+      await expect(reconcileRun(runId, repository)).rejects.toThrow("financial projection differs from newest evidence: 1");
     } finally {
       await database.query("DELETE FROM audience.financial_evidence WHERE id = $1", [evidenceId]);
     }
@@ -363,6 +363,54 @@ describe.sequential("audience parser fixture acceptance", () => {
     await publishFinancialEvidence(
       await stageFinancialFixtures(secondRunId, 2025, env),
       { repository },
+    );
+
+    const orderedRevenueEvidence = await database.query<{
+      id: string;
+      amount: string;
+      run_id: string;
+    }>(
+      `SELECT evidence.id, evidence.amount::text, raw.run_id
+       FROM audience.financial_evidence evidence
+       JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+       WHERE evidence.company_inn = '7707083893'
+         AND evidence.report_year = 2025
+         AND evidence.metric = 'revenue'
+       ORDER BY evidence.collected_at DESC,
+                evidence.observed_at DESC NULLS LAST,
+                evidence.id DESC`,
+    );
+    expect(orderedRevenueEvidence.rows.map((row) => row.run_id)).toEqual([
+      secondRunId,
+      runId,
+    ]);
+    const [secondRevenue, firstRevenue] = orderedRevenueEvidence.rows;
+
+    await database.query(
+      `UPDATE audience.financial_observations
+       SET revenue = $1::numeric, revenue_evidence_id = $2
+       WHERE company_inn = '7707083893' AND report_year = 2025`,
+      [firstRevenue!.amount, firstRevenue!.id],
+    );
+    await expect(reconcileRun(secondRunId, repository)).rejects.toThrow(
+      "financial projection differs from newest evidence: 1",
+    );
+    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({ consistent: true });
+
+    await database.query(
+      `UPDATE audience.financial_observations
+       SET revenue = NULL, revenue_evidence_id = NULL
+       WHERE company_inn = '7707083893' AND report_year = 2025`,
+    );
+    await expect(reconcileRun(secondRunId, repository)).rejects.toThrow(
+      "financial projection differs from newest evidence: 1",
+    );
+
+    await database.query(
+      `UPDATE audience.financial_observations
+       SET revenue = $1::numeric, revenue_evidence_id = $2
+       WHERE company_inn = '7707083893' AND report_year = 2025`,
+      [secondRevenue!.amount, secondRevenue!.id],
     );
 
     const secondReport = await reconcileRun(secondRunId, repository);

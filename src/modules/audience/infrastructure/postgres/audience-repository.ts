@@ -473,31 +473,46 @@ export class PostgresAudienceRepository implements AudienceRepository {
            ON raw.id = evidence.source_fetch_id AND raw.run_id = $1
          JOIN (SELECT DISTINCT company_inn FROM run_matches) company
            ON company.company_inn = evidence.company_inn
-       ), selected_current_metrics AS (
-         SELECT observation.company_inn, observation.report_year,
-                selected.metric, selected.amount, selected.evidence_id
-         FROM audience.financial_observations observation
-         JOIN (SELECT DISTINCT company_inn FROM run_matches) company
-           ON company.company_inn = observation.company_inn
-         CROSS JOIN LATERAL (VALUES
-           ('revenue'::audience.financial_metric, observation.revenue, observation.revenue_evidence_id),
-           ('income'::audience.financial_metric, observation.income, observation.income_evidence_id),
-           ('expenses'::audience.financial_metric, observation.expenses, observation.expenses_evidence_id)
-         ) selected(metric, amount, evidence_id)
-         JOIN current_financial_evidence evidence
-           ON evidence.id = selected.evidence_id
-              AND evidence.company_inn = observation.company_inn
-              AND evidence.report_year = observation.report_year
-              AND evidence.metric = selected.metric
-              AND evidence.amount = selected.amount
-         WHERE selected.amount IS NOT NULL
-       ), newest_financial_evidence AS (
+       ), current_financial_metrics AS (
+         SELECT DISTINCT company_inn, report_year, metric
+         FROM current_financial_evidence
+       ), globally_newest_financial_evidence AS (
          SELECT DISTINCT ON (evidence.company_inn, evidence.report_year, evidence.metric)
                 evidence.company_inn, evidence.report_year, evidence.metric,
-                evidence.id, evidence.amount
-         FROM current_financial_evidence evidence
+                evidence.id, evidence.amount, raw.run_id
+         FROM audience.financial_evidence evidence
+         JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+         JOIN current_financial_metrics metric
+           ON metric.company_inn = evidence.company_inn
+              AND metric.report_year = evidence.report_year
+              AND metric.metric = evidence.metric
          ORDER BY evidence.company_inn, evidence.report_year, evidence.metric,
-                  evidence.collected_at DESC, evidence.id DESC
+                  evidence.collected_at DESC,
+                  evidence.observed_at DESC NULLS LAST,
+                  evidence.id DESC
+       ), current_metric_projections AS (
+         SELECT metric.company_inn, metric.report_year, metric.metric,
+                newest.id AS newest_evidence_id,
+                newest.amount AS newest_amount,
+                newest.run_id AS newest_run_id,
+                CASE metric.metric
+                  WHEN 'revenue' THEN observation.revenue
+                  WHEN 'income' THEN observation.income
+                  WHEN 'expenses' THEN observation.expenses
+                END AS projected_amount,
+                CASE metric.metric
+                  WHEN 'revenue' THEN observation.revenue_evidence_id
+                  WHEN 'income' THEN observation.income_evidence_id
+                  WHEN 'expenses' THEN observation.expenses_evidence_id
+                END AS projected_evidence_id
+         FROM current_financial_metrics metric
+         JOIN globally_newest_financial_evidence newest
+           ON newest.company_inn = metric.company_inn
+              AND newest.report_year = metric.report_year
+              AND newest.metric = metric.metric
+         LEFT JOIN audience.financial_observations observation
+           ON observation.company_inn = metric.company_inn
+              AND observation.report_year = metric.report_year
        ), latest_financial_task AS (
          SELECT task.result_json
          FROM audience.crawl_tasks task
@@ -554,12 +569,12 @@ export class PostgresAudienceRepository implements AudienceRepository {
              WHERE checksum_sha256 !~ '^[0-9a-f]{64}$'))::text
            AS evidence_without_run_raw_checksum,
          (SELECT count(*)
-          FROM selected_current_metrics selected
-          JOIN newest_financial_evidence newest
-            ON newest.company_inn = selected.company_inn
-               AND newest.report_year = selected.report_year
-               AND newest.metric = selected.metric
-          WHERE newest.id <> selected.evidence_id OR newest.amount <> selected.amount
+          FROM current_metric_projections projection
+          WHERE projection.newest_run_id = run.id
+            AND (
+              projection.projected_evidence_id IS DISTINCT FROM projection.newest_evidence_id
+              OR projection.projected_amount IS DISTINCT FROM projection.newest_amount
+            )
          )::text AS projections_behind_newest_evidence,
          (SELECT count(*)
           FROM audience.source_fetches raw
@@ -653,7 +668,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
     }
     const staleProjections = Number(row.projections_behind_newest_evidence);
     if (staleProjections !== 0) {
-      violations.push(`financial projections behind newest evidence: ${staleProjections}`);
+      violations.push(`financial projection differs from newest evidence: ${staleProjections}`);
     }
     if (unexplainedSourceFetches !== 0) {
       violations.push(`unexplained source fetches: ${unexplainedSourceFetches}`);
