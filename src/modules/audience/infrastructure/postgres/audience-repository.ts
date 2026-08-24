@@ -221,16 +221,6 @@ export class PostgresAudienceRepository implements AudienceRepository {
     return row === undefined ? null : taskState(row);
   }
 
-  async failPreparedTask(taskId: string, errorCode: string): Promise<boolean> {
-    const result = await this.database.query(
-      `UPDATE audience.crawl_tasks
-       SET status = 'failed', error_json = $2::jsonb, completed_at = now(), updated_at = now()
-       WHERE id = $1 AND status = 'pending'`,
-      [taskId, JSON.stringify({ code: errorCode })],
-    );
-    return result.rowCount === 1;
-  }
-
   async recordBrowserAction(task: FencedTask, event: BrowserActionEvent): Promise<boolean> {
     const persisted = { ...event, fencingToken: task.fencingToken };
     const result = await this.database.query(

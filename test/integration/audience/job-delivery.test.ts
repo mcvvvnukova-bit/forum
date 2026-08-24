@@ -11,6 +11,7 @@ import { runner } from "node-pg-migrate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { replayRun } from "../../../src/modules/audience/application/replay-run";
+import { enqueueReplayWrite } from "../../../src/apps/browser-runner/enqueue-replay-write";
 import { createCandidateEvidence } from "../../../src/modules/audience/domain/candidate-evidence";
 import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
@@ -131,6 +132,37 @@ describe("task fencing and pg-boss delivery", () => {
     });
   });
 
+  it("rolls back the replay task when enqueue fails before the shared commit", async () => {
+    const { runId } = await stageSingleCandidateRun(database, repository, env, client);
+    const taskId = randomUUID();
+    const realQueue = new PgBossJobQueue(temporaryDatabase.connectionString);
+    await realQueue.ensureQueue("audience-replay-write");
+    const failingQueue = {
+      ensureQueue: (name: string) => realQueue.ensureQueue(name),
+      publishInTransaction: async () => {
+        throw new Error("synthetic enqueue crash");
+      },
+    };
+
+    try {
+      await expect(enqueueReplayWrite(runId, database, failingQueue, taskId))
+        .rejects.toThrow("synthetic enqueue crash");
+
+      const task = await database.query(
+        "SELECT id FROM audience.crawl_tasks WHERE id = $1",
+        [taskId],
+      );
+      const job = await database.query(
+        "SELECT id FROM pgboss.job WHERE id = $1",
+        [taskId],
+      );
+      expect(task.rowCount).toBe(0);
+      expect(job.rowCount).toBe(0);
+    } finally {
+      await realQueue.close();
+    }
+  });
+
   it("reacquires one expired replay task and makes a completed delivery source-free", async () => {
     const { runId, rawStorage, stored } = await stageSingleCandidateRun(
       database,
@@ -197,20 +229,26 @@ describe("task fencing and pg-boss delivery", () => {
     expect(afterNoop.rows[0]).toEqual({ count: "1", non_terminal: "0" });
   });
 
-  it("delivers one stable replay business task twice through pg-boss without rereading raw", async () => {
-    const { runId, rawStorage, stored } = await stageSingleCandidateRun(
+  it("atomically enqueues and delivers one stable replay business task through pg-boss", async () => {
+    const { runId, rawStorage } = await stageSingleCandidateRun(
       database,
       repository,
       env,
       client,
     );
     const taskId = randomUUID();
-    await repository.prepareTask(taskId, runId, "replay_write");
     const queue = new PgBossJobQueue(temporaryDatabase.connectionString);
-    const queueName = `audience-stable-replay-${randomUUID()}`;
     let deliveries = 0;
     try {
-      await queue.work<{ runId: string; taskId: string }>(queueName, async (job) => {
+      const enqueued = await enqueueReplayWrite(runId, database, queue, taskId);
+      expect(enqueued).toMatchObject({ runId, taskId, jobId: taskId, queued: true });
+      const jobs = await database.query<{ data: { runId: string; taskId: string } }>(
+        "SELECT data FROM pgboss.job WHERE id = $1",
+        [taskId],
+      );
+      expect(jobs.rows[0]?.data).toEqual({ runId, taskId });
+
+      await queue.work<{ runId: string; taskId: string }>("audience-replay-write", async (job) => {
         await replayRun({
           runId: job.data.runId,
           taskId: job.data.taskId,
@@ -218,9 +256,46 @@ describe("task fencing and pg-boss delivery", () => {
         }, { repository, rawStorage });
         deliveries += 1;
       });
-      const payload = { runId, taskId };
-      const singletonKey = `audience:${runId}:replay_write`;
-      await queue.publish(queueName, payload, { singletonKey });
+      await waitForDeliveries(() => deliveries, 1);
+
+      const tasks = await database.query<{
+        count: string;
+        attempts: string;
+        non_terminal: string;
+      }>(
+        `SELECT count(*)::text AS count,
+                max(attempts)::text AS attempts,
+                count(*) FILTER (WHERE status IN ('pending', 'running'))::text AS non_terminal
+         FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'replay_write'`,
+        [runId],
+      );
+      expect(tasks.rows[0]).toEqual({ count: "1", attempts: "1", non_terminal: "0" });
+    } finally {
+      await queue.close();
+    }
+  }, 20_000);
+
+  it("redelivers a completed replay task through ordinary publish without rereading raw", async () => {
+    const { runId, rawStorage, stored } = await stageSingleCandidateRun(
+      database,
+      repository,
+      env,
+      client,
+    );
+    const taskId = randomUUID();
+    const queue = new PgBossJobQueue(temporaryDatabase.connectionString);
+    let deliveries = 0;
+    try {
+      await queue.work<{ runId: string; taskId: string }>("audience-replay-write", async (job) => {
+        await replayRun({
+          runId: job.data.runId,
+          taskId: job.data.taskId,
+          dryRun: false,
+        }, { repository, rawStorage });
+        deliveries += 1;
+      });
+      await enqueueReplayWrite(runId, database, queue, taskId);
       await waitForDeliveries(() => deliveries, 1);
 
       await client.send(new DeleteObjectsCommand({
@@ -233,7 +308,11 @@ describe("task fencing and pg-boss delivery", () => {
           ],
         },
       }));
-      await queue.publish(queueName, payload, { singletonKey });
+      await queue.publish(
+        "audience-replay-write",
+        { runId, taskId },
+        { singletonKey: `audience:${runId}:replay_write` },
+      );
       await waitForDeliveries(() => deliveries, 2);
 
       const tasks = await database.query<{

@@ -20,6 +20,7 @@ import { parseEnv, type AppEnv } from "../../shared/config/env";
 import { PgBossJobQueue } from "../../shared/jobs/pg-boss-job-queue";
 import { PostgresDatabase } from "../../shared/postgres/database";
 import { CliInputError, parseAudienceCli } from "./cli";
+import { enqueueReplayWrite } from "./enqueue-replay-write";
 import { startListOrgFixtureServer } from "./list-org-fixture-server";
 
 const LIST_ORG_PARSER_VERSION = "list-org-browser/1.0.0";
@@ -72,21 +73,9 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
         if (state?.status !== "succeeded") {
           throw new PublicOperationError("only a succeeded fixture run can be replayed");
         }
-        const taskId = randomUUID();
-        await repository.prepareTask(taskId, command.runId, "replay_write");
         const queue = new PgBossJobQueue(env.databaseUrl);
         try {
-          try {
-            const jobId = await queue.publish(
-              "audience-replay-write",
-              { runId: command.runId, taskId },
-              { singletonKey: `audience:${command.runId}:replay_write` },
-            );
-            return { runId: command.runId, taskId, jobId, queued: true };
-          } catch (error) {
-            await repository.failPreparedTask(taskId, "replay_enqueue_failed");
-            throw error;
-          }
+          return await enqueueReplayWrite(command.runId, database, queue);
         } finally {
           await queue.close();
         }
