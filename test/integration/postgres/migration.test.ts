@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { runner } from "node-pg-migrate";
 import { PostgresDatabase } from "../../../src/shared/postgres/database";
@@ -67,7 +68,117 @@ describe("audience core migration", () => {
     );
     expect(result.rows[0]?.count).toBe("0");
   });
+
+  it("requires dataset and exact evidence provenance for normalized values", async () => {
+    const fixture = await insertProvenanceFixture();
+
+    await expect(client.query(
+      `INSERT INTO audience.okveds (code, name, source_version)
+       VALUES ('43.11', 'Разборка и снос зданий', 'ОКВЭД-2')`,
+    )).rejects.toMatchObject({ code: "23502" });
+    await expect(client.query(
+      `INSERT INTO audience.okveds (code, name, source_version, dataset_release_id)
+       VALUES ('43.11', 'Разборка и снос зданий', 'ОКВЭД-2', $1)`,
+      [fixture.datasetReleaseId],
+    )).resolves.toMatchObject({ rowCount: 1 });
+
+    await expect(client.query(
+      `INSERT INTO audience.financial_observations (company_inn, report_year, revenue)
+       VALUES ($1, 2025, 0.00)`,
+      [fixture.companyInn],
+    )).rejects.toMatchObject({ code: "23514" });
+
+    await insertFinancialEvidence(fixture, fixture.revenueEvidenceId, "revenue", 2025, "0.00");
+    await expect(client.query(
+      `INSERT INTO audience.financial_observations (
+         company_inn, report_year, revenue, revenue_evidence_id
+       ) VALUES ($1, 2025, 0.00, $2)`,
+      [fixture.companyInn, fixture.revenueEvidenceId],
+    )).resolves.toMatchObject({ rowCount: 1 });
+
+    await expect(client.query(
+      "UPDATE audience.financial_observations SET revenue = 1.00 WHERE company_inn = $1 AND report_year = 2025",
+      [fixture.companyInn],
+    )).rejects.toMatchObject({ code: "23503" });
+
+    await expect(client.query(
+      `INSERT INTO audience.financial_observations (
+         company_inn, report_year, revenue, revenue_evidence_id
+       ) VALUES ($1, 2026, 0.00, $2)`,
+      [fixture.companyInn, fixture.revenueEvidenceId],
+    )).rejects.toMatchObject({ code: "23503" });
+
+    await insertFinancialEvidence(fixture, fixture.incomeEvidenceId, "income", 2025, "0.00");
+    await expect(client.query(
+      "UPDATE audience.financial_observations SET revenue_evidence_id = $1 WHERE company_inn = $2 AND report_year = 2025",
+      [fixture.incomeEvidenceId, fixture.companyInn],
+    )).rejects.toMatchObject({ code: "23503" });
+  });
 });
+
+interface ProvenanceFixture {
+  companyInn: string;
+  sourceFetchId: string;
+  datasetReleaseId: string;
+  revenueEvidenceId: string;
+  incomeEvidenceId: string;
+}
+
+async function insertProvenanceFixture(): Promise<ProvenanceFixture> {
+  const runId = randomUUID();
+  const sourceFetchId = randomUUID();
+  const datasetReleaseId = randomUUID();
+  const companyInn = "7707083893";
+
+  await client.query(
+    `INSERT INTO audience.crawl_runs (id, scope_json, fixture_version, parser_version)
+     VALUES ($1, '{}'::jsonb, 'fixture-v1', 'parser-v1')`,
+    [runId],
+  );
+  await client.query(
+    `INSERT INTO audience.source_fetches (
+       id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+       mime_type, final_url, navigation_status, captured_at, parser_version
+     ) VALUES ($1, $2, 'fixture', 'record-1', 'raw/record-1', $3,
+       'text/html', 'http://fixture.test/record-1', 200, now(), 'parser-v1')`,
+    [sourceFetchId, runId, "a".repeat(64)],
+  );
+  await client.query(
+    `INSERT INTO audience.dataset_releases (id, source_kind, source_version, source_fetch_id)
+     VALUES ($1, 'okved', 'ОКВЭД-2', $2)`,
+    [datasetReleaseId, sourceFetchId],
+  );
+  await client.query(
+    `INSERT INTO audience.companies (
+       inn, name, source_fetch_id, source_record_key
+     ) VALUES ($1, 'АО Тест', $2, 'record-1')`,
+    [companyInn, sourceFetchId],
+  );
+
+  return {
+    companyInn,
+    sourceFetchId,
+    datasetReleaseId,
+    revenueEvidenceId: randomUUID(),
+    incomeEvidenceId: randomUUID(),
+  };
+}
+
+async function insertFinancialEvidence(
+  fixture: ProvenanceFixture,
+  id: string,
+  metric: "revenue" | "income",
+  reportYear: number,
+  amount: string,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO audience.financial_evidence (
+       id, company_inn, report_year, metric, amount, source_fetch_id,
+       source_record_key, parser_version
+     ) VALUES ($1, $2, $3, $4, $5::numeric, $6, $7, 'parser-v1')`,
+    [id, fixture.companyInn, reportYear, metric, amount, fixture.sourceFetchId, `${metric}-${reportYear}`],
+  );
+}
 
 async function migrate(direction: "up" | "down"): Promise<void> {
   await runner({
