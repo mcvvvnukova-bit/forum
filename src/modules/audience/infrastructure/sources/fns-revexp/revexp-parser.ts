@@ -13,25 +13,68 @@ export interface RevexpParserContext {
   parserVersion: string;
 }
 
+const DECODE_CHUNK_BYTES = 16_384;
+
+interface RevexpRecordState {
+  innText?: string;
+  incomeText?: string;
+  expensesText?: string;
+}
+
 export function parseRevexp(input: Uint8Array, context: RevexpParserContext): FinancialMetricEvidence[] {
-  let innText: string | undefined;
-  let incomeText: string | undefined;
-  let expensesText: string | undefined;
+  let currentRecord: RevexpRecordState | undefined;
+  let records = 0;
   let xmlError: Error | undefined;
+  let recordError: Error | undefined;
+  const evidence: FinancialMetricEvidence[] = [];
   const parser = new SaxesParser();
 
   parser.on("opentag", (tag) => {
+    if (tag.name === "Документ") {
+      records += 1;
+      if (currentRecord !== undefined) {
+        recordError ??= new Error("revexp XML contains nested Документ records");
+      }
+      currentRecord = {};
+    }
+    if (currentRecord === undefined) return;
     const attributes = tag.attributes;
-    innText ??= attributes["ИННЮЛ"];
-    incomeText ??= attributes["СумДоход"];
-    expensesText ??= attributes["СумРасход"];
+    currentRecord.innText ??= attributes["ИННЮЛ"];
+    currentRecord.incomeText ??= attributes["СумДоход"];
+    currentRecord.expensesText ??= attributes["СумРасход"];
+  });
+  parser.on("closetag", (tag) => {
+    if (tag.name !== "Документ" || currentRecord === undefined) return;
+    const record = currentRecord;
+    currentRecord = undefined;
+    if (record.innText === undefined) {
+      recordError ??= new Error("revexp XML does not contain ИННЮЛ");
+      return;
+    }
+    try {
+      evidence.push(...createEvidence(
+        parseLegalEntityInn(record.innText),
+        record.incomeText,
+        record.expensesText,
+        context,
+      ));
+    } catch (error) {
+      recordError ??= error instanceof Error ? error : new Error(errorMessage(error));
+    }
   });
   parser.on("error", (error) => {
     xmlError ??= error;
   });
 
   try {
-    parser.write(new TextDecoder("utf-8", { fatal: true }).decode(input)).close();
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    for (let offset = 0; offset < input.byteLength; offset += DECODE_CHUNK_BYTES) {
+      parser.write(decoder.decode(
+        input.subarray(offset, Math.min(offset + DECODE_CHUNK_BYTES, input.byteLength)),
+        { stream: true },
+      ));
+    }
+    parser.write(decoder.decode()).close();
   } catch (error) {
     throw new Error(`revexp XML is malformed: ${errorMessage(error)}`);
   }
@@ -39,12 +82,11 @@ export function parseRevexp(input: Uint8Array, context: RevexpParserContext): Fi
   if (xmlError !== undefined) {
     throw new Error(`revexp XML is malformed: ${xmlError.message}`);
   }
-  if (innText === undefined) {
+  if (records === 0) {
     throw new Error("revexp XML does not contain ИННЮЛ");
   }
-
-  const inn = parseLegalEntityInn(innText);
-  return createEvidence(inn, incomeText, expensesText, context);
+  if (recordError !== undefined) throw recordError;
+  return evidence;
 }
 
 function createEvidence(

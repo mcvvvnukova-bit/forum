@@ -26,11 +26,66 @@ describe("audience core migration", () => {
   it("creates the owned schema and reverses it without touching the database", async () => {
     await migrate("up");
 
-    expect(await tableNames(client, "audience")).toEqual(expect.arrayContaining([
-      "crawl_runs", "crawl_tasks", "source_fetches", "dataset_releases",
-      "companies", "okveds", "company_okveds", "run_company_matches",
-      "organization_evidence", "financial_evidence", "financial_observations",
-    ]));
+    expect(await tableNames(client, "audience")).toEqual([
+      "companies", "company_okveds", "crawl_runs", "crawl_tasks", "dataset_releases",
+      "financial_evidence", "financial_observations", "okveds", "organization_evidence",
+      "run_company_matches", "source_fetches",
+    ]);
+    expect(await keyedConstraints(client, "p")).toEqual([
+      "companies(inn)",
+      "company_okveds(company_inn,okved_code)",
+      "crawl_runs(id)",
+      "crawl_tasks(id)",
+      "dataset_releases(id)",
+      "financial_evidence(id)",
+      "financial_observations(company_inn,report_year)",
+      "okveds(code)",
+      "organization_evidence(id)",
+      "run_company_matches(run_id,company_inn,matched_okved_code)",
+      "source_fetches(id)",
+    ]);
+    expect(await keyedConstraints(client, "u")).toEqual([
+      "dataset_releases(id,source_version)",
+      "dataset_releases(source_kind,source_version)",
+      "financial_evidence(company_inn,report_year,metric,source_fetch_id,source_record_key)",
+      "financial_evidence(id,company_inn,report_year,metric,amount)",
+      "source_fetches(run_id,source_kind,source_record_key,checksum_sha256)",
+    ]);
+    expect(await foreignKeys(client)).toEqual([
+      "companies(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "company_okveds(company_inn)->companies(inn):RESTRICT:false:false",
+      "company_okveds(okved_code)->okveds(code):RESTRICT:false:false",
+      "company_okveds(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "crawl_tasks(run_id)->crawl_runs(id):RESTRICT:false:false",
+      "dataset_releases(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "financial_evidence(company_inn)->companies(inn):RESTRICT:false:false",
+      "financial_evidence(dataset_release_id)->dataset_releases(id):RESTRICT:false:false",
+      "financial_evidence(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "financial_observations(company_inn)->companies(inn):RESTRICT:false:false",
+      "financial_observations(expenses_evidence_id,company_inn,report_year,expenses_metric,expenses)->financial_evidence(id,company_inn,report_year,metric,amount):RESTRICT:true:false",
+      "financial_observations(income_evidence_id,company_inn,report_year,income_metric,income)->financial_evidence(id,company_inn,report_year,metric,amount):RESTRICT:true:false",
+      "financial_observations(revenue_evidence_id,company_inn,report_year,revenue_metric,revenue)->financial_evidence(id,company_inn,report_year,metric,amount):RESTRICT:true:false",
+      "okveds(dataset_release_id)->dataset_releases(id):RESTRICT:false:false",
+      "okveds(dataset_release_id,source_version)->dataset_releases(id,source_version):RESTRICT:false:false",
+      "organization_evidence(company_inn)->companies(inn):RESTRICT:false:false",
+      "organization_evidence(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "run_company_matches(company_inn)->companies(inn):RESTRICT:false:false",
+      "run_company_matches(matched_okved_code)->okveds(code):RESTRICT:false:false",
+      "run_company_matches(run_id)->crawl_runs(id):RESTRICT:false:false",
+      "run_company_matches(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "source_fetches(run_id)->crawl_runs(id):RESTRICT:false:false",
+    ]);
+    expect(await namedIndexColumns(client, [
+      "crawl_tasks_run_id_status_idx",
+      "financial_evidence_company_inn_report_year_idx",
+      "run_company_matches_run_id_idx",
+      "source_fetches_run_id_idx",
+    ])).toEqual([
+      "crawl_tasks_run_id_status_idx(run_id,status)",
+      "financial_evidence_company_inn_report_year_idx(company_inn,report_year)",
+      "run_company_matches_run_id_idx(run_id)",
+      "source_fetches_run_id_idx(run_id)",
+    ]);
     expect(await primaryKey(client, "audience", "company_okveds"))
       .toEqual(["company_inn", "okved_code"]);
     expect(await hasCheckConstraint(client, "audience", "companies", "inn ~ '^[0-9]{10}$'"))
@@ -218,6 +273,71 @@ async function primaryKey(databaseClient: Client, schema: string, table: string)
   );
 
   return result.rows.map((row) => row.column_name);
+}
+
+async function keyedConstraints(databaseClient: Client, type: "p" | "u"): Promise<string[]> {
+  const result = await databaseClient.query<{ description: string }>(
+    `SELECT relation.relname || '(' ||
+            string_agg(attribute.attname, ',' ORDER BY key_numbers.position) || ')' AS description
+     FROM pg_constraint con
+     JOIN pg_class relation ON relation.oid = con.conrelid
+     JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+     JOIN unnest(con.conkey) WITH ORDINALITY AS key_numbers(attnum, position) ON true
+     JOIN pg_attribute attribute
+       ON attribute.attrelid = relation.oid AND attribute.attnum = key_numbers.attnum
+     WHERE namespace.nspname = 'audience' AND con.contype = $1
+     GROUP BY con.oid, relation.relname
+     ORDER BY description`,
+    [type],
+  );
+  return result.rows.map((row) => row.description);
+}
+
+async function foreignKeys(databaseClient: Client): Promise<string[]> {
+  const result = await databaseClient.query<{ description: string }>(
+    `SELECT source.relname || '(' ||
+            string_agg(source_column.attname, ',' ORDER BY source_key.position) || ')->' ||
+            target.relname || '(' ||
+            string_agg(target_column.attname, ',' ORDER BY source_key.position) || '):' ||
+            CASE con.confdeltype
+              WHEN 'r' THEN 'RESTRICT' WHEN 'c' THEN 'CASCADE' WHEN 'n' THEN 'SET NULL'
+              WHEN 'd' THEN 'SET DEFAULT' ELSE 'NO ACTION'
+            END || ':' || con.condeferrable::text || ':' || con.condeferred::text AS description
+     FROM pg_constraint con
+     JOIN pg_class source ON source.oid = con.conrelid
+     JOIN pg_namespace namespace ON namespace.oid = source.relnamespace
+     JOIN pg_class target ON target.oid = con.confrelid
+     JOIN unnest(con.conkey) WITH ORDINALITY AS source_key(attnum, position) ON true
+     JOIN unnest(con.confkey) WITH ORDINALITY AS target_key(attnum, position)
+       ON target_key.position = source_key.position
+     JOIN pg_attribute source_column
+       ON source_column.attrelid = source.oid AND source_column.attnum = source_key.attnum
+     JOIN pg_attribute target_column
+       ON target_column.attrelid = target.oid AND target_column.attnum = target_key.attnum
+     WHERE namespace.nspname = 'audience' AND con.contype = 'f'
+     GROUP BY con.oid, source.relname, target.relname
+     ORDER BY description`,
+  );
+  return result.rows.map((row) => row.description);
+}
+
+async function namedIndexColumns(databaseClient: Client, names: readonly string[]): Promise<string[]> {
+  const result = await databaseClient.query<{ description: string }>(
+    `SELECT index_relation.relname || '(' ||
+            string_agg(attribute.attname, ',' ORDER BY key_numbers.position) || ')' AS description
+     FROM pg_index index_definition
+     JOIN pg_class index_relation ON index_relation.oid = index_definition.indexrelid
+     JOIN pg_class table_relation ON table_relation.oid = index_definition.indrelid
+     JOIN pg_namespace namespace ON namespace.oid = table_relation.relnamespace
+     JOIN unnest(index_definition.indkey) WITH ORDINALITY AS key_numbers(attnum, position) ON true
+     JOIN pg_attribute attribute
+       ON attribute.attrelid = table_relation.oid AND attribute.attnum = key_numbers.attnum
+     WHERE namespace.nspname = 'audience' AND index_relation.relname = ANY($1::text[])
+     GROUP BY index_relation.oid, index_relation.relname
+     ORDER BY description`,
+    [names],
+  );
+  return result.rows.map((row) => row.description);
 }
 
 async function hasConstraint(

@@ -4,16 +4,19 @@ import type {
   BrowserRawBundle,
   ChecksummedBrowserRawBundle,
 } from "../../domain/discovery";
+import { assertPersistableRawBundle } from "../sources/list-org-browser/browser-raw-sanitizer";
 
 export function sha256(bytes: Uint8Array | string): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
 export function checksumBrowserRawBundle(bundle: BrowserRawBundle): ChecksummedBrowserRawBundle {
+  assertPersistableRawBundle(bundle);
   const sanitizedDomSha256 = sha256(bundle.sanitizedDomUtf8);
   const redactedScreenshotSha256 = sha256(bundle.redactedScreenshotPng);
   const manifest = {
     version: 1,
+    sourceKind: bundle.sourceKind,
     parserVersion: bundle.parserVersion,
     finalUrl: bundle.finalUrl,
     capturedAt: bundle.capturedAt,

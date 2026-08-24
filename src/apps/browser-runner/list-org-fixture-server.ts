@@ -36,12 +36,20 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
     } else if (url.pathname === "/contract-drift") {
       body = files.contractDrift;
     } else if (url.pathname === "/results/page-1") {
-      body = renderResult(files.page1, scenario).replace(
-        "{{EXTERNAL_RESOURCE}}",
-        scenario === "external"
-          ? '<img src="https://external.invalid/tracker.png" alt="external tracker">'
-          : "",
-      );
+      if (scenario === "403-after-click") {
+        status = 403;
+        body = "<!doctype html><html><body><main><h1>Forbidden</h1></main></body></html>";
+      } else {
+        body = renderResult(files.page1, scenario).replace(
+          "{{EXTERNAL_RESOURCE}}",
+          scenario === "external"
+            ? '<img src="https://external.invalid/tracker.png" alt="external tracker">'
+            : "",
+        );
+        if (scenario === "mismatched-scope") {
+          body = body.replace("<dt>ОКВЭД</dt><dd>43.11</dd>", "<dt>ОКВЭД</dt><dd>43.12</dd>");
+        }
+      }
     } else if (url.pathname === "/results/page-2") {
       body = renderResult(files.page2, scenario).replace(
         "{{TERMINAL_MARKER}}",
@@ -59,6 +67,46 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
           body = body.replace(
             "<dt>ИНН</dt><dd>7707083893</dd>",
             "<dt>ИНН</dt><dd>7707083893</dd><dt>ИНН</dt><dd>7710140679</dd>",
+          );
+        }
+        if (scenario === "newer-organization" && companyKey === "1001") {
+          body = body
+            .replace("ООО «Альфа Строй»", "ООО «Альфа Строй Новая»")
+            .replace("https://alpha.example", "https://alpha-new.example")
+            .replace("<dt>Тип ОКВЭД</dt><dd>Основной</dd>", "<dt>Тип ОКВЭД</dt><dd>Дополнительный</dd>");
+        }
+        if (scenario === "invalid-inn" && companyKey === "1001") {
+          body = body.replace("<dt>ИНН</dt><dd>7707083893</dd>", "<dt>ИНН</dt><dd>7707083894</dd>");
+        }
+        if (scenario === "ambiguous-okved" && companyKey === "1001") {
+          body = body.replace(
+            "<dt>ОКВЭД</dt><dd>43.11</dd>",
+            "<dt>ОКВЭД</dt><dd>43.11</dd><dt>ОКВЭД</dt><dd>43.12</dd>",
+          );
+        }
+        if (scenario === "mismatched-okved" && companyKey === "1001") {
+          body = body.replace("<dt>ОКВЭД</dt><dd>43.11</dd>", "<dt>ОКВЭД</dt><dd>43.12</dd>");
+        }
+        if (scenario === "unknown-role" && companyKey === "1001") {
+          body = body.replace(
+            "<dt>Тип ОКВЭД</dt><dd>Основной</dd>",
+            "<dt>Тип ОКВЭД</dt><dd>Неизвестный</dd>",
+          );
+        }
+        if (scenario === "conflicting-duplicate" && companyKey === "1002" && from === "2") {
+          body = body.replace("АО «Бета Демонтаж»", "АО «Бета Демонтаж Конфликт»");
+        }
+        if (scenario === "redaction-surfaces" && companyKey === "1001") {
+          body = body.replace(
+            "</head>",
+            '<meta name="description" content="info@alpha.example default-secret configured-secret"></head>',
+          ).replace(
+            "</dl>",
+            `</dl><!-- backup@alpha.example default-secret -->
+             <p aria-label="Call +7 (495) 111-22-33" data-copy="configured-secret">
+               Duplicate: +7 (495) 111-22-33
+             </p>
+             <a class="contact-value" href="mailto:backup@alpha.example" title="info@alpha.example">Contact</a>`,
           );
         }
       }

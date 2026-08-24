@@ -33,14 +33,14 @@ Expected: `APP_MODE=fixture`, `LIST_ORG_LIVE_ENABLED=false`, and all source endp
 Use this path for a repeatable release decision:
 
 ```bash
-docker compose up -d postgres minio
+docker compose up -d --wait postgres minio
 npm ci
 npx playwright install chromium
 npm run migrate:up
 TEST_DATABASE_ADMIN_URL="$TEST_DATABASE_ADMIN_URL" npm test -- test/e2e/audience-parser.e2e.test.ts
 ```
 
-Expected: nine tests pass. The test uses a temporary PostgreSQL database and MinIO bucket,
+Expected: ten tests pass. The test uses a temporary PostgreSQL database and MinIO bucket,
 then removes both. It asserts 4 occurrences, 3 unique records, 1 duplicate, 3 companies,
 3 company/OKVED relations, 0 rejected records, 0 non-terminal tasks, 0 unexplained fetches,
 and exact values `125000.00`, `150000.00`, and `0.00`.
@@ -50,7 +50,7 @@ and exact values `125000.00`, `150000.00`, and `0.00`.
 ### 1. Start services and migrate
 
 ```bash
-docker compose up -d postgres minio
+docker compose up -d --wait postgres minio
 docker compose ps
 npm ci
 npx playwright install chromium
@@ -61,91 +61,17 @@ Expected: `postgres` and `minio` are healthy. Migration `001_audience_core` is a
 
 ### 2. Create the raw bucket and release selected OKVED 43.11
 
-Upload the exact selected-OKVED fixture to MinIO:
+Release and import the exact selected-OKVED fixture through the checksum-addressed application
+command:
 
 ```bash
-node --input-type=module <<'NODE'
-import { readFile } from "node:fs/promises";
-import {
-  CreateBucketCommand,
-  HeadBucketCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-
-const client = new S3Client({
-  endpoint: process.env.S3_ENDPOINT,
-  region: "us-east-1",
-  forcePathStyle: true,
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY_ID,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
-  },
-});
-try {
-  await client.send(new HeadBucketCommand({ Bucket: process.env.S3_BUCKET }));
-} catch {
-  await client.send(new CreateBucketCommand({ Bucket: process.env.S3_BUCKET }));
-}
-await client.send(new PutObjectCommand({
-  Bucket: process.env.S3_BUCKET,
-  Key: "raw/okved-csv/selected-okveds.csv",
-  Body: await readFile("data/okved/selected-okveds.csv"),
-  ContentType: "text/csv; charset=utf-8",
-}));
-client.destroy();
-console.log(JSON.stringify({ uploaded: "raw/okved-csv/selected-okveds.csv" }));
-NODE
+npm run --silent okved-release -- data/okved/selected-okveds.csv
 ```
 
-Record an idempotent fixture dataset release with the raw checksum:
-
-```bash
-OKVED_CHECKSUM="$(shasum -a 256 data/okved/selected-okveds.csv | awk '{print $1}')"
-docker compose exec -T postgres psql \
-  -v ON_ERROR_STOP=1 \
-  -v checksum="$OKVED_CHECKSUM" \
-  -U "$POSTGRES_USER" \
-  -d "$POSTGRES_DB" <<'SQL'
-WITH new_run AS (
-  INSERT INTO audience.crawl_runs (
-    id, scope_json, fixture_version, parser_version, status, terminal_reason, completed_at
-  )
-  SELECT gen_random_uuid(), '{}'::jsonb, 'selected-okveds-fixture/1.0.0',
-         'selected-okveds/1.0.0', 'succeeded', 'fixture_release', now()
-  WHERE NOT EXISTS (
-    SELECT 1 FROM audience.dataset_releases
-    WHERE source_kind = 'okved-csv'
-      AND source_version = 'ОКВЭД-2 ОК 029-2014 (КДЕС Ред. 2)'
-  )
-  RETURNING id
-), new_fetch AS (
-  INSERT INTO audience.source_fetches (
-    id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
-    mime_type, final_url, navigation_status, captured_at, parser_version
-  )
-  SELECT gen_random_uuid(), id, 'okved-csv', 'selected-okveds:2025',
-         'raw/okved-csv/selected-okveds.csv', :'checksum', 'text/csv',
-         'http://127.0.0.1:9000/okved-raw/raw/okved-csv/selected-okveds.csv',
-         200, now(), 'selected-okveds/1.0.0'
-  FROM new_run
-  RETURNING id
-)
-INSERT INTO audience.dataset_releases (
-  id, source_kind, source_version, source_fetch_id, published_at
-)
-SELECT gen_random_uuid(), 'okved-csv', 'ОКВЭД-2 ОК 029-2014 (КДЕС Ред. 2)', id, now()
-FROM new_fetch;
-SQL
-```
-
-Import through the application use case:
-
-```bash
-npx tsx -e 'import { readFile } from "node:fs/promises"; import { importSelectedOkveds } from "./src/modules/audience/application/import-selected-okveds.ts"; import { PostgresOkvedRepository } from "./src/modules/audience/infrastructure/postgres/okved-repository.ts"; import { PostgresDatabase } from "./src/shared/postgres/database.ts"; void (async () => { const db = new PostgresDatabase(process.env.DATABASE_URL); try { const release = await db.query("SELECT id FROM audience.dataset_releases WHERE source_kind = $1 AND source_version = $2", ["okved-csv", "ОКВЭД-2 ОК 029-2014 (КДЕС Ред. 2)"]); const imported = await importSelectedOkveds(await readFile("data/okved/selected-okveds.csv", "utf8"), new PostgresOkvedRepository(db), release.rows[0].id); console.log(JSON.stringify({ imported })); } finally { await db.close(); } })();'
-```
-
-Expected: `{"imported":1}`. Repeating the release and import is safe.
+Expected: `ok` is true, `imported` is 1, and `objectKey` has the form
+`raw/okved-csv/<64 lowercase hex checksum>/selected-okveds.csv`. The upload uses conditional
+create plus byte comparison. Repeating the command reports `reused: true`; reuse fails if the
+existing database release does not point at that exact checksum and object key.
 
 ### 3. Run browser discovery in dry-run mode
 
@@ -211,15 +137,30 @@ Expected: `{"ok":true,"status":"ready"}`. Keep it running until both replays fin
 In the operator terminal, enqueue the first replay and wait for its audited task:
 
 ```bash
+wait_for_replay_count() {
+  expected="$1"
+  for attempt in $(seq 1 60); do
+    replay_status="$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT status FROM audience.crawl_tasks WHERE run_id = '$RUN_ID' AND task_kind = 'replay_write' ORDER BY created_at DESC LIMIT 1")"
+    case "$replay_status" in
+      failed|blocked) printf 'replay ended as %s\n' "$replay_status" >&2; return 1 ;;
+    esac
+    succeeded="$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM audience.crawl_tasks WHERE run_id = '$RUN_ID' AND task_kind = 'replay_write' AND status = 'succeeded')"
+    [ "$succeeded" = "$expected" ] && return 0
+    sleep 1
+  done
+  printf 'timed out waiting for %s successful replay task(s)\n' "$expected" >&2
+  return 1
+}
+
 npm run --silent audience -- replay-write --run-id "$RUN_ID"
-until [ "$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT status FROM audience.crawl_tasks WHERE run_id = '$RUN_ID' AND task_kind = 'replay_write' ORDER BY created_at DESC LIMIT 1")" = "succeeded" ]; do sleep 1; done
+wait_for_replay_count 1
 ```
 
 Enqueue the same run again and wait for two successful replay tasks:
 
 ```bash
 npm run --silent audience -- replay-write --run-id "$RUN_ID"
-until [ "$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT count(*) FROM audience.crawl_tasks WHERE run_id = '$RUN_ID' AND task_kind = 'replay_write' AND status = 'succeeded')" = "2" ]; do sleep 1; done
+wait_for_replay_count 2
 ```
 
 Expected after both deliveries: three companies, three `(company_inn, okved_code)` relations,
@@ -316,7 +257,7 @@ YAML
 
 export DATABASE_URL='postgresql://okved:okved-local-password@127.0.0.1:5433/okved'
 export TEST_DATABASE_ADMIN_URL='postgresql://okved:okved-local-password@127.0.0.1:5433/postgres'
-docker compose -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d postgres minio
+docker compose -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
 ```
 
 Use both `-f` arguments for later Compose startup, shutdown, and volume cleanup commands.

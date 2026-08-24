@@ -131,9 +131,132 @@ describe("task fencing and pg-boss delivery", () => {
     });
   });
 
+  it("reacquires one expired replay task and makes a completed delivery source-free", async () => {
+    const { runId, rawStorage, stored } = await stageSingleCandidateRun(
+      database,
+      repository,
+      env,
+      client,
+    );
+    const crashed = await repository.createTask(runId, "replay_write", 1);
+    await database.query(
+      `UPDATE audience.crawl_tasks SET lease_expires_at = now() - interval '1 second'
+       WHERE id = $1`,
+      [crashed.id],
+    );
+
+    const command = { runId, dryRun: false as const, taskId: crashed.id };
+    const dependencies = {
+      repository,
+      rawStorage,
+      leaseSeconds: 1,
+      leaseRenewalIntervalMs: 100,
+    };
+    const recovered = await replayRun(command, dependencies);
+
+    expect(recovered).toMatchObject({
+      runId,
+      companies: 1,
+      companyOkveds: 1,
+      runCompanyMatches: 1,
+      verifiedRawObjects: 1,
+    });
+    const taskState = await database.query<{
+      count: string;
+      attempts: string;
+      non_terminal: string;
+    }>(
+      `SELECT count(*)::text AS count,
+              max(attempts)::text AS attempts,
+              count(*) FILTER (WHERE status IN ('pending', 'running'))::text AS non_terminal
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'replay_write'`,
+      [runId],
+    );
+    expect(taskState.rows[0]).toEqual({ count: "1", attempts: "2", non_terminal: "0" });
+
+    await client.send(new DeleteObjectsCommand({
+      Bucket: env.s3Bucket,
+      Delete: {
+        Objects: [
+          { Key: stored.manifestKey },
+          { Key: stored.domKey },
+          { Key: stored.screenshotKey },
+        ],
+      },
+    }));
+
+    await expect(replayRun(command, dependencies)).resolves.toEqual(recovered);
+    const afterNoop = await database.query<{ count: string; non_terminal: string }>(
+      `SELECT count(*)::text AS count,
+              count(*) FILTER (WHERE status IN ('pending', 'running'))::text AS non_terminal
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'replay_write'`,
+      [runId],
+    );
+    expect(afterNoop.rows[0]).toEqual({ count: "1", non_terminal: "0" });
+  });
+
+  it("delivers one stable replay business task twice through pg-boss without rereading raw", async () => {
+    const { runId, rawStorage, stored } = await stageSingleCandidateRun(
+      database,
+      repository,
+      env,
+      client,
+    );
+    const taskId = randomUUID();
+    await repository.prepareTask(taskId, runId, "replay_write");
+    const queue = new PgBossJobQueue(temporaryDatabase.connectionString);
+    const queueName = `audience-stable-replay-${randomUUID()}`;
+    let deliveries = 0;
+    try {
+      await queue.work<{ runId: string; taskId: string }>(queueName, async (job) => {
+        await replayRun({
+          runId: job.data.runId,
+          taskId: job.data.taskId,
+          dryRun: false,
+        }, { repository, rawStorage });
+        deliveries += 1;
+      });
+      const payload = { runId, taskId };
+      const singletonKey = `audience:${runId}:replay_write`;
+      await queue.publish(queueName, payload, { singletonKey });
+      await waitForDeliveries(() => deliveries, 1);
+
+      await client.send(new DeleteObjectsCommand({
+        Bucket: env.s3Bucket,
+        Delete: {
+          Objects: [
+            { Key: stored.manifestKey },
+            { Key: stored.domKey },
+            { Key: stored.screenshotKey },
+          ],
+        },
+      }));
+      await queue.publish(queueName, payload, { singletonKey });
+      await waitForDeliveries(() => deliveries, 2);
+
+      const tasks = await database.query<{
+        count: string;
+        attempts: string;
+        non_terminal: string;
+      }>(
+        `SELECT count(*)::text AS count,
+                max(attempts)::text AS attempts,
+                count(*) FILTER (WHERE status IN ('pending', 'running'))::text AS non_terminal
+         FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'replay_write'`,
+        [runId],
+      );
+      expect(tasks.rows[0]).toEqual({ count: "1", attempts: "1", non_terminal: "0" });
+    } finally {
+      await queue.close();
+    }
+  }, 20_000);
+
   it("delivers the same replay payload twice while domain publication remains idempotent", async () => {
     const runId = randomUUID();
-    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     const candidate = {
       sourceRecordKey: "1001",
       inn: parseLegalEntityInn("7707083893"),
@@ -145,6 +268,7 @@ describe("task fencing and pg-boss delivery", () => {
       isPrimary: true,
     };
     const bundle = checksumBrowserRawBundle({
+      sourceKind: "list-org-browser",
       parserVersion: "list-org-browser/1.0.0",
       finalUrl: "http://127.0.0.1/fixtures/company/1001",
       capturedAt: "2026-08-24T09:00:00.000Z",
@@ -279,4 +403,83 @@ async function waitForReplayTasks(
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw new Error(`timed out waiting for ${expected} replay tasks`);
+}
+
+async function waitForDeliveries(current: () => number, expected: number): Promise<void> {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    if (current() === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`timed out waiting for ${expected} pg-boss deliveries`);
+}
+
+async function stageSingleCandidateRun(
+  database: PostgresDatabase,
+  repository: PostgresAudienceRepository,
+  env: AppEnv,
+  client: S3Client,
+) {
+  const runId = randomUUID();
+  const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+  const candidate = {
+    sourceRecordKey: "1001",
+    inn: parseLegalEntityInn("7707083893"),
+    name: "АО Альфа",
+    website: "https://alpha.example",
+    phone: "+7 (495) 111-22-33",
+    email: "info@alpha.example",
+    okvedCode: parseOkvedCode("43.11"),
+    isPrimary: true,
+  };
+  const bundle = checksumBrowserRawBundle({
+    sourceKind: "list-org-browser",
+    parserVersion: "list-org-browser/1.0.0",
+    finalUrl: "http://127.0.0.1/fixtures/company/1001",
+    capturedAt: "2026-08-24T09:00:00.000Z",
+    navigationStatus: 200,
+    sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>redacted</main>"),
+    redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+    pageFingerprintSha256: "e".repeat(64),
+    identity: { runId, page: 1, sourceRecordKey: "1001" },
+    candidateEvidence: createCandidateEvidence(candidate),
+    actions: [],
+  });
+  const stored = await rawStorage.put(bundle);
+  const discoveryTask = await repository.createDiscoveryRun({
+    runId,
+    scope: { okved: "43.11", year: 2025, dryRun: true, maxPages: 1, maxCompanies: 1 },
+    fixtureVersion: "job-fixture/1.0.0",
+    parserVersion: "list-org-browser/1.0.0",
+    leaseSeconds: 60,
+  });
+  await repository.completeDiscovery({
+    task: discoveryTask,
+    status: "succeeded",
+    reason: "terminal_marker",
+    dryRun: true,
+    candidates: [{
+      ...candidate,
+      rawFetchKey: bundle.checksumSha256,
+      parserVersion: bundle.parserVersion,
+    }],
+    rawObjects: [{
+      id: randomUUID(),
+      sourceKind: "list-org-browser",
+      sourceRecordKey: "1001",
+      finalUrl: bundle.finalUrl,
+      navigationStatus: bundle.navigationStatus,
+      capturedAt: bundle.capturedAt,
+      parserVersion: bundle.parserVersion,
+      stored,
+    }],
+    discovery: {
+      occurrences: 1,
+      uniqueSourceRecords: 1,
+      acceptedCompanies: 1,
+      duplicates: 0,
+      rejected: 0,
+    },
+  });
+  return { runId, rawStorage, stored };
 }

@@ -1,11 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { chromium } from "playwright";
 
 import type { BrowserSessionFactory } from "../../../src/modules/audience/application/ports/browser-session";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
 import {
   ListOrgBrowserSource,
-  ExternalBrowserRequestError,
   PlaywrightBrowserSessionFactory,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source";
 import {
@@ -74,6 +73,59 @@ describe("ListOrgBrowserSource", () => {
 
     expect(result.status).toBe("blocked");
     expect(result.reason).toBe(reason);
+    expect(result.blockers).toHaveLength(1);
+    expect(result.blockers[0]?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it.each([
+    ["invalid legal-entity INN", "invalid-inn", "invalid_inn"],
+    ["ambiguous OKVED", "ambiguous-okved", "ambiguous_okved"],
+    ["OKVED outside requested scope", "mismatched-okved", "mismatched_okved"],
+    ["unknown OKVED role", "unknown-role", "unknown_okved_role"],
+  ])("turns %s into a typed record reject", async (_case, scenario, reason) => {
+    const result = await collect(`/search?scenario=${scenario}`);
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(result.companies.map((company) => company.sourceRecordKey)).toEqual(["1002", "1003"]);
+    expect(result.rejects).toHaveLength(1);
+    expect(result.rejects[0]).toMatchObject({ sourceRecordKey: "1001", reason });
+    expect(result.rejects[0]?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("blocks a duplicate source record whose normalized organization fields conflict", async () => {
+    const result = await collect("/search?scenario=conflicting-duplicate");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("duplicate_conflict");
+    expect(result.blockers).toHaveLength(1);
+    expect(result.blockers[0]).toMatchObject({
+      reason: "duplicate_conflict",
+      sourceRecordKey: "1002",
+    });
+  });
+
+  it("surfaces a 403 response reached through the search button with blocker evidence", async () => {
+    const result = await collect("/search?scenario=403-after-click");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("http_403");
+    expect(result.blockers).toHaveLength(1);
+    expect(result.blockers[0]?.raw.navigationStatus).toBe(403);
+    expect(result.blockers[0]?.raw.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "click-button",
+        outcome: "completed",
+        navigationStatus: 403,
+      }),
+    ]));
+  });
+
+  it("blocks a rendered search scope mismatch and retains checksummed evidence", async () => {
+    const result = await collect("/search?scenario=mismatched-scope");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("contract_drift");
+    expect(result.blockers[0]?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("never reports success when the terminal pagination marker is absent", async () => {
@@ -81,6 +133,37 @@ describe("ListOrgBrowserSource", () => {
 
     expect(result.status).toBe("limited");
     expect(result.reason).toBe("max_pages");
+  });
+
+  it("closes partially started browser resources when context creation fails", async () => {
+    const closeBrowser = vi.fn(async () => undefined);
+    const factory = new PlaywrightBrowserSessionFactory(fixture.origin, {
+      launch: async () => ({
+        newContext: async () => { throw new Error("context startup failed"); },
+        close: closeBrowser,
+      }) as never,
+    });
+
+    await expect(factory.open()).rejects.toThrow("context startup failed");
+    expect(closeBrowser).toHaveBeenCalledOnce();
+  });
+
+  it("closes context and browser when session page creation fails", async () => {
+    const closeContext = vi.fn(async () => undefined);
+    const closeBrowser = vi.fn(async () => undefined);
+    const factory = new PlaywrightBrowserSessionFactory(fixture.origin, {
+      launch: async () => ({
+        newContext: async () => ({
+          newPage: async () => { throw new Error("page startup failed"); },
+          close: closeContext,
+        }),
+        close: closeBrowser,
+      }) as never,
+    });
+
+    await expect(factory.open()).rejects.toThrow("page startup failed");
+    expect(closeContext).toHaveBeenCalledOnce();
+    expect(closeBrowser).toHaveBeenCalledOnce();
   });
 
   it("blocks contract drift when a singleton identity field has conflicting duplicates", async () => {
@@ -121,12 +204,14 @@ describe("ListOrgBrowserSource", () => {
     })).rejects.toThrow("discovery limits must be positive safe integers");
   });
 
-  it("fails collection when a page attempts a request outside the fixture origin", async () => {
-    await expect(collect("/search?scenario=external")).rejects.toThrow(
-      new ExternalBrowserRequestError(
-        "browser request escaped fixture allowlist: https://external.invalid",
-      ),
-    );
+  it("blocks an external request and preserves its sanitized origin in blocker evidence", async () => {
+    const result = await collect("/search?scenario=external");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("policy_block");
+    expect(result.blockers).toHaveLength(1);
+    expect(result.blockers[0]).toMatchObject({ detail: "https://external.invalid" });
+    expect(result.blockers[0]?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("keeps contacts only in the company record and redacts every contact box from raw artifacts", async () => {
@@ -153,6 +238,24 @@ describe("ListOrgBrowserSource", () => {
     expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(4);
   });
 
+  it("removes contacts and secrets from links, metadata, aria, comments, duplicate text, actions, and screenshot", async () => {
+    const result = await collect(
+      "/search?scenario=redaction-surfaces&token=default-secret&tenant_secret=configured-secret&client_secret=unconfigured-secret",
+      ["tenant_secret"],
+    );
+    const card = result.rawBundles.find((bundle) => bundle.identity.sourceRecordKey === "1001");
+    expect(card).toBeDefined();
+
+    const dom = new TextDecoder().decode(card!.sanitizedDomUtf8);
+    const manifest = new TextDecoder().decode(card!.manifestUtf8);
+    const allTextualEvidence = `${dom}\n${manifest}\n${JSON.stringify(card!.actions)}`;
+    expect(allTextualEvidence).not.toMatch(
+      /(?:info|backup)@alpha\.example|\+7 \(495\) (?:111-22-33|222-33-44)|default-secret|configured-secret|unconfigured-secret/i,
+    );
+    expect(dom).not.toMatch(/<!--|<meta\b|mailto:|aria-label|data-copy|data-contact|\btitle=/i);
+    expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBeGreaterThanOrEqual(6);
+  });
+
   async function collect(path: string, sensitiveQueryParameters?: readonly string[]) {
     const fixedNow = () => new Date("2026-08-24T09:00:00.000Z");
     const source = new ListOrgBrowserSource({
@@ -161,7 +264,7 @@ describe("ListOrgBrowserSource", () => {
         now: fixedNow,
         sensitiveQueryParameters,
       }),
-      runId: `browser-${path.replace(/[^a-z]+/gi, "-")}`,
+      runId: `browser-${new URL(path, "http://fixture.invalid").pathname.replace(/[^a-z]+/gi, "-")}`,
       parserVersion: "list-org-browser/1.0.0",
     });
 

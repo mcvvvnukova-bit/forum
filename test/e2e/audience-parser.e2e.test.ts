@@ -81,11 +81,11 @@ describe.sequential("audience parser fixture acceptance", () => {
     });
     await client.send(new CreateBucketCommand({ Bucket: env.s3Bucket }));
 
-    await releaseAndImportSelectedOkved(database, env);
+    await releaseAndImportSelectedOkved(database, env, client);
 
     runId = randomUUID();
     fixture = await startListOrgFixtureServer();
-    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     const source = new ListOrgBrowserSource({
       searchUrl: `${fixture.origin}/search`,
       sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
@@ -123,7 +123,7 @@ describe.sequential("audience parser fixture acceptance", () => {
     await replayRun({ runId, dryRun: false }, { repository, rawStorage });
     expect(await publishedSnapshot(database, runId)).toEqual(afterFirstReplay);
 
-    const financial = await stageFinancialFixtures(runId, 2025, env);
+    const financial = await stageFinancialFixtures(runId, 2025, env, client);
     await publishFinancialEvidence(financial, { repository });
   }, 60_000);
 
@@ -335,10 +335,10 @@ describe.sequential("audience parser fixture acceptance", () => {
 
     const secondRunId = randomUUID();
     const secondFixture = await startListOrgFixtureServer();
-    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     try {
       const source = new ListOrgBrowserSource({
-        searchUrl: `${secondFixture.origin}/search`,
+        searchUrl: `${secondFixture.origin}/search?scenario=newer-organization`,
         sessions: new PlaywrightBrowserSessionFactory(secondFixture.origin, {
           now: () => new Date("2026-08-24T10:00:00.000Z"),
         }),
@@ -359,9 +359,48 @@ describe.sequential("audience parser fixture acceptance", () => {
       await secondFixture.close();
     }
 
-    await replayRun({ runId: secondRunId, dryRun: false }, { repository, rawStorage });
+    const secondReplay = await replayRun(
+      { runId: secondRunId, dryRun: false },
+      { repository, rawStorage },
+    );
+    expect(secondReplay).toMatchObject({
+      companies: 3,
+      companyOkveds: 3,
+      runCompanyMatches: 3,
+    });
+    const projectionAfterNewerReplay = await organizationProjection(database, "7707083893");
+    expect(projectionAfterNewerReplay).toMatchObject({
+      name: "ООО «Альфа Строй Новая»",
+      website: "https://alpha-new.example",
+      is_primary: false,
+    });
+
+    const oldAfterNew = await replayRun(
+      { runId, dryRun: false },
+      { repository, rawStorage },
+    );
+    expect(oldAfterNew).toMatchObject({
+      companies: 3,
+      companyOkveds: 3,
+      runCompanyMatches: 3,
+    });
+    expect(await organizationProjection(database, "7707083893"))
+      .toEqual(projectionAfterNewerReplay);
+    const oldReplayTask = await database.query<{ result_json: unknown }>(
+      `SELECT result_json
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'replay_write' AND status = 'succeeded'
+       ORDER BY created_at DESC, id DESC LIMIT 1`,
+      [runId],
+    );
+    expect(oldReplayTask.rows[0]?.result_json).toEqual({
+      companies: 3,
+      companyOkveds: 3,
+      runCompanyMatches: 3,
+      verifiedRawObjects: 6,
+    });
     await publishFinancialEvidence(
-      await stageFinancialFixtures(secondRunId, 2025, env),
+      await stageFinancialFixtures(secondRunId, 2025, env, client),
       { repository },
     );
 
@@ -486,20 +525,47 @@ async function addHistoricalOkvedRelation(
   });
 }
 
-async function releaseAndImportSelectedOkved(database: PostgresDatabase, env: AppEnv): Promise<void> {
+async function organizationProjection(database: PostgresDatabase, inn: string) {
+  const result = await database.query<{
+    name: string;
+    website: string | null;
+    phone: string | null;
+    email: string | null;
+    company_source_fetch_id: string;
+    is_primary: boolean;
+    relation_source_fetch_id: string;
+  }>(
+    `SELECT company.name, company.website, company.phone, company.email,
+            company.source_fetch_id AS company_source_fetch_id,
+            relation.is_primary, relation.source_fetch_id AS relation_source_fetch_id
+     FROM audience.companies company
+     JOIN audience.company_okveds relation
+       ON relation.company_inn = company.inn AND relation.okved_code = '43.11'
+     WHERE company.inn = $1`,
+    [inn],
+  );
+  return result.rows[0]!;
+}
+
+async function releaseAndImportSelectedOkved(
+  database: PostgresDatabase,
+  env: AppEnv,
+  client: S3Client,
+): Promise<void> {
   const csv = await readFile(selectedOkvedsPath);
   const runId = randomUUID();
   const sourceFetchId = randomUUID();
   const datasetReleaseId = randomUUID();
   const bundle = fixtureRawBundle({
     runId,
+    sourceKind: "okved-csv",
     page: 1,
     sourceRecordKey: "selected-okveds:2025",
     parserVersion: "selected-okveds/1.0.0",
     finalUrl: "http://127.0.0.1/fixtures/selected-okveds.csv",
     bytes: csv,
   });
-  const stored = await new S3RawObjectStorage(env, "okved-csv").put(bundle);
+  const stored = await new S3RawObjectStorage(env, "okved-csv", client).put(bundle);
   await database.transaction(async (transaction) => {
     await transaction.query(
       `INSERT INTO audience.crawl_runs (
@@ -531,7 +597,7 @@ async function releaseAndImportSelectedOkved(database: PostgresDatabase, env: Ap
   )).toBe(1);
 }
 
-async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) {
+async function stageFinancialFixtures(runId: string, year: number, env: AppEnv, client: S3Client) {
   const inn = parseLegalEntityInn("7707083893");
   const [bfoBytes, revexpBytes] = await Promise.all([
     readFile(bfoFixturePath),
@@ -539,6 +605,7 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
   ]);
   const bfoBundle = fixtureRawBundle({
     runId,
+    sourceKind: "fns-bfo",
     page: 1,
     sourceRecordKey: `${inn}:${year}:bfo-fixture`,
     parserVersion: "fns-bfo/1.0.0",
@@ -547,6 +614,7 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
   });
   const revexpBundle = fixtureRawBundle({
     runId,
+    sourceKind: "fns-revexp",
     page: 2,
     sourceRecordKey: `${inn}:${year}:revexp-fixture`,
     parserVersion: "fns-revexp/1.0.0",
@@ -554,8 +622,8 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
     bytes: revexpBytes,
   });
   const [bfoStored, revexpStored] = await Promise.all([
-    new S3RawObjectStorage(env, "fns-bfo").put(bfoBundle),
-    new S3RawObjectStorage(env, "fns-revexp").put(revexpBundle),
+    new S3RawObjectStorage(env, "fns-bfo", client).put(bfoBundle),
+    new S3RawObjectStorage(env, "fns-revexp", client).put(revexpBundle),
   ]);
   const rawObjects: CapturedRawObject[] = [
     capturedFinancialRaw("fns-bfo", bfoBundle, bfoStored),
@@ -578,6 +646,7 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
 
 function fixtureRawBundle(input: {
   runId: string;
+  sourceKind: string;
   page: number;
   sourceRecordKey: string;
   parserVersion: string;
@@ -585,6 +654,7 @@ function fixtureRawBundle(input: {
   bytes: Uint8Array;
 }) {
   return checksumBrowserRawBundle({
+    sourceKind: input.sourceKind,
     parserVersion: input.parserVersion,
     finalUrl: input.finalUrl,
     capturedAt: "2026-08-24T09:00:00.000Z",

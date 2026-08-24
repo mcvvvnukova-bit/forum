@@ -22,6 +22,8 @@ export class S3RawObjectStorage implements RawObjectStorage {
   readonly #client: S3Client;
   readonly #bucket: string;
   readonly #sourceKind: string;
+  readonly #ownsClient: boolean;
+  #closed = false;
 
   constructor(env: AppEnv, sourceKind: string, client?: S3Client) {
     if (!/^[a-z0-9-]+$/.test(sourceKind)) {
@@ -30,10 +32,15 @@ export class S3RawObjectStorage implements RawObjectStorage {
     this.#bucket = env.s3Bucket;
     this.#sourceKind = sourceKind;
     this.#client = client ?? new S3Client(clientConfig(env));
+    this.#ownsClient = client === undefined;
   }
 
   async put(bundle: ChecksummedBrowserRawBundle): Promise<StoredRawObject> {
+    this.#assertOpen();
     validateBundle(bundle);
+    if (bundle.sourceKind !== this.#sourceKind) {
+      throw new Error("raw bundle source identity does not match storage");
+    }
     if (!/^[A-Za-z0-9._-]+$/.test(bundle.identity.runId)) {
       throw new Error("run id must be safe for an object key");
     }
@@ -53,6 +60,10 @@ export class S3RawObjectStorage implements RawObjectStorage {
     await this.#putImmutable(manifestKey, bundle.manifestUtf8, "application/json; charset=utf-8");
 
     return {
+      runId: bundle.identity.runId,
+      sourceKind: bundle.sourceKind,
+      sourceRecordKey: bundle.identity.sourceRecordKey ?? `page:${bundle.identity.page}`,
+      parserVersion: bundle.parserVersion,
       checksumSha256: bundle.checksumSha256,
       prefix,
       manifestKey,
@@ -62,7 +73,11 @@ export class S3RawObjectStorage implements RawObjectStorage {
   }
 
   async verify(object: StoredRawObject): Promise<VerifiedRawObject> {
+    this.#assertOpen();
     validateStoredObject(object);
+    if (object.sourceKind !== this.#sourceKind) {
+      throw new Error("raw object identity verification failed");
+    }
     const [manifestBytes, domBytes, screenshotBytes] = await Promise.all([
       this.#get(object.manifestKey),
       this.#get(object.domKey),
@@ -81,7 +96,20 @@ export class S3RawObjectStorage implements RawObjectStorage {
     ) {
       throw new Error("raw object checksum verification failed");
     }
+    const manifestRecordKey = manifest.identity.sourceRecordKey
+      ?? `page:${manifest.identity.page}`;
+    if (manifest.identity.runId !== object.runId
+      || manifest.sourceKind !== object.sourceKind
+      || manifestRecordKey !== object.sourceRecordKey
+      || manifest.parserVersion !== object.parserVersion
+      || (manifest.candidateEvidence !== null
+        && manifest.candidateEvidence.sourceRecordKey !== manifestRecordKey)) {
+      throw new Error("raw object identity verification failed");
+    }
     return {
+      runId: manifest.identity.runId,
+      sourceKind: manifest.sourceKind,
+      sourceRecordKey: manifestRecordKey,
       checksumSha256: object.checksumSha256,
       parserVersion: manifest.parserVersion,
       candidateEvidence: manifest.candidateEvidence,
@@ -120,10 +148,21 @@ export class S3RawObjectStorage implements RawObjectStorage {
       }
     }
   }
+
+  close(): void {
+    if (!this.#closed && this.#ownsClient) this.#client.destroy();
+    this.#closed = true;
+  }
+
+  #assertOpen(): void {
+    if (this.#closed) throw new Error("raw object storage is closed");
+  }
 }
 
 interface RawManifest {
+  sourceKind: string;
   parserVersion: string;
+  identity: { runId: string; page: number; sourceRecordKey?: string };
   candidateEvidence: CandidateEvidence | null;
   artifacts: {
     sanitizedDom: { file: string; checksumSha256: string };
@@ -139,7 +178,9 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
     return null;
   }
   if (!isRecord(value) || value.version !== 1
+    || typeof value.sourceKind !== "string"
     || typeof value.parserVersion !== "string"
+    || !isRawIdentity(value.identity)
     || !isCandidateEvidenceOrNull(value.candidateEvidence)
     || !isRecord(value.artifacts)
     || !isArtifact(value.artifacts.sanitizedDom)
@@ -147,13 +188,30 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
     return null;
   }
   return {
+    sourceKind: value.sourceKind,
     parserVersion: value.parserVersion,
+    identity: value.identity,
     candidateEvidence: value.candidateEvidence,
     artifacts: {
       sanitizedDom: value.artifacts.sanitizedDom,
       redactedScreenshot: value.artifacts.redactedScreenshot,
     },
   };
+}
+
+function isRawIdentity(
+  value: unknown,
+): value is { runId: string; page: number; sourceRecordKey?: string } {
+  if (!isRecord(value)
+    || typeof value.runId !== "string"
+    || !Number.isSafeInteger(value.page)
+    || (value.sourceRecordKey !== undefined && typeof value.sourceRecordKey !== "string")) {
+    return false;
+  }
+  return hasExactlyKeys(
+    value,
+    value.sourceRecordKey === undefined ? ["runId", "page"] : ["runId", "page", "sourceRecordKey"],
+  );
 }
 
 function isCandidateEvidenceOrNull(value: unknown): value is CandidateEvidence | null {
@@ -210,6 +268,7 @@ function clientConfig(env: AppEnv): S3ClientConfig {
 
 function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
   const recalculated = checksumBrowserRawBundle({
+    sourceKind: bundle.sourceKind,
     parserVersion: bundle.parserVersion,
     finalUrl: bundle.finalUrl,
     capturedAt: bundle.capturedAt,
@@ -233,15 +292,24 @@ function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
 }
 
 function validateStoredObject(object: StoredRawObject): void {
-  const expectedPrefix = object.manifestKey.slice(0, -"/manifest.json".length);
+  const expectedPrefix = [
+    "raw",
+    object.runId,
+    object.sourceKind,
+    object.checksumSha256,
+  ].join("/");
   if (
-    !/^[0-9a-f]{64}$/.test(object.checksumSha256)
+    !/^[A-Za-z0-9._-]+$/.test(object.runId)
+    || !/^[a-z0-9-]+$/.test(object.sourceKind)
+    || object.sourceRecordKey.trim() === ""
+    || object.parserVersion.trim() === ""
+    || !/^[0-9a-f]{64}$/.test(object.checksumSha256)
     || expectedPrefix !== object.prefix
+    || object.manifestKey !== `${object.prefix}/manifest.json`
     || object.domKey !== `${object.prefix}/dom.html`
     || object.screenshotKey !== `${object.prefix}/screenshot.png`
-    || !object.prefix.endsWith(`/${object.checksumSha256}`)
   ) {
-    throw new Error("raw object checksum verification failed");
+    throw new Error("raw object identity verification failed");
   }
 }
 

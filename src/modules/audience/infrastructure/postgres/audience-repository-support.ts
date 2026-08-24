@@ -21,6 +21,10 @@ interface TaskRow extends QueryResultRow {
 }
 
 export interface RawFetchRow extends QueryResultRow {
+  run_id: string;
+  source_kind: string;
+  source_record_key: string;
+  parser_version: string;
   object_key: string;
   checksum_sha256: string;
 }
@@ -57,6 +61,12 @@ export async function insertRawFetch(
   status: CrawlStatus,
   raw: CapturedRawObject,
 ): Promise<number> {
+  if (raw.stored.runId !== task.runId
+    || raw.stored.sourceKind !== raw.sourceKind
+    || raw.stored.sourceRecordKey !== raw.sourceRecordKey
+    || raw.stored.parserVersion !== raw.parserVersion) {
+    throw new Error("stored raw identity does not match source audit");
+  }
   const result = await database.query(
     `WITH fence AS (
        SELECT 1 FROM audience.crawl_tasks
@@ -83,6 +93,10 @@ export function storedRawObject(row: RawFetchRow): StoredRawObject {
   if (!row.object_key.endsWith(suffix)) throw new Error("stored raw manifest key is invalid");
   const prefix = row.object_key.slice(0, -suffix.length);
   return {
+    runId: row.run_id,
+    sourceKind: row.source_kind,
+    sourceRecordKey: row.source_record_key,
+    parserVersion: row.parser_version,
     checksumSha256: row.checksum_sha256,
     prefix,
     manifestKey: row.object_key,
@@ -119,9 +133,11 @@ export async function publicationCounts(
   } & QueryResultRow>(
     `SELECT
        (SELECT count(DISTINCT company_inn) FROM audience.run_company_matches WHERE run_id = $1)::text AS companies,
-       (SELECT count(*) FROM audience.company_okveds relation
-         WHERE EXISTS (SELECT 1 FROM audience.run_company_matches match
-           WHERE match.run_id = $1 AND match.company_inn = relation.company_inn))::text AS company_okveds,
+       (SELECT count(*) FROM audience.run_company_matches match
+         JOIN audience.company_okveds relation
+           ON relation.company_inn = match.company_inn
+              AND relation.okved_code = match.matched_okved_code
+         WHERE match.run_id = $1)::text AS company_okveds,
        (SELECT count(*) FROM audience.run_company_matches WHERE run_id = $1)::text AS run_company_matches`,
     [runId],
   );
@@ -139,11 +155,23 @@ export async function findFinancialSourceFetch(
   runId: string,
   evidence: FinancialMetricEvidence,
 ): Promise<string> {
+  const mapping = {
+    revenue: { evidenceSourceKind: "fns_bfo", rawSourceKind: "fns-bfo" },
+    income: { evidenceSourceKind: "fns_revexp", rawSourceKind: "fns-revexp" },
+    expenses: { evidenceSourceKind: "fns_revexp", rawSourceKind: "fns-revexp" },
+  } as const;
+  const expected = mapping[evidence.metric];
+  if (evidence.sourceKind !== expected.evidenceSourceKind) {
+    throw new Error("financial source mapping does not match metric");
+  }
   const result = await database.query<{ id: string } & QueryResultRow>(
     `SELECT id FROM audience.source_fetches
-     WHERE run_id = $1 AND (object_key = $2 OR checksum_sha256 = $2)
+     WHERE run_id = $1
+       AND (object_key = $2 OR checksum_sha256 = $2)
+       AND source_kind = $3
+       AND parser_version = $4
      ORDER BY created_at DESC LIMIT 1`,
-    [runId, evidence.rawFetchKey],
+    [runId, evidence.rawFetchKey, expected.rawSourceKind, evidence.parserVersion],
   );
   const id = result.rows[0]?.id;
   if (id === undefined) throw new Error("financial raw evidence is missing");

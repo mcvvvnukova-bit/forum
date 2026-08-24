@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { spawnSync } from "node:child_process";
 
 import {
   CreateBucketCommand,
@@ -22,6 +23,7 @@ import {
   PlaywrightBrowserSessionFactory,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
+import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import type { AppEnv } from "../../../src/shared/config/env";
 import { PostgresDatabase } from "../../../src/shared/postgres/database";
 import {
@@ -104,7 +106,7 @@ describe("fixture discovery and replay publication", () => {
   ) => {
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";
-    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     const source = new ListOrgBrowserSource({
       searchUrl: `${fixture.origin}/search`,
       sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
@@ -147,7 +149,7 @@ describe("fixture discovery and replay publication", () => {
   it("completes an external-resource fixture run as a fenced policy block", async () => {
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";
-    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     const source = new ListOrgBrowserSource({
       searchUrl: `${fixture.origin}/search?scenario=external`,
       sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
@@ -186,10 +188,245 @@ describe("fixture discovery and replay publication", () => {
     expect(task.rows).toEqual([{ status: "blocked", reason: "policy_block" }]);
   });
 
+  it("runs fixture discovery through the production tsx CLI transform", () => {
+    const child = spawnSync(
+      process.execPath,
+      [
+        "node_modules/tsx/dist/cli.mjs",
+        "src/apps/browser-runner/main.ts",
+        "fixture-discover",
+        "--okved", "43.11",
+        "--year", "2025",
+        "--max-pages", "2",
+        "--max-companies", "50",
+        "--dry-run",
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        timeout: 20_000,
+        env: {
+          ...process.env,
+          APP_MODE: "fixture",
+          LIST_ORG_LIVE_ENABLED: "false",
+          DATABASE_URL: temporaryDatabase.connectionString,
+          S3_ENDPOINT: env.s3Endpoint,
+          S3_BUCKET: env.s3Bucket,
+          S3_ACCESS_KEY_ID: env.s3AccessKeyId,
+          S3_SECRET_ACCESS_KEY: env.s3SecretAccessKey,
+        },
+      },
+    );
+
+    expect(child.status, child.stderr).toBe(0);
+    expect(JSON.parse(child.stdout)).toMatchObject({
+      ok: true,
+      result: {
+        status: "succeeded",
+        reason: "terminal_marker",
+        discoveredCompanies: 3,
+        publishedCompanies: 0,
+        rawObjects: 6,
+      },
+    });
+  }, 25_000);
+
+  it("recovers expired discovery from page one with lease renewal and write-ahead actions", async () => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    const crashed = await repository.createDiscoveryRun({
+      runId,
+      scope: { okved: "43.11", year: 2025, dryRun: true, maxPages: 2, maxCompanies: 50 },
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+      leaseSeconds: 1,
+    });
+    await database.query(
+      `UPDATE audience.crawl_tasks SET lease_expires_at = now() - interval '1 second'
+       WHERE id = $1`,
+      [crashed.id],
+    );
+    const actualSource = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+    const delayedSource = {
+      collect: async (...args: Parameters<typeof actualSource.collect>) => {
+        await new Promise((resolve) => setTimeout(resolve, 1_200));
+        return actualSource.collect(...args);
+      },
+    };
+    const recovery = runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+    }, {
+      repository,
+      source: delayedSource,
+      rawStorage,
+      leaseSeconds: 1,
+      leaseRenewalIntervalMs: 100,
+    });
+
+    await waitForTaskAttempts(database, crashed.id, 2);
+    await new Promise((resolve) => setTimeout(resolve, 1_050));
+    await expect(repository.acquireTask(crashed.id, 1)).resolves.toBeNull();
+    await expect(recovery).resolves.toMatchObject({
+      runId,
+      status: "succeeded",
+      discoveredCompanies: 3,
+    });
+
+    const task = await database.query<{
+      count: string;
+      attempts: number;
+      status: string;
+      action_ledger: unknown;
+    }>(
+      `SELECT count(*) OVER ()::text AS count, attempts, status::text,
+              result_json->'actionLedger' AS action_ledger
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId],
+    );
+    expect(task.rows).toHaveLength(1);
+    expect(task.rows[0]).toMatchObject({ count: "1", attempts: 2, status: "succeeded" });
+    const actions = task.rows[0]!.action_ledger as Array<{
+      id: string;
+      fencingToken: number;
+      kind: string;
+      target: string;
+      outcome: string;
+    }>;
+    const recoveredActions = actions.filter((action) => action.fencingToken === 2);
+    expect(recoveredActions[0]).toMatchObject({
+      kind: "navigate",
+      target: `${fixture.origin}/search`,
+      outcome: "intent",
+    });
+    for (const completed of recoveredActions.filter((action) => action.outcome === "completed")) {
+      const intentIndex = recoveredActions.findIndex(
+        (action) => action.id === completed.id && action.outcome === "intent",
+      );
+      expect(intentIndex).toBeGreaterThanOrEqual(0);
+      expect(intentIndex).toBeLessThan(recoveredActions.indexOf(completed));
+    }
+    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({
+      tasks: { nonTerminal: 0 },
+      consistent: true,
+    });
+  }, 20_000);
+
+  it("fails discovery before persistence when raw identity belongs to another run", async () => {
+    const runId = randomUUID();
+    const foreignRunId = randomUUID();
+    const rawInput = {
+      sourceKind: "list-org-browser",
+      parserVersion: "list-org-browser/1.0.0",
+      finalUrl: "http://127.0.0.1/fixtures/results/page-1",
+      capturedAt: "2026-08-24T09:00:00.000Z",
+      navigationStatus: 200,
+      sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>safe</main>"),
+      redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+      pageFingerprintSha256: "a".repeat(64),
+      identity: { runId: foreignRunId, page: 1 },
+      candidateEvidence: null,
+      actions: [],
+    };
+    const raw = checksumBrowserRawBundle(rawInput);
+    const source = {
+      collect: async () => ({
+        status: "succeeded" as const,
+        reason: "terminal_marker",
+        companies: [],
+        pages: [{ page: 1, raw, occurrences: [] }],
+        rawBundles: [raw],
+        rejects: [],
+        blockers: [],
+      }),
+    };
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+
+    await expect(runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 1,
+      maxCompanies: 1,
+      fixtureVersion: "identity-fixture/1.0.0",
+      parserVersion: "list-org-browser/1.0.0",
+    }, { repository, source, rawStorage })).rejects.toThrow(
+      "raw bundle identity does not belong to discovery run",
+    );
+    const audit = await database.query<{ fetches: string; non_terminal: string }>(
+      `SELECT
+         (SELECT count(*) FROM audience.source_fetches WHERE run_id = $1)::text AS fetches,
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = $1 AND status IN ('pending', 'running'))::text AS non_terminal`,
+      [runId],
+    );
+    expect(audit.rows[0]).toEqual({ fetches: "0", non_terminal: "0" });
+  });
+
+  it("reconciles an invalid browser record as one reject and publishes only accepted rows", async () => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    const source = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search?scenario=invalid-inn`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+
+    await expect(runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+    }, { repository, source, rawStorage })).resolves.toMatchObject({
+      status: "succeeded",
+      discoveredCompanies: 2,
+    });
+    await expect(replayRun({ runId, dryRun: false }, { repository, rawStorage }))
+      .resolves.toMatchObject({ companies: 2, companyOkveds: 2, runCompanyMatches: 2 });
+    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({
+      discovery: {
+        occurrences: 4,
+        uniqueSourceRecords: 3,
+        acceptedCompanies: 2,
+        duplicates: 1,
+        rejected: 1,
+      },
+      companies: 2,
+      companyOkveds: 2,
+      runCompanyMatches: 2,
+      tasks: { nonTerminal: 0 },
+      consistent: true,
+    });
+  });
+
   it("keeps discovery audit-only and replays the original run idempotently from verified raw storage", async () => {
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";
-    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     const source = new ListOrgBrowserSource({
       searchUrl: `${fixture.origin}/search`,
       sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
@@ -355,8 +592,14 @@ async function domainCounts(database: PostgresDatabase, runId: string) {
     run_company_matches: string;
   }>(
     `SELECT
-       (SELECT count(*) FROM audience.companies)::text AS companies,
-       (SELECT count(*) FROM audience.company_okveds)::text AS company_okveds,
+       (SELECT count(DISTINCT company_inn)
+        FROM audience.run_company_matches WHERE run_id = $1)::text AS companies,
+       (SELECT count(*)
+        FROM audience.company_okveds relation
+        JOIN audience.run_company_matches match
+          ON match.company_inn = relation.company_inn
+             AND match.matched_okved_code = relation.okved_code
+        WHERE match.run_id = $1)::text AS company_okveds,
        (SELECT count(*) FROM audience.run_company_matches WHERE run_id = $1)::text AS run_company_matches`,
     [runId],
   );
@@ -386,4 +629,21 @@ async function domainSnapshot(database: PostgresDatabase, runId: string) {
     ),
   ]);
   return { companies: companies.rows, companyOkveds: companyOkveds.rows, matches: matches.rows };
+}
+
+async function waitForTaskAttempts(
+  database: PostgresDatabase,
+  taskId: string,
+  attempts: number,
+): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    const result = await database.query<{ attempts: number }>(
+      "SELECT attempts FROM audience.crawl_tasks WHERE id = $1",
+      [taskId],
+    );
+    if (result.rows[0]?.attempts === attempts) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`timed out waiting for task ${taskId} to reach attempt ${attempts}`);
 }

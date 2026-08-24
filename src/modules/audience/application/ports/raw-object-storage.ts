@@ -1,6 +1,10 @@
 import type { CandidateEvidence, ChecksummedBrowserRawBundle } from "../../domain/discovery";
 
 export interface StoredRawObject {
+  runId: string;
+  sourceKind: string;
+  sourceRecordKey: string;
+  parserVersion: string;
   checksumSha256: string;
   prefix: string;
   manifestKey: string;
@@ -9,6 +13,9 @@ export interface StoredRawObject {
 }
 
 export interface VerifiedRawObject {
+  runId: string;
+  sourceKind: string;
+  sourceRecordKey: string;
   checksumSha256: string;
   parserVersion: string;
   candidateEvidence: CandidateEvidence | null;

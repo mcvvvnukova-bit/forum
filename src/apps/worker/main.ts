@@ -21,7 +21,11 @@ async function startWorker(): Promise<void> {
     try {
       await queue.close();
     } finally {
-      await database.close();
+      try {
+        rawStorage.close();
+      } finally {
+        await database.close();
+      }
     }
   };
   const handleSignal = () => {
@@ -32,8 +36,12 @@ async function startWorker(): Promise<void> {
   process.once("SIGINT", handleSignal);
   process.once("SIGTERM", handleSignal);
   try {
-    await queue.work<{ runId: string }>("audience-replay-write", async (job) => {
-      await replayRun({ runId: job.data.runId, dryRun: false }, { repository, rawStorage });
+    await queue.work<{ runId: string; taskId: string }>("audience-replay-write", async (job) => {
+      await replayRun({
+        runId: job.data.runId,
+        taskId: job.data.taskId,
+        dryRun: false,
+      }, { repository, rawStorage });
     });
   } catch (error) {
     await close();

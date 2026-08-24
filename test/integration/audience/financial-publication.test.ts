@@ -151,15 +151,42 @@ describe("financial evidence publication", () => {
     expect(observations.rows[0]?.count).toBe("0");
     expect(publishedEvidence.rows[0]?.count).toBe("0");
   });
+
+  it.each([
+    ["revenue mapped to revexp", "revenue", "fns_revexp", "raw/fns-revexp/report.xml"],
+    ["income mapped to BFO", "income", "fns_bfo", "raw/fns-bfo/old.json"],
+    ["BFO evidence pointing at revexp raw", "revenue", "fns_bfo", "raw/fns-revexp/report.xml"],
+  ] as const)("rejects %s", async (_case, metric, sourceKind, rawFetchKey) => {
+    const inn = parseLegalEntityInn("7710140679");
+    const evidence: FinancialMetricEvidence = {
+      inn,
+      reportYear: 2026,
+      metric,
+      value: parseMoneyText("42", "dot"),
+      sourceKind,
+      sourceRecordKey: `${inn}:2026:${metric}`,
+      rawFetchKey,
+      parserVersion: sourceKind === "fns_bfo" ? "fns-bfo/1.0.0" : "fns-revexp/1.0.0",
+    };
+
+    await expect(publishFinancialEvidence({ runId, evidence: [evidence] }, { repository }))
+      .rejects.toThrow(/financial source mapping|financial raw evidence is missing/);
+    const rows = await database.query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM audience.financial_evidence
+       WHERE company_inn = $1 AND report_year = 2026`,
+      [inn],
+    );
+    expect(rows.rows[0]?.count).toBe("0");
+  });
 });
 
 async function seedFinancialProvenance(database: PostgresDatabase, runId: string): Promise<void> {
   const organizationFetch = randomUUID();
   const rawFetches = [
-    [organizationFetch, "organization", "raw/list-org/company.json", "a".repeat(64)],
-    [randomUUID(), "bfo-old", "raw/fns-bfo/old.json", "b".repeat(64)],
-    [randomUUID(), "revexp", "raw/fns-revexp/report.xml", "c".repeat(64)],
-    [randomUUID(), "bfo-new", "raw/fns-bfo/new.json", "d".repeat(64)],
+    [organizationFetch, "list-org-browser", "organization", "raw/list-org/company.json", "a".repeat(64), "list-org-browser/1.0.0"],
+    [randomUUID(), "fns-bfo", "bfo-old", "raw/fns-bfo/old.json", "b".repeat(64), "fns-bfo/1.0.0"],
+    [randomUUID(), "fns-revexp", "revexp", "raw/fns-revexp/report.xml", "c".repeat(64), "fns-revexp/1.0.0"],
+    [randomUUID(), "fns-bfo", "bfo-new", "raw/fns-bfo/new.json", "d".repeat(64), "fns-bfo/1.0.0"],
   ] as const;
 
   await database.transaction(async (transaction) => {
@@ -170,14 +197,15 @@ async function seedFinancialProvenance(database: PostgresDatabase, runId: string
          'succeeded', now(), now())`,
       [runId],
     );
-    for (const [id, sourceRecordKey, objectKey, checksum] of rawFetches) {
+    for (const [id, sourceKind, sourceRecordKey, objectKey, checksum, parserVersion] of rawFetches) {
       await transaction.query(
         `INSERT INTO audience.source_fetches (
            id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
            mime_type, final_url, navigation_status, captured_at, parser_version
-         ) VALUES ($1, $2, 'financial-fixture', $3, $4, $5,
-           'application/octet-stream', $6, 200, now(), 'financial/1.0.0')`,
-        [id, runId, sourceRecordKey, objectKey, checksum, `http://127.0.0.1/fixtures/${sourceRecordKey}`],
+         ) VALUES ($1, $2, $3, $4, $5, $6,
+           'application/octet-stream', $7, 200, now(), $8)`,
+        [id, runId, sourceKind, sourceRecordKey, objectKey, checksum,
+          `http://127.0.0.1/fixtures/${sourceRecordKey}`, parserVersion],
       );
     }
     for (const [inn, name, sourceRecordKey] of [

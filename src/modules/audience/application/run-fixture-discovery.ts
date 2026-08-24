@@ -5,6 +5,7 @@ import { parseOkvedCode } from "../domain/okved";
 import type { AudienceRepository } from "./ports/audience-repository";
 import type { RawObjectStorage } from "./ports/raw-object-storage";
 import { StaleTaskError } from "./stale-task-error";
+import { withRenewingTaskLease } from "./task-lease";
 
 const DISCOVERY_LEASE_SECONDS = 300;
 
@@ -23,6 +24,8 @@ export interface RunFixtureDiscoveryDependencies {
   repository: AudienceRepository;
   source: OrganizationSource;
   rawStorage: RawObjectStorage;
+  leaseSeconds?: number;
+  leaseRenewalIntervalMs?: number;
 }
 
 export interface RunSummary {
@@ -40,7 +43,8 @@ export async function runFixtureDiscovery(
 ): Promise<RunSummary> {
   const okved = parseOkvedCode(command.okved);
   validateCommand(command);
-  const task = await dependencies.repository.createDiscoveryRun({
+  const leaseSeconds = dependencies.leaseSeconds ?? DISCOVERY_LEASE_SECONDS;
+  const started = await dependencies.repository.startDiscoveryRun({
     runId: command.runId,
     scope: {
       okved,
@@ -51,30 +55,59 @@ export async function runFixtureDiscovery(
     },
     fixtureVersion: command.fixtureVersion,
     parserVersion: command.parserVersion,
-    leaseSeconds: DISCOVERY_LEASE_SECONDS,
+    leaseSeconds,
   });
+  if (started.state === "busy") {
+    throw new Error("fixture discovery task lease has not expired");
+  }
+  if (started.state === "completed") {
+    return completedDiscoverySummary(started.task.resultJson, command.runId);
+  }
+  const task = started.task;
 
   try {
-    const result = await dependencies.source.collect({
-      okved,
-      onlyActive: true,
-      maxPages: command.maxPages,
-      maxCompanies: command.maxCompanies,
-    });
-    const rawObjects = [];
-    for (const raw of result.rawBundles) {
-      const stored = await dependencies.rawStorage.put(raw);
-      rawObjects.push({
-        id: randomUUID(),
-        sourceKind: "list-org-browser",
-        sourceRecordKey: raw.identity.sourceRecordKey ?? `page:${raw.identity.page}`,
-        finalUrl: raw.finalUrl,
-        navigationStatus: raw.navigationStatus,
-        capturedAt: raw.capturedAt,
-        parserVersion: raw.parserVersion,
-        stored,
-      });
-    }
+    const { result, rawObjects } = await withRenewingTaskLease(
+      dependencies.repository,
+      task,
+      {
+        leaseSeconds,
+        renewalIntervalMs: dependencies.leaseRenewalIntervalMs,
+      },
+      async (signal) => {
+        const result = await dependencies.source.collect({
+          okved,
+          onlyActive: true,
+          maxPages: command.maxPages,
+          maxCompanies: command.maxCompanies,
+        }, {
+          signal,
+          actionLedger: {
+            record: async (event) => {
+              if (!await dependencies.repository.recordBrowserAction(task, event)) {
+                throw new StaleTaskError(task.id);
+              }
+            },
+          },
+        });
+        const rawObjects = [];
+        for (const raw of result.rawBundles) {
+          if (signal.aborted) throw new StaleTaskError(task.id);
+          assertDiscoveryRawIdentity(raw, command.runId, command.parserVersion);
+          const stored = await dependencies.rawStorage.put(raw);
+          rawObjects.push({
+            id: randomUUID(),
+            sourceKind: "list-org-browser",
+            sourceRecordKey: raw.identity.sourceRecordKey ?? `page:${raw.identity.page}`,
+            finalUrl: raw.finalUrl,
+            navigationStatus: raw.navigationStatus,
+            capturedAt: raw.capturedAt,
+            parserVersion: raw.parserVersion,
+            stored,
+          });
+        }
+        return { result, rawObjects };
+      },
+    );
 
     const status = result.status === "blocked" ? "blocked" : "succeeded";
     const occurrenceKeys = result.pages.flatMap((page) =>
@@ -87,13 +120,25 @@ export async function runFixtureDiscovery(
       reason: result.reason,
       dryRun: command.dryRun,
       candidates: result.companies,
+      rejects: result.rejects.map((reject) => ({
+        sourceRecordKey: reject.sourceRecordKey,
+        reason: reject.reason,
+        rawFetchKey: reject.raw.checksumSha256,
+      })),
+      blockers: result.blockers.map((blocker) => ({
+        sourceRecordKey: blocker.sourceRecordKey
+          ?? `page:${blocker.raw.identity.page}`,
+        reason: blocker.reason,
+        rawFetchKey: blocker.raw.checksumSha256,
+        ...(blocker.detail === undefined ? {} : { detail: blocker.detail }),
+      })),
       rawObjects,
       discovery: {
         occurrences: occurrenceKeys.length,
         uniqueSourceRecords,
         acceptedCompanies: result.companies.length,
         duplicates: occurrenceKeys.length - uniqueSourceRecords,
-        rejected: 0,
+        rejected: result.rejects.length,
       },
     });
     if (!completed) throw new StaleTaskError(task.id);
@@ -138,6 +183,50 @@ export async function runFixtureDiscovery(
     }
     throw error;
   }
+}
+
+function assertDiscoveryRawIdentity(
+  raw: Awaited<ReturnType<OrganizationSource["collect"]>>["rawBundles"][number],
+  runId: string,
+  parserVersion: string,
+): void {
+  const sourceRecordKey = raw.identity.sourceRecordKey ?? `page:${raw.identity.page}`;
+  if (raw.identity.runId !== runId
+    || raw.sourceKind !== "list-org-browser"
+    || raw.parserVersion !== parserVersion
+    || !Number.isSafeInteger(raw.identity.page)
+    || raw.identity.page <= 0
+    || (raw.candidateEvidence !== null
+      && raw.candidateEvidence.sourceRecordKey !== sourceRecordKey)) {
+    throw new Error("raw bundle identity does not belong to discovery run");
+  }
+}
+
+function completedDiscoverySummary(value: unknown, runId: string): RunSummary {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error("completed discovery task has no result");
+  }
+  const summary = (value as Record<string, unknown>).summary;
+  if (typeof summary !== "object" || summary === null || Array.isArray(summary)) {
+    throw new Error("completed discovery task has no summary");
+  }
+  const record = summary as Record<string, unknown>;
+  if (record.runId !== runId
+    || (record.status !== "succeeded" && record.status !== "blocked")
+    || typeof record.reason !== "string"
+    || !Number.isSafeInteger(record.discoveredCompanies)
+    || !Number.isSafeInteger(record.publishedCompanies)
+    || !Number.isSafeInteger(record.rawObjects)) {
+    throw new Error("completed discovery task summary is invalid");
+  }
+  return {
+    runId,
+    status: record.status,
+    reason: record.reason,
+    discoveredCompanies: record.discoveredCompanies as number,
+    publishedCompanies: record.publishedCompanies as number,
+    rawObjects: record.rawObjects as number,
+  };
 }
 
 function validateCommand(command: RunFixtureDiscoveryCommand): void {

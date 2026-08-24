@@ -1,5 +1,6 @@
 import type { StoredRawObject } from "./raw-object-storage";
 import type { DiscoveredCompany } from "../../domain/discovery";
+import type { BrowserActionEvent } from "../../domain/discovery";
 import type { FinancialMetricEvidence } from "../../domain/financial";
 
 export type CrawlStatus = "pending" | "running" | "succeeded" | "failed" | "blocked";
@@ -10,6 +11,19 @@ export interface FencedTask {
   taskKind: string;
   fencingToken: number;
 }
+
+export interface TaskState {
+  id: string;
+  runId: string;
+  taskKind: string;
+  status: CrawlStatus;
+  resultJson: unknown;
+}
+
+export type DiscoveryTaskStart =
+  | { state: "acquired"; task: FencedTask }
+  | { state: "busy"; taskId: string }
+  | { state: "completed"; task: TaskState };
 
 export interface DiscoveryRunInput {
   runId: string;
@@ -42,8 +56,17 @@ export interface CompleteDiscoveryInput {
   reason: string;
   dryRun: boolean;
   candidates: readonly DiscoveredCompany[];
+  rejects?: readonly DiscoveryEvidenceReference[];
+  blockers?: readonly DiscoveryEvidenceReference[];
   rawObjects: readonly CapturedRawObject[];
   discovery: DiscoveryAudit;
+}
+
+export interface DiscoveryEvidenceReference {
+  sourceRecordKey: string;
+  reason: string;
+  rawFetchKey: string;
+  detail?: string;
 }
 
 export interface DiscoveryAudit {
@@ -99,13 +122,23 @@ export interface FinancialPublicationInput {
 }
 
 export interface AudienceRepository {
+  startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart>;
   createDiscoveryRun(input: DiscoveryRunInput): Promise<FencedTask>;
+  prepareTask(taskId: string, runId: string, taskKind: string): Promise<void>;
   createTask(runId: string, taskKind: string, leaseSeconds: number): Promise<FencedTask>;
   acquireTask(taskId: string, leaseSeconds: number): Promise<FencedTask | null>;
+  renewTaskLease(task: FencedTask, leaseSeconds: number): Promise<boolean>;
+  taskState(taskId: string): Promise<TaskState | null>;
+  failPreparedTask(taskId: string, errorCode: string): Promise<boolean>;
+  recordBrowserAction(task: FencedTask, event: BrowserActionEvent): Promise<boolean>;
   completeDiscovery(input: CompleteDiscoveryInput): Promise<boolean>;
   failTask(task: FencedTask, errorCode: string, failRun: boolean): Promise<boolean>;
   loadReplayInput(runId: string): Promise<ReplayInput>;
-  publishReplay(task: FencedTask, candidates: readonly DiscoveredCompany[]): Promise<PublicationCounts | null>;
+  publishReplay(
+    task: FencedTask,
+    candidates: readonly DiscoveredCompany[],
+    verifiedRawObjects: number,
+  ): Promise<PublicationCounts | null>;
   publishFinancial(input: FinancialPublicationInput): Promise<boolean>;
   reconcile(runId: string): Promise<ReconciliationReport>;
   runStatus(runId: string): Promise<{ status: CrawlStatus; terminalReason: string | null } | null>;

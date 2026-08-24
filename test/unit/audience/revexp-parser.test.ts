@@ -50,6 +50,35 @@ describe("parseRevexp", () => {
     ]);
   });
 
+  it("keeps metrics inside each XML record when the first record omits a metric", () => {
+    const xml = new TextEncoder().encode(`<?xml version="1.0" encoding="UTF-8"?>
+      <Файл>
+        <Документ><СвЮЛ ИННЮЛ="7707083893"/><Показатели СумДоход="100"/></Документ>
+        <Документ><СвЮЛ ИННЮЛ="7710140679"/><Показатели СумРасход="25"/></Документ>
+      </Файл>`);
+
+    expect(parseRevexp(xml, context).map((item) => [item.inn, item.metric, item.value])).toEqual([
+      ["7707083893", "income", "100.00"],
+      ["7710140679", "expenses", "25.00"],
+    ]);
+  });
+
+  it("incrementally decodes a UTF-8 code point split across the parser chunk boundary", () => {
+    const prefix = '<?xml version="1.0" encoding="UTF-8"?><Файл>';
+    const prefixBytes = new TextEncoder().encode(prefix).byteLength;
+    // Place the first byte of the two-byte Cyrillic "Д" at offset 16,383 so
+    // the decoder must carry it into the next 16,384-byte parser chunk.
+    const padding = " ".repeat((16_382 - prefixBytes + 16_384) % 16_384);
+    const xml = new TextEncoder().encode(
+      `${prefix}${padding}<Документ><СвЮЛ ИННЮЛ="7707083893"/><Показатели СумДоход="7"/></Документ></Файл>`,
+    );
+
+    expect([...xml.slice(16_383, 16_385)]).toEqual([0xd0, 0x94]);
+    expect(parseRevexp(xml, context).map((item) => [item.metric, item.value])).toEqual([
+      ["income", "7.00"],
+    ]);
+  });
+
   it.each([
     ["an invalid legal-entity checksum", '<Документ><СвЮЛ ИННЮЛ="7707083894"/></Документ>', "checksum"],
     ["an individual INN", '<Документ><СвЮЛ ИННЮЛ="123456789012"/></Документ>', "legal entity"],

@@ -6,14 +6,16 @@ import type {
   AudienceRepository,
   CompleteDiscoveryInput,
   CrawlStatus,
+  DiscoveryTaskStart,
   DiscoveryRunInput,
   FencedTask,
   FinancialPublicationInput,
   PublicationCounts,
   ReconciliationReport,
   ReplayInput,
+  TaskState,
 } from "../../application/ports/audience-repository";
-import type { DiscoveredCompany } from "../../domain/discovery";
+import type { BrowserActionEvent, DiscoveredCompany } from "../../domain/discovery";
 import type { Database } from "../../../../shared/postgres/database";
 import {
   acquire,
@@ -26,6 +28,7 @@ import {
   storedRawObject,
   type RawFetchRow,
 } from "./audience-repository-support";
+import { publishOrganizationCandidates } from "./organization-publication";
 
 interface RunRow extends QueryResultRow {
   status: CrawlStatus;
@@ -36,51 +39,123 @@ interface ResultRow extends QueryResultRow {
   result_json: unknown;
 }
 
+interface DiscoveryRunRow extends RunRow {
+  scope_matches: boolean;
+  fixture_version: string;
+  parser_version: string;
+}
+
+interface TaskStateRow extends QueryResultRow {
+  id: string;
+  run_id: string;
+  task_kind: string;
+  status: CrawlStatus;
+  result_json: unknown;
+}
+
 const BLOCK_REASONS = new Set([
   "captcha",
   "http_403",
   "soft_block",
   "policy_block",
   "contract_drift",
+  "duplicate_conflict",
 ]);
 
 export class PostgresAudienceRepository implements AudienceRepository {
   constructor(private readonly database: Database) {}
 
-  async createDiscoveryRun(input: DiscoveryRunInput): Promise<FencedTask> {
+  async startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart> {
     return this.database.transaction(async (transaction) => {
-      await transaction.query(
-        `INSERT INTO audience.crawl_runs (
-           id, scope_json, fixture_version, parser_version, status
-         ) VALUES ($1, $2::jsonb, $3, $4, 'pending')`,
-        [input.runId, JSON.stringify(input.scope), input.fixtureVersion, input.parserVersion],
+      const scopeJson = JSON.stringify(input.scope);
+      let run = await transaction.query<DiscoveryRunRow>(
+        `SELECT status, terminal_reason, fixture_version, parser_version,
+                scope_json = $2::jsonb AS scope_matches
+         FROM audience.crawl_runs
+         WHERE id = $1
+         FOR UPDATE`,
+        [input.runId, scopeJson],
       );
-      const taskId = randomUUID();
-      await transaction.query(
-        `INSERT INTO audience.crawl_tasks (id, run_id, task_kind, status)
-         VALUES ($1, $2, 'fixture_discovery', 'pending')`,
-        [taskId, input.runId],
+      if (run.rows[0] === undefined) {
+        await transaction.query(
+          `INSERT INTO audience.crawl_runs (
+             id, scope_json, fixture_version, parser_version, status
+           ) VALUES ($1, $2::jsonb, $3, $4, 'pending')`,
+          [input.runId, scopeJson, input.fixtureVersion, input.parserVersion],
+        );
+        run = await transaction.query<DiscoveryRunRow>(
+          `SELECT status, terminal_reason, fixture_version, parser_version,
+                  true AS scope_matches
+           FROM audience.crawl_runs WHERE id = $1 FOR UPDATE`,
+          [input.runId],
+        );
+      }
+      const runRow = run.rows[0]!;
+      if (!runRow.scope_matches
+        || runRow.fixture_version !== input.fixtureVersion
+        || runRow.parser_version !== input.parserVersion) {
+        throw new Error("discovery retry does not match immutable run scope");
+      }
+
+      const existingTasks = await transaction.query<TaskStateRow>(
+        `SELECT id, run_id, task_kind, status, result_json
+         FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'fixture_discovery'
+         ORDER BY created_at, id
+         FOR UPDATE`,
+        [input.runId],
       );
-      const task = await acquire(transaction, taskId, input.leaseSeconds);
-      if (task === null) throw new Error("new fixture discovery task could not be acquired");
+      if ((existingTasks.rowCount ?? 0) > 1) {
+        throw new Error("discovery run has multiple business tasks");
+      }
+      let taskRow = existingTasks.rows[0];
+      if (taskRow === undefined) {
+        const inserted = await transaction.query<TaskStateRow>(
+          `INSERT INTO audience.crawl_tasks (id, run_id, task_kind, status)
+           VALUES ($1, $2, 'fixture_discovery', 'pending')
+           RETURNING id, run_id, task_kind, status, result_json`,
+          [randomUUID(), input.runId],
+        );
+        taskRow = inserted.rows[0]!;
+      }
+      if (taskRow.status === "succeeded" || taskRow.status === "blocked") {
+        return { state: "completed", task: taskState(taskRow) };
+      }
+      if (taskRow.status === "failed") {
+        throw new Error("failed discovery task is terminal; create a new run");
+      }
+
+      const task = await acquire(transaction, taskRow.id, input.leaseSeconds);
+      if (task === null) return { state: "busy", taskId: taskRow.id };
       const runUpdate = await transaction.query(
         `UPDATE audience.crawl_runs
-         SET status = 'running', started_at = now()
-         WHERE id = $1
+         SET status = 'running', started_at = COALESCE(started_at, now()),
+             completed_at = NULL, terminal_reason = NULL
+         WHERE id = $1 AND status IN ('pending', 'running')
            AND EXISTS (
              SELECT 1 FROM audience.crawl_tasks
              WHERE id = $2 AND fencing_token = $3 AND status = 'running'
            )`,
         [input.runId, task.id, task.fencingToken],
       );
-      if (runUpdate.rowCount !== 1) throw new Error("new fixture discovery run could not start");
-      return task;
+      if (runUpdate.rowCount !== 1) throw new Error("fixture discovery run could not start");
+      return { state: "acquired", task };
     });
   }
 
-  async createTask(runId: string, taskKind: string, leaseSeconds: number): Promise<FencedTask> {
+  async createDiscoveryRun(input: DiscoveryRunInput): Promise<FencedTask> {
+    const started = await this.startDiscoveryRun(input);
+    if (started.state !== "acquired") {
+      throw new Error(started.state === "busy"
+        ? "fixture discovery task lease has not expired"
+        : "fixture discovery task is already terminal");
+    }
+    return started.task;
+  }
+
+  async prepareTask(taskId: string, runId: string, taskKind: string): Promise<void> {
     if (taskKind.trim() === "") throw new Error("task kind is required");
-    return this.database.transaction(async (transaction) => {
+    await this.database.transaction(async (transaction) => {
       const run = await transaction.query<RunRow>(
         "SELECT status, terminal_reason FROM audience.crawl_runs WHERE id = $1 FOR UPDATE",
         [runId],
@@ -93,20 +168,84 @@ export class PostgresAudienceRepository implements AudienceRepository {
       if (row.status !== "succeeded") {
         throw new Error(`cannot start ${taskKind} for a ${row.status} run`);
       }
-      const taskId = randomUUID();
       await transaction.query(
         `INSERT INTO audience.crawl_tasks (id, run_id, task_kind, status)
-         VALUES ($1, $2, $3, 'pending')`,
+         VALUES ($1, $2, $3, 'pending')
+         ON CONFLICT (id) DO NOTHING`,
         [taskId, runId, taskKind],
       );
-      const task = await acquire(transaction, taskId, leaseSeconds);
-      if (task === null) throw new Error("new task could not be acquired");
-      return task;
+      const task = await transaction.query<TaskStateRow>(
+        `SELECT id, run_id, task_kind, status, result_json
+         FROM audience.crawl_tasks WHERE id = $1`,
+        [taskId],
+      );
+      const existing = task.rows[0];
+      if (existing === undefined || existing.run_id !== runId || existing.task_kind !== taskKind) {
+        throw new Error("business task identity conflicts with an existing task");
+      }
     });
+  }
+
+  async createTask(runId: string, taskKind: string, leaseSeconds: number): Promise<FencedTask> {
+    const taskId = randomUUID();
+    await this.prepareTask(taskId, runId, taskKind);
+    const task = await this.acquireTask(taskId, leaseSeconds);
+    if (task === null) throw new Error("new task could not be acquired");
+    return task;
   }
 
   acquireTask(taskId: string, leaseSeconds: number): Promise<FencedTask | null> {
     return acquire(this.database, taskId, leaseSeconds);
+  }
+
+  async renewTaskLease(task: FencedTask, leaseSeconds: number): Promise<boolean> {
+    if (!Number.isSafeInteger(leaseSeconds) || leaseSeconds <= 0) {
+      throw new Error("lease seconds must be a positive safe integer");
+    }
+    const result = await this.database.query(
+      `UPDATE audience.crawl_tasks
+       SET lease_expires_at = now() + make_interval(secs => $4::integer), updated_at = now()
+       WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'`,
+      [task.id, task.runId, task.fencingToken, leaseSeconds],
+    );
+    return result.rowCount === 1;
+  }
+
+  async taskState(taskId: string): Promise<TaskState | null> {
+    const result = await this.database.query<TaskStateRow>(
+      `SELECT id, run_id, task_kind, status, result_json
+       FROM audience.crawl_tasks WHERE id = $1`,
+      [taskId],
+    );
+    const row = result.rows[0];
+    return row === undefined ? null : taskState(row);
+  }
+
+  async failPreparedTask(taskId: string, errorCode: string): Promise<boolean> {
+    const result = await this.database.query(
+      `UPDATE audience.crawl_tasks
+       SET status = 'failed', error_json = $2::jsonb, completed_at = now(), updated_at = now()
+       WHERE id = $1 AND status = 'pending'`,
+      [taskId, JSON.stringify({ code: errorCode })],
+    );
+    return result.rowCount === 1;
+  }
+
+  async recordBrowserAction(task: FencedTask, event: BrowserActionEvent): Promise<boolean> {
+    const persisted = { ...event, fencingToken: task.fencingToken };
+    const result = await this.database.query(
+      `UPDATE audience.crawl_tasks
+       SET result_json = jsonb_set(
+             COALESCE(result_json, '{}'::jsonb),
+             '{actionLedger}',
+             COALESCE(result_json->'actionLedger', '[]'::jsonb) || $4::jsonb,
+             true
+           ),
+           updated_at = now()
+       WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'`,
+      [task.id, task.runId, task.fencingToken, JSON.stringify(persisted)],
+    );
+    return result.rowCount === 1;
   }
 
   async completeDiscovery(input: CompleteDiscoveryInput): Promise<boolean> {
@@ -123,12 +262,22 @@ export class PostgresAudienceRepository implements AudienceRepository {
         status: input.status,
         reason: input.reason,
         candidates: input.candidates,
+        rejects: input.rejects ?? [],
+        blockers: input.blockers ?? [],
         discovery: input.discovery,
+        summary: {
+          runId: input.task.runId,
+          status: input.status,
+          reason: input.reason,
+          discoveredCompanies: input.candidates.length,
+          publishedCompanies: 0,
+          rawObjects: input.rawObjects.length,
+        },
       };
       const taskUpdate = await transaction.query(
         `UPDATE audience.crawl_tasks
          SET status = $4::audience.crawl_status,
-             result_json = $5::jsonb,
+             result_json = COALESCE(result_json, '{}'::jsonb) || $5::jsonb,
              lease_expires_at = NULL,
              completed_at = now(),
              updated_at = now()
@@ -207,7 +356,8 @@ export class PostgresAudienceRepository implements AudienceRepository {
     );
     const candidates = parseStagedCandidates(taskResult.rows[0]?.result_json);
     const rawResult = await this.database.query<RawFetchRow>(
-      `SELECT object_key, checksum_sha256
+      `SELECT run_id, source_kind, source_record_key, parser_version,
+              object_key, checksum_sha256
        FROM audience.source_fetches
        WHERE run_id = $1 AND source_kind = 'list-org-browser'
        ORDER BY created_at, id`,
@@ -226,121 +376,12 @@ export class PostgresAudienceRepository implements AudienceRepository {
   async publishReplay(
     task: FencedTask,
     candidates: readonly DiscoveredCompany[],
+    verifiedRawObjects: number,
   ): Promise<PublicationCounts | null> {
     return this.database.transaction(async (transaction) => {
       if (!await lockFence(transaction, task)) return null;
 
-      for (const candidate of candidates) {
-        const fetchResult = await transaction.query<{ id: string } & QueryResultRow>(
-          `SELECT id
-           FROM audience.source_fetches
-           WHERE run_id = $1 AND source_kind = 'list-org-browser'
-             AND checksum_sha256 = $2 AND source_record_key = $3
-           ORDER BY created_at
-           LIMIT 1`,
-          [task.runId, candidate.rawFetchKey, candidate.sourceRecordKey],
-        );
-        const sourceFetchId = fetchResult.rows[0]?.id;
-        if (sourceFetchId === undefined) throw new Error("staged candidate raw evidence is missing");
-
-        await transaction.query(
-          `WITH fence AS (
-             SELECT 1 FROM audience.crawl_tasks
-             WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'
-           )
-           INSERT INTO audience.companies (
-             inn, name, website, phone, email, source_fetch_id, source_record_key
-           )
-           SELECT $4, $5, $6, $7, $8, $9, $10 FROM fence
-           ON CONFLICT (inn) DO UPDATE
-           SET name = EXCLUDED.name,
-               website = EXCLUDED.website,
-               phone = EXCLUDED.phone,
-               email = EXCLUDED.email,
-               source_fetch_id = EXCLUDED.source_fetch_id,
-               source_record_key = EXCLUDED.source_record_key,
-               updated_at = now()
-           WHERE (companies.name, companies.website, companies.phone, companies.email,
-                  companies.source_fetch_id, companies.source_record_key)
-             IS DISTINCT FROM
-                 (EXCLUDED.name, EXCLUDED.website, EXCLUDED.phone, EXCLUDED.email,
-                  EXCLUDED.source_fetch_id, EXCLUDED.source_record_key)`,
-          [
-            task.id, task.runId, task.fencingToken, candidate.inn, candidate.name,
-            candidate.website, candidate.phone, candidate.email, sourceFetchId,
-            candidate.sourceRecordKey,
-          ],
-        );
-        await transaction.query(
-          `WITH fence AS (
-             SELECT 1 FROM audience.crawl_tasks
-             WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'
-           )
-           INSERT INTO audience.company_okveds (
-             company_inn, okved_code, is_primary, source_fetch_id, source_record_key
-           )
-           SELECT $4, $5, $6, $7, $8 FROM fence
-           ON CONFLICT (company_inn, okved_code) DO UPDATE
-           SET is_primary = EXCLUDED.is_primary,
-               source_fetch_id = EXCLUDED.source_fetch_id,
-               source_record_key = EXCLUDED.source_record_key
-           WHERE (company_okveds.is_primary, company_okveds.source_fetch_id,
-                  company_okveds.source_record_key)
-             IS DISTINCT FROM
-                 (EXCLUDED.is_primary, EXCLUDED.source_fetch_id, EXCLUDED.source_record_key)`,
-          [task.id, task.runId, task.fencingToken, candidate.inn, candidate.okvedCode,
-            candidate.isPrimary, sourceFetchId, candidate.sourceRecordKey],
-        );
-        await transaction.query(
-          `WITH fence AS (
-             SELECT 1 FROM audience.crawl_tasks
-             WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'
-           )
-           INSERT INTO audience.run_company_matches (
-             run_id, company_inn, matched_okved_code, source_fetch_id, source_record_key
-           )
-           SELECT $2, $4, $5, $6, $7 FROM fence
-           ON CONFLICT (run_id, company_inn, matched_okved_code) DO UPDATE
-           SET source_fetch_id = EXCLUDED.source_fetch_id,
-               source_record_key = EXCLUDED.source_record_key
-           WHERE (run_company_matches.source_fetch_id, run_company_matches.source_record_key)
-             IS DISTINCT FROM (EXCLUDED.source_fetch_id, EXCLUDED.source_record_key)`,
-          [task.id, task.runId, task.fencingToken, candidate.inn, candidate.okvedCode,
-            sourceFetchId, candidate.sourceRecordKey],
-        );
-        await transaction.query(
-          `WITH fence AS (
-             SELECT 1 FROM audience.crawl_tasks
-             WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'
-           )
-           INSERT INTO audience.organization_evidence (
-             id, company_inn, source_fetch_id, source_record_key, field_name,
-             value_json, parser_version
-           )
-           SELECT gen_random_uuid(), $4, $5, $6, 'organization',
-                  jsonb_build_object(
-                    'name', $7::text,
-                    'website', $8::text,
-                    'phone', $9::text,
-                    'email', $10::text,
-                    'okvedCode', $11::text,
-                    'isPrimary', $12::boolean
-                  ),
-                  $13
-           FROM fence
-           WHERE NOT EXISTS (
-             SELECT 1 FROM audience.organization_evidence evidence
-             WHERE evidence.company_inn = $4
-               AND evidence.source_fetch_id = $5
-               AND evidence.source_record_key = $6
-               AND evidence.field_name = 'organization'
-               AND evidence.parser_version = $13
-           )`,
-          [task.id, task.runId, task.fencingToken, candidate.inn, sourceFetchId,
-            candidate.sourceRecordKey, candidate.name, candidate.website, candidate.phone,
-            candidate.email, candidate.okvedCode, candidate.isPrimary, candidate.parserVersion],
-        );
-      }
+      await publishOrganizationCandidates(transaction, task, candidates);
 
       const counts = await publicationCounts(transaction, task.runId);
       const taskUpdate = await transaction.query(
@@ -348,7 +389,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
          SET status = 'succeeded', result_json = $4::jsonb, lease_expires_at = NULL,
              completed_at = now(), updated_at = now()
          WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'`,
-        [task.id, task.runId, task.fencingToken, JSON.stringify(counts)],
+        [task.id, task.runId, task.fencingToken, JSON.stringify({ ...counts, verifiedRawObjects })],
       );
       if (taskUpdate.rowCount !== 1) throw new Error("stale task worker stopped during replay task completion");
       const runUpdate = await transaction.query(
@@ -594,8 +635,12 @@ export class PostgresAudienceRepository implements AudienceRepository {
                 OR EXISTS (
                   SELECT 1
                   FROM latest_discovery discovery,
-                       jsonb_array_elements(discovery.result_json->'candidates') candidate
-                  WHERE candidate->>'sourceRecordKey' = raw.source_record_key
+                       jsonb_array_elements(
+                         COALESCE(discovery.result_json->'candidates', '[]'::jsonb)
+                         || COALESCE(discovery.result_json->'rejects', '[]'::jsonb)
+                         || COALESCE(discovery.result_json->'blockers', '[]'::jsonb)
+                       ) evidence_reference
+                  WHERE evidence_reference->>'sourceRecordKey' = raw.source_record_key
                 )
               )
             ))::text AS unexplained_source_fetches
@@ -688,4 +733,14 @@ export class PostgresAudienceRepository implements AudienceRepository {
     const row = result.rows[0];
     return row === undefined ? null : { status: row.status, terminalReason: row.terminal_reason };
   }
+}
+
+function taskState(row: TaskStateRow): TaskState {
+  return {
+    id: row.id,
+    runId: row.run_id,
+    taskKind: row.task_kind,
+    status: row.status,
+    resultJson: row.result_json,
+  };
 }

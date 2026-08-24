@@ -11,6 +11,7 @@
     "migrate:up": "node-pg-migrate up --migrations-dir migrations",
     "migrate:down": "node-pg-migrate down --migrations-dir migrations --count 1",
     "audience": "tsx src/apps/browser-runner/main.ts",
+    "okved-release": "tsx src/apps/okved-release/main.ts",
     "worker": "tsx src/apps/worker/main.ts"
   },
   "dependencies": {

@@ -5,31 +5,38 @@ import { createCandidateEvidence } from "../../../domain/candidate-evidence";
 import {
   ExternalBrowserRequestError,
   type BrowserRawBundle,
+  type DiscoveryExecutionContext,
+  type DiscoveryBlocker,
   type DiscoveryOccurrence,
   type DiscoveryPage,
+  type DiscoveryReject,
   type DiscoveryResult,
   type DiscoveryScope,
   type DiscoveredCompany,
   type OrganizationSource,
 } from "../../../domain/discovery";
-import { parseLegalEntityInn } from "../../../domain/inn";
-import { parseOkvedCode } from "../../../domain/okved";
 import { checksumBrowserRawBundle, sha256 } from "../../storage/raw-bundle";
+import {
+  assertBrowserCaptureSafe,
+  addPageRedactionOverlays,
+  MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+  sanitizeBrowserActionTarget,
+  sanitizePageDom,
+  sanitizeBrowserUrl as sanitizeUrl,
+  sensitiveQueryValues,
+} from "./browser-raw-sanitizer";
+import { BrowserActionRecorder } from "./browser-action-recorder";
+import {
+  BrowserContractError,
+  readCompany,
+  sameCompany,
+  verifyRenderedFilters,
+} from "./browser-record-policy";
 
 export { ExternalBrowserRequestError } from "../../../domain/discovery";
 
 const RESULTS_LANDMARK = "Результаты поиска";
 const CARD_LANDMARK = "Карточка организации";
-const MANDATORY_SENSITIVE_QUERY_PARAMETERS = [
-  "access_token",
-  "auth",
-  "authorization",
-  "cookie",
-  "session",
-  "session_id",
-  "token",
-] as const;
-
 export interface ListOrgBrowserSourceOptions {
   searchUrl: string;
   sessions: BrowserSessionFactory;
@@ -51,39 +58,72 @@ export class ListOrgBrowserSource implements OrganizationSource {
     this.#parserVersion = options.parserVersion;
   }
 
-  async collect(scope: DiscoveryScope): Promise<DiscoveryResult> {
+  async collect(
+    scope: DiscoveryScope,
+    execution: DiscoveryExecutionContext = {},
+  ): Promise<DiscoveryResult> {
     if (!isPositiveSafeInteger(scope.maxPages) || !isPositiveSafeInteger(scope.maxCompanies)) {
       throw new Error("discovery limits must be positive safe integers");
     }
 
-    const session = await this.#sessions.open();
+    const session = await this.#sessions.open(execution);
     const companies: DiscoveredCompany[] = [];
     const pages: DiscoveryPage[] = [];
     const rawBundles: ReturnType<typeof checksumBrowserRawBundle>[] = [];
-    const firstSeen = new Set<string>();
+    const rejects: DiscoveryReject[] = [];
+    const blockers: DiscoveryBlocker[] = [];
+    const firstSeen = new Map<string, Omit<DiscoveredCompany, "rawFetchKey" | "parserVersion">>();
+    const rejectedKeys = new Set<string>();
+    let currentPage = 1;
+
+    const block = async (
+      reason: string,
+      options: {
+        sourceRecordKey?: string;
+        detail?: string;
+        raw?: ReturnType<typeof checksumBrowserRawBundle>;
+      } = {},
+    ): Promise<DiscoveryResult> => {
+      const raw = options.raw ?? checksumBrowserRawBundle(await session.captureBlocker({
+        runId: this.#runId,
+        page: currentPage,
+        ...(options.sourceRecordKey === undefined ? {} : { sourceRecordKey: options.sourceRecordKey }),
+      }, this.#parserVersion));
+      if (!rawBundles.includes(raw)) rawBundles.push(raw);
+      blockers.push({
+        reason,
+        ...(options.sourceRecordKey === undefined ? {} : { sourceRecordKey: options.sourceRecordKey }),
+        ...(options.detail === undefined ? {} : { detail: options.detail }),
+        raw,
+      });
+      return result("blocked", reason, companies, pages, rawBundles, rejects, blockers);
+    };
 
     try {
       const status = await session.navigate(this.#searchUrl);
       if (status === 403) {
-        return result("blocked", "http_403", companies, pages, rawBundles);
+        return await block("http_403");
       }
       if (await session.hasLandmark("Подтверждение CAPTCHA")) {
-        return result("blocked", "captcha", companies, pages, rawBundles);
+        return await block("captcha");
       }
       if (await session.hasLandmark("Доступ временно ограничен")) {
-        return result("blocked", "soft_block", companies, pages, rawBundles);
+        return await block("soft_block");
       }
 
       await session.fillField("ОКВЭД", scope.okved);
       await session.setCheckbox("Только действующие", scope.onlyActive);
-      await session.clickButton("Найти организации");
+      if (await session.clickButton("Найти организации") === 403) {
+        return await block("http_403");
+      }
 
       for (let pageNumber = 1; pageNumber <= scope.maxPages; pageNumber += 1) {
+        currentPage = pageNumber;
         if (await session.hasLandmark("Подтверждение CAPTCHA")) {
-          return result("blocked", "captcha", companies, pages, rawBundles);
+          return await block("captcha");
         }
         if (await session.hasLandmark("Доступ временно ограничен")) {
-          return result("blocked", "soft_block", companies, pages, rawBundles);
+          return await block("soft_block");
         }
         await session.waitForLandmark(RESULTS_LANDMARK);
         await verifyRenderedFilters(session, scope);
@@ -93,22 +133,28 @@ export class ListOrgBrowserSource implements OrganizationSource {
 
         for (const linkName of linkNames) {
           const before = await session.fingerprint();
-          await session.clickLink(linkName);
+          if (await session.clickLink(linkName) === 403) {
+            return await block("http_403");
+          }
           await session.waitForLandmark(CARD_LANDMARK);
 
-          const company = await readCompany(session);
+          const parsed = await readCompany(session, scope);
           const capturedCard = await session.capture(
-            { runId: this.#runId, page: pageNumber, sourceRecordKey: company.sourceRecordKey },
+            { runId: this.#runId, page: pageNumber, sourceRecordKey: parsed.sourceRecordKey },
             this.#parserVersion,
             ["Телефон", "Email"],
           );
           const cardRaw = checksumBrowserRawBundle({
             ...capturedCard,
-            candidateEvidence: createCandidateEvidence(company),
+            candidateEvidence: parsed.kind === "accepted"
+              ? createCandidateEvidence(parsed.company)
+              : null,
           });
           rawBundles.push(cardRaw);
 
-          await session.clickLink("Вернуться к результатам");
+          if (await session.clickLink("Вернуться к результатам") === 403) {
+            return await block("http_403");
+          }
           await session.waitForLandmark(RESULTS_LANDMARK);
           const after = await session.fingerprint();
           if (after !== before) {
@@ -116,13 +162,45 @@ export class ListOrgBrowserSource implements OrganizationSource {
           }
 
           occurrences.push({
-            sourceRecordKey: company.sourceRecordKey,
+            sourceRecordKey: parsed.sourceRecordKey,
             resultFingerprintBefore: before,
             resultFingerprintAfter: after,
           });
 
-          if (!firstSeen.has(company.sourceRecordKey)) {
-            firstSeen.add(company.sourceRecordKey);
+          if (parsed.kind === "rejected") {
+            if (!rejectedKeys.has(parsed.sourceRecordKey)) {
+              rejectedKeys.add(parsed.sourceRecordKey);
+              rejects.push({
+                sourceRecordKey: parsed.sourceRecordKey,
+                reason: parsed.reason,
+                raw: cardRaw,
+              });
+            }
+            continue;
+          }
+
+          const company = parsed.company;
+          const prior = firstSeen.get(company.sourceRecordKey);
+          if (prior !== undefined && !sameCompany(prior, company)) {
+            const pageRaw = checksumBrowserRawBundle(await session.capture({
+              runId: this.#runId,
+              page: pageNumber,
+            }, this.#parserVersion));
+            rawBundles.push(pageRaw);
+            pages.push({ page: pageNumber, raw: pageRaw, occurrences });
+            return await block("duplicate_conflict", {
+              sourceRecordKey: company.sourceRecordKey,
+              raw: cardRaw,
+            });
+          }
+          if (rejectedKeys.has(company.sourceRecordKey)) {
+            return await block("duplicate_conflict", {
+              sourceRecordKey: company.sourceRecordKey,
+              raw: cardRaw,
+            });
+          }
+          if (prior === undefined) {
+            firstSeen.set(company.sourceRecordKey, company);
             companies.push({
               ...company,
               rawFetchKey: cardRaw.checksumSha256,
@@ -135,7 +213,7 @@ export class ListOrgBrowserSource implements OrganizationSource {
               }, this.#parserVersion));
               rawBundles.push(pageRaw);
               pages.push({ page: pageNumber, raw: pageRaw, occurrences });
-              return result("limited", "max_companies", companies, pages, rawBundles);
+              return result("limited", "max_companies", companies, pages, rawBundles, rejects, blockers);
             }
           }
         }
@@ -148,19 +226,24 @@ export class ListOrgBrowserSource implements OrganizationSource {
         pages.push({ page: pageNumber, raw: pageRaw, occurrences });
 
         if (await session.hasVisibleText("Последняя страница")) {
-          return result("succeeded", "terminal_marker", companies, pages, rawBundles);
+          return result("succeeded", "terminal_marker", companies, pages, rawBundles, rejects, blockers);
         }
         if (pageNumber === scope.maxPages) {
-          return result("limited", "max_pages", companies, pages, rawBundles);
+          return result("limited", "max_pages", companies, pages, rawBundles, rejects, blockers);
         }
 
-        await session.clickLink("Следующая страница");
+        if (await session.clickLink("Следующая страница") === 403) {
+          return await block("http_403");
+        }
       }
 
-      return result("limited", "max_pages", companies, pages, rawBundles);
+      return result("limited", "max_pages", companies, pages, rawBundles, rejects, blockers);
     } catch (error) {
       if (error instanceof BrowserContractError) {
-        return result("blocked", "contract_drift", companies, pages, rawBundles);
+        return await block("contract_drift");
+      }
+      if (error instanceof ExternalBrowserRequestError) {
+        return await block("policy_block", { detail: error.origins.join(", ") });
       }
       throw error;
     } finally {
@@ -179,48 +262,23 @@ function result(
   companies: readonly DiscoveredCompany[],
   pages: readonly DiscoveryPage[],
   rawBundles: readonly ReturnType<typeof checksumBrowserRawBundle>[],
+  rejects: readonly DiscoveryReject[],
+  blockers: readonly DiscoveryBlocker[],
 ): DiscoveryResult {
-  return { status, reason, companies, pages, rawBundles };
-}
-
-async function verifyRenderedFilters(session: BrowserSession, scope: DiscoveryScope): Promise<void> {
-  const renderedOkved = parseOkvedCode(await session.readLabeledText("ОКВЭД"));
-  const renderedStatus = await session.readLabeledText("Статус");
-  if (renderedOkved !== scope.okved || renderedStatus !== (scope.onlyActive ? "Только действующие" : "Все")) {
-    throw new BrowserContractError("rendered filters do not match the requested scope");
-  }
-}
-
-async function readCompany(
-  session: BrowserSession,
-): Promise<Omit<DiscoveredCompany, "rawFetchKey" | "parserVersion">> {
-  const optional = (value: string) => value === "—" ? null : value.replace(/\s+/g, " ").trim();
-  const sourceRecordKey = (await session.readLabeledText("Ключ записи")).trim();
-  if (!/^[0-9]+$/.test(sourceRecordKey)) {
-    throw new BrowserContractError("company source record key is invalid");
-  }
-
-  return {
-    sourceRecordKey,
-    inn: parseLegalEntityInn((await session.readLabeledText("ИНН")).trim()),
-    name: (await session.readLabeledText("Наименование")).trim(),
-    website: optional(await session.readLabeledText("Сайт")),
-    phone: optional(await session.readFirstLabeledText("Телефон")),
-    email: optional(await session.readFirstLabeledText("Email"))?.toLowerCase() ?? null,
-    okvedCode: parseOkvedCode(await session.readLabeledText("ОКВЭД")),
-    isPrimary: (await session.readLabeledText("Тип ОКВЭД")) === "Основной",
-  };
+  return { status, reason, companies, pages, rawBundles, rejects, blockers };
 }
 
 export interface PlaywrightBrowserSessionFactoryOptions {
   now?: () => Date;
   sensitiveQueryParameters?: readonly string[];
+  launch?: () => Promise<Browser>;
 }
 
 export class PlaywrightBrowserSessionFactory implements BrowserSessionFactory {
   readonly #allowedOrigin: string;
   readonly #now: () => Date;
   readonly #sensitiveQueryParameters: readonly string[];
+  readonly #launch: () => Promise<Browser>;
 
   constructor(allowedOrigin: string, options: PlaywrightBrowserSessionFactoryOptions = {}) {
     this.#allowedOrigin = new URL(allowedOrigin).origin;
@@ -229,22 +287,29 @@ export class PlaywrightBrowserSessionFactory implements BrowserSessionFactory {
       ...MANDATORY_SENSITIVE_QUERY_PARAMETERS,
       ...(options.sensitiveQueryParameters ?? []),
     ])];
+    this.#launch = options.launch ?? (() => chromium.launch({ headless: true }));
   }
 
-  async open(): Promise<BrowserSession> {
-    const browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext();
-    return PlaywrightBrowserSession.create(
-      browser,
-      context,
-      this.#allowedOrigin,
-      this.#now,
-      this.#sensitiveQueryParameters,
-    );
+  async open(execution: DiscoveryExecutionContext = {}): Promise<BrowserSession> {
+    const browser = await this.#launch();
+    let context: BrowserContext | undefined;
+    try {
+      context = await browser.newContext();
+      return await PlaywrightBrowserSession.create(
+        browser,
+        context,
+        this.#allowedOrigin,
+        this.#now,
+        this.#sensitiveQueryParameters,
+        execution,
+      );
+    } catch (error) {
+      if (context !== undefined) await context.close().catch(() => undefined);
+      await browser.close().catch(() => undefined);
+      throw error;
+    }
   }
 }
-
-class BrowserContractError extends Error {}
 
 class PlaywrightBrowserSession implements BrowserSession {
   readonly #browser: Browser;
@@ -252,9 +317,11 @@ class PlaywrightBrowserSession implements BrowserSession {
   readonly #page: Page;
   readonly #now: () => Date;
   readonly #sensitiveQueryParameters: readonly string[];
-  readonly #actions: BrowserRawBundle["actions"][number][] = [];
+  readonly #actions: BrowserActionRecorder;
   readonly #externalOrigins = new Set<string>();
+  readonly #sensitiveValues = new Set<string>();
   #navigationStatus: number | null = null;
+  #externalRequestsAcknowledged = false;
 
   private constructor(
     browser: Browser,
@@ -262,12 +329,23 @@ class PlaywrightBrowserSession implements BrowserSession {
     page: Page,
     now: () => Date,
     sensitiveQueryParameters: readonly string[],
+    execution: DiscoveryExecutionContext,
   ) {
     this.#browser = browser;
     this.#context = context;
     this.#page = page;
     this.#now = now;
     this.#sensitiveQueryParameters = sensitiveQueryParameters;
+    this.#actions = new BrowserActionRecorder(
+      execution,
+      now,
+      () => this.#navigationStatus,
+      (target) => sanitizeBrowserActionTarget(
+        target,
+        this.#sensitiveQueryParameters,
+        [...this.#sensitiveValues],
+      ),
+    );
   }
 
   static async create(
@@ -276,10 +354,18 @@ class PlaywrightBrowserSession implements BrowserSession {
     allowedOrigin: string,
     now: () => Date,
     sensitiveQueryParameters: readonly string[],
+    execution: DiscoveryExecutionContext,
   ): Promise<PlaywrightBrowserSession> {
     const page = await context.newPage();
     page.setDefaultTimeout(2_000);
-    const session = new PlaywrightBrowserSession(browser, context, page, now, sensitiveQueryParameters);
+    const session = new PlaywrightBrowserSession(
+      browser,
+      context,
+      page,
+      now,
+      sensitiveQueryParameters,
+      execution,
+    );
 
     page.on("response", (response) => {
       if (response.request().isNavigationRequest() && response.frame() === page.mainFrame()) {
@@ -288,6 +374,7 @@ class PlaywrightBrowserSession implements BrowserSession {
     });
     await context.route("**/*", async (route) => {
       const requestUrl = route.request().url();
+      session.#rememberSensitiveValues(requestUrl);
       if (requestUrl.startsWith("data:")) {
         await route.continue();
         return;
@@ -310,13 +397,17 @@ class PlaywrightBrowserSession implements BrowserSession {
   }
 
   async navigate(url: string): Promise<number | null> {
+    this.#rememberSensitiveValues(url);
+    const target = sanitizeUrl(url, this.#sensitiveQueryParameters);
+    const actionId = await this.#actions.begin("navigate", target);
     try {
       const response = await this.#page.goto(url, { waitUntil: "load" });
       this.#navigationStatus = response?.status() ?? null;
-      this.#record("navigate", sanitizeUrl(url, this.#sensitiveQueryParameters), "completed");
       this.#assertNoExternalRequests();
+      await this.#actions.finish(actionId, "navigate", target, "completed");
       return this.#navigationStatus;
     } catch (error) {
+      await this.#actions.finish(actionId, "navigate", target, "failed");
       this.#assertNoExternalRequests();
       throw error;
     }
@@ -334,17 +425,19 @@ class PlaywrightBrowserSession implements BrowserSession {
     });
   }
 
-  async clickButton(name: string): Promise<void> {
-    await this.#contractAction("click-button", name, async () => {
+  async clickButton(name: string): Promise<number | null> {
+    return this.#contractAction("click-button", name, async () => {
       await this.#page.getByRole("button", { name, exact: true }).click();
       await this.#page.waitForLoadState("load");
+      return this.#navigationStatus;
     });
   }
 
-  async clickLink(name: string): Promise<void> {
-    await this.#contractAction("click-link", name, async () => {
+  async clickLink(name: string): Promise<number | null> {
+    return this.#contractAction("click-link", name, async () => {
       await this.#page.getByRole("link", { name, exact: true }).click();
       await this.#page.waitForLoadState("load");
+      return this.#navigationStatus;
     });
   }
 
@@ -365,36 +458,59 @@ class PlaywrightBrowserSession implements BrowserSession {
   }
 
   async readLabeledText(label: string): Promise<string> {
+    const actionId = await this.#actions.begin("read-labeled-text", label);
     try {
       const values = await this.#exactLabeledValues(label);
       if (values.length !== 1) {
         throw new Error(`expected exactly one value for label ${label}`);
       }
-      this.#record("read-labeled-text", label, "completed");
       this.#assertNoExternalRequests();
+      await this.#actions.finish(actionId, "read-labeled-text", label, "completed");
       return values[0];
     } catch (error) {
+      await this.#actions.finish(actionId, "read-labeled-text", label, "contract-drift");
+      this.#assertNoExternalRequests();
+      throw new BrowserContractError(messageOf(error));
+    }
+  }
+
+  async readLabeledTexts(label: string): Promise<readonly string[]> {
+    const actionId = await this.#actions.begin("read-labeled-texts", label);
+    try {
+      const values = await this.#exactLabeledValues(label);
+      if (values.length === 0) {
+        throw new Error(`expected at least one value for label ${label}`);
+      }
+      this.#assertNoExternalRequests();
+      await this.#actions.finish(actionId, "read-labeled-texts", label, "completed");
+      return values;
+    } catch (error) {
+      await this.#actions.finish(actionId, "read-labeled-texts", label, "contract-drift");
       this.#assertNoExternalRequests();
       throw new BrowserContractError(messageOf(error));
     }
   }
 
   async readFirstLabeledText(label: string): Promise<string> {
+    const actionId = await this.#actions.begin("read-first-labeled-text", label);
     try {
       const values = await this.#exactLabeledValues(label);
       if (values.length === 0) {
         throw new Error(`expected at least one value for repeatable label ${label}`);
       }
-      this.#record("read-first-labeled-text", label, "completed");
       this.#assertNoExternalRequests();
+      await this.#actions.finish(actionId, "read-first-labeled-text", label, "completed");
       return values[0];
     } catch (error) {
+      await this.#actions.finish(actionId, "read-first-labeled-text", label, "contract-drift");
       this.#assertNoExternalRequests();
       throw new BrowserContractError(messageOf(error));
     }
   }
 
   async linkNamesInLandmark(name: string, accessibleNamePrefix: string): Promise<readonly string[]> {
+    const target = `${name}:${accessibleNamePrefix}`;
+    const actionId = await this.#actions.begin("read-links", target);
     try {
       const links = await this.#page.getByRole("main", { name, exact: true }).getByRole("link").all();
       const result: string[] = [];
@@ -407,17 +523,23 @@ class PlaywrightBrowserSession implements BrowserSession {
       if (result.length === 0) {
         throw new Error("result landmark contains no company links");
       }
-      this.#record("read-links", `${name}:${accessibleNamePrefix}`, "completed");
       this.#assertNoExternalRequests();
+      await this.#actions.finish(actionId, "read-links", target, "completed");
       return result;
     } catch (error) {
+      await this.#actions.finish(actionId, "read-links", target, "contract-drift");
       this.#assertNoExternalRequests();
       throw new BrowserContractError(messageOf(error));
     }
   }
 
   async fingerprint(): Promise<string> {
-    const dom = await this.#sanitizedDom([]);
+    const dom = await sanitizePageDom(
+      this.#page,
+      this.#sensitiveQueryParameters,
+      [],
+      [...this.#sensitiveValues],
+    );
     this.#assertNoExternalRequests();
     return sha256(dom);
   }
@@ -427,8 +549,36 @@ class PlaywrightBrowserSession implements BrowserSession {
     parserVersion: string,
     redactLabeledValues: readonly string[] = [],
   ): Promise<BrowserRawBundle> {
-    const sanitizedDomUtf8 = await this.#sanitizedDom(redactLabeledValues);
-    const overlays = await this.#addRedactionOverlays(redactLabeledValues);
+    return this.#capture(identity, parserVersion, redactLabeledValues, true);
+  }
+
+  async captureBlocker(
+    identity: BrowserRawBundle["identity"],
+    parserVersion: string,
+  ): Promise<BrowserRawBundle> {
+    this.#externalRequestsAcknowledged = true;
+    return this.#capture(identity, parserVersion, ["Телефон", "Email"], false);
+  }
+
+  async #capture(
+    identity: BrowserRawBundle["identity"],
+    parserVersion: string,
+    redactLabeledValues: readonly string[],
+    requireEveryLabel: boolean,
+  ): Promise<BrowserRawBundle> {
+    const target = identity.sourceRecordKey ?? `page:${identity.page}`;
+    const actionId = await this.#actions.begin("capture", target);
+    const labeledValues = (await Promise.all(
+      redactLabeledValues.map((label) => this.#exactLabeledValues(label)),
+    )).flat();
+    const redactionValues = [...new Set([...this.#sensitiveValues, ...labeledValues])];
+    const sanitizedDomUtf8 = await sanitizePageDom(
+      this.#page,
+      this.#sensitiveQueryParameters,
+      redactLabeledValues,
+      redactionValues,
+    );
+    const overlays = await addPageRedactionOverlays(this.#page, redactLabeledValues, redactionValues);
     let redactedScreenshotPng: Uint8Array;
     try {
       redactedScreenshotPng = await this.#page.screenshot({ fullPage: true, type: "png" });
@@ -437,13 +587,15 @@ class PlaywrightBrowserSession implements BrowserSession {
         for (const element of elements) element.remove();
       });
     }
-    if (redactLabeledValues.some((label) => (overlays[label] ?? 0) === 0)) {
+    if (requireEveryLabel && redactLabeledValues.some((label) => (overlays[label] ?? 0) === 0)) {
+      await this.#actions.finish(actionId, "capture", target, "contract-drift");
       throw new BrowserContractError("a sensitive contact label had no value to redact");
     }
-    this.#record("capture", identity.sourceRecordKey ?? `page:${identity.page}`, "completed");
-    this.#assertNoExternalRequests();
+    if (!this.#externalRequestsAcknowledged) this.#assertNoExternalRequests();
+    await this.#actions.finish(actionId, "capture", target, "completed");
 
-    return {
+    const bundle: BrowserRawBundle = {
+      sourceKind: "list-org-browser",
       parserVersion,
       finalUrl: sanitizeUrl(this.#page.url(), this.#sensitiveQueryParameters),
       capturedAt: this.#now().toISOString(),
@@ -453,8 +605,10 @@ class PlaywrightBrowserSession implements BrowserSession {
       pageFingerprintSha256: sha256(sanitizedDomUtf8),
       identity,
       candidateEvidence: null,
-      actions: [...this.#actions],
+      actions: [...this.#actions.events],
     };
+    assertBrowserCaptureSafe(bundle, redactionValues);
+    return bundle;
   }
 
   async close(): Promise<void> {
@@ -463,17 +617,19 @@ class PlaywrightBrowserSession implements BrowserSession {
     } finally {
       await this.#browser.close();
     }
-    this.#assertNoExternalRequests();
+    if (!this.#externalRequestsAcknowledged) this.#assertNoExternalRequests();
   }
 
-  async #contractAction(kind: string, target: string, action: () => Promise<void>): Promise<void> {
+  async #contractAction<T>(kind: string, target: string, action: () => Promise<T>): Promise<T> {
+    const actionId = await this.#actions.begin(kind, target);
     try {
-      await action();
-      this.#record(kind, target, "completed");
+      const value = await action();
       this.#assertNoExternalRequests();
+      await this.#actions.finish(actionId, kind, target, "completed");
+      return value;
     } catch (error) {
+      await this.#actions.finish(actionId, kind, target, "contract-drift");
       this.#assertNoExternalRequests();
-      this.#record(kind, target, "contract-drift");
       throw new BrowserContractError(messageOf(error));
     }
   }
@@ -491,102 +647,17 @@ class PlaywrightBrowserSession implements BrowserSession {
     return values;
   }
 
-  async #sanitizedDom(redactLabeledValues: readonly string[]): Promise<Uint8Array> {
-    const html = await this.#page.evaluate(({ sensitiveNames, redactLabels }) => {
-      const clone = document.documentElement.cloneNode(true) as HTMLElement;
-      clone.querySelectorAll("script, [hidden], [data-secret], input[type=hidden], meta[http-equiv='set-cookie' i]")
-        .forEach((element) => element.remove());
-      const redacted = new Set(redactLabels);
-      for (const term of clone.querySelectorAll("dt")) {
-        if (redacted.has(term.textContent?.trim() ?? "")) {
-          const value = term.nextElementSibling;
-          if (value !== null) {
-            for (const attribute of [...value.attributes]) {
-              value.removeAttribute(attribute.name);
-            }
-            value.replaceChildren(document.createTextNode("[REDACTED]"));
-          }
-        }
-      }
-      const sensitive = new Set(sensitiveNames.map((name) => name.toLowerCase()));
-      for (const element of clone.querySelectorAll("*")) {
-        for (const attribute of [...element.attributes]) {
-          const attributeName = attribute.name.toLowerCase();
-          if (attributeName.startsWith("on") || /cookie|secret|token|authorization/.test(attributeName)) {
-            element.removeAttribute(attribute.name);
-            continue;
-          }
-          if (attributeName === "href" || attributeName === "src" || attributeName === "action") {
-            try {
-              const url = new URL(attribute.value, document.baseURI);
-              for (const name of [...url.searchParams.keys()]) {
-                if (sensitive.has(name.toLowerCase())) url.searchParams.delete(name);
-              }
-              element.setAttribute(attribute.name, url.toString());
-            } catch {
-              // Non-URL attributes are retained verbatim.
-            }
-          }
-        }
-      }
-      return `<!doctype html>\n${clone.outerHTML}`;
-    }, {
-      sensitiveNames: this.#sensitiveQueryParameters,
-      redactLabels: redactLabeledValues,
-    });
-    return new TextEncoder().encode(html);
-  }
-
-  async #addRedactionOverlays(labels: readonly string[]): Promise<Record<string, number>> {
-    return this.#page.evaluate((wantedLabels) => {
-      const counts: Record<string, number> = {};
-      const terms = [...document.querySelectorAll("dt")];
-      for (const label of wantedLabels) {
-        counts[label] = 0;
-        for (const term of terms.filter((candidate) => candidate.textContent?.trim() === label)) {
-          const value = term.nextElementSibling;
-          if (!(value instanceof HTMLElement)) continue;
-          const rect = value.getBoundingClientRect();
-          const overlay = document.createElement("div");
-          overlay.dataset.browserCaptureRedaction = "true";
-          overlay.setAttribute("aria-hidden", "true");
-          Object.assign(overlay.style, {
-            position: "absolute",
-            left: `${rect.left + window.scrollX}px`,
-            top: `${rect.top + window.scrollY}px`,
-            width: `${Math.max(rect.width, 1)}px`,
-            height: `${Math.max(rect.height, 1)}px`,
-            background: "#000",
-            zIndex: "2147483647",
-          });
-          document.body.append(overlay);
-          counts[label] += 1;
-        }
-      }
-      return counts;
-    }, labels);
-  }
-
-  #record(kind: string, target: string, outcome: string): void {
-    this.#actions.push({ at: this.#now().toISOString(), kind, target, outcome });
+  #rememberSensitiveValues(url: string): void {
+    for (const value of sensitiveQueryValues(url, this.#sensitiveQueryParameters)) {
+      this.#sensitiveValues.add(value);
+    }
   }
 
   #assertNoExternalRequests(): void {
     if (this.#externalOrigins.size > 0) {
-      throw new ExternalBrowserRequestError(
-        `browser request escaped fixture allowlist: ${[...this.#externalOrigins].sort().join(", ")}`,
-      );
+      throw new ExternalBrowserRequestError([...this.#externalOrigins].sort());
     }
   }
-}
-
-function sanitizeUrl(value: string, sensitiveQueryParameters: readonly string[]): string {
-  const url = new URL(value);
-  const sensitive = new Set(sensitiveQueryParameters.map((name) => name.toLowerCase()));
-  for (const name of [...url.searchParams.keys()]) {
-    if (sensitive.has(name.toLowerCase())) url.searchParams.delete(name);
-  }
-  return url.toString();
 }
 
 function messageOf(error: unknown): string {

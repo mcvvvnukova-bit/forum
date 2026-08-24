@@ -72,14 +72,21 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
         if (state?.status !== "succeeded") {
           throw new PublicOperationError("only a succeeded fixture run can be replayed");
         }
+        const taskId = randomUUID();
+        await repository.prepareTask(taskId, command.runId, "replay_write");
         const queue = new PgBossJobQueue(env.databaseUrl);
         try {
-          const jobId = await queue.publish(
-            "audience-replay-write",
-            { runId: command.runId },
-            { singletonKey: `audience:${command.runId}:replay_write` },
-          );
-          return { runId: command.runId, jobId, queued: true };
+          try {
+            const jobId = await queue.publish(
+              "audience-replay-write",
+              { runId: command.runId, taskId },
+              { singletonKey: `audience:${command.runId}:replay_write` },
+            );
+            return { runId: command.runId, taskId, jobId, queued: true };
+          } catch (error) {
+            await repository.failPreparedTask(taskId, "replay_enqueue_failed");
+            throw error;
+          }
         } finally {
           await queue.close();
         }
@@ -103,8 +110,13 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
         throw new PublicOperationError("resume is unsupported; use replay-write or create a new run");
       }
     }
+    throw new Error("unsupported audience command");
   } finally {
-    await database.close();
+    try {
+      rawStorage.close();
+    } finally {
+      await database.close();
+    }
   }
 }
 
@@ -115,6 +127,7 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
   const capturedAt = "2026-08-24T00:00:00.000Z";
   const bfoBundle = fixtureRawBundle({
     runId,
+    sourceKind: "fns-bfo",
     page: 1,
     sourceRecordKey: `${inn}:${year}:bfo-fixture`,
     parserVersion: "fns-bfo/1.0.0",
@@ -124,6 +137,7 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
   });
   const revexpBundle = fixtureRawBundle({
     runId,
+    sourceKind: "fns-revexp",
     page: 2,
     sourceRecordKey: `${inn}:${year}:revexp-fixture`,
     parserVersion: "fns-revexp/1.0.0",
@@ -131,10 +145,19 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
     bytes: revexpBytes,
     capturedAt,
   });
-  const [bfoStored, revexpStored] = await Promise.all([
-    new S3RawObjectStorage(env, "fns-bfo").put(bfoBundle),
-    new S3RawObjectStorage(env, "fns-revexp").put(revexpBundle),
-  ]);
+  const bfoStorage = new S3RawObjectStorage(env, "fns-bfo");
+  const revexpStorage = new S3RawObjectStorage(env, "fns-revexp");
+  let bfoStored: Awaited<ReturnType<S3RawObjectStorage["put"]>>;
+  let revexpStored: Awaited<ReturnType<S3RawObjectStorage["put"]>>;
+  try {
+    [bfoStored, revexpStored] = await Promise.all([
+      bfoStorage.put(bfoBundle),
+      revexpStorage.put(revexpBundle),
+    ]);
+  } finally {
+    bfoStorage.close();
+    revexpStorage.close();
+  }
   const rawObjects: CapturedRawObject[] = [
     capturedFinancialRaw(randomUUID(), "fns-bfo", bfoBundle, bfoStored),
     capturedFinancialRaw(randomUUID(), "fns-revexp", revexpBundle, revexpStored),
@@ -156,6 +179,7 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
 
 function fixtureRawBundle(input: {
   runId: string;
+  sourceKind: string;
   page: number;
   sourceRecordKey: string;
   parserVersion: string;
@@ -164,6 +188,7 @@ function fixtureRawBundle(input: {
   capturedAt: string;
 }) {
   return checksumBrowserRawBundle({
+    sourceKind: input.sourceKind,
     parserVersion: input.parserVersion,
     finalUrl: input.finalUrl,
     capturedAt: input.capturedAt,

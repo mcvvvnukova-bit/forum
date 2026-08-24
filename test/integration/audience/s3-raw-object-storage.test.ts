@@ -9,7 +9,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { AppEnv } from "../../../src/shared/config/env";
 import type { BrowserRawBundle } from "../../../src/modules/audience/domain/discovery";
@@ -52,7 +52,7 @@ describe("S3RawObjectStorage", () => {
   });
 
   it("writes a checksummed bundle once and treats identical conditional retries as success", async () => {
-    const storage = new S3RawObjectStorage(env, "list-org-browser");
+    const storage = new S3RawObjectStorage(env, "list-org-browser", client);
     const bundle = sampleBundle("s3-idempotent");
 
     const first = await storage.put(bundle);
@@ -87,8 +87,20 @@ describe("S3RawObjectStorage", () => {
     expect(JSON.stringify(manifest)).not.toMatch(/\+7 \(495\) 111-22-33|info@alpha\.example/i);
   });
 
-  it("fails an immutable-key collision when existing bytes differ", async () => {
+  it("destroys an owned S3 client exactly once on close", () => {
+    const destroy = vi.spyOn(S3Client.prototype, "destroy");
     const storage = new S3RawObjectStorage(env, "list-org-browser");
+    try {
+      storage.close();
+      storage.close();
+      expect(destroy).toHaveBeenCalledOnce();
+    } finally {
+      destroy.mockRestore();
+    }
+  });
+
+  it("fails an immutable-key collision when existing bytes differ", async () => {
+    const storage = new S3RawObjectStorage(env, "list-org-browser", client);
     const bundle = sampleBundle("s3-collision");
     const manifestKey = [
       "raw",
@@ -141,8 +153,42 @@ describe("S3RawObjectStorage", () => {
     }
   });
 
+  it.each([
+    ["contact in DOM", { sanitizedDomUtf8: new TextEncoder().encode('<a href="mailto:info@alpha.example">email</a>') }],
+    ["secret query in final URL", { finalUrl: "https://fixture.invalid/page?token=must-not-persist" }],
+    ["secret in action metadata", {
+      actions: [{
+        id: "123e4567-e89b-42d3-a456-426614174000",
+        at: "2026-08-24T09:00:00.000Z",
+        kind: "navigate",
+        target: "https://fixture.invalid/?tenant_secret=must-not-persist",
+        outcome: "completed" as const,
+        navigationStatus: 200,
+      }],
+    }],
+    ["contact in manifest candidate evidence", {
+      candidateEvidence: {
+        ...sampleRawBundle("ignored").candidateEvidence!,
+        name: "АО info@alpha.example",
+      },
+    }],
+    ["secret in manifest candidate website", {
+      candidateEvidence: {
+        ...sampleRawBundle("ignored").candidateEvidence!,
+        website: "https://alpha.example/?tenant_secret=must-not-persist",
+      },
+    }],
+  ])("fails closed before checksumming raw evidence with %s", (_case, override) => {
+    const raw = {
+      ...sampleRawBundle("s3-redaction-rejected"),
+      ...override,
+    };
+
+    expect(() => checksumBrowserRawBundle(raw)).toThrow("raw redaction scan failed");
+  });
+
   it("rejects replay verification when a referenced raw artifact no longer matches its manifest", async () => {
-    const storage = new S3RawObjectStorage(env, "list-org-browser");
+    const storage = new S3RawObjectStorage(env, "list-org-browser", client);
     const stored = await storage.put(sampleBundle("s3-verified-read"));
 
     await expect(storage.verify(stored)).resolves.toMatchObject({
@@ -160,10 +206,53 @@ describe("S3RawObjectStorage", () => {
 
     await expect(storage.verify(stored)).rejects.toThrow("raw object checksum verification failed");
   });
+
+  it.each([
+    ["run", { runId: "s3-expected-owner" }],
+    ["source", { sourceKind: "fns-bfo" }],
+    ["record", { sourceRecordKey: "9999" }],
+    ["parser", { parserVersion: "list-org-browser/9.9.9" }],
+  ])("rejects a checksum-valid manifest with the wrong expected %s identity", async (
+    _case,
+    expectedOverride,
+  ) => {
+    const storage = new S3RawObjectStorage(env, "list-org-browser", client);
+    const stored = await storage.put(sampleBundle("s3-foreign-owner"));
+    const expected = {
+      ...stored,
+      runId: "s3-foreign-owner",
+      sourceKind: "list-org-browser",
+      sourceRecordKey: "1001",
+      parserVersion: "list-org-browser/1.0.0",
+      ...expectedOverride,
+    };
+
+    await expect(storage.verify(expected)).rejects.toThrow("raw object identity verification failed");
+  });
+
+  it("rejects a self-consistent object owned by a different source adapter", async () => {
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    const foreignStorage = new S3RawObjectStorage(env, "fns-bfo", client);
+    const foreignBundle = checksumBrowserRawBundle({
+      ...sampleRawBundle("s3-foreign-source"),
+      sourceKind: "fns-bfo",
+      candidateEvidence: null,
+    });
+    const foreignObject = await foreignStorage.put(foreignBundle);
+
+    await expect(browserStorage.verify(foreignObject)).rejects.toThrow(
+      "raw object identity verification failed",
+    );
+  });
 });
 
 function sampleBundle(runId: string) {
-  const raw: BrowserRawBundle = {
+  return checksumBrowserRawBundle(sampleRawBundle(runId));
+}
+
+function sampleRawBundle(runId: string): BrowserRawBundle {
+  return {
+    sourceKind: "list-org-browser",
     parserVersion: "list-org-browser/1.0.0",
     finalUrl: "http://127.0.0.1:33333/results/page-1",
     capturedAt: "2026-08-24T09:00:00.000Z",
@@ -171,7 +260,7 @@ function sampleBundle(runId: string) {
     sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>safe evidence</main>"),
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     pageFingerprintSha256: "a".repeat(64),
-    identity: { runId, page: 1 },
+    identity: { runId, page: 1, sourceRecordKey: "1001" },
     candidateEvidence: {
       sourceRecordKey: "1001",
       inn: "7707083893",
@@ -184,12 +273,13 @@ function sampleBundle(runId: string) {
     },
     actions: [
       {
+        id: "123e4567-e89b-42d3-a456-426614174000",
         at: "2026-08-24T09:00:00.000Z",
         kind: "navigate",
         target: "/results/page-1",
         outcome: "completed",
+        navigationStatus: 200,
       },
     ],
   };
-  return checksumBrowserRawBundle(raw);
 }

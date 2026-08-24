@@ -201,12 +201,15 @@ CREATE TABLE audience.financial_observations (
   CHECK ((expenses IS NULL) = (expenses_evidence_id IS NULL)),
   FOREIGN KEY (revenue_evidence_id, company_inn, report_year, revenue_metric, revenue)
     REFERENCES audience.financial_evidence (id, company_inn, report_year, metric, amount)
+    ON DELETE RESTRICT
     DEFERRABLE INITIALLY IMMEDIATE,
   FOREIGN KEY (income_evidence_id, company_inn, report_year, income_metric, income)
     REFERENCES audience.financial_evidence (id, company_inn, report_year, metric, amount)
+    ON DELETE RESTRICT
     DEFERRABLE INITIALLY IMMEDIATE,
   FOREIGN KEY (expenses_evidence_id, company_inn, report_year, expenses_metric, expenses)
     REFERENCES audience.financial_evidence (id, company_inn, report_year, metric, amount)
+    ON DELETE RESTRICT
     DEFERRABLE INITIALLY IMMEDIATE
 );
 
