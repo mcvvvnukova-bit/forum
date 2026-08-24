@@ -81,8 +81,17 @@ export class PgBossJobQueue implements JobQueue {
     if (this.#closed) return;
     this.#closed = true;
     if (this.#started !== null) {
-      await this.#started;
-      await this.#boss.stop({ graceful: true, close: true, timeout: 5_000 });
+      let startRejected = false;
+      try {
+        await this.#started;
+      } catch {
+        startRejected = true;
+      }
+      try {
+        await this.#boss.stop({ graceful: true, close: true, timeout: 5_000 });
+      } catch (error) {
+        if (!startRejected) throw error;
+      }
     }
   }
 

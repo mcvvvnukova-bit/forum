@@ -416,18 +416,18 @@ export class PostgresAudienceRepository implements AudienceRepository {
            )
            INSERT INTO audience.financial_evidence (
              id, company_inn, report_year, metric, amount, source_fetch_id,
-             source_record_key, parser_version
+             source_record_key, parser_version, observed_at
            )
            SELECT gen_random_uuid(), $4, $5, $6::audience.financial_metric,
-                  $7::numeric, $8, $9, $10
+                  $7::numeric, $8, $9, $10, $11::timestamptz
            FROM fence
            ON CONFLICT (company_inn, report_year, metric, source_fetch_id, source_record_key)
            DO UPDATE SET amount = EXCLUDED.amount, parser_version = EXCLUDED.parser_version,
-                         collected_at = now()
+                         observed_at = EXCLUDED.observed_at, collected_at = now()
            RETURNING id`,
           [input.task.id, input.task.runId, input.task.fencingToken, evidence.inn,
             evidence.reportYear, evidence.metric, evidence.value, sourceFetchId,
-            evidence.sourceRecordKey, evidence.parserVersion],
+            evidence.sourceRecordKey, evidence.parserVersion, evidence.observedAt],
         );
         const evidenceId = inserted.rows[0]?.id;
         if (evidenceId === undefined) {
@@ -518,8 +518,8 @@ export class PostgresAudienceRepository implements AudienceRepository {
               AND metric.report_year = evidence.report_year
               AND metric.metric = evidence.metric
          ORDER BY evidence.company_inn, evidence.report_year, evidence.metric,
-                  evidence.collected_at DESC,
                   evidence.observed_at DESC NULLS LAST,
+                  evidence.source_record_key DESC,
                   evidence.id DESC
        ), current_metric_projections AS (
          SELECT metric.company_inn, metric.report_year, metric.metric,

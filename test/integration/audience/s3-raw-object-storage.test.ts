@@ -77,9 +77,11 @@ describe("S3RawObjectStorage", () => {
       Key: first.manifestKey,
     }));
     const manifest = JSON.parse(await manifestResponse.Body!.transformToString()) as {
+      version: number;
       artifacts: { sanitizedDom: { checksumSha256: string } };
       candidateEvidence: unknown;
     };
+    expect(manifest.version).toBe(2);
     expect(manifest.artifacts.sanitizedDom.checksumSha256).toBe(
       bundle.artifacts.sanitizedDomSha256,
     );
@@ -194,7 +196,7 @@ describe("S3RawObjectStorage", () => {
     );
     const screenshotBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
     const manifestBytes = new TextEncoder().encode(JSON.stringify({
-      version: 1,
+      version: 2,
       sourceKind: "list-org-browser",
       parserVersion: "list-org-browser/1.0.0",
       sensitiveFormFieldNames: ["nonce"],
@@ -242,6 +244,82 @@ describe("S3RawObjectStorage", () => {
 
     const storage = new S3RawObjectStorage(env, "list-org-browser", client);
     await expect(storage.verify(stored)).rejects.toThrow("raw redaction scan failed");
+  });
+
+  it("quarantines a legacy browser manifest that has no persisted form policy", async () => {
+    const bundle = sampleBundle("s3-legacy-browser-manifest");
+    const legacy = JSON.parse(new TextDecoder().decode(bundle.manifestUtf8)) as Record<string, unknown>;
+    legacy.version = 1;
+    delete legacy.sensitiveFormFieldNames;
+    const manifestBytes = new TextEncoder().encode(JSON.stringify(legacy));
+    const checksumSha256 = fixtureSha256(manifestBytes);
+    const prefix = `raw/${bundle.identity.runId}/list-org-browser/${checksumSha256}`;
+    const stored = {
+      runId: bundle.identity.runId,
+      sourceKind: "list-org-browser",
+      sourceRecordKey: "1001",
+      parserVersion: bundle.parserVersion,
+      checksumSha256,
+      prefix,
+      manifestKey: `${prefix}/manifest.json`,
+      domKey: `${prefix}/dom.html`,
+      screenshotKey: `${prefix}/screenshot.png`,
+    };
+    await Promise.all([
+      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.domKey, Body: bundle.sanitizedDomUtf8 })),
+      client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: stored.screenshotKey,
+        Body: bundle.redactedScreenshotPng,
+      })),
+      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.manifestKey, Body: manifestBytes })),
+    ]);
+
+    const storage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(storage.verify(stored)).rejects.toThrow(
+      "raw manifest version 1 is unsupported for browser evidence",
+    );
+  });
+
+  it("intentionally verifies a legacy non-browser manifest without browser form policy", async () => {
+    const bundle = checksumBrowserRawBundle({
+      ...sampleRawBundle("s3-legacy-financial-manifest"),
+      sourceKind: "fns-bfo",
+      candidateEvidence: null,
+    });
+    const legacy = JSON.parse(new TextDecoder().decode(bundle.manifestUtf8)) as Record<string, unknown>;
+    legacy.version = 1;
+    delete legacy.sensitiveFormFieldNames;
+    const manifestBytes = new TextEncoder().encode(JSON.stringify(legacy));
+    const checksumSha256 = fixtureSha256(manifestBytes);
+    const prefix = `raw/${bundle.identity.runId}/fns-bfo/${checksumSha256}`;
+    const stored = {
+      runId: bundle.identity.runId,
+      sourceKind: "fns-bfo",
+      sourceRecordKey: "1001",
+      parserVersion: bundle.parserVersion,
+      checksumSha256,
+      prefix,
+      manifestKey: `${prefix}/manifest.json`,
+      domKey: `${prefix}/dom.html`,
+      screenshotKey: `${prefix}/screenshot.png`,
+    };
+    await Promise.all([
+      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.domKey, Body: bundle.sanitizedDomUtf8 })),
+      client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: stored.screenshotKey,
+        Body: bundle.redactedScreenshotPng,
+      })),
+      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.manifestKey, Body: manifestBytes })),
+    ]);
+
+    const storage = new S3RawObjectStorage(env, "fns-bfo", client);
+    await expect(storage.verify(stored)).resolves.toMatchObject({
+      sourceKind: "fns-bfo",
+      sourceRecordKey: "1001",
+      checksumSha256,
+    });
   });
 
   it("rejects replay verification when a referenced raw artifact no longer matches its manifest", async () => {
@@ -322,6 +400,7 @@ function sampleRawBundle(runId: string): BrowserRawBundle {
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     pageFingerprintSha256: "a".repeat(64),
     identity: { runId, page: 1, sourceRecordKey: "1001" },
+    sensitiveFormFieldNames: [],
     candidateEvidence: {
       sourceRecordKey: "1001",
       inn: "7707083893",

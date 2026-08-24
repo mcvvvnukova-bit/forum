@@ -28,6 +28,7 @@ describe("parseBfo", () => {
           value: "125000.00",
           sourceKind: "fns_bfo",
           sourceRecordKey: "7707083893:2025:0710002:2",
+          observedAt: "2026-04-01T09:00:00.000Z",
           rawFetchKey: "raw/fns-bfo/7707083893-2025.json",
           parserVersion: "fns-bfo/1.0.0",
         },

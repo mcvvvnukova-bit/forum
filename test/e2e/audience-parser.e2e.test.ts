@@ -295,15 +295,17 @@ describe.sequential("audience parser fixture acceptance", () => {
   it("rejects a financial projection that differs from its newest evidence", async () => {
     const source = await database.query<{ id: string }>(
       `SELECT source_fetch_id AS id FROM audience.financial_evidence
-       WHERE metric = 'revenue' ORDER BY collected_at DESC, id DESC LIMIT 1`,
+       WHERE metric = 'revenue'
+       ORDER BY observed_at DESC NULLS LAST, source_record_key DESC, id DESC LIMIT 1`,
     );
     const evidenceId = randomUUID();
     await database.query(
       `INSERT INTO audience.financial_evidence (
          id, company_inn, report_year, metric, amount, source_fetch_id,
-         source_record_key, parser_version, collected_at
+         source_record_key, parser_version, observed_at, collected_at
        ) VALUES ($1, '7707083893', 2025, 'revenue', 130000.00, $2,
-         '7707083893:2025:newer-acceptance', 'acceptance/1.0.0', now() + interval '1 second')`,
+         '7707083893:2025:newer-acceptance', 'acceptance/1.0.0',
+         '2099-01-01T00:00:00.000Z', now() + interval '1 second')`,
       [evidenceId, source.rows[0]!.id],
     );
     try {
@@ -415,33 +417,33 @@ describe.sequential("audience parser fixture acceptance", () => {
        WHERE evidence.company_inn = '7707083893'
          AND evidence.report_year = 2025
          AND evidence.metric = 'revenue'
-       ORDER BY evidence.collected_at DESC,
-                evidence.observed_at DESC NULLS LAST,
+       ORDER BY evidence.observed_at DESC NULLS LAST,
+                evidence.source_record_key DESC,
                 evidence.id DESC`,
     );
-    expect(orderedRevenueEvidence.rows.map((row) => row.run_id)).toEqual([
-      secondRunId,
-      runId,
-    ]);
-    const [secondRevenue, firstRevenue] = orderedRevenueEvidence.rows;
+    expect(new Set(orderedRevenueEvidence.rows.map((row) => row.run_id))).toEqual(
+      new Set([secondRunId, runId]),
+    );
+    const [winningRevenue, losingRevenue] = orderedRevenueEvidence.rows;
+    const losingRunId = winningRevenue!.run_id === runId ? secondRunId : runId;
 
     await database.query(
       `UPDATE audience.financial_observations
        SET revenue = $1::numeric, revenue_evidence_id = $2
        WHERE company_inn = '7707083893' AND report_year = 2025`,
-      [firstRevenue!.amount, firstRevenue!.id],
+      [losingRevenue!.amount, losingRevenue!.id],
     );
-    await expect(reconcileRun(secondRunId, repository)).rejects.toThrow(
+    await expect(reconcileRun(winningRevenue!.run_id, repository)).rejects.toThrow(
       "financial projection differs from newest evidence: 1",
     );
-    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({ consistent: true });
+    await expect(reconcileRun(losingRunId, repository)).resolves.toMatchObject({ consistent: true });
 
     await database.query(
       `UPDATE audience.financial_observations
        SET revenue = NULL, revenue_evidence_id = NULL
        WHERE company_inn = '7707083893' AND report_year = 2025`,
     );
-    await expect(reconcileRun(secondRunId, repository)).rejects.toThrow(
+    await expect(reconcileRun(winningRevenue!.run_id, repository)).rejects.toThrow(
       "financial projection differs from newest evidence: 1",
     );
 
@@ -449,7 +451,7 @@ describe.sequential("audience parser fixture acceptance", () => {
       `UPDATE audience.financial_observations
        SET revenue = $1::numeric, revenue_evidence_id = $2
        WHERE company_inn = '7707083893' AND report_year = 2025`,
-      [secondRevenue!.amount, secondRevenue!.id],
+      [winningRevenue!.amount, winningRevenue!.id],
     );
 
     const secondReport = await reconcileRun(secondRunId, repository);
@@ -638,6 +640,7 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv, 
   const revexp = parseRevexp(revexpBytes, {
     reportYear: year,
     sourceRecordKey: `${inn}:${year}:revexp`,
+    observedAt: revexpBundle.capturedAt,
     rawFetchKey: revexpStored.checksumSha256,
     parserVersion: revexpBundle.parserVersion,
   });

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { BrowserRawBundle } from "../../../src/modules/audience/domain/discovery";
+import {
+  sanitizeBrowserActionTarget,
+  sanitizeBrowserUrl,
+} from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 
 describe("browser raw sanitizer persistence boundary", () => {
@@ -50,6 +54,42 @@ describe("browser raw sanitizer persistence boundary", () => {
       '<!doctype html><html><body><input type="text" name="nonce"></body></html>',
       ["NoNcE"],
     ))).toThrow("raw redaction scan failed");
+  });
+
+  it.each([
+    ["configured textarea", '<textarea name="nonce">nonce-secret</textarea>', ["nonce"]],
+    ["generic API-key select", '<select name="api_key"><option selected>api-secret</option></select>', []],
+    ["configured button", '<button name="nonce">nonce-secret</button>', ["nonce"]],
+  ])("rejects serialized %s content at the checksum boundary", (_case, control, names) => {
+    expect(() => checksumBrowserRawBundle(rawBundle(
+      `<!doctype html><html><body>${control}</body></html>`,
+      names,
+    ))).toThrow("raw redaction scan failed");
+  });
+
+  it.each(["api_key", "apikey"])("removes generic %s parameters from URLs and action targets", (name) => {
+    const target = `https://fixture.invalid/search?public=kept&${name}=must-not-persist`;
+
+    expect(sanitizeBrowserUrl(target, [])).toBe("https://fixture.invalid/search?public=kept");
+    expect(sanitizeBrowserActionTarget(target, [], [])).toBe(
+      "https://fixture.invalid/search?public=kept",
+    );
+  });
+
+  it("rejects browser evidence whose persisted sensitive-name policy is missing", () => {
+    const bundle = rawBundle("<!doctype html><html><body><main>safe</main></body></html>");
+    delete bundle.sensitiveFormFieldNames;
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow(
+      "browser raw bundle sensitive form policy is required",
+    );
+  });
+
+  it("rejects a configured-only query parameter during checksum verification", () => {
+    expect(() => checksumBrowserRawBundle({
+      ...rawBundle("<!doctype html><html><body><main>safe</main></body></html>", ["nonce"]),
+      finalUrl: "https://fixture.invalid/company/1001?nonce=must-not-persist",
+    })).toThrow("raw redaction scan failed");
   });
 });
 

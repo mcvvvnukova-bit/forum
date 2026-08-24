@@ -169,6 +169,8 @@ export class ListOrgBrowserSource implements OrganizationSource {
 
           const prior = firstSeen.get(parsed.sourceRecordKey);
           if (prior !== undefined && !sameBrowserRecordResult(prior, parsed)) {
+            removeMaterializedRecord(parsed.sourceRecordKey, companies, rejects);
+            firstSeen.delete(parsed.sourceRecordKey);
             return await block("duplicate_conflict", {
               sourceRecordKey: parsed.sourceRecordKey,
               raw: cardRaw,
@@ -239,6 +241,17 @@ export class ListOrgBrowserSource implements OrganizationSource {
 
 function isPositiveSafeInteger(value: number): boolean {
   return Number.isSafeInteger(value) && value > 0;
+}
+
+function removeMaterializedRecord(
+  sourceRecordKey: string,
+  companies: DiscoveredCompany[],
+  rejects: DiscoveryReject[],
+): void {
+  const companyIndex = companies.findIndex((company) => company.sourceRecordKey === sourceRecordKey);
+  if (companyIndex >= 0) companies.splice(companyIndex, 1);
+  const rejectIndex = rejects.findIndex((reject) => reject.sourceRecordKey === sourceRecordKey);
+  if (rejectIndex >= 0) rejects.splice(rejectIndex, 1);
 }
 
 function result(
@@ -563,7 +576,12 @@ class PlaywrightBrowserSession implements BrowserSession {
       redactLabeledValues,
       redactionValues,
     );
-    const overlays = await addPageRedactionOverlays(this.#page, redactLabeledValues, redactionValues);
+    const overlays = await addPageRedactionOverlays(
+      this.#page,
+      redactLabeledValues,
+      this.#sensitiveQueryParameters,
+      redactionValues,
+    );
     let redactedScreenshotPng: Uint8Array;
     try {
       redactedScreenshotPng = await this.#page.screenshot({ fullPage: true, type: "png" });

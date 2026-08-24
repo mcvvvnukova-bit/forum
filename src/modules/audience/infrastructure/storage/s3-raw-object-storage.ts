@@ -17,7 +17,7 @@ import type {
 } from "../../domain/discovery";
 import type { AppEnv } from "../../../../shared/config/env";
 import { assertSerializedBrowserDomSafe } from "../sources/list-org-browser/browser-raw-sanitizer";
-import { checksumBrowserRawBundle, sha256 } from "./raw-bundle";
+import { checksumBrowserRawBundle, RAW_MANIFEST_VERSION, sha256 } from "./raw-bundle";
 
 export class S3RawObjectStorage implements RawObjectStorage {
   readonly #client: S3Client;
@@ -184,10 +184,20 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   } catch {
     return null;
   }
-  if (!isRecord(value) || value.version !== 1
+  if (!isRecord(value)) return null;
+  // Version 1 did not require a persisted browser form-policy. Its screenshots
+  // therefore cannot be re-verified fail-closed and are deliberately quarantined.
+  if (value.version === 1 && value.sourceKind === "list-org-browser") {
+    throw new Error("raw manifest version 1 is unsupported for browser evidence");
+  }
+  const isLegacyNonBrowser = value.version === 1;
+  if ((!isLegacyNonBrowser && value.version !== RAW_MANIFEST_VERSION)
     || typeof value.sourceKind !== "string"
     || typeof value.parserVersion !== "string"
-    || !isStringArray(value.sensitiveFormFieldNames)
+    || (!isLegacyNonBrowser && !isStringArray(value.sensitiveFormFieldNames))
+    || (isLegacyNonBrowser
+      && value.sensitiveFormFieldNames !== undefined
+      && !isStringArray(value.sensitiveFormFieldNames))
     || !isRawIdentity(value.identity)
     || !isCandidateEvidenceOrNull(value.candidateEvidence)
     || !isRecord(value.artifacts)
@@ -198,7 +208,9 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   return {
     sourceKind: value.sourceKind,
     parserVersion: value.parserVersion,
-    sensitiveFormFieldNames: value.sensitiveFormFieldNames,
+    sensitiveFormFieldNames: isStringArray(value.sensitiveFormFieldNames)
+      ? value.sensitiveFormFieldNames
+      : [],
     identity: value.identity,
     candidateEvidence: value.candidateEvidence,
     artifacts: {

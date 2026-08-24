@@ -13,6 +13,7 @@ export interface FinancialMetricEvidence {
   value: MoneyText;
   sourceKind: "fns_bfo" | "fns_revexp";
   sourceRecordKey: string;
+  observedAt: string;
   rawFetchKey: string;
   parserVersion: string;
 }

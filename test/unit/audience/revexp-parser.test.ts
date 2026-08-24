@@ -8,6 +8,7 @@ import { parseRevexp } from "../../../src/modules/audience/infrastructure/source
 const context = {
   reportYear: 2025,
   sourceRecordKey: "7707083893:2025:revexp",
+  observedAt: "2026-08-24T09:00:00.000Z",
   rawFetchKey: "raw/fns-revexp/7707083893-2025.xml",
   parserVersion: "fns-revexp/1.0.0",
 };
@@ -24,6 +25,7 @@ describe("parseRevexp", () => {
         value: "150000.00",
         sourceKind: "fns_revexp",
         sourceRecordKey: "7707083893:2025:revexp",
+        observedAt: "2026-08-24T09:00:00.000Z",
         rawFetchKey: "raw/fns-revexp/7707083893-2025.xml",
         parserVersion: "fns-revexp/1.0.0",
       },
@@ -34,6 +36,7 @@ describe("parseRevexp", () => {
         value: "0.00",
         sourceKind: "fns_revexp",
         sourceRecordKey: "7707083893:2025:revexp",
+        observedAt: "2026-08-24T09:00:00.000Z",
         rawFetchKey: "raw/fns-revexp/7707083893-2025.xml",
         parserVersion: "fns-revexp/1.0.0",
       },

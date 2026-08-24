@@ -122,6 +122,31 @@ describe("ListOrgBrowserSource", () => {
     ]);
   });
 
+  it("removes a conflicted duplicate from companies and rejects in either arrival order", async () => {
+    const [acceptedThenRejected, rejectedThenAccepted] = await Promise.all([
+      collect("/search?scenario=accepted-then-rejected"),
+      collect("/search?scenario=rejected-then-accepted"),
+    ]);
+
+    const expected = {
+      companies: [{
+        sourceRecordKey: "1001",
+        inn: "7707083893",
+        name: "ООО «Альфа Строй»",
+        website: "https://alpha.example",
+        phone: "+7 (495) 111-22-33",
+        email: "info@alpha.example",
+        okvedCode: "43.11",
+        isPrimary: true,
+        parserVersion: "list-org-browser/1.0.0",
+      }],
+      rejects: [],
+      counts: { occurrences: 2, uniqueSourceRecords: 2, accepted: 1, duplicates: 0, rejected: 0 },
+    };
+    expect(domainProjection(acceptedThenRejected)).toEqual(expected);
+    expect(domainProjection(rejectedThenAccepted)).toEqual(expected);
+  });
+
   it("collapses an identical rejected duplicate by source key and reason", async () => {
     const result = await collect("/search?scenario=duplicate-rejected-same");
 
@@ -319,6 +344,25 @@ describe("ListOrgBrowserSource", () => {
     });
   });
 
+  it("masks empty password and configured-name controls with visible placeholders", async () => {
+    const [result, baseline] = await Promise.all([
+      collect("/search?scenario=empty-form-secret", ["nonce"]),
+      collect("/search", ["nonce"]),
+    ]);
+    const card = result.rawBundles.find((bundle) => bundle.identity.sourceRecordKey === "1001");
+    const baselineCard = baseline.rawBundles.find(
+      (bundle) => bundle.identity.sourceRecordKey === "1001",
+    );
+    expect(card).toBeDefined();
+    expect(baselineCard).toBeDefined();
+
+    const dom = new TextDecoder().decode(card!.sanitizedDomUtf8);
+    expect(dom).not.toMatch(/password reminder|nonce reminder|name="(?:password|nonce)"/i);
+    expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(
+      await countBlackContactBands(baselineCard!.redactedScreenshotPng) + 2,
+    );
+  });
+
   async function collect(path: string, sensitiveQueryParameters?: readonly string[]) {
     const fixedNow = () => new Date("2026-08-24T09:00:00.000Z");
     const source = new ListOrgBrowserSource({
@@ -379,4 +423,19 @@ async function countBlackContactBands(png: Uint8Array): Promise<number> {
   } finally {
     await browser.close();
   }
+}
+
+function domainProjection(result: Awaited<ReturnType<ListOrgBrowserSource["collect"]>>) {
+  const occurrences = result.pages.flatMap((page) => page.occurrences);
+  return {
+    companies: result.companies.map(({ rawFetchKey: _rawFetchKey, ...company }) => company),
+    rejects: result.rejects.map(({ raw: _raw, ...reject }) => reject),
+    counts: {
+      occurrences: occurrences.length,
+      uniqueSourceRecords: new Set(occurrences.map((item) => item.sourceRecordKey)).size,
+      accepted: result.companies.length,
+      duplicates: occurrences.length - new Set(occurrences.map((item) => item.sourceRecordKey)).size,
+      rejected: result.rejects.length,
+    },
+  };
 }

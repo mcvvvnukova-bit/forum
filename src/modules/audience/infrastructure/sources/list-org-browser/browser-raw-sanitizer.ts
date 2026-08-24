@@ -24,18 +24,20 @@ export const SAFE_CAPTURE_ATTRIBUTES = [
 
 const EMAIL_PATTERN = /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/iu;
 const PHONE_PATTERN = /(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}/u;
-const SECRET_QUERY_PATTERN = /(?:[?&]|\\u0026)(?:access_token|auth|authorization|cookie|session|session_id|token|[^?&=]*(?:secret|credential|password)[^?&=]*)=/iu;
-const GENERIC_SECRET_PARAMETER_PATTERN = /(?:secret|credential|password)/iu;
-const GENERIC_SENSITIVE_FORM_FIELD_PATTERN = /(?:token|csrf|secret|credential|password|api_key|apikey|authorization|cookie|session)/iu;
+const GENERIC_SENSITIVE_NAME_PATTERN_SOURCE = "(?:token|csrf|secret|credential|password|api_key|apikey|authorization|cookie|session)";
+const GENERIC_SENSITIVE_NAME_PATTERN = new RegExp(GENERIC_SENSITIVE_NAME_PATTERN_SOURCE, "iu");
+const SECRET_QUERY_PATTERN = new RegExp(
+  `(?:[?&]|\\\\u0026)[^?&=]*${GENERIC_SENSITIVE_NAME_PATTERN_SOURCE}[^?&=]*=`,
+  "iu",
+);
 
 export function sanitizeBrowserUrl(
   value: string,
   sensitiveQueryParameters: readonly string[],
 ): string {
   const url = new URL(value);
-  const sensitive = new Set(sensitiveQueryParameters.map((name) => name.toLowerCase()));
   for (const name of [...url.searchParams.keys()]) {
-    if (isSensitiveParameter(name, sensitive)) url.searchParams.delete(name);
+    if (isSensitiveFormFieldName(name, sensitiveQueryParameters)) url.searchParams.delete(name);
   }
   return url.toString();
 }
@@ -50,10 +52,11 @@ export function sensitiveQueryValues(
   } catch {
     return [];
   }
-  const sensitive = new Set(sensitiveQueryParameters.map((name) => name.toLowerCase()));
   const values: string[] = [];
   for (const [name, queryValue] of url.searchParams) {
-    if (isSensitiveParameter(name, sensitive) && queryValue !== "") values.push(queryValue);
+    if (isSensitiveFormFieldName(name, sensitiveQueryParameters) && queryValue !== "") {
+      values.push(queryValue);
+    }
   }
   return values;
 }
@@ -103,14 +106,25 @@ export function assertBrowserCaptureSafe(
     JSON.stringify(actionMetadata),
   ].join("\n");
   assertNoContactOrSecret(textualEvidence, sensitiveValues);
+  const sensitiveNames = bundle.sensitiveFormFieldNames ?? [];
+  assertNoSensitiveUrlParameters(bundle.finalUrl, sensitiveNames);
+  if (bundle.candidateEvidence?.website !== null && bundle.candidateEvidence?.website !== undefined) {
+    assertNoSensitiveUrlParameters(bundle.candidateEvidence.website, sensitiveNames);
+  }
+  for (const action of bundle.actions) {
+    assertNoSensitiveUrlParameters(action.target, sensitiveNames);
+  }
   assertSerializedBrowserDomSafe(
     dom,
     bundle.sourceKind,
-    bundle.sensitiveFormFieldNames ?? [],
+    sensitiveNames,
   );
 }
 
 export function assertPersistableRawBundle(bundle: BrowserRawBundle): void {
+  if (bundle.sourceKind === "list-org-browser" && bundle.sensitiveFormFieldNames === undefined) {
+    throw new Error("browser raw bundle sensitive form policy is required");
+  }
   assertBrowserCaptureSafe(bundle);
 }
 
@@ -126,11 +140,13 @@ export async function sanitizePageDom(
     redactValues,
     safeTags,
     safeAttributes,
+    genericSensitiveNamePatternSource,
   }) => {
     const clone = document.documentElement.cloneNode(true) as HTMLElement;
     const allowedTags = new Set<string>(safeTags);
     const allowedAttributes = new Set<string>(safeAttributes);
     const sensitive = new Set(sensitiveNames.map((name) => name.toLowerCase()));
+    const genericSensitiveNamePattern = new RegExp(genericSensitiveNamePatternSource, "iu");
     const terms = [...new Set(redactValues.filter((value) => value !== ""))]
       .sort((left, right) => right.length - left.length);
     // Object methods survive tsx/esbuild keepNames serialization without an
@@ -138,7 +154,7 @@ export async function sanitizePageDom(
     const helpers = {
       isSensitiveFormFieldName(name: string): boolean {
         return sensitive.has(name.toLocaleLowerCase("en-US"))
-          || /(?:token|csrf|secret|credential|password|api_key|apikey|authorization|cookie|session)/iu.test(name);
+          || genericSensitiveNamePattern.test(name);
       },
       redact(value: string): string {
         let output = value;
@@ -173,7 +189,7 @@ export async function sanitizePageDom(
         continue;
       }
       if (element.matches("input[type='password' i]")
-        || (element.matches("input")
+        || (element.matches("input, textarea, select, button")
           && helpers.isSensitiveFormFieldName(element.getAttribute("name") ?? ""))) {
         element.remove();
         continue;
@@ -193,8 +209,7 @@ export async function sanitizePageDom(
           try {
             const url = new URL(attributeValue, document.baseURI);
             for (const name of [...url.searchParams.keys()]) {
-              if (sensitive.has(name.toLowerCase())
-                || /(?:secret|credential|password)/iu.test(name)) {
+              if (helpers.isSensitiveFormFieldName(name)) {
                 url.searchParams.delete(name);
               }
             }
@@ -235,6 +250,7 @@ export async function sanitizePageDom(
     redactValues: redactionValues,
     safeTags: SAFE_CAPTURE_TAGS,
     safeAttributes: SAFE_CAPTURE_ATTRIBUTES,
+    genericSensitiveNamePatternSource: GENERIC_SENSITIVE_NAME_PATTERN_SOURCE,
   });
   return new TextEncoder().encode(html);
 }
@@ -242,9 +258,15 @@ export async function sanitizePageDom(
 export function addPageRedactionOverlays(
   page: Page,
   labels: readonly string[],
+  sensitiveFormFieldNames: readonly string[],
   redactionValues: readonly string[],
 ): Promise<Record<string, number>> {
-  return page.evaluate(({ wantedLabels, redactValues }) => {
+  return page.evaluate(({
+    wantedLabels,
+    sensitiveNames,
+    redactValues,
+    genericSensitiveNamePatternSource,
+  }) => {
     const counts: Record<string, number> = {};
     const terms = [...document.querySelectorAll("dt")];
     const elements = new Set<HTMLElement>();
@@ -258,7 +280,15 @@ export function addPageRedactionOverlays(
       }
     }
     const sensitiveTerms = redactValues.filter((value) => value !== "");
+    const configuredSensitiveNames = new Set(
+      sensitiveNames.map((name) => name.toLocaleLowerCase("en-US")),
+    );
+    const genericSensitiveNamePattern = new RegExp(genericSensitiveNamePatternSource, "iu");
     const helpers = {
+      isSensitiveFormFieldName(name: string): boolean {
+        return configuredSensitiveNames.has(name.toLocaleLowerCase("en-US"))
+          || genericSensitiveNamePattern.test(name);
+      },
       containsSensitive(value: string): boolean {
         const normalized = value.toLocaleLowerCase("en-US");
         return sensitiveTerms.some((term) => normalized.includes(term.toLocaleLowerCase("en-US")))
@@ -279,7 +309,9 @@ export function addPageRedactionOverlays(
       if ((control instanceof HTMLInputElement
         || control instanceof HTMLTextAreaElement
         || control instanceof HTMLSelectElement)
-        && control.value !== "") {
+        && (control.value !== ""
+          || (control instanceof HTMLInputElement && control.type.toLowerCase() === "password")
+          || helpers.isSensitiveFormFieldName(control.name))) {
         elements.add(control);
       }
     }
@@ -301,7 +333,12 @@ export function addPageRedactionOverlays(
       document.body.append(overlay);
     }
     return counts;
-  }, { wantedLabels: labels, redactValues: redactionValues });
+  }, {
+    wantedLabels: labels,
+    sensitiveNames: sensitiveFormFieldNames,
+    redactValues: redactionValues,
+    genericSensitiveNamePatternSource: GENERIC_SENSITIVE_NAME_PATTERN_SOURCE,
+  });
 }
 
 function assertNoContactOrSecret(value: string, sensitiveValues: readonly string[]): void {
@@ -314,8 +351,21 @@ function assertNoContactOrSecret(value: string, sensitiveValues: readonly string
   }
 }
 
-function isSensitiveParameter(name: string, sensitive: ReadonlySet<string>): boolean {
-  return sensitive.has(name.toLowerCase()) || GENERIC_SECRET_PARAMETER_PATTERN.test(name);
+function assertNoSensitiveUrlParameters(
+  value: string,
+  sensitiveNames: readonly string[],
+): void {
+  let url: URL;
+  try {
+    url = new URL(value, "https://browser-evidence.invalid");
+  } catch {
+    return;
+  }
+  if ([...url.searchParams.keys()].some((name) =>
+    isSensitiveFormFieldName(name, sensitiveNames)
+  )) {
+    throw new Error("raw redaction scan failed");
+  }
 }
 
 export function isSensitiveFormFieldName(
@@ -325,7 +375,7 @@ export function isSensitiveFormFieldName(
   const normalizedName = name.toLocaleLowerCase("en-US");
   return configuredNames.some(
     (configuredName) => configuredName.toLocaleLowerCase("en-US") === normalizedName,
-  ) || GENERIC_SENSITIVE_FORM_FIELD_PATTERN.test(name);
+  ) || GENERIC_SENSITIVE_NAME_PATTERN.test(name);
 }
 
 export function assertSerializedBrowserDomSafe(
@@ -334,7 +384,7 @@ export function assertSerializedBrowserDomSafe(
   sensitiveFormFieldNames: readonly string[],
 ): void {
   if (sourceKind !== "list-org-browser") return;
-  const forbiddenMarkup = /<!--|<\s*(?:script|style|meta|link|iframe|object|embed|template|noscript)\b|\s(?:aria-[\w-]+|data-[\w-]+|title|style|src|action|on[\w-]+)=/iu;
+  const forbiddenMarkup = /<!--|<\s*(?:script|style|meta|link|iframe|object|embed|template|noscript|textarea|select|option)\b|\s(?:aria-[\w-]+|data-[\w-]+|title|style|src|action|value|on[\w-]+)=/iu;
   if (forbiddenMarkup.test(dom)
     || containsUnsafeSerializedFormMarkup(dom, sensitiveFormFieldNames)) {
     throw new Error("raw redaction scan failed");
@@ -345,12 +395,13 @@ function containsUnsafeSerializedFormMarkup(
   dom: string,
   sensitiveFormFieldNames: readonly string[],
 ): boolean {
-  const inputStartPattern = /<\s*input\b/giu;
+  const controlStartPattern = /<\s*(input|button)\b/giu;
   let match: RegExpExecArray | null;
-  while ((match = inputStartPattern.exec(dom)) !== null) {
+  while ((match = controlStartPattern.exec(dom)) !== null) {
+    const controlName = match[1]!.toLocaleLowerCase("en-US");
     let quote: "\"" | "'" | null = null;
-    let inputEnd = -1;
-    for (let index = inputStartPattern.lastIndex; index < dom.length; index += 1) {
+    let controlEnd = -1;
+    for (let index = controlStartPattern.lastIndex; index < dom.length; index += 1) {
       const character = dom[index];
       if (quote !== null) {
         if (character === quote) quote = null;
@@ -359,23 +410,24 @@ function containsUnsafeSerializedFormMarkup(
       if (character === "\"" || character === "'") {
         quote = character;
       } else if (character === ">") {
-        inputEnd = index + 1;
+        controlEnd = index + 1;
         break;
       } else if (character === "<") {
         return true;
       }
     }
-    if (inputEnd < 0) return true;
-    const input = dom.slice(match.index, inputEnd);
+    if (controlEnd < 0) return true;
+    const control = dom.slice(match.index, controlEnd);
     const attributes = parseSerializedInputAttributes(
-      input,
-      inputStartPattern.lastIndex - match.index,
+      control,
+      controlStartPattern.lastIndex - match.index,
     );
     if (attributes === null) return true;
     if (attributes.some((attribute) => attribute.name === "value" && attribute.value !== null)) {
       return true;
     }
     if (attributes.some((attribute) => attribute.name === "type"
+      && controlName === "input"
       && attribute.value?.toLocaleLowerCase("en-US") === "password")) {
       return true;
     }
@@ -384,7 +436,7 @@ function containsUnsafeSerializedFormMarkup(
       && isSensitiveFormFieldName(attribute.value, sensitiveFormFieldNames))) {
       return true;
     }
-    inputStartPattern.lastIndex = inputEnd;
+    controlStartPattern.lastIndex = controlEnd;
   }
   return false;
 }

@@ -6,6 +6,8 @@ import type {
 } from "../../domain/discovery";
 import { assertPersistableRawBundle } from "../sources/list-org-browser/browser-raw-sanitizer";
 
+export const RAW_MANIFEST_VERSION = 2;
+
 export function sha256(bytes: Uint8Array | string): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
@@ -15,7 +17,7 @@ export function checksumBrowserRawBundle(bundle: BrowserRawBundle): ChecksummedB
   const sanitizedDomSha256 = sha256(bundle.sanitizedDomUtf8);
   const redactedScreenshotSha256 = sha256(bundle.redactedScreenshotPng);
   const manifest = {
-    version: 1,
+    version: RAW_MANIFEST_VERSION,
     sourceKind: bundle.sourceKind,
     parserVersion: bundle.parserVersion,
     sensitiveFormFieldNames: bundle.sensitiveFormFieldNames ?? [],

@@ -64,6 +64,7 @@ export function parseBfo(input: Uint8Array, context: BfoParserContext): BfoParse
       value: revenue,
       sourceKind: "fns_bfo",
       sourceRecordKey: selected.sourceRecordKey,
+      observedAt: new Date(Date.parse(selected.correctedAt)).toISOString(),
       rawFetchKey: context.rawFetchKey,
       parserVersion: context.parserVersion,
     }],

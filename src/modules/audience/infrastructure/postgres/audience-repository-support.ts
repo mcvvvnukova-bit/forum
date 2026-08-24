@@ -192,23 +192,46 @@ export async function projectFinancialMetric(
   // The discriminated metric union selects identifiers from this closed map;
   // all external values remain parameterized below.
   const [valueColumn, evidenceColumn] = columns[evidence.metric];
-  const result = await database.query(
+  const result = await database.query<{ fenced: boolean } & QueryResultRow>(
     `WITH fence AS (
        SELECT 1 FROM audience.crawl_tasks
        WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'
+     ), projection AS (
+       INSERT INTO audience.financial_observations (
+         company_inn, report_year, ${valueColumn}, ${evidenceColumn}
+       )
+       SELECT $4, $5, $6::numeric, $7 FROM fence
+       ON CONFLICT (company_inn, report_year) DO UPDATE
+       SET ${valueColumn} = EXCLUDED.${valueColumn},
+           ${evidenceColumn} = EXCLUDED.${evidenceColumn},
+           updated_at = now()
+       WHERE audience.financial_observations.${evidenceColumn} IS NULL
+          OR EXISTS (
+            SELECT 1
+            FROM audience.financial_evidence incoming
+            JOIN audience.financial_evidence current
+              ON current.id = audience.financial_observations.${evidenceColumn}
+            WHERE incoming.id = $7
+              AND (
+                incoming.id = current.id
+                OR ROW(incoming.observed_at, incoming.source_record_key, incoming.id)
+                   > ROW(
+                     COALESCE(current.observed_at, '-infinity'::timestamptz),
+                     current.source_record_key,
+                     current.id
+                   )
+              )
+          )
+       RETURNING 1
      )
-     INSERT INTO audience.financial_observations (
-       company_inn, report_year, ${valueColumn}, ${evidenceColumn}
-     )
-     SELECT $4, $5, $6::numeric, $7 FROM fence
-     ON CONFLICT (company_inn, report_year) DO UPDATE
-     SET ${valueColumn} = EXCLUDED.${valueColumn},
-         ${evidenceColumn} = EXCLUDED.${evidenceColumn},
-         updated_at = now()`,
+     SELECT EXISTS (SELECT 1 FROM fence) AS fenced,
+            (SELECT count(*) FROM projection) AS projected`,
     [task.id, task.runId, task.fencingToken, evidence.inn, evidence.reportYear,
       evidence.value, evidenceId],
   );
-  if (result.rowCount !== 1) throw new Error("stale task worker stopped during financial publication");
+  if (result.rows[0]?.fenced !== true) {
+    throw new Error("stale task worker stopped during financial publication");
+  }
 }
 
 function parseStagedCandidate(value: unknown): DiscoveredCompany {

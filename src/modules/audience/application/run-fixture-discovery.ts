@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { ExternalBrowserRequestError, type OrganizationSource } from "../domain/discovery";
+import type { OrganizationSource } from "../domain/discovery";
 import { parseOkvedCode } from "../domain/okved";
 import type { AudienceRepository } from "./ports/audience-repository";
 import type { RawObjectStorage } from "./ports/raw-object-storage";
@@ -152,32 +152,6 @@ export async function runFixtureDiscovery(
       rawObjects: rawObjects.length,
     };
   } catch (error) {
-    if (error instanceof ExternalBrowserRequestError) {
-      const completed = await dependencies.repository.completeDiscovery({
-        task,
-        status: "blocked",
-        reason: "policy_block",
-        dryRun: command.dryRun,
-        candidates: [],
-        rawObjects: [],
-        discovery: {
-          occurrences: 0,
-          uniqueSourceRecords: 0,
-          acceptedCompanies: 0,
-          duplicates: 0,
-          rejected: 0,
-        },
-      });
-      if (!completed) throw new StaleTaskError(task.id);
-      return {
-        runId: command.runId,
-        status: "blocked",
-        reason: "policy_block",
-        discoveredCompanies: 0,
-        publishedCompanies: 0,
-        rawObjects: 0,
-      };
-    }
     if (!(error instanceof StaleTaskError)) {
       await dependencies.repository.failTask(task, "fixture_discovery_failed", true);
     }

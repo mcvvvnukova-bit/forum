@@ -24,6 +24,10 @@ import {
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
 import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
+import {
+  ExternalBrowserRequestError,
+  type OrganizationSource,
+} from "../../../src/modules/audience/domain/discovery";
 import type { AppEnv } from "../../../src/shared/config/env";
 import { PostgresDatabase } from "../../../src/shared/postgres/database";
 import {
@@ -188,6 +192,39 @@ describe("fixture discovery and replay publication", () => {
     expect(task.rows).toEqual([{ status: "blocked", reason: "policy_block" }]);
   });
 
+  it("fails the task when a source throws an external-request error without raw evidence", async () => {
+    const runId = randomUUID();
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    const source: OrganizationSource = {
+      collect: async () => {
+        throw new ExternalBrowserRequestError(["https://evidence-free.invalid"]);
+      },
+    };
+
+    await expect(runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion: "list-org-browser/1.0.0",
+    }, { repository, source, rawStorage })).rejects.toThrow("browser request escaped fixture allowlist");
+
+    await expect(repository.runStatus(runId)).resolves.toEqual({
+      status: "failed",
+      terminalReason: "fixture_discovery_failed",
+    });
+    const task = await database.query<{ status: string; reason: string | null }>(
+      `SELECT status, result_json->>'reason' AS reason
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId],
+    );
+    expect(task.rows).toEqual([{ status: "failed", reason: null }]);
+  });
+
   it("runs fixture discovery through the production tsx CLI transform", () => {
     const child = spawnSync(
       process.execPath,
@@ -340,6 +377,7 @@ describe("fixture discovery and replay publication", () => {
       redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       pageFingerprintSha256: "a".repeat(64),
       identity: { runId: foreignRunId, page: 1 },
+      sensitiveFormFieldNames: [],
       candidateEvidence: null,
       actions: [],
     };

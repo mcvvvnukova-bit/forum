@@ -141,6 +141,14 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
              </dl>`,
           );
         }
+        if (scenario === "empty-form-secret" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<input style="display:block;width:260px;height:24px;margin:4px 0" type="password" name="password" value="" placeholder="password reminder">
+             <input style="display:block;width:260px;height:24px;margin:4px 0" type="text" name="nonce" value="" placeholder="nonce reminder">
+             </dl>`,
+          );
+        }
       }
     }
 

@@ -52,6 +52,7 @@ describe("financial evidence publication", () => {
     const revexp = parseRevexp(revexpBytes, {
       reportYear: 2025,
       sourceRecordKey: "7707083893:2025:revexp",
+      observedAt: "2026-04-01T09:00:00.000Z",
       rawFetchKey: "raw/fns-revexp/report.xml",
       parserVersion: "fns-revexp/1.0.0",
     });
@@ -62,6 +63,7 @@ describe("financial evidence publication", () => {
       value: parseMoneyText("130000", "dot"),
       sourceKind: "fns_bfo",
       sourceRecordKey: "7707083893:2025:0710002:3",
+      observedAt: "2026-05-01T09:00:00.000Z",
       rawFetchKey: "raw/fns-bfo/new.json",
       parserVersion: "fns-bfo/1.0.0",
     };
@@ -110,6 +112,49 @@ describe("financial evidence publication", () => {
     ]);
   });
 
+  it("keeps a newer source-time projection when older evidence arrives later", async () => {
+    const inn = parseLegalEntityInn("7707083893");
+    const newer: FinancialMetricEvidence = {
+      inn,
+      reportYear: 2026,
+      metric: "revenue",
+      value: parseMoneyText("200", "dot"),
+      sourceKind: "fns_bfo",
+      sourceRecordKey: "7707083893:2026:0710002:newer",
+      observedAt: "2026-05-01T09:00:00.000Z",
+      rawFetchKey: "raw/fns-bfo/new.json",
+      parserVersion: "fns-bfo/1.0.0",
+    };
+    const older: FinancialMetricEvidence = {
+      ...newer,
+      value: parseMoneyText("100", "dot"),
+      sourceRecordKey: "7707083893:2026:0710002:older",
+      observedAt: "2026-04-01T09:00:00.000Z",
+      rawFetchKey: "raw/fns-bfo/old.json",
+    };
+
+    await publishFinancialEvidence({ runId, evidence: [newer] }, { repository });
+    await publishFinancialEvidence({ runId, evidence: [older] }, { repository });
+
+    const observation = await database.query<{
+      revenue: string;
+      source_record_key: string;
+      observed_at: string;
+    }>(
+      `SELECT observation.revenue::text, evidence.source_record_key,
+              evidence.observed_at::text
+       FROM audience.financial_observations observation
+       JOIN audience.financial_evidence evidence ON evidence.id = observation.revenue_evidence_id
+       WHERE observation.company_inn = $1 AND observation.report_year = 2026`,
+      [inn],
+    );
+    expect(observation.rows).toEqual([{
+      revenue: "200.00",
+      source_record_key: newer.sourceRecordKey,
+      observed_at: "2026-05-01 09:00:00+00",
+    }]);
+  });
+
   it("rolls back the whole financial batch when later evidence lacks raw provenance", async () => {
     const inn = parseLegalEntityInn("7710140679");
     const evidence: readonly FinancialMetricEvidence[] = [
@@ -120,6 +165,7 @@ describe("financial evidence publication", () => {
         value: parseMoneyText("10", "dot"),
         sourceKind: "fns_revexp",
         sourceRecordKey: "7710140679:2025:income",
+        observedAt: "2026-04-01T09:00:00.000Z",
         rawFetchKey: "raw/fns-revexp/report.xml",
         parserVersion: "fns-revexp/1.0.0",
       },
@@ -130,6 +176,7 @@ describe("financial evidence publication", () => {
         value: parseMoneyText("5", "dot"),
         sourceKind: "fns_revexp",
         sourceRecordKey: "7710140679:2025:expenses",
+        observedAt: "2026-04-01T09:00:00.000Z",
         rawFetchKey: "raw/missing.xml",
         parserVersion: "fns-revexp/1.0.0",
       },
@@ -165,6 +212,7 @@ describe("financial evidence publication", () => {
       value: parseMoneyText("42", "dot"),
       sourceKind,
       sourceRecordKey: `${inn}:2026:${metric}`,
+      observedAt: "2026-04-01T09:00:00.000Z",
       rawFetchKey,
       parserVersion: sourceKind === "fns_bfo" ? "fns-bfo/1.0.0" : "fns-revexp/1.0.0",
     };

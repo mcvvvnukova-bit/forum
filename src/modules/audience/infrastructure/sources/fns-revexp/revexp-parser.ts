@@ -9,6 +9,7 @@ import { parseLegalEntityInn, type LegalEntityInn } from "../../../domain/inn";
 export interface RevexpParserContext {
   reportYear: number;
   sourceRecordKey: string;
+  observedAt: string;
   rawFetchKey: string;
   parserVersion: string;
 }
@@ -22,6 +23,9 @@ interface RevexpRecordState {
 }
 
 export function parseRevexp(input: Uint8Array, context: RevexpParserContext): FinancialMetricEvidence[] {
+  if (!Number.isSafeInteger(Date.parse(context.observedAt))) {
+    throw new Error("revexp source observation timestamp is invalid");
+  }
   let currentRecord: RevexpRecordState | undefined;
   let records = 0;
   let xmlError: Error | undefined;
@@ -105,6 +109,7 @@ function createEvidence(
       value: parseMoneyText(incomeText, "dot"),
       sourceKind: "fns_revexp",
       sourceRecordKey: context.sourceRecordKey,
+      observedAt: new Date(Date.parse(context.observedAt)).toISOString(),
       rawFetchKey: context.rawFetchKey,
       parserVersion: context.parserVersion,
     });
@@ -117,6 +122,7 @@ function createEvidence(
       value: parseMoneyText(expensesText, "dot"),
       sourceKind: "fns_revexp",
       sourceRecordKey: context.sourceRecordKey,
+      observedAt: new Date(Date.parse(context.observedAt)).toISOString(),
       rawFetchKey: context.rawFetchKey,
       parserVersion: context.parserVersion,
     });

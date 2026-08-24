@@ -160,6 +160,7 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
   const revexpEvidence = parseRevexp(revexpBytes, {
     reportYear: year,
     sourceRecordKey: `${inn}:${year}:revexp`,
+    observedAt: capturedAt,
     rawFetchKey: revexpStored.checksumSha256,
     parserVersion: revexpBundle.parserVersion,
   });

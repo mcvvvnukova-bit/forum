@@ -136,15 +136,15 @@ describe("task fencing and pg-boss delivery", () => {
     const { runId } = await stageSingleCandidateRun(database, repository, env, client);
     const taskId = randomUUID();
     const realQueue = new PgBossJobQueue(temporaryDatabase.connectionString);
-    await realQueue.ensureQueue("audience-replay-write");
-    const failingQueue = {
-      ensureQueue: (name: string) => realQueue.ensureQueue(name),
-      publishInTransaction: async () => {
-        throw new Error("synthetic enqueue crash");
-      },
-    };
 
     try {
+      await realQueue.ensureQueue("audience-replay-write");
+      const failingQueue = {
+        ensureQueue: (name: string) => realQueue.ensureQueue(name),
+        publishInTransaction: async () => {
+          throw new Error("synthetic enqueue crash");
+        },
+      };
       await expect(enqueueReplayWrite(runId, database, failingQueue, taskId))
         .rejects.toThrow("synthetic enqueue crash");
 
@@ -356,6 +356,7 @@ describe("task fencing and pg-boss delivery", () => {
       redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       pageFingerprintSha256: "e".repeat(64),
       identity: { runId, page: 1, sourceRecordKey: "1001" },
+      sensitiveFormFieldNames: [],
       candidateEvidence: createCandidateEvidence(candidate),
       actions: [],
     });
@@ -521,6 +522,7 @@ async function stageSingleCandidateRun(
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     pageFingerprintSha256: "e".repeat(64),
     identity: { runId, page: 1, sourceRecordKey: "1001" },
+    sensitiveFormFieldNames: [],
     candidateEvidence: createCandidateEvidence(candidate),
     actions: [],
   });
