@@ -9,6 +9,14 @@ import { parseOkvedCode } from "../../../domain/okved";
 
 export class BrowserContractError extends Error {}
 
+export type BrowserRecordResult =
+  | {
+    kind: "accepted";
+    sourceRecordKey: string;
+    company: Omit<DiscoveredCompany, "rawFetchKey" | "parserVersion">;
+  }
+  | { kind: "rejected"; sourceRecordKey: string; reason: DiscoveryRejectReason };
+
 export async function verifyRenderedFilters(
   session: BrowserSession,
   scope: DiscoveryScope,
@@ -24,14 +32,7 @@ export async function verifyRenderedFilters(
 export async function readCompany(
   session: BrowserSession,
   scope: DiscoveryScope,
-): Promise<
-  | {
-    kind: "accepted";
-    sourceRecordKey: string;
-    company: Omit<DiscoveredCompany, "rawFetchKey" | "parserVersion">;
-  }
-  | { kind: "rejected"; sourceRecordKey: string; reason: DiscoveryRejectReason }
-> {
+): Promise<BrowserRecordResult> {
   const optional = (value: string) => value === "—" ? null : value.replace(/\s+/g, " ").trim();
   const sourceRecordKey = (await session.readLabeledText("Ключ записи")).trim();
   if (!/^[0-9]+$/.test(sourceRecordKey)) {
@@ -88,4 +89,15 @@ export function sameCompany(
     && left.email === right.email
     && left.okvedCode === right.okvedCode
     && left.isPrimary === right.isPrimary;
+}
+
+export function sameBrowserRecordResult(
+  left: BrowserRecordResult,
+  right: BrowserRecordResult,
+): boolean {
+  if (left.kind !== right.kind) return false;
+  if (left.kind === "rejected") {
+    return right.kind === "rejected" && left.reason === right.reason;
+  }
+  return right.kind === "accepted" && sameCompany(left.company, right.company);
 }

@@ -104,6 +104,32 @@ describe("ListOrgBrowserSource", () => {
     });
   });
 
+  it.each([
+    "accepted-then-rejected",
+    "rejected-then-accepted",
+    "rejected-reason-conflict",
+  ])("blocks order-independent duplicate conflict for %s", async (scenario) => {
+    const result = await collect(`/search?scenario=${scenario}`);
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("duplicate_conflict");
+    expect(result.blockers).toEqual([
+      expect.objectContaining({
+        reason: "duplicate_conflict",
+        sourceRecordKey: "1002",
+        raw: expect.objectContaining({ checksumSha256: expect.stringMatching(/^[0-9a-f]{64}$/) }),
+      }),
+    ]);
+  });
+
+  it("collapses an identical rejected duplicate by source key and reason", async () => {
+    const result = await collect("/search?scenario=duplicate-rejected-same");
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(result.rejects.filter((item) => item.sourceRecordKey === "1002"))
+      .toHaveLength(1);
+  });
+
   it("surfaces a 403 response reached through the search button with blocker evidence", async () => {
     const result = await collect("/search?scenario=403-after-click");
 

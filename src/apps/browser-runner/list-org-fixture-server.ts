@@ -96,6 +96,21 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
         if (scenario === "conflicting-duplicate" && companyKey === "1002" && from === "2") {
           body = body.replace("АО «Бета Демонтаж»", "АО «Бета Демонтаж Конфликт»");
         }
+        if (companyKey === "1002") {
+          const mismatchedOkved = () => {
+            body = body!.replace("<dt>ОКВЭД</dt><dd>43.11</dd>", "<dt>ОКВЭД</dt><dd>43.12</dd>");
+          };
+          const invalidInn = () => {
+            body = body!.replace("<dt>ИНН</dt><dd>7710140679</dd>", "<dt>ИНН</dt><dd>not-an-inn</dd>");
+          };
+          if (scenario === "accepted-then-rejected" && from === "2") mismatchedOkved();
+          if (scenario === "rejected-then-accepted" && from === "1") mismatchedOkved();
+          if (scenario === "rejected-reason-conflict") {
+            if (from === "1") invalidInn();
+            else mismatchedOkved();
+          }
+          if (scenario === "duplicate-rejected-same") mismatchedOkved();
+        }
         if (scenario === "redaction-surfaces" && companyKey === "1001") {
           body = body.replace(
             "</head>",

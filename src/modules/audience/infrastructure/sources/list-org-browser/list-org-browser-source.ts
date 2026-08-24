@@ -29,8 +29,9 @@ import { BrowserActionRecorder } from "./browser-action-recorder";
 import {
   BrowserContractError,
   readCompany,
-  sameCompany,
+  sameBrowserRecordResult,
   verifyRenderedFilters,
+  type BrowserRecordResult,
 } from "./browser-record-policy";
 
 export { ExternalBrowserRequestError } from "../../../domain/discovery";
@@ -72,8 +73,7 @@ export class ListOrgBrowserSource implements OrganizationSource {
     const rawBundles: ReturnType<typeof checksumBrowserRawBundle>[] = [];
     const rejects: DiscoveryReject[] = [];
     const blockers: DiscoveryBlocker[] = [];
-    const firstSeen = new Map<string, Omit<DiscoveredCompany, "rawFetchKey" | "parserVersion">>();
-    const rejectedKeys = new Set<string>();
+    const firstSeen = new Map<string, BrowserRecordResult>();
     let currentPage = 1;
 
     const block = async (
@@ -167,54 +167,39 @@ export class ListOrgBrowserSource implements OrganizationSource {
             resultFingerprintAfter: after,
           });
 
+          const prior = firstSeen.get(parsed.sourceRecordKey);
+          if (prior !== undefined && !sameBrowserRecordResult(prior, parsed)) {
+            return await block("duplicate_conflict", {
+              sourceRecordKey: parsed.sourceRecordKey,
+              raw: cardRaw,
+            });
+          }
+          if (prior !== undefined) continue;
+          firstSeen.set(parsed.sourceRecordKey, parsed);
+
           if (parsed.kind === "rejected") {
-            if (!rejectedKeys.has(parsed.sourceRecordKey)) {
-              rejectedKeys.add(parsed.sourceRecordKey);
-              rejects.push({
-                sourceRecordKey: parsed.sourceRecordKey,
-                reason: parsed.reason,
-                raw: cardRaw,
-              });
-            }
+            rejects.push({
+              sourceRecordKey: parsed.sourceRecordKey,
+              reason: parsed.reason,
+              raw: cardRaw,
+            });
             continue;
           }
 
           const company = parsed.company;
-          const prior = firstSeen.get(company.sourceRecordKey);
-          if (prior !== undefined && !sameCompany(prior, company)) {
+          companies.push({
+            ...company,
+            rawFetchKey: cardRaw.checksumSha256,
+            parserVersion: this.#parserVersion,
+          });
+          if (companies.length === scope.maxCompanies) {
             const pageRaw = checksumBrowserRawBundle(await session.capture({
               runId: this.#runId,
               page: pageNumber,
             }, this.#parserVersion));
             rawBundles.push(pageRaw);
             pages.push({ page: pageNumber, raw: pageRaw, occurrences });
-            return await block("duplicate_conflict", {
-              sourceRecordKey: company.sourceRecordKey,
-              raw: cardRaw,
-            });
-          }
-          if (rejectedKeys.has(company.sourceRecordKey)) {
-            return await block("duplicate_conflict", {
-              sourceRecordKey: company.sourceRecordKey,
-              raw: cardRaw,
-            });
-          }
-          if (prior === undefined) {
-            firstSeen.set(company.sourceRecordKey, company);
-            companies.push({
-              ...company,
-              rawFetchKey: cardRaw.checksumSha256,
-              parserVersion: this.#parserVersion,
-            });
-            if (companies.length === scope.maxCompanies) {
-              const pageRaw = checksumBrowserRawBundle(await session.capture({
-                runId: this.#runId,
-                page: pageNumber,
-              }, this.#parserVersion));
-              rawBundles.push(pageRaw);
-              pages.push({ page: pageNumber, raw: pageRaw, occurrences });
-              return result("limited", "max_companies", companies, pages, rawBundles, rejects, blockers);
-            }
+            return result("limited", "max_companies", companies, pages, rawBundles, rejects, blockers);
           }
         }
 
