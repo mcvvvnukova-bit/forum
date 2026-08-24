@@ -367,25 +367,98 @@ function containsUnsafeSerializedFormMarkup(
     }
     if (inputEnd < 0) return true;
     const input = dom.slice(match.index, inputEnd);
-    const afterInputName = dom.slice(inputStartPattern.lastIndex, inputEnd);
-    if (!/^(?:\s|>|\/\s*>)/u.test(afterInputName)) return true;
-    if (/\svalue\s*=/iu.test(input)) return true;
-    const type = serializedAttributeValue(input, "type");
-    if (type?.toLocaleLowerCase("en-US") === "password") return true;
-    const name = serializedAttributeValue(input, "name");
-    if (name !== undefined && isSensitiveFormFieldName(name, sensitiveFormFieldNames)) return true;
+    const attributes = parseSerializedInputAttributes(
+      input,
+      inputStartPattern.lastIndex - match.index,
+    );
+    if (attributes === null) return true;
+    if (attributes.some((attribute) => attribute.name === "value" && attribute.value !== null)) {
+      return true;
+    }
+    if (attributes.some((attribute) => attribute.name === "type"
+      && attribute.value?.toLocaleLowerCase("en-US") === "password")) {
+      return true;
+    }
+    if (attributes.some((attribute) => attribute.name === "name"
+      && attribute.value !== null
+      && isSensitiveFormFieldName(attribute.value, sensitiveFormFieldNames))) {
+      return true;
+    }
     inputStartPattern.lastIndex = inputEnd;
   }
   return false;
 }
 
-function serializedAttributeValue(markup: string, attributeName: string): string | undefined {
-  const pattern = new RegExp(
-    `\\s${attributeName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\u0060]+))`,
-    "iu",
-  );
-  const match = pattern.exec(markup);
-  return match?.[1] ?? match?.[2] ?? match?.[3];
+interface SerializedInputAttribute {
+  name: string;
+  value: string | null;
+}
+
+function parseSerializedInputAttributes(
+  markup: string,
+  startIndex: number,
+): readonly SerializedInputAttribute[] | null {
+  const attributes: SerializedInputAttribute[] = [];
+  let index = startIndex;
+  while (index < markup.length) {
+    while (index < markup.length && isHtmlWhitespace(markup[index]!)) index += 1;
+    if (markup[index] === ">") {
+      return index === markup.length - 1 ? attributes : null;
+    }
+    if (markup[index] === "/") {
+      index += 1;
+      while (index < markup.length && isHtmlWhitespace(markup[index]!)) index += 1;
+      return markup[index] === ">" && index === markup.length - 1 ? attributes : null;
+    }
+
+    const nameStart = index;
+    while (index < markup.length && !isAttributeNameDelimiter(markup[index]!)) index += 1;
+    if (index === nameStart) return null;
+    const name = markup.slice(nameStart, index).toLocaleLowerCase("en-US");
+    while (index < markup.length && isHtmlWhitespace(markup[index]!)) index += 1;
+
+    let value: string | null = null;
+    if (markup[index] === "=") {
+      index += 1;
+      while (index < markup.length && isHtmlWhitespace(markup[index]!)) index += 1;
+      const quote = markup[index];
+      if (quote === "\"" || quote === "'") {
+        index += 1;
+        const valueStart = index;
+        while (index < markup.length && markup[index] !== quote) index += 1;
+        if (index >= markup.length) return null;
+        value = markup.slice(valueStart, index);
+        index += 1;
+      } else {
+        const valueStart = index;
+        while (index < markup.length
+          && !isHtmlWhitespace(markup[index]!)
+          && markup[index] !== ">") {
+          if (/['"<=`]/u.test(markup[index]!)) return null;
+          index += 1;
+        }
+        value = markup.slice(valueStart, index);
+      }
+    }
+    attributes.push({ name, value });
+    if (index < markup.length
+      && !isHtmlWhitespace(markup[index]!)
+      && markup[index] !== ">"
+      && markup[index] !== "/") {
+      return null;
+    }
+  }
+  return null;
+}
+
+function isAttributeNameDelimiter(character: string): boolean {
+  return isHtmlWhitespace(character) || character === "=" || character === "/"
+    || character === ">" || /['"<`]/u.test(character);
+}
+
+function isHtmlWhitespace(character: string): boolean {
+  return character === " " || character === "\t" || character === "\n"
+    || character === "\f" || character === "\r";
 }
 
 function replaceEveryCaseInsensitive(value: string, term: string, replacement: string): string {

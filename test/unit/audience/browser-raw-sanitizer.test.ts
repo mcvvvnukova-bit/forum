@@ -24,10 +24,25 @@ describe("browser raw sanitizer persistence boundary", () => {
   it.each([
     ["slash separator", "<input/value=visible-123>"],
     ["self-closing slash separator", "<input/value=visible-123/>"],
+    ["whitespace then slash separator", "<input /value=visible-123>"],
+    ["tab then slash separator", "<input \t/value=visible-123>"],
+    ["repeated spaced slash separator", "<input / /value=visible-123>"],
+    ["repeated slash separator", "<input //value=visible-123>"],
+    ["newline-separated slashes", "<input /\n/value=visible-123>"],
+    ["slash then tab separator", "<input / \tvalue=visible-123>"],
   ])("rejects a malformed %s at the checksum boundary", (_case, input) => {
     expect(() => checksumBrowserRawBundle(rawBundle(
       `<!doctype html><html><body>${input}</body></html>`,
     ))).toThrow("raw redaction scan failed");
+  });
+
+  it.each([
+    ["empty", "<input/>"],
+    ["safe attributes", '<input type="text" name="public_field" />'],
+  ])("accepts a valid %s self-closing input", (_case, input) => {
+    expect(() => checksumBrowserRawBundle(rawBundle(
+      `<!doctype html><html><body>${input}</body></html>`,
+    ))).not.toThrow();
   });
 
   it("rejects a configured-only sensitive name at the checksum boundary", () => {
