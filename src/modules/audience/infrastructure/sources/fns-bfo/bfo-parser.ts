@@ -134,7 +134,11 @@ function validateReport(report: BfoFixtureReport): void {
 }
 
 function compareCorrections(left: BfoFixtureReport, right: BfoFixtureReport): number {
-  return left.correctedAt.localeCompare(right.correctedAt) || left.sourceRecordKey.localeCompare(right.sourceRecordKey);
+  const leftEpochMs = Date.parse(left.correctedAt);
+  const rightEpochMs = Date.parse(right.correctedAt);
+
+  if (leftEpochMs !== rightEpochMs) return leftEpochMs < rightEpochMs ? -1 : 1;
+  return left.sourceRecordKey.localeCompare(right.sourceRecordKey);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

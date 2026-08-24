@@ -35,6 +35,26 @@ describe("parseBfo", () => {
     });
   });
 
+  it("orders correction timestamps by instant instead of their ISO offset text", () => {
+    const report = fixture([
+      {
+        correctedAt: "2026-04-01T10:00:00+01:00",
+        sourceRecordKey: "7707083893:2025:0710002:offset-0900z",
+        lines: { "2110": "100" },
+      },
+      {
+        correctedAt: "2026-04-01T09:30:00Z",
+        sourceRecordKey: "7707083893:2025:0710002:utc-0930z",
+        lines: { "2110": "200" },
+      },
+    ]);
+
+    expect(parseBfo(report, context)).toMatchObject({
+      revenue: "200.00",
+      evidence: [{ sourceRecordKey: "7707083893:2025:0710002:utc-0930z" }],
+    });
+  });
+
   it("does not substitute a neighboring BFO line when line 2110 is absent", () => {
     const report = fixture([{ lines: { "2111": "999999" } }]);
 
