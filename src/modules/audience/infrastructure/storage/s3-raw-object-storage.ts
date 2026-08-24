@@ -53,6 +53,38 @@ export class S3RawObjectStorage implements RawObjectStorage {
     };
   }
 
+  async verify(object: StoredRawObject): Promise<void> {
+    validateStoredObject(object);
+    const [manifestBytes, domBytes, screenshotBytes] = await Promise.all([
+      this.#get(object.manifestKey),
+      this.#get(object.domKey),
+      this.#get(object.screenshotKey),
+    ]);
+
+    const manifest = parseRawManifest(manifestBytes);
+
+    if (
+      manifest === null
+      || sha256(manifestBytes) !== object.checksumSha256
+      || manifest.artifacts.sanitizedDom.file !== "dom.html"
+      || manifest.artifacts.redactedScreenshot.file !== "screenshot.png"
+      || sha256(domBytes) !== manifest.artifacts.sanitizedDom.checksumSha256
+      || sha256(screenshotBytes) !== manifest.artifacts.redactedScreenshot.checksumSha256
+    ) {
+      throw new Error("raw object checksum verification failed");
+    }
+  }
+
+  async #get(key: string): Promise<Uint8Array> {
+    const response = await this.#client.send(new GetObjectCommand({
+      Bucket: this.#bucket,
+      Key: key,
+    }));
+    const bytes = await response.Body?.transformToByteArray();
+    if (bytes === undefined) throw new Error("raw object checksum verification failed");
+    return bytes;
+  }
+
   async #putImmutable(key: string, bytes: Uint8Array, contentType: string): Promise<void> {
     try {
       await this.#client.send(new PutObjectCommand({
@@ -75,6 +107,43 @@ export class S3RawObjectStorage implements RawObjectStorage {
       }
     }
   }
+}
+
+interface RawManifest {
+  artifacts: {
+    sanitizedDom: { file: string; checksumSha256: string };
+    redactedScreenshot: { file: string; checksumSha256: string };
+  };
+}
+
+function parseRawManifest(bytes: Uint8Array): RawManifest | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+  if (!isRecord(value) || !isRecord(value.artifacts)
+    || !isArtifact(value.artifacts.sanitizedDom)
+    || !isArtifact(value.artifacts.redactedScreenshot)) {
+    return null;
+  }
+  return {
+    artifacts: {
+      sanitizedDom: value.artifacts.sanitizedDom,
+      redactedScreenshot: value.artifacts.redactedScreenshot,
+    },
+  };
+}
+
+function isArtifact(value: unknown): value is { file: string; checksumSha256: string } {
+  return isRecord(value)
+    && typeof value.file === "string"
+    && typeof value.checksumSha256 === "string";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function clientConfig(env: AppEnv): S3ClientConfig {
@@ -109,6 +178,19 @@ function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
     || !bytesEqual(bundle.manifestUtf8, recalculated.manifestUtf8)
   ) {
     throw new Error("raw bundle checksum validation failed");
+  }
+}
+
+function validateStoredObject(object: StoredRawObject): void {
+  const expectedPrefix = object.manifestKey.slice(0, -"/manifest.json".length);
+  if (
+    !/^[0-9a-f]{64}$/.test(object.checksumSha256)
+    || expectedPrefix !== object.prefix
+    || object.domKey !== `${object.prefix}/dom.html`
+    || object.screenshotKey !== `${object.prefix}/screenshot.png`
+    || !object.prefix.endsWith(`/${object.checksumSha256}`)
+  ) {
+    throw new Error("raw object checksum verification failed");
   }
 }
 

@@ -10,4 +10,5 @@ export interface StoredRawObject {
 
 export interface RawObjectStorage {
   put(bundle: ChecksummedBrowserRawBundle): Promise<StoredRawObject>;
+  verify(object: StoredRawObject): Promise<void>;
 }

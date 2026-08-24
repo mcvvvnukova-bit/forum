@@ -137,6 +137,22 @@ describe("S3RawObjectStorage", () => {
       faultClient.destroy();
     }
   });
+
+  it("rejects replay verification when a referenced raw artifact no longer matches its manifest", async () => {
+    const storage = new S3RawObjectStorage(env, "list-org-browser");
+    const stored = await storage.put(sampleBundle("s3-verified-read"));
+
+    await expect(storage.verify(stored)).resolves.toBeUndefined();
+
+    await client.send(new PutObjectCommand({
+      Bucket: bucket,
+      Key: stored.domKey,
+      Body: "corrupted after capture",
+      ContentType: "text/html; charset=utf-8",
+    }));
+
+    await expect(storage.verify(stored)).rejects.toThrow("raw object checksum verification failed");
+  });
 });
 
 function sampleBundle(runId: string) {
