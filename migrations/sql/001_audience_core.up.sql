@@ -83,6 +83,7 @@ CREATE TABLE audience.dataset_releases (
   collected_at timestamptz NOT NULL DEFAULT now(),
   metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
   UNIQUE (source_kind, source_version),
+  UNIQUE (id, source_version),
   CHECK (length(trim(source_kind)) > 0),
   CHECK (length(trim(source_version)) > 0),
   CHECK (jsonb_typeof(metadata_json) = 'object')
@@ -110,6 +111,9 @@ CREATE TABLE audience.okveds (
   dataset_release_id uuid NOT NULL REFERENCES audience.dataset_releases(id) ON DELETE RESTRICT,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (dataset_release_id, source_version)
+    REFERENCES audience.dataset_releases (id, source_version)
+    ON DELETE RESTRICT,
   CHECK (code ~ '^[0-9]{2}(?:\.[0-9]{1,2}){0,2}$'),
   CHECK (length(trim(name)) > 0),
   CHECK (length(trim(source_version)) > 0)
@@ -210,7 +214,7 @@ CREATE INDEX crawl_tasks_run_id_status_idx ON audience.crawl_tasks (run_id, stat
 CREATE INDEX source_fetches_run_id_idx ON audience.source_fetches (run_id);
 CREATE INDEX dataset_releases_source_fetch_id_idx ON audience.dataset_releases (source_fetch_id);
 CREATE INDEX companies_source_fetch_id_idx ON audience.companies (source_fetch_id);
-CREATE INDEX okveds_dataset_release_id_idx ON audience.okveds (dataset_release_id);
+CREATE INDEX okveds_dataset_release_id_source_version_idx ON audience.okveds (dataset_release_id, source_version);
 CREATE INDEX company_okveds_okved_code_idx ON audience.company_okveds (okved_code);
 CREATE INDEX company_okveds_source_fetch_id_idx ON audience.company_okveds (source_fetch_id);
 CREATE INDEX run_company_matches_run_id_idx ON audience.run_company_matches (run_id);

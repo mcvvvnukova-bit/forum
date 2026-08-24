@@ -81,6 +81,11 @@ describe("audience core migration", () => {
        VALUES ('43.11', 'Разборка и снос зданий', 'ОКВЭД-2', $1)`,
       [fixture.datasetReleaseId],
     )).resolves.toMatchObject({ rowCount: 1 });
+    await expect(client.query(
+      `INSERT INTO audience.okveds (code, name, source_version, dataset_release_id)
+       VALUES ('43.12', 'Подготовка строительной площадки', 'несовпадающая версия', $1)`,
+      [fixture.datasetReleaseId],
+    )).rejects.toMatchObject({ code: "23503" });
 
     await expect(client.query(
       `INSERT INTO audience.financial_observations (company_inn, report_year, revenue)
