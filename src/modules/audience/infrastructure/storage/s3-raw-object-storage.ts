@@ -5,8 +5,16 @@ import {
   type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 
-import type { RawObjectStorage, StoredRawObject } from "../../application/ports/raw-object-storage";
-import type { ChecksummedBrowserRawBundle } from "../../domain/discovery";
+import type {
+  RawObjectStorage,
+  StoredRawObject,
+  VerifiedRawObject,
+} from "../../application/ports/raw-object-storage";
+import type {
+  CandidateContactEvidence,
+  CandidateEvidence,
+  ChecksummedBrowserRawBundle,
+} from "../../domain/discovery";
 import type { AppEnv } from "../../../../shared/config/env";
 import { checksumBrowserRawBundle, sha256 } from "./raw-bundle";
 
@@ -53,7 +61,7 @@ export class S3RawObjectStorage implements RawObjectStorage {
     };
   }
 
-  async verify(object: StoredRawObject): Promise<void> {
+  async verify(object: StoredRawObject): Promise<VerifiedRawObject> {
     validateStoredObject(object);
     const [manifestBytes, domBytes, screenshotBytes] = await Promise.all([
       this.#get(object.manifestKey),
@@ -73,6 +81,11 @@ export class S3RawObjectStorage implements RawObjectStorage {
     ) {
       throw new Error("raw object checksum verification failed");
     }
+    return {
+      checksumSha256: object.checksumSha256,
+      parserVersion: manifest.parserVersion,
+      candidateEvidence: manifest.candidateEvidence,
+    };
   }
 
   async #get(key: string): Promise<Uint8Array> {
@@ -110,6 +123,8 @@ export class S3RawObjectStorage implements RawObjectStorage {
 }
 
 interface RawManifest {
+  parserVersion: string;
+  candidateEvidence: CandidateEvidence | null;
   artifacts: {
     sanitizedDom: { file: string; checksumSha256: string };
     redactedScreenshot: { file: string; checksumSha256: string };
@@ -123,17 +138,52 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   } catch {
     return null;
   }
-  if (!isRecord(value) || !isRecord(value.artifacts)
+  if (!isRecord(value) || value.version !== 1
+    || typeof value.parserVersion !== "string"
+    || !isCandidateEvidenceOrNull(value.candidateEvidence)
+    || !isRecord(value.artifacts)
     || !isArtifact(value.artifacts.sanitizedDom)
     || !isArtifact(value.artifacts.redactedScreenshot)) {
     return null;
   }
   return {
+    parserVersion: value.parserVersion,
+    candidateEvidence: value.candidateEvidence,
     artifacts: {
       sanitizedDom: value.artifacts.sanitizedDom,
       redactedScreenshot: value.artifacts.redactedScreenshot,
     },
   };
+}
+
+function isCandidateEvidenceOrNull(value: unknown): value is CandidateEvidence | null {
+  if (value === null) return true;
+  return isRecord(value)
+    && hasExactlyKeys(value, [
+      "sourceRecordKey", "inn", "name", "website", "okvedCode", "isPrimary", "phone", "email",
+    ])
+    && typeof value.sourceRecordKey === "string"
+    && typeof value.inn === "string"
+    && typeof value.name === "string"
+    && (typeof value.website === "string" || value.website === null)
+    && typeof value.okvedCode === "string"
+    && typeof value.isPrimary === "boolean"
+    && isContactEvidence(value.phone)
+    && isContactEvidence(value.email);
+}
+
+function isContactEvidence(value: unknown): value is CandidateContactEvidence {
+  if (!isRecord(value) || (value.kind !== "null" && value.kind !== "sha256")) return false;
+  if (value.kind === "null") return hasExactlyKeys(value, ["kind"]);
+  return hasExactlyKeys(value, ["kind", "normalizedValueSha256"])
+    && typeof value.normalizedValueSha256 === "string"
+    && /^[0-9a-f]{64}$/.test(value.normalizedValueSha256);
+}
+
+function hasExactlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
 }
 
 function isArtifact(value: unknown): value is { file: string; checksumSha256: string } {
@@ -168,6 +218,7 @@ function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
     redactedScreenshotPng: bundle.redactedScreenshotPng,
     pageFingerprintSha256: bundle.pageFingerprintSha256,
     identity: bundle.identity,
+    candidateEvidence: bundle.candidateEvidence,
     actions: bundle.actions,
   });
   if (

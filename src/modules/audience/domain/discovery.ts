@@ -1,6 +1,8 @@
 import type { LegalEntityInn } from "./inn";
 import type { OkvedCode } from "./okved";
 
+export class ExternalBrowserRequestError extends Error {}
+
 export type DiscoveryStatus = "succeeded" | "limited" | "blocked";
 
 export interface DiscoveryScope {
@@ -27,6 +29,21 @@ export interface DiscoveredCompany {
   parserVersion: string;
 }
 
+export type CandidateContactEvidence =
+  | { kind: "null" }
+  | { kind: "sha256"; normalizedValueSha256: string };
+
+export interface CandidateEvidence {
+  sourceRecordKey: string;
+  inn: string;
+  name: string;
+  website: string | null;
+  okvedCode: string;
+  isPrimary: boolean;
+  phone: CandidateContactEvidence;
+  email: CandidateContactEvidence;
+}
+
 export interface BrowserRawBundle {
   parserVersion: string;
   finalUrl: string;
@@ -36,6 +53,7 @@ export interface BrowserRawBundle {
   redactedScreenshotPng: Uint8Array;
   pageFingerprintSha256: string;
   identity: { runId: string; page: number; sourceRecordKey?: string };
+  candidateEvidence: CandidateEvidence | null;
   actions: readonly { at: string; kind: string; target: string; outcome: string }[];
 }
 

@@ -172,6 +172,7 @@ function fixtureRawBundle(input: {
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     pageFingerprintSha256: sha256(input.bytes),
     identity: { runId: input.runId, page: input.page, sourceRecordKey: input.sourceRecordKey },
+    candidateEvidence: null,
     actions: [],
   });
 }

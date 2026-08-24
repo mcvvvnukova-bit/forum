@@ -71,6 +71,7 @@ describe("fixture discovery and replay publication", () => {
       },
     });
     await client.send(new CreateBucketCommand({ Bucket: env.s3Bucket }));
+    await seedSelectedOkved(database);
   });
 
   afterAll(async () => {
@@ -93,8 +94,99 @@ describe("fixture discovery and replay publication", () => {
     await temporaryDatabase?.drop();
   });
 
+  it.each([
+    ["non-contact name", "name", "Tampered Organization Name"],
+    ["contact phone", "phone", "+7 (999) 000-00-00"],
+  ])("rejects replay when staged %s differs from checksum-covered candidate evidence", async (
+    _case,
+    field,
+    tamperedValue,
+  ) => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const source = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+
+    await runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+    }, { repository, source, rawStorage });
+    await database.query(
+      `UPDATE audience.crawl_tasks
+       SET result_json = jsonb_set(
+         result_json,
+         ARRAY['candidates', '0', $2],
+         to_jsonb($3::text)
+       )
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId, field, tamperedValue],
+    );
+
+    await expect(replayRun({ runId, dryRun: false }, { repository, rawStorage }))
+      .rejects.toThrow("staged candidate does not match verified raw evidence");
+    expect(await domainCounts(database, runId)).toEqual({
+      companies: 0,
+      companyOkveds: 0,
+      runCompanyMatches: 0,
+    });
+  });
+
+  it("completes an external-resource fixture run as a fenced policy block", async () => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const source = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search?scenario=external`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+
+    await expect(runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+    }, { repository, source, rawStorage })).resolves.toMatchObject({
+      runId,
+      status: "blocked",
+      reason: "policy_block",
+      discoveredCompanies: 0,
+      publishedCompanies: 0,
+    });
+    await expect(repository.runStatus(runId)).resolves.toEqual({
+      status: "blocked",
+      terminalReason: "policy_block",
+    });
+    const task = await database.query<{ status: string; reason: string | null }>(
+      `SELECT status, result_json->>'reason' AS reason
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId],
+    );
+    expect(task.rows).toEqual([{ status: "blocked", reason: "policy_block" }]);
+  });
+
   it("keeps discovery audit-only and replays the original run idempotently from verified raw storage", async () => {
-    await seedSelectedOkved(database);
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";
     const rawStorage = new S3RawObjectStorage(env, "list-org-browser");

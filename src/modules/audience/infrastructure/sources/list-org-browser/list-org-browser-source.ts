@@ -1,18 +1,22 @@
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 
 import type { BrowserSession, BrowserSessionFactory } from "../../../application/ports/browser-session";
-import type {
-  BrowserRawBundle,
-  DiscoveryOccurrence,
-  DiscoveryPage,
-  DiscoveryResult,
-  DiscoveryScope,
-  DiscoveredCompany,
-  OrganizationSource,
+import { createCandidateEvidence } from "../../../domain/candidate-evidence";
+import {
+  ExternalBrowserRequestError,
+  type BrowserRawBundle,
+  type DiscoveryOccurrence,
+  type DiscoveryPage,
+  type DiscoveryResult,
+  type DiscoveryScope,
+  type DiscoveredCompany,
+  type OrganizationSource,
 } from "../../../domain/discovery";
 import { parseLegalEntityInn } from "../../../domain/inn";
 import { parseOkvedCode } from "../../../domain/okved";
 import { checksumBrowserRawBundle, sha256 } from "../../storage/raw-bundle";
+
+export { ExternalBrowserRequestError } from "../../../domain/discovery";
 
 const RESULTS_LANDMARK = "Результаты поиска";
 const CARD_LANDMARK = "Карточка организации";
@@ -93,11 +97,15 @@ export class ListOrgBrowserSource implements OrganizationSource {
           await session.waitForLandmark(CARD_LANDMARK);
 
           const company = await readCompany(session);
-          const cardRaw = checksumBrowserRawBundle(await session.capture(
+          const capturedCard = await session.capture(
             { runId: this.#runId, page: pageNumber, sourceRecordKey: company.sourceRecordKey },
             this.#parserVersion,
             ["Телефон", "Email"],
-          ));
+          );
+          const cardRaw = checksumBrowserRawBundle({
+            ...capturedCard,
+            candidateEvidence: createCandidateEvidence(company),
+          });
           rawBundles.push(cardRaw);
 
           await session.clickLink("Вернуться к результатам");
@@ -237,8 +245,6 @@ export class PlaywrightBrowserSessionFactory implements BrowserSessionFactory {
 }
 
 class BrowserContractError extends Error {}
-
-export class ExternalBrowserRequestError extends Error {}
 
 class PlaywrightBrowserSession implements BrowserSession {
   readonly #browser: Browser;
@@ -446,6 +452,7 @@ class PlaywrightBrowserSession implements BrowserSession {
       redactedScreenshotPng,
       pageFingerprintSha256: sha256(sanitizedDomUtf8),
       identity,
+      candidateEvidence: null,
       actions: [...this.#actions],
     };
   }

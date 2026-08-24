@@ -66,7 +66,7 @@ function rejectUnknownOptionNames(argv: readonly string[]): void {
   ]);
   for (const value of argv) {
     if (value.startsWith("--") && !known.has(value)) {
-      throw new CliInputError(`unknown option ${value}`);
+      throw new CliInputError("unknown option");
     }
   }
 }
@@ -93,7 +93,7 @@ function parseOptions(argv: readonly string[]): Map<string, string | true> {
   const result = new Map<string, string | true>();
   for (let index = 0; index < argv.length; index += 1) {
     const name = argv[index];
-    if (!name.startsWith("--")) throw new CliInputError(`unexpected argument ${name}`);
+    if (!name.startsWith("--")) throw new CliInputError("unexpected argument");
     if (result.has(name)) throw new CliInputError(`duplicate option ${name}`);
     if (name === "--dry-run") {
       result.set(name, true);
@@ -112,7 +112,7 @@ function parseOptions(argv: readonly string[]): Map<string, string | true> {
 function assertOnly(options: ReadonlyMap<string, string | true>, allowed: readonly string[]): void {
   const allowedSet = new Set(allowed);
   for (const name of options.keys()) {
-    if (!allowedSet.has(name)) throw new CliInputError(`unknown option ${name}`);
+    if (!allowedSet.has(name)) throw new CliInputError("unknown option");
   }
 }
 

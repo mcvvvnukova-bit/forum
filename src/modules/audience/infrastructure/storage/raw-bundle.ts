@@ -20,6 +20,7 @@ export function checksumBrowserRawBundle(bundle: BrowserRawBundle): ChecksummedB
     navigationStatus: bundle.navigationStatus,
     pageFingerprintSha256: bundle.pageFingerprintSha256,
     identity: bundle.identity,
+    candidateEvidence: bundle.candidateEvidence,
     actions: bundle.actions,
     artifacts: {
       sanitizedDom: { file: "dom.html", checksumSha256: sanitizedDomSha256 },

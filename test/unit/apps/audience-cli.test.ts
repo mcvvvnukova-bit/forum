@@ -38,7 +38,7 @@ describe("parseAudienceCli", () => {
       "fixture-discover", "--okved", "43.11", "--year", "2025",
       "--max-pages", "11", "--max-companies", "50", "--dry-run",
     ], "--max-pages must be between 1 and 10"],
-    ["an unknown option", ["reconcile", "--run-id", randomRunId(), "--verbose"], "unknown option --verbose"],
+    ["an unknown option", ["reconcile", "--run-id", randomRunId(), "--verbose"], "unknown option"],
   ])("rejects %s before execution", (_case, argv, message) => {
     expect(() => parseAudienceCli(argv)).toThrow(new CliInputError(message));
   });

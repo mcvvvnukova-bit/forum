@@ -78,10 +78,13 @@ describe("S3RawObjectStorage", () => {
     }));
     const manifest = JSON.parse(await manifestResponse.Body!.transformToString()) as {
       artifacts: { sanitizedDom: { checksumSha256: string } };
+      candidateEvidence: unknown;
     };
     expect(manifest.artifacts.sanitizedDom.checksumSha256).toBe(
       bundle.artifacts.sanitizedDomSha256,
     );
+    expect(manifest.candidateEvidence).toEqual(bundle.candidateEvidence);
+    expect(JSON.stringify(manifest)).not.toMatch(/\+7 \(495\) 111-22-33|info@alpha\.example/i);
   });
 
   it("fails an immutable-key collision when existing bytes differ", async () => {
@@ -142,7 +145,11 @@ describe("S3RawObjectStorage", () => {
     const storage = new S3RawObjectStorage(env, "list-org-browser");
     const stored = await storage.put(sampleBundle("s3-verified-read"));
 
-    await expect(storage.verify(stored)).resolves.toBeUndefined();
+    await expect(storage.verify(stored)).resolves.toMatchObject({
+      checksumSha256: stored.checksumSha256,
+      parserVersion: "list-org-browser/1.0.0",
+      candidateEvidence: sampleBundle("ignored").candidateEvidence,
+    });
 
     await client.send(new PutObjectCommand({
       Bucket: bucket,
@@ -165,6 +172,16 @@ function sampleBundle(runId: string) {
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     pageFingerprintSha256: "a".repeat(64),
     identity: { runId, page: 1 },
+    candidateEvidence: {
+      sourceRecordKey: "1001",
+      inn: "7707083893",
+      name: "АО Альфа",
+      website: "https://alpha.example",
+      okvedCode: "43.11",
+      isPrimary: true,
+      phone: { kind: "sha256", normalizedValueSha256: "b".repeat(64) },
+      email: { kind: "sha256", normalizedValueSha256: "c".repeat(64) },
+    },
     actions: [
       {
         at: "2026-08-24T09:00:00.000Z",

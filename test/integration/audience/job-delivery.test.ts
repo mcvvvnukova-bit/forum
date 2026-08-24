@@ -11,6 +11,7 @@ import { runner } from "node-pg-migrate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { replayRun } from "../../../src/modules/audience/application/replay-run";
+import { createCandidateEvidence } from "../../../src/modules/audience/domain/candidate-evidence";
 import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
 import { PostgresAudienceRepository } from "../../../src/modules/audience/infrastructure/postgres/audience-repository";
@@ -133,6 +134,16 @@ describe("task fencing and pg-boss delivery", () => {
   it("delivers the same replay payload twice while domain publication remains idempotent", async () => {
     const runId = randomUUID();
     const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    const candidate = {
+      sourceRecordKey: "1001",
+      inn: parseLegalEntityInn("7707083893"),
+      name: "АО Альфа",
+      website: "https://alpha.example",
+      phone: "+7 (495) 111-22-33",
+      email: "info@alpha.example",
+      okvedCode: parseOkvedCode("43.11"),
+      isPrimary: true,
+    };
     const bundle = checksumBrowserRawBundle({
       parserVersion: "list-org-browser/1.0.0",
       finalUrl: "http://127.0.0.1/fixtures/company/1001",
@@ -142,6 +153,7 @@ describe("task fencing and pg-boss delivery", () => {
       redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       pageFingerprintSha256: "e".repeat(64),
       identity: { runId, page: 1, sourceRecordKey: "1001" },
+      candidateEvidence: createCandidateEvidence(candidate),
       actions: [],
     });
     const stored = await rawStorage.put(bundle);
@@ -158,14 +170,7 @@ describe("task fencing and pg-boss delivery", () => {
       reason: "terminal_marker",
       dryRun: true,
       candidates: [{
-        sourceRecordKey: "1001",
-        inn: parseLegalEntityInn("7707083893"),
-        name: "АО Альфа",
-        website: "https://alpha.example",
-        phone: "+7 (495) 111-22-33",
-        email: "info@alpha.example",
-        okvedCode: parseOkvedCode("43.11"),
-        isPrimary: true,
+        ...candidate,
         rawFetchKey: bundle.checksumSha256,
         parserVersion: bundle.parserVersion,
       }],
