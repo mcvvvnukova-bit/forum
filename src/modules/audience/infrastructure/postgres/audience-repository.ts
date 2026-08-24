@@ -456,7 +456,24 @@ export class PostgresAudienceRepository implements AudienceRepository {
          SELECT match.*
          FROM audience.run_company_matches match
          WHERE match.run_id = $1
-       ), selected_metrics AS (
+       ), current_organization_evidence AS (
+         SELECT evidence.*, raw.checksum_sha256
+         FROM audience.organization_evidence evidence
+         JOIN audience.source_fetches raw
+           ON raw.id = evidence.source_fetch_id AND raw.run_id = $1
+         JOIN run_matches match
+           ON match.company_inn = evidence.company_inn
+              AND match.source_fetch_id = evidence.source_fetch_id
+              AND match.source_record_key = evidence.source_record_key
+         WHERE evidence.field_name = 'organization'
+       ), current_financial_evidence AS (
+         SELECT evidence.*, raw.checksum_sha256
+         FROM audience.financial_evidence evidence
+         JOIN audience.source_fetches raw
+           ON raw.id = evidence.source_fetch_id AND raw.run_id = $1
+         JOIN (SELECT DISTINCT company_inn FROM run_matches) company
+           ON company.company_inn = evidence.company_inn
+       ), selected_current_metrics AS (
          SELECT observation.company_inn, observation.report_year,
                 selected.metric, selected.amount, selected.evidence_id
          FROM audience.financial_observations observation
@@ -467,18 +484,27 @@ export class PostgresAudienceRepository implements AudienceRepository {
            ('income'::audience.financial_metric, observation.income, observation.income_evidence_id),
            ('expenses'::audience.financial_metric, observation.expenses, observation.expenses_evidence_id)
          ) selected(metric, amount, evidence_id)
+         JOIN current_financial_evidence evidence
+           ON evidence.id = selected.evidence_id
+              AND evidence.company_inn = observation.company_inn
+              AND evidence.report_year = observation.report_year
+              AND evidence.metric = selected.metric
+              AND evidence.amount = selected.amount
          WHERE selected.amount IS NOT NULL
        ), newest_financial_evidence AS (
          SELECT DISTINCT ON (evidence.company_inn, evidence.report_year, evidence.metric)
                 evidence.company_inn, evidence.report_year, evidence.metric,
                 evidence.id, evidence.amount
-         FROM audience.financial_evidence evidence
-         JOIN audience.source_fetches raw
-           ON raw.id = evidence.source_fetch_id AND raw.run_id = $1
-         JOIN (SELECT DISTINCT company_inn FROM run_matches) company
-           ON company.company_inn = evidence.company_inn
+         FROM current_financial_evidence evidence
          ORDER BY evidence.company_inn, evidence.report_year, evidence.metric,
                   evidence.collected_at DESC, evidence.id DESC
+       ), latest_financial_task AS (
+         SELECT task.result_json
+         FROM audience.crawl_tasks task
+         WHERE task.run_id = $1 AND task.task_kind = 'fixture_finance'
+           AND task.status = 'succeeded'
+         ORDER BY task.created_at DESC, task.id DESC
+         LIMIT 1
        )
        SELECT run.status, run.terminal_reason, run.published_at,
          (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = run.id)::text AS tasks,
@@ -493,61 +519,42 @@ export class PostgresAudienceRepository implements AudienceRepository {
          ), '0') AS staged_companies,
          (SELECT count(DISTINCT company_inn) FROM audience.run_company_matches WHERE run_id = run.id)::text AS companies,
          (SELECT count(*) FROM audience.company_okveds relation
-           WHERE EXISTS (SELECT 1 FROM audience.run_company_matches match
-             WHERE match.run_id = run.id AND match.company_inn = relation.company_inn))::text AS company_okveds,
+          JOIN run_matches match
+            ON match.company_inn = relation.company_inn
+               AND match.matched_okved_code = relation.okved_code)::text AS company_okveds,
          (SELECT count(*) FROM audience.run_company_matches WHERE run_id = run.id)::text AS run_company_matches,
          COALESCE((SELECT result_json->'discovery'->>'occurrences' FROM latest_discovery), '0') AS occurrences,
          COALESCE((SELECT result_json->'discovery'->>'uniqueSourceRecords' FROM latest_discovery), '0') AS unique_source_records,
          COALESCE((SELECT result_json->'discovery'->>'acceptedCompanies' FROM latest_discovery), '0') AS accepted_companies,
          COALESCE((SELECT result_json->'discovery'->>'duplicates' FROM latest_discovery), '0') AS duplicates,
          COALESCE((SELECT result_json->'discovery'->>'rejected' FROM latest_discovery), '0') AS rejected,
-         (SELECT count(*) FROM selected_metrics WHERE metric = 'revenue')::text AS revenue,
-         (SELECT count(*) FROM selected_metrics WHERE metric = 'income')::text AS income,
-         (SELECT count(*) FROM selected_metrics WHERE metric = 'expenses')::text AS expenses,
+         (SELECT count(DISTINCT (company_inn, report_year, metric))
+          FROM current_financial_evidence WHERE metric = 'revenue')::text AS revenue,
+         (SELECT count(DISTINCT (company_inn, report_year, metric))
+          FROM current_financial_evidence WHERE metric = 'income')::text AS income,
+         (SELECT count(DISTINCT (company_inn, report_year, metric))
+          FROM current_financial_evidence WHERE metric = 'expenses')::text AS expenses,
          (SELECT count(*) FROM run_matches match
           WHERE NOT EXISTS (
             SELECT 1
-            FROM audience.organization_evidence evidence
-            JOIN audience.source_fetches raw
-              ON raw.id = evidence.source_fetch_id AND raw.run_id = run.id
-                 AND raw.checksum_sha256 ~ '^[0-9a-f]{64}$'
+            FROM current_organization_evidence evidence
             WHERE evidence.company_inn = match.company_inn
               AND evidence.source_fetch_id = match.source_fetch_id
               AND evidence.source_record_key = match.source_record_key
-              AND evidence.field_name = 'organization'
+              AND evidence.checksum_sha256 ~ '^[0-9a-f]{64}$'
           ))::text AS organizations_without_evidence,
-         (SELECT count(*) FROM selected_metrics selected
-          WHERE NOT EXISTS (
-            SELECT 1
-            FROM audience.financial_evidence evidence
-            JOIN audience.source_fetches raw
-              ON raw.id = evidence.source_fetch_id AND raw.run_id = run.id
-                 AND raw.checksum_sha256 ~ '^[0-9a-f]{64}$'
-            WHERE evidence.id = selected.evidence_id
-              AND evidence.company_inn = selected.company_inn
-              AND evidence.report_year = selected.report_year
-              AND evidence.metric = selected.metric
-              AND evidence.amount = selected.amount
-          ))::text AS metrics_without_evidence,
-         ((SELECT count(*)
-           FROM audience.organization_evidence evidence
-           JOIN (SELECT DISTINCT company_inn FROM run_matches) company
-             ON company.company_inn = evidence.company_inn
-           LEFT JOIN audience.source_fetches raw
-             ON raw.id = evidence.source_fetch_id AND raw.run_id = run.id
-                AND raw.checksum_sha256 ~ '^[0-9a-f]{64}$'
-           WHERE raw.id IS NULL)
-          +
-          (SELECT count(*)
-           FROM audience.financial_evidence evidence
-           JOIN (SELECT DISTINCT company_inn FROM run_matches) company
-             ON company.company_inn = evidence.company_inn
-           LEFT JOIN audience.source_fetches raw
-             ON raw.id = evidence.source_fetch_id AND raw.run_id = run.id
-                AND raw.checksum_sha256 ~ '^[0-9a-f]{64}$'
-           WHERE raw.id IS NULL))::text AS evidence_without_run_raw_checksum,
+         GREATEST(
+           COALESCE((SELECT (result_json->>'evidence')::integer FROM latest_financial_task), 0)
+             - (SELECT count(*) FROM current_financial_evidence),
+           0
+         )::text AS metrics_without_evidence,
+         ((SELECT count(*) FROM current_organization_evidence
+           WHERE checksum_sha256 !~ '^[0-9a-f]{64}$')
+          + (SELECT count(*) FROM current_financial_evidence
+             WHERE checksum_sha256 !~ '^[0-9a-f]{64}$'))::text
+           AS evidence_without_run_raw_checksum,
          (SELECT count(*)
-          FROM selected_metrics selected
+          FROM selected_current_metrics selected
           JOIN newest_financial_evidence newest
             ON newest.company_inn = selected.company_inn
                AND newest.report_year = selected.report_year
@@ -558,11 +565,11 @@ export class PostgresAudienceRepository implements AudienceRepository {
           FROM audience.source_fetches raw
           WHERE raw.run_id = run.id
             AND NOT EXISTS (
-              SELECT 1 FROM audience.organization_evidence evidence
+              SELECT 1 FROM current_organization_evidence evidence
               WHERE evidence.source_fetch_id = raw.id
             )
             AND NOT EXISTS (
-              SELECT 1 FROM audience.financial_evidence evidence
+              SELECT 1 FROM current_financial_evidence evidence
               WHERE evidence.source_fetch_id = raw.id
             )
             AND NOT (

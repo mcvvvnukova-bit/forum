@@ -230,7 +230,7 @@ describe.sequential("audience parser fixture acceptance", () => {
     }
   });
 
-  it("rejects organization evidence whose raw fetch/checksum is outside the run", async () => {
+  it("rejects a published organization when only evidence outside the run remains", async () => {
     const evidence = await database.query<{ id: string; source_fetch_id: string }>(
       `SELECT id, source_fetch_id FROM audience.organization_evidence ORDER BY id LIMIT 1`,
     );
@@ -244,7 +244,7 @@ describe.sequential("audience parser fixture acceptance", () => {
       [foreignFetch.rows[0]!.id, row.id],
     );
     try {
-      await expect(reconcileRun(runId, repository)).rejects.toThrow("evidence without run raw checksum: 1");
+      await expect(reconcileRun(runId, repository)).rejects.toThrow("organizations without evidence: 1");
     } finally {
       await database.query(
         "UPDATE audience.organization_evidence SET source_fetch_id = $1 WHERE id = $2",
@@ -329,6 +329,66 @@ describe.sequential("audience parser fixture acceptance", () => {
       await database.query("DELETE FROM audience.source_fetches WHERE id = $1", [fetchId]);
     }
   });
+
+  it("reconciles overlapping runs from only their own match tuples and evidence", async () => {
+    await addHistoricalOkvedRelation(database, runId);
+
+    const secondRunId = randomUUID();
+    const secondFixture = await startListOrgFixtureServer();
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+    try {
+      const source = new ListOrgBrowserSource({
+        searchUrl: `${secondFixture.origin}/search`,
+        sessions: new PlaywrightBrowserSessionFactory(secondFixture.origin, {
+          now: () => new Date("2026-08-24T10:00:00.000Z"),
+        }),
+        runId: secondRunId,
+        parserVersion: "list-org-browser/1.0.0",
+      });
+      await runFixtureDiscovery({
+        runId: secondRunId,
+        okved: "43.11",
+        year: 2025,
+        dryRun: true,
+        maxPages: 2,
+        maxCompanies: 50,
+        fixtureVersion: "list-org-browser-fixture/1.0.0",
+        parserVersion: "list-org-browser/1.0.0",
+      }, { repository, source, rawStorage });
+    } finally {
+      await secondFixture.close();
+    }
+
+    await replayRun({ runId: secondRunId, dryRun: false }, { repository, rawStorage });
+    await publishFinancialEvidence(
+      await stageFinancialFixtures(secondRunId, 2025, env),
+      { repository },
+    );
+
+    const secondReport = await reconcileRun(secondRunId, repository);
+    expect(secondReport).toMatchObject({
+      sourceFetches: 8,
+      stagedCompanies: 3,
+      companies: 3,
+      companyOkveds: 3,
+      runCompanyMatches: 3,
+      financial: { revenue: 1, income: 1, expenses: 1 },
+      unexplainedSourceFetches: 0,
+      consistent: true,
+    });
+
+    const firstReport = await reconcileRun(runId, repository);
+    expect(firstReport).toMatchObject({
+      sourceFetches: 8,
+      stagedCompanies: 3,
+      companies: 3,
+      companyOkveds: 3,
+      runCompanyMatches: 3,
+      financial: { revenue: 1, income: 1, expenses: 1 },
+      unexplainedSourceFetches: 0,
+      consistent: true,
+    });
+  });
 });
 
 interface OrganizationEvidenceRow {
@@ -340,6 +400,42 @@ interface OrganizationEvidenceRow {
   value_json: unknown;
   parser_version: string;
   collected_at: string;
+}
+
+async function addHistoricalOkvedRelation(
+  database: PostgresDatabase,
+  historicalRunId: string,
+): Promise<void> {
+  const provenance = await database.query<{
+    dataset_release_id: string;
+    source_version: string;
+    company_inn: string;
+    source_fetch_id: string;
+    source_record_key: string;
+  }>(
+    `SELECT okved.dataset_release_id, okved.source_version,
+            match.company_inn, match.source_fetch_id, match.source_record_key
+     FROM audience.okveds okved
+     JOIN audience.run_company_matches match ON match.run_id = $1
+     WHERE okved.code = '43.11'
+     ORDER BY match.company_inn
+     LIMIT 1`,
+    [historicalRunId],
+  );
+  const row = provenance.rows[0]!;
+  await database.transaction(async (transaction) => {
+    await transaction.query(
+      `INSERT INTO audience.okveds (code, name, source_version, dataset_release_id)
+       VALUES ('43.12', 'Подготовка строительной площадки', $1, $2)`,
+      [row.source_version, row.dataset_release_id],
+    );
+    await transaction.query(
+      `INSERT INTO audience.company_okveds (
+         company_inn, okved_code, is_primary, source_fetch_id, source_record_key
+       ) VALUES ($1, '43.12', false, $2, $3)`,
+      [row.company_inn, row.source_fetch_id, row.source_record_key],
+    );
+  });
 }
 
 async function releaseAndImportSelectedOkved(database: PostgresDatabase, env: AppEnv): Promise<void> {
