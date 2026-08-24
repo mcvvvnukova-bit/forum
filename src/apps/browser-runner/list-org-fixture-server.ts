@@ -124,6 +124,16 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
              <a class="contact-value" href="mailto:backup@alpha.example" title="info@alpha.example">Contact</a>`,
           );
         }
+        if (scenario === "form-secrets" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<input style="width:260px" type="password" name="password" value="pw-123">
+             <input style="width:260px" type="text" name="csrf_token" value="csrf-123">
+             <input style="width:260px" type="text" name="api_key" value="api-123">
+             <input style="width:260px" type="text" name="public_field" value="visible-123">
+             </dl>`,
+          );
+        }
       }
     }
 

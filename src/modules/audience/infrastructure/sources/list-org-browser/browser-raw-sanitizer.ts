@@ -19,13 +19,14 @@ export const SAFE_CAPTURE_TAGS = [
 ] as const;
 
 export const SAFE_CAPTURE_ATTRIBUTES = [
-  "lang", "role", "href", "type", "name", "value", "checked", "disabled",
+  "lang", "role", "href", "type", "name", "checked", "disabled",
 ] as const;
 
 const EMAIL_PATTERN = /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/iu;
 const PHONE_PATTERN = /(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}/u;
 const SECRET_QUERY_PATTERN = /(?:[?&]|\\u0026)(?:access_token|auth|authorization|cookie|session|session_id|token|[^?&=]*(?:secret|credential|password)[^?&=]*)=/iu;
 const GENERIC_SECRET_PARAMETER_PATTERN = /(?:secret|credential|password)/iu;
+const GENERIC_SENSITIVE_FORM_FIELD_PATTERN = /(?:token|csrf|secret|credential|password|api_key|apikey|authorization|cookie|session)/iu;
 
 export function sanitizeBrowserUrl(
   value: string,
@@ -104,7 +105,9 @@ export function assertBrowserCaptureSafe(
   assertNoContactOrSecret(textualEvidence, sensitiveValues);
   if (bundle.sourceKind === "list-org-browser") {
     const forbiddenMarkup = /<!--|<\s*(?:script|style|meta|link|iframe|object|embed|template|noscript)\b|\s(?:aria-[\w-]+|data-[\w-]+|title|style|src|action|on[\w-]+)=/iu;
-    if (forbiddenMarkup.test(dom)) throw new Error("raw redaction scan failed");
+    if (forbiddenMarkup.test(dom) || containsUnsafeSerializedFormMarkup(dom)) {
+      throw new Error("raw redaction scan failed");
+    }
   }
 }
 
@@ -134,6 +137,10 @@ export async function sanitizePageDom(
     // Object methods survive tsx/esbuild keepNames serialization without an
     // injected Node-only __name helper inside Playwright's page context.
     const helpers = {
+      isSensitiveFormFieldName(name: string): boolean {
+        return sensitive.has(name.toLocaleLowerCase("en-US"))
+          || /(?:token|csrf|secret|credential|password|api_key|apikey|authorization|cookie|session)/iu.test(name);
+      },
       redact(value: string): string {
         let output = value;
         for (const term of terms) {
@@ -163,6 +170,12 @@ export async function sanitizePageDom(
         continue;
       }
       if (element.hasAttribute("hidden") || element.matches("input[type='hidden' i]")) {
+        element.remove();
+        continue;
+      }
+      if (element.matches("input[type='password' i]")
+        || (element.matches("input")
+          && helpers.isSensitiveFormFieldName(element.getAttribute("name") ?? ""))) {
         element.remove();
         continue;
       }
@@ -263,6 +276,14 @@ export function addPageRedactionOverlays(
       const attributeText = [...candidate.attributes].map((attribute) => attribute.value).join(" ");
       if (helpers.containsSensitive(`${directText} ${attributeText}`)) elements.add(candidate);
     }
+    for (const control of document.querySelectorAll("input, textarea, select")) {
+      if ((control instanceof HTMLInputElement
+        || control instanceof HTMLTextAreaElement
+        || control instanceof HTMLSelectElement)
+        && control.value !== "") {
+        elements.add(control);
+      }
+    }
     for (const value of elements) {
       const rect = value.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) continue;
@@ -296,6 +317,58 @@ function assertNoContactOrSecret(value: string, sensitiveValues: readonly string
 
 function isSensitiveParameter(name: string, sensitive: ReadonlySet<string>): boolean {
   return sensitive.has(name.toLowerCase()) || GENERIC_SECRET_PARAMETER_PATTERN.test(name);
+}
+
+export function isSensitiveFormFieldName(
+  name: string,
+  configuredNames: readonly string[],
+): boolean {
+  const normalizedName = name.toLocaleLowerCase("en-US");
+  return configuredNames.some(
+    (configuredName) => configuredName.toLocaleLowerCase("en-US") === normalizedName,
+  ) || GENERIC_SENSITIVE_FORM_FIELD_PATTERN.test(name);
+}
+
+function containsUnsafeSerializedFormMarkup(dom: string): boolean {
+  const inputStartPattern = /<\s*input\b/giu;
+  let match: RegExpExecArray | null;
+  while ((match = inputStartPattern.exec(dom)) !== null) {
+    let quote: "\"" | "'" | null = null;
+    let inputEnd = -1;
+    for (let index = inputStartPattern.lastIndex; index < dom.length; index += 1) {
+      const character = dom[index];
+      if (quote !== null) {
+        if (character === quote) quote = null;
+        continue;
+      }
+      if (character === "\"" || character === "'") {
+        quote = character;
+      } else if (character === ">") {
+        inputEnd = index + 1;
+        break;
+      } else if (character === "<") {
+        return true;
+      }
+    }
+    if (inputEnd < 0) return true;
+    const input = dom.slice(match.index, inputEnd);
+    if (/\svalue\s*=/iu.test(input)) return true;
+    const type = serializedAttributeValue(input, "type");
+    if (type?.toLocaleLowerCase("en-US") === "password") return true;
+    const name = serializedAttributeValue(input, "name");
+    if (name !== undefined && isSensitiveFormFieldName(name, [])) return true;
+    inputStartPattern.lastIndex = inputEnd;
+  }
+  return false;
+}
+
+function serializedAttributeValue(markup: string, attributeName: string): string | undefined {
+  const pattern = new RegExp(
+    `\\s${attributeName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\u0060]+))`,
+    "iu",
+  );
+  const match = pattern.exec(markup);
+  return match?.[1] ?? match?.[2] ?? match?.[3];
 }
 
 function replaceEveryCaseInsensitive(value: string, term: string, replacement: string): string {

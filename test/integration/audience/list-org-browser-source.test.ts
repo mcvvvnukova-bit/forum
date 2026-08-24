@@ -282,6 +282,26 @@ describe("ListOrgBrowserSource", () => {
     expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBeGreaterThanOrEqual(6);
   });
 
+  it("removes runtime form values from raw evidence and masks every populated control", async () => {
+    const [result, baseline] = await Promise.all([
+      collect("/search?scenario=form-secrets"),
+      collect("/search"),
+    ]);
+    const card = result.rawBundles.find((bundle) => bundle.identity.sourceRecordKey === "1001");
+    const baselineCard = baseline.rawBundles.find(
+      (bundle) => bundle.identity.sourceRecordKey === "1001",
+    );
+    expect(card).toBeDefined();
+    expect(baselineCard).toBeDefined();
+
+    const dom = new TextDecoder().decode(card!.sanitizedDomUtf8);
+    const evidence = `${dom}\n${new TextDecoder().decode(card!.manifestUtf8)}`;
+    expect(evidence).not.toMatch(/pw-123|csrf-123|api-123|visible-123/i);
+    expect(dom).not.toMatch(/\svalue=|name="(?:password|csrf_token|api_key)"/i);
+    expect(await countBlackContactBands(card!.redactedScreenshotPng))
+      .toBeGreaterThan(await countBlackContactBands(baselineCard!.redactedScreenshotPng));
+  });
+
   async function collect(path: string, sensitiveQueryParameters?: readonly string[]) {
     const fixedNow = () => new Date("2026-08-24T09:00:00.000Z");
     const source = new ListOrgBrowserSource({
