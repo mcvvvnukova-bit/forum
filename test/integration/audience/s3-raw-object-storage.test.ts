@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
   CreateBucketCommand,
@@ -187,6 +187,63 @@ describe("S3RawObjectStorage", () => {
     expect(() => checksumBrowserRawBundle(raw)).toThrow("raw redaction scan failed");
   });
 
+  it("rejects checksum-consistent stored DOM that violates its configured form policy", async () => {
+    const runId = "s3-configured-form-policy";
+    const domBytes = new TextEncoder().encode(
+      '<!doctype html><html><body><input type="text" name="nonce"></body></html>',
+    );
+    const screenshotBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const manifestBytes = new TextEncoder().encode(JSON.stringify({
+      version: 1,
+      sourceKind: "list-org-browser",
+      parserVersion: "list-org-browser/1.0.0",
+      sensitiveFormFieldNames: ["nonce"],
+      finalUrl: "http://127.0.0.1:33333/results/page-1",
+      capturedAt: "2026-08-24T09:00:00.000Z",
+      navigationStatus: 200,
+      pageFingerprintSha256: fixtureSha256(domBytes),
+      identity: { runId, page: 1, sourceRecordKey: "1001" },
+      candidateEvidence: null,
+      actions: [],
+      artifacts: {
+        sanitizedDom: { file: "dom.html", checksumSha256: fixtureSha256(domBytes) },
+        redactedScreenshot: {
+          file: "screenshot.png",
+          checksumSha256: fixtureSha256(screenshotBytes),
+        },
+      },
+    }));
+    const checksumSha256 = fixtureSha256(manifestBytes);
+    const prefix = `raw/${runId}/list-org-browser/${checksumSha256}`;
+    const stored = {
+      runId,
+      sourceKind: "list-org-browser",
+      sourceRecordKey: "1001",
+      parserVersion: "list-org-browser/1.0.0",
+      checksumSha256,
+      prefix,
+      manifestKey: `${prefix}/manifest.json`,
+      domKey: `${prefix}/dom.html`,
+      screenshotKey: `${prefix}/screenshot.png`,
+    };
+    await Promise.all([
+      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.domKey, Body: domBytes })),
+      client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: stored.screenshotKey,
+        Body: screenshotBytes,
+      })),
+      client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: stored.manifestKey,
+        Body: manifestBytes,
+      })),
+    ]);
+
+    const storage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(storage.verify(stored)).rejects.toThrow("raw redaction scan failed");
+  });
+
   it("rejects replay verification when a referenced raw artifact no longer matches its manifest", async () => {
     const storage = new S3RawObjectStorage(env, "list-org-browser", client);
     const stored = await storage.put(sampleBundle("s3-verified-read"));
@@ -248,6 +305,10 @@ describe("S3RawObjectStorage", () => {
 
 function sampleBundle(runId: string) {
   return checksumBrowserRawBundle(sampleRawBundle(runId));
+}
+
+function fixtureSha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
 }
 
 function sampleRawBundle(runId: string): BrowserRawBundle {

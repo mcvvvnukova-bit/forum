@@ -591,6 +591,7 @@ class PlaywrightBrowserSession implements BrowserSession {
       identity,
       candidateEvidence: null,
       actions: [...this.#actions.events],
+      sensitiveFormFieldNames: [...this.#sensitiveQueryParameters],
     };
     assertBrowserCaptureSafe(bundle, redactionValues);
     return bundle;

@@ -103,12 +103,11 @@ export function assertBrowserCaptureSafe(
     JSON.stringify(actionMetadata),
   ].join("\n");
   assertNoContactOrSecret(textualEvidence, sensitiveValues);
-  if (bundle.sourceKind === "list-org-browser") {
-    const forbiddenMarkup = /<!--|<\s*(?:script|style|meta|link|iframe|object|embed|template|noscript)\b|\s(?:aria-[\w-]+|data-[\w-]+|title|style|src|action|on[\w-]+)=/iu;
-    if (forbiddenMarkup.test(dom) || containsUnsafeSerializedFormMarkup(dom)) {
-      throw new Error("raw redaction scan failed");
-    }
-  }
+  assertSerializedBrowserDomSafe(
+    dom,
+    bundle.sourceKind,
+    bundle.sensitiveFormFieldNames ?? [],
+  );
 }
 
 export function assertPersistableRawBundle(bundle: BrowserRawBundle): void {
@@ -329,7 +328,23 @@ export function isSensitiveFormFieldName(
   ) || GENERIC_SENSITIVE_FORM_FIELD_PATTERN.test(name);
 }
 
-function containsUnsafeSerializedFormMarkup(dom: string): boolean {
+export function assertSerializedBrowserDomSafe(
+  dom: string,
+  sourceKind: string,
+  sensitiveFormFieldNames: readonly string[],
+): void {
+  if (sourceKind !== "list-org-browser") return;
+  const forbiddenMarkup = /<!--|<\s*(?:script|style|meta|link|iframe|object|embed|template|noscript)\b|\s(?:aria-[\w-]+|data-[\w-]+|title|style|src|action|on[\w-]+)=/iu;
+  if (forbiddenMarkup.test(dom)
+    || containsUnsafeSerializedFormMarkup(dom, sensitiveFormFieldNames)) {
+    throw new Error("raw redaction scan failed");
+  }
+}
+
+function containsUnsafeSerializedFormMarkup(
+  dom: string,
+  sensitiveFormFieldNames: readonly string[],
+): boolean {
   const inputStartPattern = /<\s*input\b/giu;
   let match: RegExpExecArray | null;
   while ((match = inputStartPattern.exec(dom)) !== null) {
@@ -352,11 +367,13 @@ function containsUnsafeSerializedFormMarkup(dom: string): boolean {
     }
     if (inputEnd < 0) return true;
     const input = dom.slice(match.index, inputEnd);
+    const afterInputName = dom.slice(inputStartPattern.lastIndex, inputEnd);
+    if (!/^(?:\s|>|\/\s*>)/u.test(afterInputName)) return true;
     if (/\svalue\s*=/iu.test(input)) return true;
     const type = serializedAttributeValue(input, "type");
     if (type?.toLocaleLowerCase("en-US") === "password") return true;
     const name = serializedAttributeValue(input, "name");
-    if (name !== undefined && isSensitiveFormFieldName(name, [])) return true;
+    if (name !== undefined && isSensitiveFormFieldName(name, sensitiveFormFieldNames)) return true;
     inputStartPattern.lastIndex = inputEnd;
   }
   return false;

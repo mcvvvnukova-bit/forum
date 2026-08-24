@@ -20,9 +20,28 @@ describe("browser raw sanitizer persistence boundary", () => {
       '<!doctype html><html><body><input name="public>field" value="visible-123"></body></html>',
     ))).toThrow("raw redaction scan failed");
   });
+
+  it.each([
+    ["slash separator", "<input/value=visible-123>"],
+    ["self-closing slash separator", "<input/value=visible-123/>"],
+  ])("rejects a malformed %s at the checksum boundary", (_case, input) => {
+    expect(() => checksumBrowserRawBundle(rawBundle(
+      `<!doctype html><html><body>${input}</body></html>`,
+    ))).toThrow("raw redaction scan failed");
+  });
+
+  it("rejects a configured-only sensitive name at the checksum boundary", () => {
+    expect(() => checksumBrowserRawBundle(rawBundle(
+      '<!doctype html><html><body><input type="text" name="nonce"></body></html>',
+      ["NoNcE"],
+    ))).toThrow("raw redaction scan failed");
+  });
 });
 
-function rawBundle(dom: string): BrowserRawBundle {
+function rawBundle(
+  dom: string,
+  sensitiveFormFieldNames: readonly string[] = [],
+): BrowserRawBundle {
   return {
     sourceKind: "list-org-browser",
     parserVersion: "list-org-browser/1.0.0",
@@ -35,5 +54,6 @@ function rawBundle(dom: string): BrowserRawBundle {
     identity: { runId: "browser-sanitizer-test", page: 1, sourceRecordKey: "1001" },
     candidateEvidence: null,
     actions: [],
+    sensitiveFormFieldNames,
   };
 }

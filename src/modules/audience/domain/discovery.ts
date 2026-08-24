@@ -81,6 +81,7 @@ export interface BrowserRawBundle {
   identity: { runId: string; page: number; sourceRecordKey?: string };
   candidateEvidence: CandidateEvidence | null;
   actions: readonly BrowserActionEvent[];
+  sensitiveFormFieldNames?: readonly string[];
 }
 
 export interface ChecksummedBrowserRawBundle extends BrowserRawBundle {

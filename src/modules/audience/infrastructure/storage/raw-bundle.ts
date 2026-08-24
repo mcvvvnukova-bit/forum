@@ -18,6 +18,7 @@ export function checksumBrowserRawBundle(bundle: BrowserRawBundle): ChecksummedB
     version: 1,
     sourceKind: bundle.sourceKind,
     parserVersion: bundle.parserVersion,
+    sensitiveFormFieldNames: bundle.sensitiveFormFieldNames ?? [],
     finalUrl: bundle.finalUrl,
     capturedAt: bundle.capturedAt,
     navigationStatus: bundle.navigationStatus,

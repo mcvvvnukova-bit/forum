@@ -127,10 +127,17 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
         if (scenario === "form-secrets" && companyKey === "1001") {
           body = body.replace(
             "</dl>",
-            `<input style="width:260px" type="password" name="password" value="pw-123">
-             <input style="width:260px" type="text" name="csrf_token" value="csrf-123">
-             <input style="width:260px" type="text" name="api_key" value="api-123">
-             <input style="width:260px" type="text" name="public_field" value="visible-123">
+            `<input style="display:block;width:260px;height:24px;margin:4px 0" type="password" name="password" value="pw-123">
+             <input style="display:block;width:260px;height:24px;margin:4px 0" type="text" name="csrf_token" value="csrf-123">
+             <input style="display:block;width:260px;height:24px;margin:4px 0" type="text" name="api_key" value="api-123">
+             <input style="display:block;width:260px;height:24px;margin:4px 0" type="text" name="public_field" value="visible-123">
+             </dl>`,
+          );
+        }
+        if (scenario === "configured-form-secret" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<input style="display:block;width:260px" type="text" name="nonce" value="nonce-123">
              </dl>`,
           );
         }

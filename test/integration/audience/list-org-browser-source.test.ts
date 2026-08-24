@@ -298,8 +298,25 @@ describe("ListOrgBrowserSource", () => {
     const evidence = `${dom}\n${new TextDecoder().decode(card!.manifestUtf8)}`;
     expect(evidence).not.toMatch(/pw-123|csrf-123|api-123|visible-123/i);
     expect(dom).not.toMatch(/\svalue=|name="(?:password|csrf_token|api_key)"/i);
-    expect(await countBlackContactBands(card!.redactedScreenshotPng))
-      .toBeGreaterThan(await countBlackContactBands(baselineCard!.redactedScreenshotPng));
+    expect(dom).toContain('<input type="text" name="public_field">');
+    const formBands = await countBlackContactBands(card!.redactedScreenshotPng);
+    const baselineBands = await countBlackContactBands(baselineCard!.redactedScreenshotPng);
+    expect(formBands).toBe(baselineBands + 4);
+  });
+
+  it("persists configured-only form policy while removing its control from evidence", async () => {
+    const result = await collect("/search?scenario=configured-form-secret", ["nonce"]);
+    const card = result.rawBundles.find((bundle) => bundle.identity.sourceRecordKey === "1001");
+    expect(card).toBeDefined();
+
+    const evidence = `${new TextDecoder().decode(card!.sanitizedDomUtf8)}\n${
+      new TextDecoder().decode(card!.manifestUtf8)
+    }`;
+    expect(evidence).not.toMatch(/name="nonce"|nonce-123/i);
+    expect(card!.sensitiveFormFieldNames).toContain("nonce");
+    expect(JSON.parse(new TextDecoder().decode(card!.manifestUtf8))).toMatchObject({
+      sensitiveFormFieldNames: expect.arrayContaining(["nonce"]),
+    });
   });
 
   async function collect(path: string, sensitiveQueryParameters?: readonly string[]) {

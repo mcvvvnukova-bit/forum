@@ -16,6 +16,7 @@ import type {
   ChecksummedBrowserRawBundle,
 } from "../../domain/discovery";
 import type { AppEnv } from "../../../../shared/config/env";
+import { assertSerializedBrowserDomSafe } from "../sources/list-org-browser/browser-raw-sanitizer";
 import { checksumBrowserRawBundle, sha256 } from "./raw-bundle";
 
 export class S3RawObjectStorage implements RawObjectStorage {
@@ -106,6 +107,11 @@ export class S3RawObjectStorage implements RawObjectStorage {
         && manifest.candidateEvidence.sourceRecordKey !== manifestRecordKey)) {
       throw new Error("raw object identity verification failed");
     }
+    assertSerializedBrowserDomSafe(
+      new TextDecoder("utf-8", { fatal: true }).decode(domBytes),
+      manifest.sourceKind,
+      manifest.sensitiveFormFieldNames,
+    );
     return {
       runId: manifest.identity.runId,
       sourceKind: manifest.sourceKind,
@@ -162,6 +168,7 @@ export class S3RawObjectStorage implements RawObjectStorage {
 interface RawManifest {
   sourceKind: string;
   parserVersion: string;
+  sensitiveFormFieldNames: readonly string[];
   identity: { runId: string; page: number; sourceRecordKey?: string };
   candidateEvidence: CandidateEvidence | null;
   artifacts: {
@@ -180,6 +187,7 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   if (!isRecord(value) || value.version !== 1
     || typeof value.sourceKind !== "string"
     || typeof value.parserVersion !== "string"
+    || !isStringArray(value.sensitiveFormFieldNames)
     || !isRawIdentity(value.identity)
     || !isCandidateEvidenceOrNull(value.candidateEvidence)
     || !isRecord(value.artifacts)
@@ -190,6 +198,7 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   return {
     sourceKind: value.sourceKind,
     parserVersion: value.parserVersion,
+    sensitiveFormFieldNames: value.sensitiveFormFieldNames,
     identity: value.identity,
     candidateEvidence: value.candidateEvidence,
     artifacts: {
@@ -254,6 +263,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
 function clientConfig(env: AppEnv): S3ClientConfig {
   return {
     endpoint: env.s3Endpoint,
@@ -279,6 +292,7 @@ function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
     identity: bundle.identity,
     candidateEvidence: bundle.candidateEvidence,
     actions: bundle.actions,
+    sensitiveFormFieldNames: bundle.sensitiveFormFieldNames,
   });
   if (
     bundle.checksumSha256 !== recalculated.checksumSha256
