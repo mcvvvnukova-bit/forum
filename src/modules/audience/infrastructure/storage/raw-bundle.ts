@@ -14,6 +14,7 @@ export function checksumBrowserRawBundle(bundle: BrowserRawBundle): ChecksummedB
   const redactedScreenshotSha256 = sha256(bundle.redactedScreenshotPng);
   const manifest = {
     version: 1,
+    parserVersion: bundle.parserVersion,
     finalUrl: bundle.finalUrl,
     capturedAt: bundle.capturedAt,
     navigationStatus: bundle.navigationStatus,

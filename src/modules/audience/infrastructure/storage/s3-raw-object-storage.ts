@@ -40,9 +40,9 @@ export class S3RawObjectStorage implements RawObjectStorage {
     const domKey = `${prefix}/dom.html`;
     const screenshotKey = `${prefix}/screenshot.png`;
 
-    await this.#putImmutable(manifestKey, bundle.manifestUtf8, "application/json; charset=utf-8");
     await this.#putImmutable(domKey, bundle.sanitizedDomUtf8, "text/html; charset=utf-8");
     await this.#putImmutable(screenshotKey, bundle.redactedScreenshotPng, "image/png");
+    await this.#putImmutable(manifestKey, bundle.manifestUtf8, "application/json; charset=utf-8");
 
     return {
       checksumSha256: bundle.checksumSha256,
@@ -91,6 +91,7 @@ function clientConfig(env: AppEnv): S3ClientConfig {
 
 function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
   const recalculated = checksumBrowserRawBundle({
+    parserVersion: bundle.parserVersion,
     finalUrl: bundle.finalUrl,
     capturedAt: bundle.capturedAt,
     navigationStatus: bundle.navigationStatus,

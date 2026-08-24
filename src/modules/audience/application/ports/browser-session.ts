@@ -14,6 +14,7 @@ export interface BrowserSession {
   fingerprint(): Promise<string>;
   capture(
     identity: BrowserRawBundle["identity"],
+    parserVersion: string,
     redactLabeledValues?: readonly string[],
   ): Promise<BrowserRawBundle>;
   close(): Promise<void>;

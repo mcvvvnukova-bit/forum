@@ -24,9 +24,11 @@ export interface DiscoveredCompany {
   okvedCode: OkvedCode;
   isPrimary: boolean;
   rawFetchKey: string;
+  parserVersion: string;
 }
 
 export interface BrowserRawBundle {
+  parserVersion: string;
   finalUrl: string;
   capturedAt: string;
   navigationStatus: number | null;

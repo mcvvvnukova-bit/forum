@@ -103,10 +103,45 @@ describe("S3RawObjectStorage", () => {
 
     await expect(storage.put(bundle)).rejects.toThrow(`immutable object collision at ${manifestKey}`);
   });
+
+  it("does not publish the manifest commit marker when an artifact write fails", async () => {
+    const faultClient = new S3Client({
+      endpoint: env.s3Endpoint,
+      region: "us-east-1",
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: env.s3AccessKeyId,
+        secretAccessKey: env.s3SecretAccessKey,
+      },
+    });
+    faultClient.middlewareStack.add(
+      (next) => async (args) => {
+        const input = args.input as { Key?: string };
+        if (input.Key?.endsWith("/screenshot.png") === true) {
+          throw new Error("injected screenshot artifact failure");
+        }
+        return next(args);
+      },
+      { step: "initialize", name: "injectScreenshotArtifactFailure" },
+    );
+    const bundle = sampleBundle("s3-artifact-failure");
+    const prefix = `raw/${bundle.identity.runId}/list-org-browser/${bundle.checksumSha256}`;
+
+    try {
+      const storage = new S3RawObjectStorage(env, "list-org-browser", faultClient);
+      await expect(storage.put(bundle)).rejects.toThrow("injected screenshot artifact failure");
+
+      const listed = await client.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: `${prefix}/` }));
+      expect(listed.Contents?.map((item) => item.Key)).toEqual([`${prefix}/dom.html`]);
+    } finally {
+      faultClient.destroy();
+    }
+  });
 });
 
 function sampleBundle(runId: string) {
   const raw: BrowserRawBundle = {
+    parserVersion: "list-org-browser/1.0.0",
     finalUrl: "http://127.0.0.1:33333/results/page-1",
     capturedAt: "2026-08-24T09:00:00.000Z",
     navigationStatus: 200,

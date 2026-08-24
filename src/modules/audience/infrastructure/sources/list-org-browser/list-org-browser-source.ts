@@ -16,27 +16,40 @@ import { checksumBrowserRawBundle, sha256 } from "../../storage/raw-bundle";
 
 const RESULTS_LANDMARK = "Результаты поиска";
 const CARD_LANDMARK = "Карточка организации";
+const MANDATORY_SENSITIVE_QUERY_PARAMETERS = [
+  "access_token",
+  "auth",
+  "authorization",
+  "cookie",
+  "session",
+  "session_id",
+  "token",
+] as const;
 
 export interface ListOrgBrowserSourceOptions {
   searchUrl: string;
   sessions: BrowserSessionFactory;
   runId: string;
+  parserVersion: string;
 }
 
 export class ListOrgBrowserSource implements OrganizationSource {
   readonly #searchUrl: string;
   readonly #sessions: BrowserSessionFactory;
   readonly #runId: string;
+  readonly #parserVersion: string;
 
   constructor(options: ListOrgBrowserSourceOptions) {
     this.#searchUrl = options.searchUrl;
     this.#sessions = options.sessions;
     this.#runId = options.runId;
+    if (options.parserVersion.trim() === "") throw new Error("parser version is required");
+    this.#parserVersion = options.parserVersion;
   }
 
   async collect(scope: DiscoveryScope): Promise<DiscoveryResult> {
-    if (scope.maxPages < 1 || scope.maxCompanies < 1) {
-      throw new Error("discovery limits must be positive integers");
+    if (!isPositiveSafeInteger(scope.maxPages) || !isPositiveSafeInteger(scope.maxCompanies)) {
+      throw new Error("discovery limits must be positive safe integers");
     }
 
     const session = await this.#sessions.open();
@@ -82,6 +95,7 @@ export class ListOrgBrowserSource implements OrganizationSource {
           const company = await readCompany(session);
           const cardRaw = checksumBrowserRawBundle(await session.capture(
             { runId: this.#runId, page: pageNumber, sourceRecordKey: company.sourceRecordKey },
+            this.#parserVersion,
             ["Телефон", "Email"],
           ));
           rawBundles.push(cardRaw);
@@ -101,12 +115,16 @@ export class ListOrgBrowserSource implements OrganizationSource {
 
           if (!firstSeen.has(company.sourceRecordKey)) {
             firstSeen.add(company.sourceRecordKey);
-            companies.push({ ...company, rawFetchKey: cardRaw.checksumSha256 });
+            companies.push({
+              ...company,
+              rawFetchKey: cardRaw.checksumSha256,
+              parserVersion: this.#parserVersion,
+            });
             if (companies.length === scope.maxCompanies) {
               const pageRaw = checksumBrowserRawBundle(await session.capture({
                 runId: this.#runId,
                 page: pageNumber,
-              }));
+              }, this.#parserVersion));
               rawBundles.push(pageRaw);
               pages.push({ page: pageNumber, raw: pageRaw, occurrences });
               return result("limited", "max_companies", companies, pages, rawBundles);
@@ -117,7 +135,7 @@ export class ListOrgBrowserSource implements OrganizationSource {
         const pageRaw = checksumBrowserRawBundle(await session.capture({
           runId: this.#runId,
           page: pageNumber,
-        }));
+        }, this.#parserVersion));
         rawBundles.push(pageRaw);
         pages.push({ page: pageNumber, raw: pageRaw, occurrences });
 
@@ -143,6 +161,10 @@ export class ListOrgBrowserSource implements OrganizationSource {
   }
 }
 
+function isPositiveSafeInteger(value: number): boolean {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
 function result(
   status: DiscoveryResult["status"],
   reason: string,
@@ -161,7 +183,9 @@ async function verifyRenderedFilters(session: BrowserSession, scope: DiscoverySc
   }
 }
 
-async function readCompany(session: BrowserSession): Promise<Omit<DiscoveredCompany, "rawFetchKey">> {
+async function readCompany(
+  session: BrowserSession,
+): Promise<Omit<DiscoveredCompany, "rawFetchKey" | "parserVersion">> {
   const optional = (value: string) => value === "—" ? null : value.replace(/\s+/g, " ").trim();
   const sourceRecordKey = (await session.readLabeledText("Ключ записи")).trim();
   if (!/^[0-9]+$/.test(sourceRecordKey)) {
@@ -193,13 +217,10 @@ export class PlaywrightBrowserSessionFactory implements BrowserSessionFactory {
   constructor(allowedOrigin: string, options: PlaywrightBrowserSessionFactoryOptions = {}) {
     this.#allowedOrigin = new URL(allowedOrigin).origin;
     this.#now = options.now ?? (() => new Date());
-    this.#sensitiveQueryParameters = options.sensitiveQueryParameters ?? [
-      "access_token",
-      "auth",
-      "cookie",
-      "session",
-      "token",
-    ];
+    this.#sensitiveQueryParameters = [...new Set([
+      ...MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+      ...(options.sensitiveQueryParameters ?? []),
+    ])];
   }
 
   async open(): Promise<BrowserSession> {
@@ -344,8 +365,8 @@ class PlaywrightBrowserSession implements BrowserSession {
       for (const candidate of candidates) {
         if ((await candidate.innerText()).trim() === label) exactMatches.push(candidate);
       }
-      if (exactMatches.length !== 1) {
-        throw new Error(`expected one exact label ${label}`);
+      if (exactMatches.length === 0) {
+        throw new Error(`expected at least one exact label ${label}`);
       }
       const value = await exactMatches[0].evaluate(
         (element) => element.nextElementSibling?.textContent ?? "",
@@ -385,16 +406,17 @@ class PlaywrightBrowserSession implements BrowserSession {
   }
 
   async fingerprint(): Promise<string> {
-    const dom = await this.#sanitizedDom();
+    const dom = await this.#sanitizedDom([]);
     this.#assertNoExternalRequests();
     return sha256(dom);
   }
 
   async capture(
     identity: BrowserRawBundle["identity"],
+    parserVersion: string,
     redactLabeledValues: readonly string[] = [],
   ): Promise<BrowserRawBundle> {
-    const sanitizedDomUtf8 = await this.#sanitizedDom();
+    const sanitizedDomUtf8 = await this.#sanitizedDom(redactLabeledValues);
     const overlays = await this.#addRedactionOverlays(redactLabeledValues);
     let redactedScreenshotPng: Uint8Array;
     try {
@@ -404,13 +426,14 @@ class PlaywrightBrowserSession implements BrowserSession {
         for (const element of elements) element.remove();
       });
     }
-    if (redactLabeledValues.length > 0 && overlays !== redactLabeledValues.length) {
-      throw new BrowserContractError("not every sensitive contact field could be redacted");
+    if (redactLabeledValues.some((label) => (overlays[label] ?? 0) === 0)) {
+      throw new BrowserContractError("a sensitive contact label had no value to redact");
     }
     this.#record("capture", identity.sourceRecordKey ?? `page:${identity.page}`, "completed");
     this.#assertNoExternalRequests();
 
     return {
+      parserVersion,
       finalUrl: sanitizeUrl(this.#page.url(), this.#sensitiveQueryParameters),
       capturedAt: this.#now().toISOString(),
       navigationStatus: this.#navigationStatus,
@@ -443,11 +466,23 @@ class PlaywrightBrowserSession implements BrowserSession {
     }
   }
 
-  async #sanitizedDom(): Promise<Uint8Array> {
-    const html = await this.#page.evaluate((sensitiveNames) => {
+  async #sanitizedDom(redactLabeledValues: readonly string[]): Promise<Uint8Array> {
+    const html = await this.#page.evaluate(({ sensitiveNames, redactLabels }) => {
       const clone = document.documentElement.cloneNode(true) as HTMLElement;
       clone.querySelectorAll("script, [hidden], [data-secret], input[type=hidden], meta[http-equiv='set-cookie' i]")
         .forEach((element) => element.remove());
+      const redacted = new Set(redactLabels);
+      for (const term of clone.querySelectorAll("dt")) {
+        if (redacted.has(term.textContent?.trim() ?? "")) {
+          const value = term.nextElementSibling;
+          if (value !== null) {
+            for (const attribute of [...value.attributes]) {
+              value.removeAttribute(attribute.name);
+            }
+            value.replaceChildren(document.createTextNode("[REDACTED]"));
+          }
+        }
+      }
       const sensitive = new Set(sensitiveNames.map((name) => name.toLowerCase()));
       for (const element of clone.querySelectorAll("*")) {
         for (const attribute of [...element.attributes]) {
@@ -470,35 +505,40 @@ class PlaywrightBrowserSession implements BrowserSession {
         }
       }
       return `<!doctype html>\n${clone.outerHTML}`;
-    }, this.#sensitiveQueryParameters);
+    }, {
+      sensitiveNames: this.#sensitiveQueryParameters,
+      redactLabels: redactLabeledValues,
+    });
     return new TextEncoder().encode(html);
   }
 
-  async #addRedactionOverlays(labels: readonly string[]): Promise<number> {
+  async #addRedactionOverlays(labels: readonly string[]): Promise<Record<string, number>> {
     return this.#page.evaluate((wantedLabels) => {
-      let count = 0;
+      const counts: Record<string, number> = {};
       const terms = [...document.querySelectorAll("dt")];
       for (const label of wantedLabels) {
-        const term = terms.find((candidate) => candidate.textContent?.trim() === label);
-        const value = term?.nextElementSibling;
-        if (!(value instanceof HTMLElement)) continue;
-        const rect = value.getBoundingClientRect();
-        const overlay = document.createElement("div");
-        overlay.dataset.browserCaptureRedaction = "true";
-        overlay.setAttribute("aria-hidden", "true");
-        Object.assign(overlay.style, {
-          position: "absolute",
-          left: `${rect.left + window.scrollX}px`,
-          top: `${rect.top + window.scrollY}px`,
-          width: `${Math.max(rect.width, 1)}px`,
-          height: `${Math.max(rect.height, 1)}px`,
-          background: "#000",
-          zIndex: "2147483647",
-        });
-        document.body.append(overlay);
-        count += 1;
+        counts[label] = 0;
+        for (const term of terms.filter((candidate) => candidate.textContent?.trim() === label)) {
+          const value = term.nextElementSibling;
+          if (!(value instanceof HTMLElement)) continue;
+          const rect = value.getBoundingClientRect();
+          const overlay = document.createElement("div");
+          overlay.dataset.browserCaptureRedaction = "true";
+          overlay.setAttribute("aria-hidden", "true");
+          Object.assign(overlay.style, {
+            position: "absolute",
+            left: `${rect.left + window.scrollX}px`,
+            top: `${rect.top + window.scrollY}px`,
+            width: `${Math.max(rect.width, 1)}px`,
+            height: `${Math.max(rect.height, 1)}px`,
+            background: "#000",
+            zIndex: "2147483647",
+          });
+          document.body.append(overlay);
+          counts[label] += 1;
+        }
       }
-      return count;
+      return counts;
     }, labels);
   }
 
