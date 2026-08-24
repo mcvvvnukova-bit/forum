@@ -1,0 +1,23 @@
+{
+  "fixtureContract": "fns-bfo/1.0",
+  "reports": [
+    {
+      "inn": "7707083893",
+      "form": "0710002",
+      "reportYear": 2025,
+      "unit": "RUB",
+      "correctedAt": "2026-03-01T09:00:00.000Z",
+      "sourceRecordKey": "7707083893:2025:0710002:1",
+      "lines": { "2110": "120000" }
+    },
+    {
+      "inn": "7707083893",
+      "form": "0710002",
+      "reportYear": 2025,
+      "unit": "RUB",
+      "correctedAt": "2026-04-01T09:00:00.000Z",
+      "sourceRecordKey": "7707083893:2025:0710002:2",
+      "lines": { "2110": "125000" }
+    }
+  ]
+}
