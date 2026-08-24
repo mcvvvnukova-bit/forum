@@ -308,6 +308,38 @@ export class PostgresAudienceRepository implements AudienceRepository {
           [task.id, task.runId, task.fencingToken, candidate.inn, candidate.okvedCode,
             sourceFetchId, candidate.sourceRecordKey],
         );
+        await transaction.query(
+          `WITH fence AS (
+             SELECT 1 FROM audience.crawl_tasks
+             WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'
+           )
+           INSERT INTO audience.organization_evidence (
+             id, company_inn, source_fetch_id, source_record_key, field_name,
+             value_json, parser_version
+           )
+           SELECT gen_random_uuid(), $4, $5, $6, 'organization',
+                  jsonb_build_object(
+                    'name', $7::text,
+                    'website', $8::text,
+                    'phone', $9::text,
+                    'email', $10::text,
+                    'okvedCode', $11::text,
+                    'isPrimary', $12::boolean
+                  ),
+                  $13
+           FROM fence
+           WHERE NOT EXISTS (
+             SELECT 1 FROM audience.organization_evidence evidence
+             WHERE evidence.company_inn = $4
+               AND evidence.source_fetch_id = $5
+               AND evidence.source_record_key = $6
+               AND evidence.field_name = 'organization'
+               AND evidence.parser_version = $13
+           )`,
+          [task.id, task.runId, task.fencingToken, candidate.inn, sourceFetchId,
+            candidate.sourceRecordKey, candidate.name, candidate.website, candidate.phone,
+            candidate.email, candidate.okvedCode, candidate.isPrimary, candidate.parserVersion],
+        );
       }
 
       const counts = await publicationCounts(transaction, task.runId);
@@ -394,14 +426,64 @@ export class PostgresAudienceRepository implements AudienceRepository {
       terminal_reason: string | null;
       published_at: string | null;
       tasks: string;
+      non_terminal_tasks: string;
       source_fetches: string;
       staged_companies: string;
       companies: string;
       company_okveds: string;
       run_company_matches: string;
+      occurrences: string;
+      unique_source_records: string;
+      accepted_companies: string;
+      duplicates: string;
+      rejected: string;
+      revenue: string;
+      income: string;
+      expenses: string;
+      organizations_without_evidence: string;
+      metrics_without_evidence: string;
+      evidence_without_run_raw_checksum: string;
+      projections_behind_newest_evidence: string;
+      unexplained_source_fetches: string;
     } & QueryResultRow>(
-      `SELECT run.status, run.terminal_reason, run.published_at,
+      `WITH latest_discovery AS (
+         SELECT task.result_json
+         FROM audience.crawl_tasks task
+         WHERE task.run_id = $1 AND task.task_kind = 'fixture_discovery'
+         ORDER BY task.created_at DESC, task.id DESC
+         LIMIT 1
+       ), run_matches AS (
+         SELECT match.*
+         FROM audience.run_company_matches match
+         WHERE match.run_id = $1
+       ), selected_metrics AS (
+         SELECT observation.company_inn, observation.report_year,
+                selected.metric, selected.amount, selected.evidence_id
+         FROM audience.financial_observations observation
+         JOIN (SELECT DISTINCT company_inn FROM run_matches) company
+           ON company.company_inn = observation.company_inn
+         CROSS JOIN LATERAL (VALUES
+           ('revenue'::audience.financial_metric, observation.revenue, observation.revenue_evidence_id),
+           ('income'::audience.financial_metric, observation.income, observation.income_evidence_id),
+           ('expenses'::audience.financial_metric, observation.expenses, observation.expenses_evidence_id)
+         ) selected(metric, amount, evidence_id)
+         WHERE selected.amount IS NOT NULL
+       ), newest_financial_evidence AS (
+         SELECT DISTINCT ON (evidence.company_inn, evidence.report_year, evidence.metric)
+                evidence.company_inn, evidence.report_year, evidence.metric,
+                evidence.id, evidence.amount
+         FROM audience.financial_evidence evidence
+         JOIN audience.source_fetches raw
+           ON raw.id = evidence.source_fetch_id AND raw.run_id = $1
+         JOIN (SELECT DISTINCT company_inn FROM run_matches) company
+           ON company.company_inn = evidence.company_inn
+         ORDER BY evidence.company_inn, evidence.report_year, evidence.metric,
+                  evidence.collected_at DESC, evidence.id DESC
+       )
+       SELECT run.status, run.terminal_reason, run.published_at,
          (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = run.id)::text AS tasks,
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = run.id AND status IN ('pending', 'running'))::text AS non_terminal_tasks,
          (SELECT count(*) FROM audience.source_fetches WHERE run_id = run.id)::text AS source_fetches,
          COALESCE((
            SELECT jsonb_array_length(task.result_json->'candidates')::text
@@ -413,17 +495,118 @@ export class PostgresAudienceRepository implements AudienceRepository {
          (SELECT count(*) FROM audience.company_okveds relation
            WHERE EXISTS (SELECT 1 FROM audience.run_company_matches match
              WHERE match.run_id = run.id AND match.company_inn = relation.company_inn))::text AS company_okveds,
-         (SELECT count(*) FROM audience.run_company_matches WHERE run_id = run.id)::text AS run_company_matches
+         (SELECT count(*) FROM audience.run_company_matches WHERE run_id = run.id)::text AS run_company_matches,
+         COALESCE((SELECT result_json->'discovery'->>'occurrences' FROM latest_discovery), '0') AS occurrences,
+         COALESCE((SELECT result_json->'discovery'->>'uniqueSourceRecords' FROM latest_discovery), '0') AS unique_source_records,
+         COALESCE((SELECT result_json->'discovery'->>'acceptedCompanies' FROM latest_discovery), '0') AS accepted_companies,
+         COALESCE((SELECT result_json->'discovery'->>'duplicates' FROM latest_discovery), '0') AS duplicates,
+         COALESCE((SELECT result_json->'discovery'->>'rejected' FROM latest_discovery), '0') AS rejected,
+         (SELECT count(*) FROM selected_metrics WHERE metric = 'revenue')::text AS revenue,
+         (SELECT count(*) FROM selected_metrics WHERE metric = 'income')::text AS income,
+         (SELECT count(*) FROM selected_metrics WHERE metric = 'expenses')::text AS expenses,
+         (SELECT count(*) FROM run_matches match
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM audience.organization_evidence evidence
+            JOIN audience.source_fetches raw
+              ON raw.id = evidence.source_fetch_id AND raw.run_id = run.id
+                 AND raw.checksum_sha256 ~ '^[0-9a-f]{64}$'
+            WHERE evidence.company_inn = match.company_inn
+              AND evidence.source_fetch_id = match.source_fetch_id
+              AND evidence.source_record_key = match.source_record_key
+              AND evidence.field_name = 'organization'
+          ))::text AS organizations_without_evidence,
+         (SELECT count(*) FROM selected_metrics selected
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM audience.financial_evidence evidence
+            JOIN audience.source_fetches raw
+              ON raw.id = evidence.source_fetch_id AND raw.run_id = run.id
+                 AND raw.checksum_sha256 ~ '^[0-9a-f]{64}$'
+            WHERE evidence.id = selected.evidence_id
+              AND evidence.company_inn = selected.company_inn
+              AND evidence.report_year = selected.report_year
+              AND evidence.metric = selected.metric
+              AND evidence.amount = selected.amount
+          ))::text AS metrics_without_evidence,
+         ((SELECT count(*)
+           FROM audience.organization_evidence evidence
+           JOIN (SELECT DISTINCT company_inn FROM run_matches) company
+             ON company.company_inn = evidence.company_inn
+           LEFT JOIN audience.source_fetches raw
+             ON raw.id = evidence.source_fetch_id AND raw.run_id = run.id
+                AND raw.checksum_sha256 ~ '^[0-9a-f]{64}$'
+           WHERE raw.id IS NULL)
+          +
+          (SELECT count(*)
+           FROM audience.financial_evidence evidence
+           JOIN (SELECT DISTINCT company_inn FROM run_matches) company
+             ON company.company_inn = evidence.company_inn
+           LEFT JOIN audience.source_fetches raw
+             ON raw.id = evidence.source_fetch_id AND raw.run_id = run.id
+                AND raw.checksum_sha256 ~ '^[0-9a-f]{64}$'
+           WHERE raw.id IS NULL))::text AS evidence_without_run_raw_checksum,
+         (SELECT count(*)
+          FROM selected_metrics selected
+          JOIN newest_financial_evidence newest
+            ON newest.company_inn = selected.company_inn
+               AND newest.report_year = selected.report_year
+               AND newest.metric = selected.metric
+          WHERE newest.id <> selected.evidence_id OR newest.amount <> selected.amount
+         )::text AS projections_behind_newest_evidence,
+         (SELECT count(*)
+          FROM audience.source_fetches raw
+          WHERE raw.run_id = run.id
+            AND NOT EXISTS (
+              SELECT 1 FROM audience.organization_evidence evidence
+              WHERE evidence.source_fetch_id = raw.id
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM audience.financial_evidence evidence
+              WHERE evidence.source_fetch_id = raw.id
+            )
+            AND NOT (
+              raw.source_kind = 'list-org-browser'
+              AND (
+                raw.source_record_key ~ '^page:[1-9][0-9]*$'
+                OR EXISTS (
+                  SELECT 1
+                  FROM latest_discovery discovery,
+                       jsonb_array_elements(discovery.result_json->'candidates') candidate
+                  WHERE candidate->>'sourceRecordKey' = raw.source_record_key
+                )
+              )
+            ))::text AS unexplained_source_fetches
        FROM audience.crawl_runs run WHERE run.id = $1`,
       [runId],
     );
     const row = result.rows[0];
     if (row === undefined) throw new Error("crawl run does not exist");
+    const discovery = {
+      occurrences: Number(row.occurrences),
+      uniqueSourceRecords: Number(row.unique_source_records),
+      acceptedCompanies: Number(row.accepted_companies),
+      duplicates: Number(row.duplicates),
+      rejected: Number(row.rejected),
+    };
+    const tasks = {
+      total: Number(row.tasks),
+      nonTerminal: Number(row.non_terminal_tasks),
+    };
+    const financial = {
+      revenue: Number(row.revenue),
+      income: Number(row.income),
+      expenses: Number(row.expenses),
+    };
+    const unexplainedSourceFetches = Number(row.unexplained_source_fetches);
     const report = {
       runId,
       status: row.status,
       terminalReason: row.terminal_reason,
-      tasks: Number(row.tasks),
+      discovery,
+      tasks,
+      financial,
+      unexplainedSourceFetches,
       sourceFetches: Number(row.source_fetches),
       stagedCompanies: Number(row.staged_companies),
       companies: Number(row.companies),
@@ -431,13 +614,48 @@ export class PostgresAudienceRepository implements AudienceRepository {
       runCompanyMatches: Number(row.run_company_matches),
       published: row.published_at !== null,
     };
-    return {
-      ...report,
-      consistent: !report.published
-        || (report.companies === report.stagedCompanies
-          && report.companyOkveds === report.stagedCompanies
-          && report.runCompanyMatches === report.stagedCompanies),
-    };
+    const publicationConsistent = !report.published
+      || (report.companies === report.stagedCompanies
+        && report.companyOkveds === report.stagedCompanies
+        && report.runCompanyMatches === report.stagedCompanies);
+    const violations: string[] = [];
+    if (tasks.nonTerminal !== 0) violations.push(`non-terminal tasks: ${tasks.nonTerminal}`);
+    const unaccountedOccurrences = discovery.occurrences
+      - discovery.acceptedCompanies - discovery.duplicates - discovery.rejected;
+    if (unaccountedOccurrences !== 0) {
+      violations.push(`unaccounted discovery occurrences: ${unaccountedOccurrences}`);
+    }
+    if (report.stagedCompanies !== discovery.acceptedCompanies) {
+      violations.push("accepted discovery companies differ from staged candidates");
+    }
+    const organizationsWithoutEvidence = Number(row.organizations_without_evidence);
+    if (organizationsWithoutEvidence !== 0) {
+      violations.push(`organizations without evidence: ${organizationsWithoutEvidence}`);
+    }
+    const metricsWithoutEvidence = Number(row.metrics_without_evidence);
+    if (metricsWithoutEvidence !== 0) {
+      violations.push(`published metrics without evidence: ${metricsWithoutEvidence}`);
+    }
+    const evidenceWithoutRaw = Number(row.evidence_without_run_raw_checksum);
+    if (evidenceWithoutRaw !== 0) {
+      violations.push(`evidence without run raw checksum: ${evidenceWithoutRaw}`);
+    }
+    if (row.status === "succeeded"
+      && !new Set(["terminal_marker", "max_pages", "max_companies"]).has(row.terminal_reason ?? "")) {
+      violations.push("invalid successful browser end reason");
+    }
+    const staleProjections = Number(row.projections_behind_newest_evidence);
+    if (staleProjections !== 0) {
+      violations.push(`financial projections behind newest evidence: ${staleProjections}`);
+    }
+    if (unexplainedSourceFetches !== 0) {
+      violations.push(`unexplained source fetches: ${unexplainedSourceFetches}`);
+    }
+    if (!publicationConsistent) violations.push("published organization counts differ from staging");
+    if (violations.length > 0) {
+      throw new Error(`reconciliation failed: ${violations.join("; ")}`);
+    }
+    return { ...report, consistent: true };
   }
 
   async runStatus(runId: string): Promise<{ status: CrawlStatus; terminalReason: string | null } | null> {

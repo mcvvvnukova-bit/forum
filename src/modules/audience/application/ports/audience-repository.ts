@@ -72,7 +72,17 @@ export interface ReconciliationReport {
   runId: string;
   status: CrawlStatus;
   terminalReason: string | null;
-  tasks: number;
+  discovery: DiscoveryAudit;
+  tasks: {
+    total: number;
+    nonTerminal: number;
+  };
+  financial: {
+    revenue: number;
+    income: number;
+    expenses: number;
+  };
+  unexplainedSourceFetches: number;
   sourceFetches: number;
   stagedCompanies: number;
   companies: number;
