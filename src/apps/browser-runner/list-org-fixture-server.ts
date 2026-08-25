@@ -181,9 +181,22 @@ export async function startListOrgFixtureServer(
         }
         if (scenario === "unicode-split-href-secret" && companyKey === "1001") {
           body = body.replace(
+            "</head><body>",
+            '</head><body style="min-height:620px">',
+          ).replace(
             "</dl>",
-            `<a href="https://localhost/public#foo">Public Unicode fragment</a>
-             <p style="position:absolute;left:420px;top:220px;width:260px;height:32px;margin:0;background:#fff;font:24px monospace">İf<span>oo</span></p>
+            `<a href="https://localhost/public#foo-unique-secret">Public Unicode fragment</a>
+             <p style="position:absolute;left:420px;top:220px;width:260px;height:32px;margin:0;background:#fff;font:24px monospace">İf<span>oo-unique-secret</span></p>
+             </dl>`,
+          );
+        }
+        if (scenario === "body-attribute-href-secret" && companyKey === "1001") {
+          body = body.replace(
+            "</head><body>",
+            '</head><body data-capture="body-attribute-secret" style="min-height:620px">',
+          ).replace(
+            "</dl>",
+            `<a href="https://localhost/public#body-attribute-secret">Public body attribute fragment</a>
              </dl>`,
           );
         }

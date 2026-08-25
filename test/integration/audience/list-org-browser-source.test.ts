@@ -503,8 +503,17 @@ describe("ListOrgBrowserSource", () => {
     const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
 
     expect(result.status, result.reason).toBe("succeeded");
-    expect(dom).not.toMatch(/İf(?:<[^>]+>)*oo/iu);
+    expect(dom).not.toMatch(/İf(?:<[^>]+>)*oo-unique-secret/iu);
     expect(await isBlackPixel(card.redactedScreenshotPng, 420 + 250, 220 + 16)).toBe(true);
+    expect(await isBlackPixel(card.redactedScreenshotPng, 300, 236)).toBe(false);
+  });
+
+  it("does not let a sensitive body attribute create a page-wide overlay", async () => {
+    const result = await collect("/search?scenario=body-attribute-href-secret");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(await isBlackPixel(card.redactedScreenshotPng, 760, 560)).toBe(false);
   });
 
   it("does not join hidden and separately rendered nodes into a page-wide redaction", async () => {

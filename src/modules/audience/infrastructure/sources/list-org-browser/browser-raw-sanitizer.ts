@@ -548,6 +548,15 @@ function preparePageArtifacts(
     for (const occurrence of occurrences) overlayElements.add(occurrence.container);
     for (const candidate of document.querySelectorAll("*")) {
       if (!(candidate instanceof HTMLElement)) continue;
+      if (candidate === document.documentElement) continue;
+      if (candidate === document.body) {
+        const hasDirectRenderedSensitiveText = [...candidate.childNodes]
+          .filter((node): node is Text => node.nodeType === Node.TEXT_NODE)
+          .some((node) => browserHelpers.renderedRects(node).length > 0
+            && browserHelpers.containsSensitive(node.data));
+        if (hasDirectRenderedSensitiveText) overlayElements.add(candidate);
+        continue;
+      }
       const directText = [...candidate.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent ?? "").join(" ");
       const attributes = [...candidate.attributes].map((attribute) => attribute.value).join(" ");
       if (browserHelpers.containsSensitive(`${directText} ${attributes}`)) overlayElements.add(candidate);
