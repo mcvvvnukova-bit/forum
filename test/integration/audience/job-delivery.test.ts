@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { replayRun } from "../../../src/modules/audience/application/replay-run";
 import { enqueueReplayWrite } from "../../../src/apps/browser-runner/enqueue-replay-write";
 import { createCandidateEvidence } from "../../../src/modules/audience/domain/candidate-evidence";
+import type { BrowserRawBundle } from "../../../src/modules/audience/domain/discovery";
 import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
 import { PostgresAudienceRepository } from "../../../src/modules/audience/infrastructure/postgres/audience-repository";
@@ -366,7 +367,7 @@ describe("task fencing and pg-boss delivery", () => {
       identity: { runId, page: 1, sourceRecordKey: "1001" },
       sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
       candidateEvidence: createCandidateEvidence(candidate),
-      actions: [],
+      actions: visualSafetyProof(),
     });
     const stored = await rawStorage.put(bundle);
     const discoveryTask = await repository.createDiscoveryRun({
@@ -536,7 +537,7 @@ async function stageSingleCandidateRun(
     identity: { runId, page: 1, sourceRecordKey: "1001" },
     sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
     candidateEvidence: createCandidateEvidence(candidate),
-    actions: [],
+    actions: visualSafetyProof(),
   });
   const stored = await rawStorage.put(bundle);
   const discoveryTask = await repository.createDiscoveryRun({
@@ -576,4 +577,19 @@ async function stageSingleCandidateRun(
     },
   });
   return { runId, rawStorage, stored };
+}
+
+function visualSafetyProof(): BrowserRawBundle["actions"] {
+  const id = "123e4567-e89b-42d3-a456-426614174009";
+  const event = {
+    id,
+    at: "2026-08-24T09:00:00.000Z",
+    kind: "verify-visual-safety",
+    target: "painted-surface-policy/1",
+    navigationStatus: 200,
+  } as const;
+  return [
+    { ...event, outcome: "intent" },
+    { ...event, outcome: "completed" },
+  ];
 }

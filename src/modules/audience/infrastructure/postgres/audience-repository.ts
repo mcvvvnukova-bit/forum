@@ -16,6 +16,7 @@ import type {
   TaskState,
 } from "../../application/ports/audience-repository";
 import type { BrowserActionEvent, DiscoveredCompany } from "../../domain/discovery";
+import type { FinancialMetric } from "../../domain/financial";
 import type { Database } from "../../../../shared/postgres/database";
 import {
   acquire,
@@ -459,7 +460,15 @@ export class PostgresAudienceRepository implements AudienceRepository {
              result_json = $4::jsonb
          WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'`,
         [input.task.id, input.task.runId, input.task.fencingToken,
-          JSON.stringify({ evidence: input.evidence.length })],
+          JSON.stringify({
+            evidence: input.evidence.length,
+            metricOutcomes: Object.fromEntries(
+              ["revenue", "income", "expenses"].flatMap((metric) => {
+                const evidence = input.evidence.filter((item) => item.metric === metric).length;
+                return evidence === 0 ? [] : [[metric, { outcome: "published", evidence }]];
+              }),
+            ),
+          })],
       );
       if (update.rowCount !== 1) {
         throw new Error("stale task worker stopped during financial task completion");
@@ -473,6 +482,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
       status: CrawlStatus;
       terminal_reason: string | null;
       scope_year: unknown;
+      required_financial_metrics: unknown;
       published_at: string | null;
       tasks: string;
       non_terminal_tasks: string;
@@ -490,6 +500,10 @@ export class PostgresAudienceRepository implements AudienceRepository {
       revenue: string;
       income: string;
       expenses: string;
+      required_finance_tasks: string;
+      succeeded_finance_tasks: string;
+      failed_finance_tasks: string;
+      latest_financial_task_result: unknown;
       organizations_without_evidence: string;
       metrics_without_evidence: string;
       evidence_without_run_raw_checksum: string;
@@ -573,6 +587,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
          LIMIT 1
        )
        SELECT run.status, run.terminal_reason, run.scope_json->'year' AS scope_year,
+         run.scope_json->'requiredFinancialMetrics' AS required_financial_metrics,
          run.published_at,
          (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = run.id)::text AS tasks,
          (SELECT count(*) FROM audience.crawl_tasks
@@ -602,6 +617,15 @@ export class PostgresAudienceRepository implements AudienceRepository {
           FROM current_financial_evidence WHERE metric = 'income')::text AS income,
          (SELECT count(DISTINCT (company_inn, report_year, metric))
           FROM current_financial_evidence WHERE metric = 'expenses')::text AS expenses,
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = run.id AND task_kind = 'fixture_finance')::text AS required_finance_tasks,
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = run.id AND task_kind = 'fixture_finance'
+            AND status = 'succeeded')::text AS succeeded_finance_tasks,
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = run.id AND task_kind = 'fixture_finance'
+            AND status = 'failed')::text AS failed_finance_tasks,
+         (SELECT result_json FROM latest_financial_task) AS latest_financial_task_result,
          (SELECT count(*) FROM run_matches match
           WHERE NOT EXISTS (
             SELECT 1
@@ -666,6 +690,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
     const row = result.rows[0];
     if (row === undefined) throw new Error("crawl run does not exist");
     parseRunScopeYear(row.scope_year);
+    const requiredFinancialMetrics = parseRequiredFinancialMetrics(row.required_financial_metrics);
     const discovery = {
       occurrences: Number(row.occurrences),
       uniqueSourceRecords: Number(row.unique_source_records),
@@ -743,6 +768,37 @@ export class PostgresAudienceRepository implements AudienceRepository {
     if (unexplainedSourceFetches !== 0) {
       violations.push(`unexplained source fetches: ${unexplainedSourceFetches}`);
     }
+    if (requiredFinancialMetrics.length > 0 && row.status !== "blocked") {
+      const totalFinanceTasks = Number(row.required_finance_tasks);
+      const succeededFinanceTasks = Number(row.succeeded_finance_tasks);
+      const failedFinanceTasks = Number(row.failed_finance_tasks);
+      if (totalFinanceTasks === 0) {
+        violations.push("required fixture_finance task is absent");
+      }
+      if (failedFinanceTasks > 0) {
+        violations.push(`required fixture_finance task failed: ${failedFinanceTasks}`);
+      }
+      if (totalFinanceTasks > 0 && succeededFinanceTasks === 0 && failedFinanceTasks === 0) {
+        violations.push("required fixture_finance task did not succeed");
+      }
+      if (succeededFinanceTasks > 0) {
+        const outcomes = parseFinancialMetricOutcomes(row.latest_financial_task_result);
+        for (const metric of requiredFinancialMetrics) {
+          const outcome = outcomes[metric];
+          if (outcome === undefined) {
+            violations.push(`required financial metric outcome is absent: ${metric}`);
+            continue;
+          }
+          if (outcome.outcome === "published") {
+            if (outcome.evidence <= 0 || outcome.evidence !== financial[metric]) {
+              violations.push(`required financial metric evidence differs from outcome: ${metric}`);
+            }
+          } else if (financial[metric] !== 0) {
+            violations.push(`required financial no-data outcome has evidence: ${metric}`);
+          }
+        }
+      }
+    }
     if (!publicationConsistent) violations.push("published organization counts differ from staging");
     if (violations.length > 0) {
       throw new Error(`reconciliation failed: ${violations.join("; ")}`);
@@ -775,6 +831,42 @@ function parseRunScopeYear(value: unknown): number {
     throw new Error("crawl run scope year is invalid");
   }
   return Number(value);
+}
+
+function parseRequiredFinancialMetrics(value: unknown): readonly FinancialMetric[] {
+  if (value === null || value === undefined) return [];
+  const allowed = new Set<FinancialMetric>(["revenue", "income", "expenses"]);
+  if (!Array.isArray(value)
+    || value.some((metric) => typeof metric !== "string" || !allowed.has(metric as FinancialMetric))
+    || new Set(value).size !== value.length) {
+    throw new Error("crawl run required financial metrics are invalid");
+  }
+  return value as FinancialMetric[];
+}
+
+type FinancialMetricOutcome =
+  | { outcome: "published"; evidence: number }
+  | { outcome: "no_data"; evidence: 0 };
+
+function parseFinancialMetricOutcomes(
+  result: unknown,
+): Partial<Record<FinancialMetric, FinancialMetricOutcome>> {
+  if (result === null || typeof result !== "object" || Array.isArray(result)) return {};
+  const candidate = (result as Record<string, unknown>).metricOutcomes;
+  if (candidate === null || typeof candidate !== "object" || Array.isArray(candidate)) return {};
+  const outcomes: Partial<Record<FinancialMetric, FinancialMetricOutcome>> = {};
+  for (const metric of ["revenue", "income", "expenses"] as const) {
+    const value = (candidate as Record<string, unknown>)[metric];
+    if (value === null || typeof value !== "object" || Array.isArray(value)) continue;
+    const outcome = (value as Record<string, unknown>).outcome;
+    const evidence = (value as Record<string, unknown>).evidence;
+    if (outcome === "published" && Number.isSafeInteger(evidence) && Number(evidence) > 0) {
+      outcomes[metric] = { outcome, evidence: Number(evidence) };
+    } else if (outcome === "no_data" && (evidence === 0 || evidence === undefined)) {
+      outcomes[metric] = { outcome, evidence: 0 };
+    }
+  }
+  return outcomes;
 }
 
 function taskState(row: TaskStateRow): TaskState {

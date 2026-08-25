@@ -224,6 +224,18 @@ describe("ListOrgBrowserSource", () => {
     expect(result.reason).toBe("max_pages");
   });
 
+  it.each([
+    ["a no-op Next link", "pagination-no-op"],
+    ["a repeated page carrying a stale terminal marker", "pagination-repeated-terminal"],
+    ["a reordered overlap after the page boundary", "pagination-reordered-boundary"],
+  ])("blocks pagination contract drift for %s", async (_case, scenario) => {
+    const result = await collect(`/search?scenario=${scenario}`);
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("contract_drift");
+    expect(result.blockers.at(-1)?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
   it("closes partially started browser resources when context creation fails", async () => {
     const closeBrowser = vi.fn(async () => undefined);
     const factory = new PlaywrightBrowserSessionFactory(fixture.origin, {
@@ -237,6 +249,22 @@ describe("ListOrgBrowserSource", () => {
     expect(closeBrowser).toHaveBeenCalledOnce();
   });
 
+  it("creates the browser context with service workers and downloads disabled", async () => {
+    const newContext = vi.fn(async () => { throw new Error("context options captured"); });
+    const factory = new PlaywrightBrowserSessionFactory(fixture.origin, {
+      launch: async () => ({
+        newContext,
+        close: async () => undefined,
+      }) as never,
+    });
+
+    await expect(factory.open()).rejects.toThrow("context options captured");
+    expect(newContext).toHaveBeenCalledWith({
+      serviceWorkers: "block",
+      acceptDownloads: false,
+    });
+  });
+
   it("closes context and browser when session page creation fails", async () => {
     const closeContext = vi.fn(async () => undefined);
     const closeBrowser = vi.fn(async () => undefined);
@@ -244,6 +272,7 @@ describe("ListOrgBrowserSource", () => {
       launch: async () => ({
         newContext: async () => ({
           routeWebSocket: async () => undefined,
+          addInitScript: async () => undefined,
           newPage: async () => { throw new Error("page startup failed"); },
           close: closeContext,
         }),
@@ -266,6 +295,7 @@ describe("ListOrgBrowserSource", () => {
       launch: async () => ({
         newContext: async () => ({
           routeWebSocket: async () => { throw new Error("WebSocket route startup failed"); },
+          addInitScript: async () => undefined,
           newPage,
           close: closeContext,
         }),
@@ -325,6 +355,47 @@ describe("ListOrgBrowserSource", () => {
     expect(result.blockers).toHaveLength(1);
     expect(result.blockers[0]).toMatchObject({ detail: "https://external.invalid" });
     expect(result.blockers[0]?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("blocks service workers before navigation and proves their external fetch made no connection", async () => {
+    const probe = await startExternalHttpProbe();
+    const isolatedFixture = await startListOrgFixtureServer({ externalHttpUrl: probe.url });
+    try {
+      const result = await collect(
+        "/search?scenario=service-worker-external",
+        undefined,
+        isolatedFixture.origin,
+      );
+
+      expect(result.status).toBe("blocked");
+      expect(result.reason).toBe("policy_block");
+      expect(result.blockers.at(-1)).toMatchObject({
+        detail: new URL(probe.url).origin,
+        raw: expect.objectContaining({
+          checksumSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
+        }),
+      });
+      expect(probe.requestCount()).toBe(0);
+    } finally {
+      await isolatedFixture.close();
+      await probe.close();
+    }
+  });
+
+  it.each([
+    ["popup", "popup-side-channel", "secondary-page"],
+    ["download", "download-side-channel", "download"],
+  ])("blocks the %s browser side channel with durable blocker evidence", async (
+    _case,
+    scenario,
+    evidence,
+  ) => {
+    const result = await collect(`/search?scenario=${scenario}`);
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("policy_block");
+    expect(result.blockers.at(-1)?.detail).toContain(evidence);
+    expect(result.blockers.at(-1)?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/u);
   });
 
   it("blocks an external WebSocket before its upgrade reaches the second origin", async () => {
@@ -432,6 +503,22 @@ describe("ListOrgBrowserSource", () => {
     });
   });
 
+  it.each([
+    ["success", "action-ledger-secret", "succeeded"],
+    ["failure", "action-ledger-secret-failure", "blocked"],
+  ])("collects DOM-only href secrets before %s-path action recording", async (
+    _case,
+    scenario,
+    status,
+  ) => {
+    const result = await collect(`/search?scenario=${scenario}`);
+
+    expect(result.status).toBe(status);
+    expect(JSON.stringify(result.rawBundles.flatMap((raw) => raw.actions))).not.toContain(
+      "dom-only-action-secret",
+    );
+  });
+
   it("derives DOM and screenshot redaction terms from every live retained href", async () => {
     const [result, baseline] = await Promise.all([
       collect("/search?scenario=href-only-url-secrets"),
@@ -527,6 +614,67 @@ describe("ListOrgBrowserSource", () => {
     expect(await isBlackPixel(card.redactedScreenshotPng, 760, 560)).toBe(false);
   });
 
+  it("masks a generic email split across light-DOM descendants", async () => {
+    const result = await collect("/search?scenario=split-generic-contact");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(dom).not.toMatch(/operator@(?:<[^>]+>)*example\.test/iu);
+    expect(await isBlackPixel(card.redactedScreenshotPng, 700, 436)).toBe(true);
+  });
+
+  it.each([
+    ["inline SVG", "painted-svg"],
+    ["open shadow root", "painted-shadow-open"],
+    ["closed shadow-root attempt", "painted-shadow-closed"],
+    ["generated content", "painted-generated"],
+    ["canvas", "painted-canvas"],
+    ["data image", "painted-image"],
+    ["video", "painted-video"],
+    ["data background image", "painted-background-data"],
+  ])("fails closed before capture for an unprovable %s painted surface", async (
+    _case,
+    scenario,
+  ) => {
+    const result = await collect(`/search?scenario=${scenario}`);
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("contract_drift");
+    const blocker = result.blockers.at(-1)!;
+    expect(blocker.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/u);
+    expect(new TextDecoder().decode(blocker.raw.sanitizedDomUtf8)).not.toContain(
+      "operator@example.test",
+    );
+    expect(blocker.raw.actions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "verify-visual-safety",
+        target: "painted-surface-policy/1",
+        outcome: "completed",
+      }),
+    ]));
+  });
+
+  it("removes non-http href schemes while retaining canonical safe relative navigation", async () => {
+    const result = await collect("/search?scenario=unsafe-protocol-hrefs");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(dom).not.toMatch(/href="(?:javascript|data|file):/iu);
+    expect(dom).toMatch(/href="http:\/\/127\.0\.0\.1:\d+\/relative-safe"/u);
+    expect(dom).toContain('href="http://localhost/public"');
+  });
+
+  it("blocks a non-http candidate website before candidate evidence publication", async () => {
+    const result = await collect("/search?scenario=unsafe-candidate-website");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("contract_drift");
+    expect(result.companies).toEqual([]);
+    expect(result.rawBundles.every((raw) => raw.candidateEvidence === null)).toBe(true);
+  });
+
   it("removes runtime form values from raw evidence and masks every populated control", async () => {
     const [result, baseline] = await Promise.all([
       collect("/search?scenario=form-secrets"),
@@ -614,6 +762,35 @@ interface ExternalWebSocketProbe {
   url: string;
   upgradeCount(): number;
   close(): Promise<void>;
+}
+
+interface ExternalHttpProbe {
+  url: string;
+  requestCount(): number;
+  close(): Promise<void>;
+}
+
+async function startExternalHttpProbe(): Promise<ExternalHttpProbe> {
+  let requests = 0;
+  const server = createServer((_request, response) => {
+    requests += 1;
+    response.writeHead(204, { "access-control-allow-origin": "*" });
+    response.end();
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  if (address === null || typeof address === "string") {
+    await closeServer(server);
+    throw new Error("external HTTP probe did not allocate a TCP port");
+  }
+  return {
+    url: `http://127.0.0.1:${address.port}/service-worker-probe`,
+    requestCount: () => requests,
+    close: () => closeServer(server),
+  };
 }
 
 async function startExternalWebSocketProbe(): Promise<ExternalWebSocketProbe> {

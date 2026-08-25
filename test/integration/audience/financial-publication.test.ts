@@ -156,6 +156,8 @@ describe("financial evidence publication", () => {
   });
 
   it("rolls back the whole financial batch when later evidence lacks raw provenance", async () => {
+    const failureRunId = randomUUID();
+    await seedFinancialProvenance(database, failureRunId);
     const inn = parseLegalEntityInn("7710140679");
     const evidence: readonly FinancialMetricEvidence[] = [
       {
@@ -182,7 +184,7 @@ describe("financial evidence publication", () => {
       },
     ];
 
-    await expect(publishFinancialEvidence({ runId, evidence }, { repository }))
+    await expect(publishFinancialEvidence({ runId: failureRunId, evidence }, { repository }))
       .rejects.toThrow("financial raw evidence is missing");
 
     const observations = await database.query<{ count: string }>(
@@ -200,8 +202,10 @@ describe("financial evidence publication", () => {
   });
 
   it("rolls back evidence and projections when a later metric crosses the locked run year", async () => {
+    const failureRunId = randomUUID();
+    await seedFinancialProvenance(database, failureRunId);
     const inn = parseLegalEntityInn("7710140679");
-    const task = await repository.createTask(runId, "fixture_finance", 300);
+    const task = await repository.createTask(failureRunId, "fixture_finance", 300);
     const evidence: readonly FinancialMetricEvidence[] = [
       {
         inn,
@@ -262,6 +266,8 @@ describe("financial evidence publication", () => {
     ["income mapped to BFO", "income", "fns_bfo", "raw/fns-bfo/old.json"],
     ["BFO evidence pointing at revexp raw", "revenue", "fns_bfo", "raw/fns-revexp/report.xml"],
   ] as const)("rejects %s", async (_case, metric, sourceKind, rawFetchKey) => {
+    const failureRunId = randomUUID();
+    await seedFinancialProvenance(database, failureRunId);
     const inn = parseLegalEntityInn("7710140679");
     const evidence: FinancialMetricEvidence = {
       inn,
@@ -275,7 +281,7 @@ describe("financial evidence publication", () => {
       parserVersion: sourceKind === "fns_bfo" ? "fns-bfo/1.0.0" : "fns-revexp/1.0.0",
     };
 
-    await expect(publishFinancialEvidence({ runId, evidence: [evidence] }, { repository }))
+    await expect(publishFinancialEvidence({ runId: failureRunId, evidence: [evidence] }, { repository }))
       .rejects.toThrow(/financial source mapping|financial raw evidence is missing/);
     const rows = await database.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM audience.financial_evidence
@@ -321,7 +327,8 @@ async function seedFinancialProvenance(database: PostgresDatabase, runId: string
     ]) {
       await transaction.query(
         `INSERT INTO audience.companies (inn, name, source_fetch_id, source_record_key)
-         VALUES ($1, $2, $3, $4)`,
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (inn) DO NOTHING`,
         [inn, name, organizationFetch, sourceRecordKey],
       );
     }

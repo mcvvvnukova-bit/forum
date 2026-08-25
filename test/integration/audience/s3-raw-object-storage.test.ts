@@ -160,7 +160,7 @@ describe("S3RawObjectStorage", () => {
     ["contact in DOM", { sanitizedDomUtf8: new TextEncoder().encode('<a href="mailto:info@alpha.example">email</a>') }],
     ["secret query in final URL", { finalUrl: "https://fixture.invalid/page?token=must-not-persist" }],
     ["secret in action metadata", {
-      actions: [{
+      actions: [...visualSafetyProof(), {
         id: "123e4567-e89b-42d3-a456-426614174000",
         at: "2026-08-24T09:00:00.000Z",
         kind: "navigate",
@@ -207,7 +207,7 @@ describe("S3RawObjectStorage", () => {
       pageFingerprintSha256: fixtureSha256(domBytes),
       identity: { runId, page: 1, sourceRecordKey: "1001" },
       candidateEvidence: null,
-      actions: [],
+      actions: visualSafetyProof(),
       artifacts: {
         sanitizedDom: { file: "dom.html", checksumSha256: fixtureSha256(domBytes) },
         redactedScreenshot: {
@@ -256,7 +256,8 @@ describe("S3RawObjectStorage", () => {
       manifest.finalUrl = "https://fixture.invalid/page?nonce=final-secret";
     }],
     ["action target", "action-target", (manifest: MutableBrowserManifestFixture) => {
-      manifest.actions[0]!.target = "https://fixture.invalid/page?nonce=action-secret";
+      manifest.actions.find((action) => action.kind === "navigate")!.target =
+        "https://fixture.invalid/page?nonce=action-secret";
     }],
     ["candidate website", "candidate-website", (manifest: MutableBrowserManifestFixture) => {
       manifest.candidateEvidence.website = "https://fixture.invalid/?nonce=website-secret";
@@ -294,16 +295,28 @@ describe("S3RawObjectStorage", () => {
       manifest.finalUrl = "https://userinfo-name:userinfo-pass@localhost/page";
     }],
     ["fragment in action target", "action-fragment", (manifest) => {
-      manifest.actions[0]!.target = "/page#token=action-secret";
+      manifest.actions.find((action) => action.kind === "navigate")!.target =
+        "/page#token=action-secret";
     }],
     ["userinfo in action target", "action-userinfo", (manifest) => {
-      manifest.actions[0]!.target = "https://userinfo-name:userinfo-pass@localhost/page";
+      manifest.actions.find((action) => action.kind === "navigate")!.target =
+        "https://userinfo-name:userinfo-pass@localhost/page";
     }],
     ["fragment in candidate website", "candidate-fragment", (manifest) => {
       manifest.candidateEvidence.website = "https://company.example/#token=candidate-secret";
     }],
     ["userinfo in candidate website", "candidate-userinfo", (manifest) => {
       manifest.candidateEvidence.website = "https://userinfo-name:userinfo-pass@localhost/";
+    }],
+    ["javascript protocol in final URL", "final-javascript", (manifest) => {
+      manifest.finalUrl = "javascript:alert(1)";
+    }],
+    ["data protocol in action target", "action-data", (manifest) => {
+      manifest.actions.find((action) => action.kind === "navigate")!.target =
+        "data:text/html,unsafe";
+    }],
+    ["file protocol in candidate website", "candidate-file", (manifest) => {
+      manifest.candidateEvidence.website = "file:///tmp/unsafe";
     }],
   ];
 
@@ -325,6 +338,10 @@ describe("S3RawObjectStorage", () => {
     ["userinfo", "https://userinfo-name:userinfo-pass@localhost/public"],
     ["named fragment", "https://fixture.invalid/public&num;href-fragment-secret"],
     ["named userinfo", "https://href-user&commat;localhost/public"],
+    ["javascript protocol", "javascript:alert(1)"],
+    ["data protocol", "data:text/html,unsafe"],
+    ["file protocol", "file:///tmp/unsafe"],
+    ["encoded javascript protocol", "java&#115;cript:alert(1)"],
   ])("rejects checksum-consistent serialized DOM href with %s", async (_case, href) => {
     const domBytes = new TextEncoder().encode(
       `<!doctype html><html><body><a href="${href}">Public</a></body></html>`,
@@ -341,6 +358,22 @@ describe("S3RawObjectStorage", () => {
 
     const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     await expect(browserStorage.verify(stored)).rejects.toThrow("raw redaction scan failed");
+  });
+
+  it("rejects checksum-consistent browser screenshot evidence without visual-safety proof", async () => {
+    const stored = await putChecksumConsistentBrowserManifest(
+      "s3-missing-visual-safety-proof",
+      (manifest) => {
+        manifest.actions = manifest.actions.filter(
+          (action) => action.kind !== "verify-visual-safety",
+        );
+      },
+    );
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow(
+      "browser visual safety proof is missing",
+    );
   });
 
   it("rejects a checksum-consistent browser manifest with an incomplete policy", async () => {
@@ -802,6 +835,7 @@ function sampleRawBundle(runId: string): BrowserRawBundle {
       email: { kind: "sha256", normalizedValueSha256: "c".repeat(64) },
     },
     actions: [
+      ...visualSafetyProof(),
       {
         id: "123e4567-e89b-42d3-a456-426614174000",
         at: "2026-08-24T09:00:00.000Z",
@@ -812,4 +846,19 @@ function sampleRawBundle(runId: string): BrowserRawBundle {
       },
     ],
   };
+}
+
+function visualSafetyProof(): BrowserRawBundle["actions"] {
+  const id = "123e4567-e89b-42d3-a456-426614174009";
+  const event = {
+    id,
+    at: "2026-08-24T09:00:00.000Z",
+    kind: "verify-visual-safety",
+    target: "painted-surface-policy/1",
+    navigationStatus: 200,
+  } as const;
+  return [
+    { ...event, outcome: "intent" },
+    { ...event, outcome: "completed" },
+  ];
 }

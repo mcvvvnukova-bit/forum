@@ -1,7 +1,7 @@
 import type { StoredRawObject } from "./raw-object-storage";
 import type { DiscoveredCompany } from "../../domain/discovery";
 import type { BrowserActionEvent } from "../../domain/discovery";
-import type { FinancialMetricEvidence } from "../../domain/financial";
+import type { FinancialMetric, FinancialMetricEvidence } from "../../domain/financial";
 
 export type CrawlStatus = "pending" | "running" | "succeeded" | "failed" | "blocked";
 
@@ -33,6 +33,7 @@ export interface DiscoveryRunInput {
     dryRun: boolean;
     maxPages: number;
     maxCompanies: number;
+    requiredFinancialMetrics?: readonly FinancialMetric[];
   };
   fixtureVersion: string;
   parserVersion: string;
@@ -76,6 +77,13 @@ export interface DiscoveryAudit {
   duplicates: number;
   rejected: number;
   blockedOrConflicted: number;
+  pageIdentities?: readonly DiscoveryPageIdentityAudit[];
+}
+
+export interface DiscoveryPageIdentityAudit {
+  page: number;
+  orderedSourceRecordKeys: readonly string[];
+  resultFingerprintSha256: string;
 }
 
 export interface ReplayInput {

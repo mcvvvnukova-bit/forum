@@ -12,6 +12,7 @@ export interface ListOrgFixtureServer {
 
 export interface ListOrgFixtureServerOptions {
   externalWebSocketUrl?: string;
+  externalHttpUrl?: string;
 }
 
 const fixtureDirectory = join(
@@ -30,7 +31,26 @@ export async function startListOrgFixtureServer(
     let status = 200;
     let body: string | undefined;
 
-    if (url.pathname === "/search") {
+    if (url.pathname === "/fixture-service-worker.js") {
+      response.writeHead(200, { "content-type": "application/javascript; charset=utf-8" });
+      response.end(`
+        self.addEventListener("install", () => self.skipWaiting());
+        self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+        self.addEventListener("message", (event) => event.waitUntil(
+          fetch(event.data.url)
+            .then(() => event.source.postMessage("probe-complete"))
+            .catch(() => event.source.postMessage("probe-complete"))
+        ));
+      `);
+      return;
+    } else if (url.pathname === "/fixture-download") {
+      response.writeHead(200, {
+        "content-type": "application/octet-stream",
+        "content-disposition": "attachment; filename=fixture.bin",
+      });
+      response.end("fixture download");
+      return;
+    } else if (url.pathname === "/search") {
       const scenarioInput = scenario === ""
         ? ""
         : `<input type="hidden" name="scenario" value="${escapeHtml(scenario)}">`;
@@ -53,8 +73,23 @@ export async function startListOrgFixtureServer(
           "{{EXTERNAL_RESOURCE}}",
           scenario === "external"
             ? '<img src="https://external.invalid/tracker.png" alt="external tracker">'
-            : webSocketFixtureScript(scenario, options.externalWebSocketUrl),
+            : browserIsolationFixtureScript(scenario, options),
         );
+        if (scenario === "pagination-no-op") {
+          body = body.replace(
+            /href="\/results\/page-2\?[^"]+"/u,
+            `href="/results/page-1?okved=43.11&amp;status=work&amp;scenario=${scenario}"`,
+          );
+        }
+        if (scenario === "action-ledger-secret" || scenario === "action-ledger-secret-failure") {
+          const target = scenario === "action-ledger-secret"
+            ? "/company/1001?from=1&amp;scenario=action-ledger-secret#dom-only-action-secret"
+            : "/forbidden#dom-only-action-secret";
+          body = body.replace(
+            /<a href="\/company\/1001\?[^"]+">[^<]+<\/a>/u,
+            `<a href="${target}">Открыть карточку 1001 dom-only-action-secret</a>`,
+          );
+        }
         if (scenario === "mismatched-scope") {
           body = body.replace("<dt>ОКВЭД</dt><dd>43.11</dd>", "<dt>ОКВЭД</dt><dd>43.12</dd>");
         }
@@ -68,10 +103,20 @@ export async function startListOrgFixtureServer(
     } else if (url.pathname === "/results/page-2") {
       body = scenario === "page-2-soft-block"
         ? files.softBlock
-        : renderResult(files.page2, scenario).replace(
+        : (scenario === "pagination-repeated-terminal"
+          ? renderResult(files.page1, scenario).replace(
+              "{{EXTERNAL_RESOURCE}}",
+              '<p role="status">Последняя страница</p>',
+            ).replaceAll("from=1", "from=2")
+          : renderResult(files.page2, scenario).replace(
             "{{TERMINAL_MARKER}}",
             scenario === "missing-terminal" ? "" : '<p role="status">Последняя страница</p>',
-          );
+          ));
+      if (scenario === "pagination-reordered-boundary" && body !== undefined) {
+        const first = '<a href="/company/1002?from=2&amp;scenario=pagination-reordered-boundary">Открыть карточку 1002 Бета Демонтаж</a>';
+        const second = '<a href="/company/1003?from=2&amp;scenario=pagination-reordered-boundary">Открыть карточку 1003 Гамма Снос</a>';
+        body = body.replace(`${first}\n      ${second}`, `${second}\n      ${first}`);
+      }
     } else {
       const companyMatch = /^\/company\/(1001|1002|1003)$/.exec(url.pathname);
       const companyKey = companyMatch?.[1];
@@ -236,6 +281,30 @@ export async function startListOrgFixtureServer(
              </dl>`,
           );
         }
+        if (scenario === "split-generic-contact" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<p style="position:absolute;left:420px;top:420px;width:300px;height:32px;margin:0;background:#fff;font:20px monospace">operator@<span>example.test</span></p>
+             </dl>`,
+          );
+        }
+        if (scenario.startsWith("painted-") && companyKey === "1001") {
+          body = injectPaintedSurface(body, scenario);
+        }
+        if (scenario === "unsafe-protocol-hrefs" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<a href="javascript:alert(1)">javascript</a>
+             <a href="d&#97;ta:text/html,unsafe">encoded data</a>
+             <a href="file:///tmp/unsafe">file</a>
+             <a href="//localhost/public">protocol relative</a>
+             <a href="/relative-safe">relative safe</a>
+             </dl>`,
+          );
+        }
+        if (scenario === "unsafe-candidate-website" && companyKey === "1001") {
+          body = body.replace("https://alpha.example", "javascript:alert(1)");
+        }
       }
     }
 
@@ -292,17 +361,79 @@ function renderResult(template: string, scenario: string): string {
   return template.replaceAll("{{SCENARIO_QUERY}}", query);
 }
 
-function webSocketFixtureScript(
+function browserIsolationFixtureScript(
   scenario: string,
-  externalWebSocketUrl: string | undefined,
+  options: ListOrgFixtureServerOptions,
 ): string {
   if (scenario === "same-origin-websocket") {
     return `<script>new WebSocket("ws://" + location.host + "/fixture-websocket");</script>`;
   }
-  if (scenario === "external-websocket" && externalWebSocketUrl !== undefined) {
-    return `<script>new WebSocket(${JSON.stringify(externalWebSocketUrl)});</script>`;
+  if (scenario === "external-websocket" && options.externalWebSocketUrl !== undefined) {
+    return `<script>new WebSocket(${JSON.stringify(options.externalWebSocketUrl)});</script>`;
+  }
+  if (scenario === "service-worker-external" && options.externalHttpUrl !== undefined) {
+    return `<script>
+      const results = document.querySelector("main");
+      results.setAttribute("aria-label", "Service worker pending");
+      const complete = () => results.setAttribute("aria-label", "Результаты поиска");
+      navigator.serviceWorker.addEventListener("message", complete, { once: true });
+      navigator.serviceWorker.register("/fixture-service-worker.js")
+        .then(() => navigator.serviceWorker.ready)
+        .then((registration) => registration.active.postMessage({ url: ${JSON.stringify(options.externalHttpUrl)} }))
+        .catch(() => fetch(${JSON.stringify(options.externalHttpUrl)}))
+        .catch(() => undefined)
+        .finally(() => {
+          if (navigator.serviceWorker.controller === null) complete();
+        });
+    </script>`;
+  }
+  if (scenario === "popup-side-channel") {
+    return '<script>window.open("/soft-block", "fixture-popup");</script>';
+  }
+  if (scenario === "download-side-channel") {
+    return `<script>
+      const link = document.createElement("a");
+      link.href = "/fixture-download";
+      link.download = "fixture.bin";
+      document.body.append(link);
+      link.click();
+    </script>`;
   }
   return "";
+}
+
+function injectPaintedSurface(body: string, scenario: string): string {
+  const surface = (() => {
+    switch (scenario) {
+      case "painted-svg":
+        return '<svg width="320" height="40"><text x="0" y="24">operator@example.test</text></svg>';
+      case "painted-shadow-open":
+        return `<div id="shadow-host"></div><script>
+          document.querySelector("#shadow-host").attachShadow({ mode: "open" }).innerHTML =
+            "<p>operator@example.test</p>";
+        </script>`;
+      case "painted-shadow-closed":
+        return `<div id="shadow-host"></div><script>
+          try {
+            document.querySelector("#shadow-host").attachShadow({ mode: "closed" }).innerHTML =
+              "<p>operator@example.test</p>";
+          } catch {}
+        </script>`;
+      case "painted-generated":
+        return '<style>.generated-contact::before{content:"operator@example.test"}</style><p class="generated-contact">Generated</p>';
+      case "painted-canvas":
+        return '<canvas id="contact-canvas" width="320" height="40"></canvas><script>contactCanvas(); function contactCanvas(){const c=document.querySelector("#contact-canvas").getContext("2d");c.font="20px sans-serif";c.fillText("operator@example.test",0,24)}</script>';
+      case "painted-image":
+        return '<img alt="contact pixels" width="32" height="32" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22%3E%3Crect width=%2232%22 height=%2232%22 fill=%22red%22/%3E%3C/svg%3E">';
+      case "painted-video":
+        return '<video style="display:block;width:320px;height:40px" src="data:video/mp4;base64,AAAA"></video>';
+      case "painted-background-data":
+        return '<p style="width:320px;height:40px;background-image:url(data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E)">Background</p>';
+      default:
+        return "";
+    }
+  })();
+  return body.replace("</dl>", `</dl>${surface}`);
 }
 
 async function loadFixtures() {

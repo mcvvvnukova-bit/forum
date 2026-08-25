@@ -13,6 +13,7 @@ import { runner } from "node-pg-migrate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { importSelectedOkveds } from "../../../src/modules/audience/application/import-selected-okveds";
+import { publishFinancialEvidence } from "../../../src/modules/audience/application/publish-financial-evidence";
 import { reconcileRun } from "../../../src/modules/audience/application/reconcile-run";
 import { replayRun } from "../../../src/modules/audience/application/replay-run";
 import { runFixtureDiscovery } from "../../../src/modules/audience/application/run-fixture-discovery";
@@ -27,8 +28,11 @@ import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure
 import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import {
   ExternalBrowserRequestError,
+  type BrowserRawBundle,
   type OrganizationSource,
 } from "../../../src/modules/audience/domain/discovery";
+import { parseMoneyText } from "../../../src/modules/audience/domain/financial";
+import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
 import type { AppEnv } from "../../../src/shared/config/env";
 import { PostgresDatabase } from "../../../src/shared/postgres/database";
 import {
@@ -326,13 +330,132 @@ describe("fixture discovery and replay publication", () => {
     expect(after.Contents ?? []).toEqual([]);
   }, 25_000);
 
+  it("rejects a successful canary when required fixture finance is absent", async () => {
+    const runId = randomUUID();
+    await database.query(
+      `INSERT INTO audience.crawl_runs (
+         id, scope_json, fixture_version, parser_version, status, terminal_reason, completed_at
+       ) VALUES ($1, $2::jsonb, 'required-finance-fixture/1.0.0',
+         'list-org-browser/1.0.0', 'succeeded', 'terminal_marker', now())`,
+      [runId, JSON.stringify({
+        year: 2025,
+        requiredFinancialMetrics: ["revenue", "income", "expenses"],
+      })],
+    );
+
+    await expect(reconcileRun(runId, repository)).rejects.toThrow(
+      "required fixture_finance task is absent",
+    );
+  });
+
+  it("fails the aggregate run and reconciliation after forced fixture_finance_failed", async () => {
+    const runId = randomUUID();
+    await database.query(
+      `INSERT INTO audience.crawl_runs (
+         id, scope_json, fixture_version, parser_version, status, terminal_reason, completed_at
+       ) VALUES ($1, $2::jsonb, 'required-finance-fixture/1.0.0',
+         'list-org-browser/1.0.0', 'succeeded', 'terminal_marker', now())`,
+      [runId, JSON.stringify({
+        year: 2025,
+        requiredFinancialMetrics: ["revenue", "income", "expenses"],
+      })],
+    );
+
+    await expect(publishFinancialEvidence({
+      runId,
+      evidence: [{
+        inn: parseLegalEntityInn("7707083893"),
+        reportYear: 2025,
+        metric: "revenue",
+        value: parseMoneyText("1", "dot"),
+        sourceKind: "fns_bfo",
+        sourceRecordKey: "7707083893:2025:0710002:forced-failure",
+        observedAt: "2026-04-01T09:00:00.000Z",
+        rawFetchKey: "raw/forced-missing-finance.json",
+        parserVersion: "fns-bfo/1.0.0",
+      }],
+    }, { repository })).rejects.toThrow("financial raw evidence is missing");
+
+    await expect(repository.runStatus(runId)).resolves.toEqual({
+      status: "failed",
+      terminalReason: "fixture_finance_failed",
+    });
+    const task = await database.query<{ status: string; error_code: string | null }>(
+      `SELECT status::text, error_json->>'code' AS error_code
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_finance'`,
+      [runId],
+    );
+    expect(task.rows).toEqual([{ status: "failed", error_code: "fixture_finance_failed" }]);
+    await expect(reconcileRun(runId, repository)).rejects.toThrow(
+      "required fixture_finance task failed: 1",
+    );
+  });
+
+  it.each([
+    ["success", "action-ledger-secret", "succeeded", "terminal_marker"],
+    ["failure", "action-ledger-secret-failure", "blocked", "http_403"],
+  ])("keeps the durable PostgreSQL action ledger clean on the %s path", async (
+    _case,
+    scenario,
+    expectedStatus,
+    expectedReason,
+  ) => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const source = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search?scenario=${scenario}`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+
+    let summary: Awaited<ReturnType<typeof runFixtureDiscovery>> | undefined;
+    let executionError: unknown;
+    try {
+      summary = await runFixtureDiscovery({
+        runId,
+        okved: "43.11",
+        year: 2025,
+        dryRun: true,
+        maxPages: 2,
+        maxCompanies: 50,
+        fixtureVersion: "list-org-browser-fixture/1.0.0",
+        parserVersion,
+      }, { repository, source, rawStorage });
+    } catch (error) {
+      executionError = error;
+    }
+
+    const task = await database.query<{ action_ledger: unknown; result_json: unknown }>(
+      `SELECT result_json->'actionLedger' AS action_ledger, result_json
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId],
+    );
+    expect(task.rows).toHaveLength(1);
+    expect(JSON.stringify(task.rows[0])).not.toContain("dom-only-action-secret");
+    expect(executionError).toBeUndefined();
+    expect(summary).toMatchObject({ status: expectedStatus, reason: expectedReason });
+  }, 20_000);
+
   it("recovers expired discovery from page one with lease renewal and write-ahead actions", async () => {
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";
     const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     const crashed = await repository.createDiscoveryRun({
       runId,
-      scope: { okved: "43.11", year: 2025, dryRun: true, maxPages: 2, maxCompanies: 50 },
+      scope: {
+        okved: "43.11",
+        year: 2025,
+        dryRun: true,
+        maxPages: 2,
+        maxCompanies: 50,
+        requiredFinancialMetrics: ["revenue", "income", "expenses"],
+      },
       fixtureVersion: "list-org-browser-fixture/1.0.0",
       parserVersion,
       leaseSeconds: 1,
@@ -416,10 +539,9 @@ describe("fixture discovery and replay publication", () => {
       expect(intentIndex).toBeGreaterThanOrEqual(0);
       expect(intentIndex).toBeLessThan(recoveredActions.indexOf(completed));
     }
-    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({
-      tasks: { nonTerminal: 0 },
-      consistent: true,
-    });
+    await expect(reconcileRun(runId, repository)).rejects.toThrow(
+      "required fixture_finance task is absent",
+    );
   }, 20_000);
 
   it("fails discovery before persistence when raw identity belongs to another run", async () => {
@@ -437,7 +559,7 @@ describe("fixture discovery and replay publication", () => {
       identity: { runId: foreignRunId, page: 1 },
       sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
       candidateEvidence: null,
-      actions: [],
+      actions: visualSafetyProof(),
     };
     const raw = checksumBrowserRawBundle(rawInput);
     const source = {
@@ -445,7 +567,13 @@ describe("fixture discovery and replay publication", () => {
         status: "succeeded" as const,
         reason: "terminal_marker",
         companies: [],
-        pages: [{ page: 1, raw, occurrences: [] }],
+        pages: [{
+          page: 1,
+          raw,
+          occurrences: [],
+          orderedSourceRecordKeys: [],
+          resultFingerprintSha256: raw.pageFingerprintSha256,
+        }],
         rawBundles: [raw],
         rejects: [],
         blockers: [],
@@ -490,7 +618,7 @@ describe("fixture discovery and replay publication", () => {
       identity: { runId, page: 1 },
       sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
       candidateEvidence: null,
-      actions: [],
+      actions: visualSafetyProof(),
     });
     const source: OrganizationSource = {
       collect: async () => ({
@@ -500,6 +628,8 @@ describe("fixture discovery and replay publication", () => {
         pages: [{
           page: 1,
           raw,
+          orderedSourceRecordKeys: ["orphan-occurrence"],
+          resultFingerprintSha256: raw.pageFingerprintSha256,
           occurrences: [{
             sourceRecordKey: "orphan-occurrence",
             resultFingerprintBefore: "a".repeat(64),
@@ -537,6 +667,11 @@ describe("fixture discovery and replay publication", () => {
       duplicates: 0,
       rejected: 0,
       blockedOrConflicted: 0,
+      pageIdentities: [{
+        page: 1,
+        orderedSourceRecordKeys: ["orphan-occurrence"],
+        resultFingerprintSha256: raw.pageFingerprintSha256,
+      }],
     });
     await expect(reconcileRun(runId, repository)).rejects.toThrow(
       "unaccounted discovery occurrences: 1",
@@ -571,21 +706,9 @@ describe("fixture discovery and replay publication", () => {
     });
     await expect(replayRun({ runId, dryRun: false }, { repository, rawStorage }))
       .resolves.toMatchObject({ companies: 2, companyOkveds: 2, runCompanyMatches: 2 });
-    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({
-      discovery: {
-        occurrences: 4,
-        uniqueSourceRecords: 3,
-        acceptedCompanies: 2,
-        duplicates: 1,
-        rejected: 1,
-        blockedOrConflicted: 0,
-      },
-      companies: 2,
-      companyOkveds: 2,
-      runCompanyMatches: 2,
-      tasks: { nonTerminal: 0 },
-      consistent: true,
-    });
+    await expect(reconcileRun(runId, repository)).rejects.toThrow(
+      "required fixture_finance task is absent",
+    );
   });
 
   it.each([
@@ -734,6 +857,18 @@ describe("fixture discovery and replay publication", () => {
       duplicates: 1,
       rejected: 0,
       blockedOrConflicted: 0,
+      pageIdentities: [
+        {
+          page: 1,
+          orderedSourceRecordKeys: ["1001", "1002"],
+          resultFingerprintSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
+        },
+        {
+          page: 2,
+          orderedSourceRecordKeys: ["1002", "1003"],
+          resultFingerprintSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
+        },
+      ],
     });
     expect(await domainCounts(database, runId)).toEqual({
       companies: 0,
@@ -760,13 +895,9 @@ describe("fixture discovery and replay publication", () => {
       companyOkveds: 3,
       runCompanyMatches: 3,
     });
-    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({
-      stagedCompanies: 3,
-      companies: 3,
-      runCompanyMatches: 3,
-      published: true,
-      consistent: true,
-    });
+    await expect(reconcileRun(runId, repository)).rejects.toThrow(
+      "required fixture_finance task is absent",
+    );
 
     await replayRun({ runId, dryRun: false }, { repository, rawStorage });
 
@@ -798,6 +929,21 @@ describe("fixture discovery and replay publication", () => {
     expect(failedReplay.rows[0]?.count).toBe("1");
   });
 });
+
+function visualSafetyProof(): BrowserRawBundle["actions"] {
+  const id = "123e4567-e89b-42d3-a456-426614174009";
+  const event = {
+    id,
+    at: "2026-08-24T09:00:00.000Z",
+    kind: "verify-visual-safety",
+    target: "painted-surface-policy/1",
+    navigationStatus: 200,
+  } as const;
+  return [
+    { ...event, outcome: "intent" },
+    { ...event, outcome: "completed" },
+  ];
+}
 
 async function seedSelectedOkved(database: PostgresDatabase): Promise<void> {
   const provenanceRunId = randomUUID();

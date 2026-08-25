@@ -11,6 +11,9 @@ export const MANDATORY_SENSITIVE_QUERY_PARAMETERS = [
   "token",
 ] as const;
 
+export const BROWSER_VISUAL_SAFETY_ACTION_KIND = "verify-visual-safety";
+export const BROWSER_VISUAL_SAFETY_POLICY = "painted-surface-policy/1";
+
 export type BrowserCaptureSafetyEvidence = Pick<
   BrowserRawBundle,
   | "sourceKind"
@@ -52,6 +55,7 @@ export function sanitizeBrowserUrl(
   sensitiveQueryParameters: readonly string[],
 ): string {
   const url = new URL(value);
+  assertHttpProtocol(url);
   sanitizeRetainedUrl(url, sensitiveQueryParameters);
   return url.toString();
 }
@@ -170,6 +174,9 @@ export function assertBrowserCaptureSafe(
   sensitiveValues: readonly string[] = [],
 ): void {
   assertCompleteBrowserSensitivePolicy(bundle.sourceKind, bundle.sensitiveFormFieldNames);
+  if (bundle.sourceKind === "list-org-browser" && !hasTerminalVisualSafetyProof(bundle.actions)) {
+    throw new Error("browser visual safety proof is missing");
+  }
   const dom = new TextDecoder("utf-8", { fatal: true }).decode(bundle.sanitizedDomUtf8);
   const actionMetadata = bundle.actions.map((action) => ({
     id: action.id,
@@ -197,17 +204,29 @@ export function assertBrowserCaptureSafe(
     throw new Error("browser action id is not a canonical UUID v4");
   }
   const sensitiveNames = bundle.sensitiveFormFieldNames ?? [];
-  assertRetainedBrowserUrlSafe(bundle.finalUrl, sensitiveNames);
+  assertRetainedBrowserUrlSafe(bundle.finalUrl, sensitiveNames, false);
   if (bundle.candidateEvidence?.website !== null && bundle.candidateEvidence?.website !== undefined) {
-    assertRetainedBrowserUrlSafe(bundle.candidateEvidence.website, sensitiveNames);
+    assertRetainedBrowserUrlSafe(bundle.candidateEvidence.website, sensitiveNames, false);
   }
   for (const action of bundle.actions) {
-    assertRetainedBrowserUrlSafe(action.target, sensitiveNames);
+    assertRetainedBrowserUrlSafe(action.target, sensitiveNames, true);
   }
   assertSerializedBrowserDomSafe(
     dom,
     bundle.sourceKind,
     sensitiveNames,
+  );
+}
+
+function hasTerminalVisualSafetyProof(actions: BrowserRawBundle["actions"]): boolean {
+  const visualActions = actions.filter((action) =>
+    action.kind === BROWSER_VISUAL_SAFETY_ACTION_KIND
+      && action.target === BROWSER_VISUAL_SAFETY_POLICY
+  );
+  const terminal = visualActions.at(-1);
+  if (terminal?.outcome !== "completed") return false;
+  return visualActions.some((action) =>
+    action.id === terminal.id && action.outcome === "intent"
   );
 }
 
@@ -288,6 +307,35 @@ export function preparePageCapture(
   });
 }
 
+export async function assertPageVisualSurfacesSafe(page: Page): Promise<void> {
+  const violations = await page.evaluate(() => {
+    const unsafe: string[] = [];
+    const windowWithMarker = window as Window & { __okvedClosedShadowAttempt?: boolean };
+    if (windowWithMarker.__okvedClosedShadowAttempt === true) unsafe.push("closed-shadow-root");
+    for (const element of document.querySelectorAll("*")) {
+      const style = getComputedStyle(element);
+      if (style.display === "none" || style.visibility === "hidden"
+        || style.visibility === "collapse" || Number(style.opacity) === 0) continue;
+      if (element.shadowRoot !== null) unsafe.push("open-shadow-root");
+      const before = getComputedStyle(element, "::before").content;
+      const after = getComputedStyle(element, "::after").content;
+      if (!["none", "normal", ""].includes(before)) unsafe.push("generated-content");
+      if (!["none", "normal", ""].includes(after)) unsafe.push("generated-content");
+      if (style.backgroundImage !== "none") unsafe.push("background-image");
+      if (/url\s*\(/iu.test(element.getAttribute("style") ?? "")) {
+        unsafe.push("inline-painted-background");
+      }
+    }
+    if (document.querySelector("svg, canvas, img, picture, video, audio, iframe, object, embed") !== null) {
+      unsafe.push("non-dom-painted-surface");
+    }
+    return [...new Set(unsafe)];
+  });
+  if (violations.length > 0) {
+    throw new Error(`browser visual surface cannot be proven safe: ${violations.join(", ")}`);
+  }
+}
+
 function preparePageArtifacts(
   page: Page,
   options: {
@@ -304,6 +352,8 @@ function preparePageArtifacts(
     safeTags,
     safeAttributes,
     genericSensitiveNamePatternSource,
+    emailPatternSource,
+    phonePatternSource,
     addOverlays,
   }) => {
     type FoldedText = { text: string; originalStarts: number[]; originalEnds: number[] };
@@ -315,6 +365,10 @@ function preparePageArtifacts(
     const allowedAttributes = new Set<string>(safeAttributes);
     const sensitive = new Set(sensitiveNames.map((name) => name.toLowerCase()));
     const genericSensitiveNamePattern = new RegExp(genericSensitiveNamePatternSource, "iu");
+    const genericContactPatterns = [
+      new RegExp(emailPatternSource, "giu"),
+      new RegExp(phonePatternSource, "gu"),
+    ];
     const terms = [...new Set(redactValues.filter((value) => value !== ""))]
       .sort((left, right) => right.length - left.length);
     // Object methods survive tsx/esbuild keepNames serialization without an
@@ -418,7 +472,14 @@ function preparePageArtifacts(
       }
       const occurrences: RenderedOccurrence[] = [];
       for (const current of segments) {
-        for (const term of terms) for (const range of browserHelpers.originalMatchRanges(current.text, term)) {
+        const ranges = terms.flatMap((term) => browserHelpers.originalMatchRanges(current.text, term));
+        for (const pattern of genericContactPatterns) {
+          pattern.lastIndex = 0;
+          for (const match of current.text.matchAll(pattern)) {
+            if (match.index !== undefined) ranges.push({ start: match.index, end: match.index + match[0].length });
+          }
+        }
+        for (const range of ranges) {
           const first = current.entries.find((entry) => entry.start <= range.start && entry.end > range.start);
           const last = current.entries.find((entry) => entry.start < range.end && entry.end >= range.end);
           if (first === undefined || last === undefined) throw new Error("rendered sensitive range mapping failed");
@@ -498,6 +559,10 @@ function preparePageArtifacts(
           }
           try {
             const url = new URL(attributeValue, document.baseURI);
+            if (url.protocol !== "http:" && url.protocol !== "https:") {
+              element.removeAttribute(attribute.name);
+              continue;
+            }
             for (const name of [...url.searchParams.keys()]) {
               if (helpers.isSensitiveFormFieldName(name)) {
                 url.searchParams.delete(name);
@@ -582,6 +647,8 @@ function preparePageArtifacts(
     safeTags: SAFE_CAPTURE_TAGS,
     safeAttributes: SAFE_CAPTURE_ATTRIBUTES,
     genericSensitiveNamePatternSource: GENERIC_SENSITIVE_NAME_PATTERN_SOURCE,
+    emailPatternSource: EMAIL_PATTERN.source,
+    phonePatternSource: PHONE_PATTERN.source,
     addOverlays: options.addOverlays,
   });
 }
@@ -624,19 +691,30 @@ function sanitizeRetainedUrl(
 function assertRetainedBrowserUrlSafe(
   value: string,
   sensitiveNames: readonly string[],
+  allowRelative: boolean,
 ): void {
   let url: URL;
   try {
-    url = new URL(value, "https://browser-evidence.invalid");
+    url = allowRelative
+      ? new URL(value, "https://browser-evidence.invalid")
+      : new URL(value);
   } catch {
-    return;
+    throw new Error("raw redaction scan failed");
   }
-  if (url.hash !== "" || url.username !== "" || url.password !== ""
+  if (!isHttpProtocol(url) || url.hash !== "" || url.username !== "" || url.password !== ""
     || [...url.searchParams.keys()].some((name) =>
     isSensitiveFormFieldName(name, sensitiveNames)
   )) {
     throw new Error("raw redaction scan failed");
   }
+}
+
+function isHttpProtocol(url: URL): boolean {
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+function assertHttpProtocol(url: URL): void {
+  if (!isHttpProtocol(url)) throw new Error("retained browser URL protocol is not allowed");
 }
 
 export function isSensitiveFormFieldName(
@@ -676,7 +754,7 @@ function containsUnsafeSerializedHref(
     const value = decodeHtmlUrlAttribute(match[2] ?? "");
     if (value === null) return true;
     try {
-      assertRetainedBrowserUrlSafe(value, sensitiveFormFieldNames);
+      assertRetainedBrowserUrlSafe(value, sensitiveFormFieldNames, true);
     } catch {
       return true;
     }

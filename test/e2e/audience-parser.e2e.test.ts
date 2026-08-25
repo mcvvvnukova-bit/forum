@@ -170,6 +170,26 @@ describe.sequential("audience parser fixture acceptance", () => {
       published: true,
       consistent: true,
     });
+    const financeContract = await database.query<{
+      required_metrics: unknown;
+      metric_outcomes: unknown;
+    }>(
+      `SELECT run.scope_json->'requiredFinancialMetrics' AS required_metrics,
+              task.result_json->'metricOutcomes' AS metric_outcomes
+       FROM audience.crawl_runs run
+       JOIN audience.crawl_tasks task
+         ON task.run_id = run.id AND task.task_kind = 'fixture_finance'
+       WHERE run.id = $1 AND task.status = 'succeeded'`,
+      [runId],
+    );
+    expect(financeContract.rows).toEqual([{
+      required_metrics: ["revenue", "income", "expenses"],
+      metric_outcomes: {
+        revenue: { outcome: "published", evidence: 1 },
+        income: { outcome: "published", evidence: 1 },
+        expenses: { outcome: "published", evidence: 1 },
+      },
+    }]);
 
     expect(await readOnlyAcceptanceSnapshot(database, runId)).toEqual({
       companies: 3,

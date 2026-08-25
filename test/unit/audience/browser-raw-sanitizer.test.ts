@@ -97,6 +97,53 @@ describe("browser raw sanitizer persistence boundary", () => {
   });
 
   it.each([
+    "javascript:alert(1)",
+    "data:text/html,unsafe",
+    "file:///tmp/unsafe",
+  ])("rejects the non-http retained URL protocol in %s", (value) => {
+    expect(() => sanitizeBrowserUrl(value, [])).toThrow(
+      "retained browser URL protocol is not allowed",
+    );
+  });
+
+  it.each([
+    ["javascript", "javascript:alert(1)"],
+    ["data", "data:text/html,unsafe"],
+    ["file", "file:///tmp/unsafe"],
+    ["encoded javascript", "java&#115;cript:alert(1)"],
+  ])("rejects a serialized %s DOM href at the checksum boundary", (_case, href) => {
+    expect(() => checksumBrowserRawBundle(rawBundle(
+      `<!doctype html><html><body><a href="${href}">unsafe</a></body></html>`,
+    ))).toThrow("raw redaction scan failed");
+  });
+
+  it.each([
+    "/relative/path",
+    "../relative/path",
+    "//fixture.invalid/protocol-relative",
+  ])("retains safe relative or protocol-relative DOM navigation %s", (href) => {
+    expect(() => checksumBrowserRawBundle(rawBundle(
+      `<!doctype html><html><body><a href="${href}">safe</a></body></html>`,
+    ))).not.toThrow();
+  });
+
+  it("rejects a non-http candidate website at the checksum boundary", () => {
+    const bundle = rawBundle("<!doctype html><html><body><main>safe</main></body></html>");
+    bundle.candidateEvidence = {
+      sourceRecordKey: "1001",
+      inn: "7707083893",
+      name: "Safe company",
+      website: "javascript:alert(1)",
+      okvedCode: "43.11",
+      isPrimary: true,
+      phone: { kind: "null" },
+      email: { kind: "null" },
+    };
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow("raw redaction scan failed");
+  });
+
+  it.each([
     ["relative action target", "action", "/results/page-1#overview"],
     ["relative DOM href", "dom", "/public#overview"],
   ])("structurally rejects a fragment in a stored %s", (_case, surface, value) => {
@@ -106,7 +153,7 @@ describe("browser raw sanitizer persistence boundary", () => {
         : "<!doctype html><html><body><main>safe</main></body></html>",
     );
     if (surface === "action") {
-      bundle.actions = [{
+      bundle.actions = [...visualSafetyProof(), {
         id: "123e4567-e89b-42d3-a456-426614174000",
         at: "2026-08-24T09:00:00.000Z",
         kind: "navigate",
@@ -150,7 +197,7 @@ describe("browser raw sanitizer persistence boundary", () => {
     const bundle = rawBundle(
       "<!doctype html><html><body><main>safe</main></body></html>",
     );
-    bundle.actions = [{
+    bundle.actions = [...visualSafetyProof(), {
       id: "123e4567-e89b-42d3-a456-426614174000",
       at: "2026-08-24T09:00:00.000Z",
       kind: "navigate",
@@ -200,11 +247,20 @@ describe("browser raw sanitizer persistence boundary", () => {
     })).toThrow("raw redaction scan failed");
   });
 
+  it("rejects browser screenshot evidence without a completed versioned visual-safety proof", () => {
+    const bundle = rawBundle("<!doctype html><html><body><main>safe</main></body></html>");
+    bundle.actions = [];
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow(
+      "browser visual safety proof is missing",
+    );
+  });
+
   it("rejects contact material in an action ID at the checksum boundary", () => {
     const bundle = rawBundle(
       "<!doctype html><html><body><main>safe</main></body></html>",
     );
-    bundle.actions = [{
+    bundle.actions = [...visualSafetyProof(), {
       id: "operator@example.test",
       at: "2026-08-24T09:00:00.000Z",
       kind: "navigate",
@@ -220,7 +276,7 @@ describe("browser raw sanitizer persistence boundary", () => {
     const bundle = rawBundle(
       "<!doctype html><html><body><main>safe</main></body></html>",
     );
-    bundle.actions = [{
+    bundle.actions = [...visualSafetyProof(), {
       id: "action-1",
       at: "2026-08-24T09:00:00.000Z",
       kind: "navigate",
@@ -238,7 +294,7 @@ describe("browser raw sanitizer persistence boundary", () => {
     const bundle = rawBundle(
       "<!doctype html><html><body><main>safe</main></body></html>",
     );
-    bundle.actions = [{
+    bundle.actions = [...visualSafetyProof(), {
       id: "0b59e20b-7697-4506-945d-3167da214976",
       at: "2026-08-24T09:00:00.000Z",
       kind: "navigate",
@@ -255,7 +311,7 @@ describe("browser raw sanitizer persistence boundary", () => {
     const bundle = rawBundle(
       "<!doctype html><html><body><main>safe</main></body></html>",
     );
-    bundle.actions = [{
+    bundle.actions = [...visualSafetyProof(), {
       id,
       at: "2026-08-24T09:00:00.000Z",
       kind: "navigate",
@@ -283,10 +339,25 @@ function rawBundle(
     pageFingerprintSha256: "0".repeat(64),
     identity: { runId: "browser-sanitizer-test", page: 1, sourceRecordKey: "1001" },
     candidateEvidence: null,
-    actions: [],
+    actions: visualSafetyProof(),
     sensitiveFormFieldNames: [
       ...MANDATORY_SENSITIVE_QUERY_PARAMETERS,
       ...configuredSensitiveFormFieldNames,
     ],
   };
+}
+
+function visualSafetyProof(): BrowserRawBundle["actions"] {
+  const id = "123e4567-e89b-42d3-a456-426614174009";
+  const event = {
+    id,
+    at: "2026-08-24T09:00:00.000Z",
+    kind: "verify-visual-safety",
+    target: "painted-surface-policy/1",
+    navigationStatus: 200,
+  } as const;
+  return [
+    { ...event, outcome: "intent" },
+    { ...event, outcome: "completed" },
+  ];
 }

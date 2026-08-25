@@ -52,7 +52,7 @@ export async function publishFinancialEvidence(
     if (!published) throw new StaleTaskError(task.id);
   } catch (error) {
     if (!(error instanceof StaleTaskError)) {
-      await dependencies.repository.failTask(task, "fixture_finance_failed", false);
+      await dependencies.repository.failTask(task, "fixture_finance_failed", true);
     }
     throw error;
   }

@@ -52,6 +52,7 @@ export async function runFixtureDiscovery(
       dryRun: command.dryRun,
       maxPages: command.maxPages,
       maxCompanies: command.maxCompanies,
+      requiredFinancialMetrics: ["revenue", "income", "expenses"],
     },
     fixtureVersion: command.fixtureVersion,
     parserVersion: command.parserVersion,
@@ -153,6 +154,11 @@ export async function runFixtureDiscovery(
         duplicates: occurrenceKeys.length - uniqueSourceRecords,
         rejected: result.rejects.length,
         blockedOrConflicted,
+        pageIdentities: result.pages.map((page) => ({
+          page: page.page,
+          orderedSourceRecordKeys: [...page.orderedSourceRecordKeys],
+          resultFingerprintSha256: page.resultFingerprintSha256,
+        })),
       },
     });
     if (!completed) throw new StaleTaskError(task.id);

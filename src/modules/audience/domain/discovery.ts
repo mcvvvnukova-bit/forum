@@ -104,6 +104,8 @@ export interface DiscoveryPage {
   page: number;
   raw: ChecksummedBrowserRawBundle;
   occurrences: readonly DiscoveryOccurrence[];
+  orderedSourceRecordKeys: readonly string[];
+  resultFingerprintSha256: string;
 }
 
 export type DiscoveryRejectReason =
