@@ -297,6 +297,153 @@ describe("S3RawObjectStorage", () => {
     );
   });
 
+  it("rejects checksum-consistent manifest bytes that are not valid UTF-8", async () => {
+    const bundle = sampleBundle("s3-invalid-utf8-manifest");
+    const manifestBytes = bundle.manifestUtf8.slice();
+    const capturedAtOffset = indexOfBytes(
+      manifestBytes,
+      new TextEncoder().encode(bundle.capturedAt),
+    );
+    expect(capturedAtOffset).toBeGreaterThanOrEqual(0);
+    manifestBytes[capturedAtOffset] = 0x80;
+    const stored = await putManifestBytes(bundle, manifestBytes);
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow(
+      "raw object checksum verification failed",
+    );
+  });
+
+  it.each([
+    ["an unknown top-level secret", "unknown-top-level", (manifest: MutableBrowserManifestFixture) => {
+      manifest.persistedSecret = "must-not-survive-verification";
+    }],
+    ["an extra artifact field", "extra-artifact-field", (manifest: MutableBrowserManifestFixture) => {
+      manifest.artifacts.sanitizedDom.persistedSecret = "must-not-survive-verification";
+    }],
+  ] as const)("rejects checksum-consistent v2 manifest with %s", async (
+    _case,
+    runSlug,
+    mutate,
+  ) => {
+    const stored = await putChecksumConsistentBrowserManifest(`s3-${runSlug}`, mutate);
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow(
+      "raw object checksum verification failed",
+    );
+  });
+
+  it.each([
+    ["a non-canonical capture timestamp", "capture-time", (manifest: MutableBrowserManifestFixture) => {
+      manifest.capturedAt = "2026-08-24T09:00:00Z";
+    }],
+    ["an impossible capture timestamp", "impossible-capture-time", (manifest: MutableBrowserManifestFixture) => {
+      manifest.capturedAt = "2026-02-30T09:00:00.000Z";
+    }],
+    ["an out-of-range navigation status", "navigation-status", (manifest: MutableBrowserManifestFixture) => {
+      manifest.navigationStatus = 99;
+    }],
+    ["an uppercase page fingerprint hash", "uppercase-page-hash", (manifest: MutableBrowserManifestFixture) => {
+      manifest.pageFingerprintSha256 = "A".repeat(64);
+    }],
+    ["a non-canonical action timestamp", "action-time", (manifest: MutableBrowserManifestFixture) => {
+      manifest.actions[0]!.at = "not-an-iso-timestamp";
+    }],
+    ["a non-positive identity page", "identity-page", (manifest: MutableBrowserManifestFixture) => {
+      manifest.identity.page = 0;
+    }],
+  ] as const)("rejects checksum-consistent v2 manifest with %s", async (
+    _case,
+    runSlug,
+    mutate,
+  ) => {
+    const stored = await putChecksumConsistentBrowserManifest(`s3-invalid-${runSlug}`, mutate);
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow(
+      "raw object checksum verification failed",
+    );
+  });
+
+  it("rejects a checksum-consistent page fingerprint that does not match the verified DOM", async () => {
+    const stored = await putChecksumConsistentBrowserManifest(
+      "s3-page-fingerprint-dom-mismatch",
+      (manifest) => {
+        manifest.pageFingerprintSha256 = "d".repeat(64);
+      },
+    );
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow(
+      "raw object checksum verification failed",
+    );
+  });
+
+  const unsafeRetainedTextCases: Array<[
+    string,
+    string,
+    (manifest: MutableBrowserManifestFixture) => StoredManifestIdentityOverrides | void,
+  ]> = [
+    ["empty final URL", "empty-final-url", (manifest) => {
+      manifest.finalUrl = "";
+    }],
+    ["unsafe parser version", "unsafe-parser-version", (manifest) => {
+      const parserVersion = "list-org-browser/1.0.0\u0000forged";
+      manifest.parserVersion = parserVersion;
+      return { parserVersion };
+    }],
+    ["unsafe source record identity", "unsafe-source-record-key", (manifest) => {
+      const sourceRecordKey = "1001\u0000forged";
+      manifest.identity.sourceRecordKey = sourceRecordKey;
+      manifest.candidateEvidence.sourceRecordKey = sourceRecordKey;
+      return { sourceRecordKey };
+    }],
+    ["empty candidate INN", "empty-candidate-inn", (manifest) => {
+      manifest.candidateEvidence.inn = "";
+    }],
+    ["empty candidate name", "empty-candidate-name", (manifest) => {
+      manifest.candidateEvidence.name = "";
+    }],
+    ["empty candidate website", "empty-candidate-website", (manifest) => {
+      manifest.candidateEvidence.website = "";
+    }],
+    ["empty candidate OKVED", "empty-candidate-okved", (manifest) => {
+      manifest.candidateEvidence.okvedCode = "";
+    }],
+    ["empty configured sensitive name", "empty-sensitive-name", (manifest) => {
+      manifest.sensitiveFormFieldNames.push("");
+    }],
+    ["empty action id", "empty-action-id", (manifest) => {
+      manifest.actions[0]!.id = "";
+    }],
+    ["empty action kind", "empty-action-kind", (manifest) => {
+      manifest.actions[0]!.kind = "";
+    }],
+    ["empty action target", "empty-action-target", (manifest) => {
+      manifest.actions[0]!.target = "";
+    }],
+  ];
+
+  it.each(unsafeRetainedTextCases)(
+    "rejects checksum-consistent v2 manifest with %s",
+    async (_case, runSlug, mutate) => {
+      let overrides: StoredManifestIdentityOverrides | void;
+      const stored = await putChecksumConsistentBrowserManifest(
+        `s3-retained-text-${runSlug}`,
+        (manifest) => {
+          overrides = mutate(manifest);
+        },
+        () => overrides,
+      );
+
+      const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+      await expect(browserStorage.verify(stored)).rejects.toThrow(
+        /raw object (?:checksum|identity) verification failed/,
+      );
+    },
+  );
+
   it("quarantines a legacy browser manifest that has no persisted form policy", async () => {
     const bundle = sampleBundle("s3-legacy-browser-manifest");
     const legacy = JSON.parse(new TextDecoder().decode(bundle.manifestUtf8)) as Record<string, unknown>;
@@ -373,6 +520,25 @@ describe("S3RawObjectStorage", () => {
     });
   });
 
+  it("rejects a legacy non-browser manifest carrying a v2-only policy field", async () => {
+    const bundle = checksumBrowserRawBundle({
+      ...sampleRawBundle("s3-legacy-financial-extra-field"),
+      sourceKind: "fns-bfo",
+      candidateEvidence: null,
+    });
+    const legacy = JSON.parse(
+      new TextDecoder().decode(bundle.manifestUtf8),
+    ) as Record<string, unknown>;
+    legacy.version = 1;
+    const manifestBytes = new TextEncoder().encode(JSON.stringify(legacy));
+    const stored = await putManifestBytes(bundle, manifestBytes);
+
+    const storage = new S3RawObjectStorage(env, "fns-bfo", client);
+    await expect(storage.verify(stored)).rejects.toThrow(
+      "raw object checksum verification failed",
+    );
+  });
+
   it("rejects replay verification when a referenced raw artifact no longer matches its manifest", async () => {
     const storage = new S3RawObjectStorage(env, "list-org-browser", client);
     const stored = await storage.put(sampleBundle("s3-verified-read"));
@@ -434,6 +600,7 @@ describe("S3RawObjectStorage", () => {
   async function putChecksumConsistentBrowserManifest(
     runId: string,
     mutate: (manifest: MutableBrowserManifestFixture) => void,
+    expectedIdentity: () => StoredManifestIdentityOverrides | void = () => undefined,
   ) {
     const bundle = sampleBundle(runId);
     const manifest = JSON.parse(
@@ -441,13 +608,21 @@ describe("S3RawObjectStorage", () => {
     ) as MutableBrowserManifestFixture;
     mutate(manifest);
     const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest));
+    return putManifestBytes(bundle, manifestBytes, expectedIdentity() ?? {});
+  }
+
+  async function putManifestBytes(
+    bundle: ReturnType<typeof sampleBundle>,
+    manifestBytes: Uint8Array,
+    expectedIdentity: StoredManifestIdentityOverrides = {},
+  ) {
     const checksumSha256 = fixtureSha256(manifestBytes);
-    const prefix = `raw/${runId}/list-org-browser/${checksumSha256}`;
+    const prefix = `raw/${bundle.identity.runId}/${bundle.sourceKind}/${checksumSha256}`;
     const stored = {
-      runId,
-      sourceKind: "list-org-browser",
-      sourceRecordKey: "1001",
-      parserVersion: bundle.parserVersion,
+      runId: bundle.identity.runId,
+      sourceKind: bundle.sourceKind,
+      sourceRecordKey: expectedIdentity.sourceRecordKey ?? "1001",
+      parserVersion: expectedIdentity.parserVersion ?? bundle.parserVersion,
       checksumSha256,
       prefix,
       manifestKey: `${prefix}/manifest.json`,
@@ -480,26 +655,64 @@ function sampleBundle(runId: string) {
 }
 
 interface MutableBrowserManifestFixture extends Record<string, unknown> {
+  parserVersion: string;
   sensitiveFormFieldNames: string[];
   finalUrl: string;
-  actions: Array<{ target: string }>;
-  candidateEvidence: { website: string | null };
+  capturedAt: string;
+  navigationStatus: unknown;
+  pageFingerprintSha256: string;
+  identity: { runId: string; page: number; sourceRecordKey?: string };
+  actions: Array<{
+    id: string;
+    at: string;
+    kind: string;
+    target: string;
+    outcome: string;
+    navigationStatus: number | null;
+  }>;
+  candidateEvidence: {
+    sourceRecordKey: string;
+    inn: string;
+    name: string;
+    website: string | null;
+    okvedCode: string;
+    isPrimary: boolean;
+  };
+  artifacts: {
+    sanitizedDom: { file: string; checksumSha256: string; persistedSecret?: string };
+    redactedScreenshot: { file: string; checksumSha256: string };
+  };
+}
+
+interface StoredManifestIdentityOverrides {
+  sourceRecordKey?: string;
+  parserVersion?: string;
 }
 
 function fixtureSha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
+function indexOfBytes(haystack: Uint8Array, needle: Uint8Array): number {
+  for (let offset = 0; offset <= haystack.length - needle.length; offset += 1) {
+    if (needle.every((byte, index) => haystack[offset + index] === byte)) return offset;
+  }
+  return -1;
+}
+
 function sampleRawBundle(runId: string): BrowserRawBundle {
+  const sanitizedDomUtf8 = new TextEncoder().encode(
+    "<!doctype html><main>safe evidence</main>",
+  );
   return {
     sourceKind: "list-org-browser",
     parserVersion: "list-org-browser/1.0.0",
     finalUrl: "http://127.0.0.1:33333/results/page-1",
     capturedAt: "2026-08-24T09:00:00.000Z",
     navigationStatus: 200,
-    sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>safe evidence</main>"),
+    sanitizedDomUtf8,
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
-    pageFingerprintSha256: "a".repeat(64),
+    pageFingerprintSha256: fixtureSha256(sanitizedDomUtf8),
     identity: { runId, page: 1, sourceRecordKey: "1001" },
     sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
     candidateEvidence: {

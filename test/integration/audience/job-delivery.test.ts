@@ -17,7 +17,10 @@ import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
 import { PostgresAudienceRepository } from "../../../src/modules/audience/infrastructure/postgres/audience-repository";
 import { MANDATORY_SENSITIVE_QUERY_PARAMETERS } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
-import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
+import {
+  checksumBrowserRawBundle,
+  sha256,
+} from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
 import type { AppEnv } from "../../../src/shared/config/env";
 import { PgBossJobQueue } from "../../../src/shared/jobs/pg-boss-job-queue";
@@ -347,15 +350,18 @@ describe("task fencing and pg-boss delivery", () => {
       okvedCode: parseOkvedCode("43.11"),
       isPrimary: true,
     };
+    const sanitizedDomUtf8 = new TextEncoder().encode(
+      "<!doctype html><main>redacted</main>",
+    );
     const bundle = checksumBrowserRawBundle({
       sourceKind: "list-org-browser",
       parserVersion: "list-org-browser/1.0.0",
       finalUrl: "http://127.0.0.1/fixtures/company/1001",
       capturedAt: "2026-08-24T09:00:00.000Z",
       navigationStatus: 200,
-      sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>redacted</main>"),
+      sanitizedDomUtf8,
       redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
-      pageFingerprintSha256: "e".repeat(64),
+      pageFingerprintSha256: sha256(sanitizedDomUtf8),
       identity: { runId, page: 1, sourceRecordKey: "1001" },
       sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
       candidateEvidence: createCandidateEvidence(candidate),
@@ -513,15 +519,18 @@ async function stageSingleCandidateRun(
     okvedCode: parseOkvedCode("43.11"),
     isPrimary: true,
   };
+  const sanitizedDomUtf8 = new TextEncoder().encode(
+    "<!doctype html><main>redacted</main>",
+  );
   const bundle = checksumBrowserRawBundle({
     sourceKind: "list-org-browser",
     parserVersion: "list-org-browser/1.0.0",
     finalUrl: "http://127.0.0.1/fixtures/company/1001",
     capturedAt: "2026-08-24T09:00:00.000Z",
     navigationStatus: 200,
-    sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>redacted</main>"),
+    sanitizedDomUtf8,
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
-    pageFingerprintSha256: "e".repeat(64),
+    pageFingerprintSha256: sha256(sanitizedDomUtf8),
     identity: { runId, page: 1, sourceRecordKey: "1001" },
     sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
     candidateEvidence: createCandidateEvidence(candidate),

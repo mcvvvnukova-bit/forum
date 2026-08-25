@@ -94,6 +94,7 @@ export class S3RawObjectStorage implements RawObjectStorage {
       || manifest.artifacts.sanitizedDom.file !== "dom.html"
       || manifest.artifacts.redactedScreenshot.file !== "screenshot.png"
       || sha256(domBytes) !== manifest.artifacts.sanitizedDom.checksumSha256
+      || manifest.pageFingerprintSha256 !== sha256(domBytes)
       || sha256(screenshotBytes) !== manifest.artifacts.redactedScreenshot.checksumSha256
     ) {
       throw new Error("raw object checksum verification failed");
@@ -176,6 +177,9 @@ interface RawManifest {
   parserVersion: string;
   sensitiveFormFieldNames: readonly string[];
   finalUrl: string;
+  capturedAt: string;
+  navigationStatus: number | null;
+  pageFingerprintSha256: string;
   identity: { runId: string; page: number; sourceRecordKey?: string };
   candidateEvidence: CandidateEvidence | null;
   actions: readonly BrowserActionEvent[];
@@ -188,7 +192,7 @@ interface RawManifest {
 function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   let value: unknown;
   try {
-    value = JSON.parse(new TextDecoder().decode(bytes));
+    value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } catch {
     return null;
   }
@@ -200,18 +204,31 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   }
   const isLegacyNonBrowser = value.version === 1;
   if ((!isLegacyNonBrowser && value.version !== RAW_MANIFEST_VERSION)
+    || !hasExactlyKeys(value, isLegacyNonBrowser
+      ? [
+        "version", "sourceKind", "parserVersion", "finalUrl", "capturedAt",
+        "navigationStatus", "pageFingerprintSha256", "identity", "candidateEvidence",
+        "actions", "artifacts",
+      ]
+      : [
+        "version", "sourceKind", "parserVersion", "sensitiveFormFieldNames", "finalUrl",
+        "capturedAt", "navigationStatus", "pageFingerprintSha256", "identity",
+        "candidateEvidence", "actions", "artifacts",
+      ])
     || typeof value.sourceKind !== "string"
-    || typeof value.parserVersion !== "string"
-    || (!isLegacyNonBrowser && !isStringArray(value.sensitiveFormFieldNames))
-    || (isLegacyNonBrowser
-      && value.sensitiveFormFieldNames !== undefined
-      && !isStringArray(value.sensitiveFormFieldNames))
-    || typeof value.finalUrl !== "string"
+    || !/^[a-z0-9-]+$/.test(value.sourceKind)
+    || !isSafeRetainedText(value.parserVersion)
+    || (!isLegacyNonBrowser && !isSafeRetainedTextArray(value.sensitiveFormFieldNames))
+    || !isSafeRetainedText(value.finalUrl)
+    || !isCanonicalIsoTimestamp(value.capturedAt)
+    || !isNavigationStatus(value.navigationStatus)
+    || !isSha256(value.pageFingerprintSha256)
     || !isRawIdentity(value.identity)
     || !isCandidateEvidenceOrNull(value.candidateEvidence)
     || !Array.isArray(value.actions)
     || !value.actions.every(isBrowserActionEvent)
     || !isRecord(value.artifacts)
+    || !hasExactlyKeys(value.artifacts, ["sanitizedDom", "redactedScreenshot"])
     || !isArtifact(value.artifacts.sanitizedDom)
     || !isArtifact(value.artifacts.redactedScreenshot)) {
     return null;
@@ -219,10 +236,13 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   return {
     sourceKind: value.sourceKind,
     parserVersion: value.parserVersion,
-    sensitiveFormFieldNames: isStringArray(value.sensitiveFormFieldNames)
+    sensitiveFormFieldNames: isSafeRetainedTextArray(value.sensitiveFormFieldNames)
       ? value.sensitiveFormFieldNames
       : [],
     finalUrl: value.finalUrl,
+    capturedAt: value.capturedAt,
+    navigationStatus: value.navigationStatus,
+    pageFingerprintSha256: value.pageFingerprintSha256,
     identity: value.identity,
     candidateEvidence: value.candidateEvidence,
     actions: value.actions,
@@ -238,15 +258,12 @@ function isBrowserActionEvent(value: unknown): value is BrowserActionEvent {
     && hasExactlyKeys(value, [
       "id", "at", "kind", "target", "outcome", "navigationStatus",
     ])
-    && typeof value.id === "string"
-    && typeof value.at === "string"
-    && typeof value.kind === "string"
-    && typeof value.target === "string"
+    && isSafeRetainedText(value.id)
+    && isCanonicalIsoTimestamp(value.at)
+    && isSafeRetainedText(value.kind)
+    && isSafeRetainedText(value.target)
     && ["intent", "completed", "contract-drift", "failed"].includes(String(value.outcome))
-    && (value.navigationStatus === null
-      || (Number.isSafeInteger(value.navigationStatus)
-        && Number(value.navigationStatus) >= 100
-        && Number(value.navigationStatus) <= 599));
+    && isNavigationStatus(value.navigationStatus);
 }
 
 function isRawIdentity(
@@ -254,8 +271,10 @@ function isRawIdentity(
 ): value is { runId: string; page: number; sourceRecordKey?: string } {
   if (!isRecord(value)
     || typeof value.runId !== "string"
+    || !/^[A-Za-z0-9._-]+$/.test(value.runId)
     || !Number.isSafeInteger(value.page)
-    || (value.sourceRecordKey !== undefined && typeof value.sourceRecordKey !== "string")) {
+    || Number(value.page) <= 0
+    || (value.sourceRecordKey !== undefined && !isSafeRetainedText(value.sourceRecordKey))) {
     return false;
   }
   return hasExactlyKeys(
@@ -270,11 +289,11 @@ function isCandidateEvidenceOrNull(value: unknown): value is CandidateEvidence |
     && hasExactlyKeys(value, [
       "sourceRecordKey", "inn", "name", "website", "okvedCode", "isPrimary", "phone", "email",
     ])
-    && typeof value.sourceRecordKey === "string"
-    && typeof value.inn === "string"
-    && typeof value.name === "string"
-    && (typeof value.website === "string" || value.website === null)
-    && typeof value.okvedCode === "string"
+    && isSafeRetainedText(value.sourceRecordKey)
+    && isSafeRetainedText(value.inn)
+    && isSafeRetainedText(value.name)
+    && (isSafeRetainedText(value.website) || value.website === null)
+    && isSafeRetainedText(value.okvedCode)
     && typeof value.isPrimary === "boolean"
     && isContactEvidence(value.phone)
     && isContactEvidence(value.email);
@@ -284,8 +303,7 @@ function isContactEvidence(value: unknown): value is CandidateContactEvidence {
   if (!isRecord(value) || (value.kind !== "null" && value.kind !== "sha256")) return false;
   if (value.kind === "null") return hasExactlyKeys(value, ["kind"]);
   return hasExactlyKeys(value, ["kind", "normalizedValueSha256"])
-    && typeof value.normalizedValueSha256 === "string"
-    && /^[0-9a-f]{64}$/.test(value.normalizedValueSha256);
+    && isSha256(value.normalizedValueSha256);
 }
 
 function hasExactlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
@@ -296,16 +314,41 @@ function hasExactlyKeys(value: Record<string, unknown>, keys: readonly string[])
 
 function isArtifact(value: unknown): value is { file: string; checksumSha256: string } {
   return isRecord(value)
-    && typeof value.file === "string"
-    && typeof value.checksumSha256 === "string";
+    && hasExactlyKeys(value, ["file", "checksumSha256"])
+    && isSafeRetainedText(value.file)
+    && isSha256(value.checksumSha256);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isStringArray(value: unknown): value is readonly string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
+function isSafeRetainedTextArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every(isSafeRetainedText);
+}
+
+function isSafeRetainedText(value: unknown): value is string {
+  return typeof value === "string"
+    && value.trim() !== ""
+    && !/[\u0000-\u001f\u007f-\u009f\ufffd]/u.test(value);
+}
+
+function isCanonicalIsoTimestamp(value: unknown): value is string {
+  if (typeof value !== "string"
+    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) {
+    return false;
+  }
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
+}
+
+function isNavigationStatus(value: unknown): value is number | null {
+  return value === null
+    || (Number.isSafeInteger(value) && Number(value) >= 100 && Number(value) <= 599);
+}
+
+function isSha256(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
 }
 
 function clientConfig(env: AppEnv): S3ClientConfig {
@@ -356,8 +399,8 @@ function validateStoredObject(object: StoredRawObject): void {
   if (
     !/^[A-Za-z0-9._-]+$/.test(object.runId)
     || !/^[a-z0-9-]+$/.test(object.sourceKind)
-    || object.sourceRecordKey.trim() === ""
-    || object.parserVersion.trim() === ""
+    || !isSafeRetainedText(object.sourceRecordKey)
+    || !isSafeRetainedText(object.parserVersion)
     || !/^[0-9a-f]{64}$/.test(object.checksumSha256)
     || expectedPrefix !== object.prefix
     || object.manifestKey !== `${object.prefix}/manifest.json`
