@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { BrowserRawBundle } from "../../../src/modules/audience/domain/discovery";
 import {
   MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+  assertBrowserCaptureSafe,
   sanitizeBrowserActionTarget,
   sanitizeBrowserUrl,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
@@ -136,6 +137,39 @@ describe("browser raw sanitizer persistence boundary", () => {
     expect(() => checksumBrowserRawBundle(bundle)).toThrow(
       "browser action id is not a canonical UUID v4",
     );
+  });
+
+  it("accepts a canonical action ID with a phone-like UUID substring", () => {
+    const bundle = rawBundle(
+      "<!doctype html><html><body><main>safe</main></body></html>",
+    );
+    bundle.actions = [{
+      id: "0b59e20b-7697-4506-945d-3167da214976",
+      at: "2026-08-24T09:00:00.000Z",
+      kind: "navigate",
+      target: "/results/page-1",
+      outcome: "completed",
+      navigationStatus: 200,
+    }];
+
+    expect(() => checksumBrowserRawBundle(bundle)).not.toThrow();
+  });
+
+  it("rejects a canonical action ID supplied as a sensitive value", () => {
+    const id = "0b59e20b-7697-4506-945d-3167da214976";
+    const bundle = rawBundle(
+      "<!doctype html><html><body><main>safe</main></body></html>",
+    );
+    bundle.actions = [{
+      id,
+      at: "2026-08-24T09:00:00.000Z",
+      kind: "navigate",
+      target: "/results/page-1",
+      outcome: "completed",
+      navigationStatus: 200,
+    }];
+
+    expect(() => assertBrowserCaptureSafe(bundle, [id])).toThrow("raw redaction scan failed");
   });
 });
 

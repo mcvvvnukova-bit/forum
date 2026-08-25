@@ -33,7 +33,7 @@ export const SAFE_CAPTURE_ATTRIBUTES = [
 ] as const;
 
 const EMAIL_PATTERN = /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/iu;
-const PHONE_PATTERN = /(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}/u;
+const PHONE_PATTERN = /(?<![0-9a-f-])(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}(?![0-9a-f-])/iu;
 const GENERIC_SENSITIVE_NAME_PATTERN_SOURCE = "(?:token|csrf|secret|credential|password|api_key|apikey|authorization|cookie|session)";
 const GENERIC_SENSITIVE_NAME_PATTERN = new RegExp(GENERIC_SENSITIVE_NAME_PATTERN_SOURCE, "iu");
 const SECRET_QUERY_PATTERN = new RegExp(
