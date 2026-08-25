@@ -9,7 +9,9 @@ import { reconcileRun } from "../../modules/audience/application/reconcile-run";
 import { runFixtureDiscovery } from "../../modules/audience/application/run-fixture-discovery";
 import type {
   CapturedRawObject,
+  FinancialMetricOutcome,
   FinancialMetricOutcomes,
+  FinancialSourceAttempt,
 } from "../../modules/audience/application/ports/audience-repository";
 import type { FinancialMetric, FinancialMetricEvidence } from "../../modules/audience/domain/financial";
 import { parseLegalEntityInn } from "../../modules/audience/domain/inn";
@@ -94,7 +96,7 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
           runId: command.runId,
           reportYear: command.year,
           evidence: staged.evidence,
-          metricOutcomes: publishedMetricOutcomes(staged.evidence),
+          metricOutcomes: staged.metricOutcomes,
           rawObjects: staged.rawObjects,
         }, { repository });
         return { runId: command.runId, publishedEvidence: staged.evidence.length };
@@ -117,18 +119,6 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
       await database.close();
     }
   }
-}
-
-function publishedMetricOutcomes(
-  evidence: readonly FinancialMetricEvidence[],
-): FinancialMetricOutcomes {
-  return Object.fromEntries(
-    (["revenue", "income", "expenses"] as const).map((metric: FinancialMetric) => {
-      const count = evidence.filter((item) => item.metric === metric).length;
-      if (count === 0) throw new Error(`financial fixture metric is absent: ${metric}`);
-      return [metric, { outcome: "published", evidence: count }];
-    }),
-  );
 }
 
 async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) {
@@ -169,10 +159,9 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
     bfoStorage.close();
     revexpStorage.close();
   }
-  const rawObjects: CapturedRawObject[] = [
-    capturedFinancialRaw(randomUUID(), "fns-bfo", bfoBundle, bfoStored),
-    capturedFinancialRaw(randomUUID(), "fns-revexp", revexpBundle, revexpStored),
-  ];
+  const bfoRaw = capturedFinancialRaw(randomUUID(), "fns-bfo", bfoBundle, bfoStored);
+  const revexpRaw = capturedFinancialRaw(randomUUID(), "fns-revexp", revexpBundle, revexpStored);
+  const rawObjects: CapturedRawObject[] = [bfoRaw, revexpRaw];
   const bfoEvidence = parseBfo(bfoBytes, {
     inn,
     reportYear: year,
@@ -186,7 +175,34 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
     rawFetchKey: revexpStored.checksumSha256,
     parserVersion: revexpBundle.parserVersion,
   });
-  return { evidence: [...bfoEvidence, ...revexpEvidence], rawObjects };
+  const evidence = [...bfoEvidence, ...revexpEvidence];
+  const metricOutcomes: FinancialMetricOutcomes = {
+    revenue: financialMetricOutcome("revenue", evidence, "fns_bfo", bfoRaw),
+    income: financialMetricOutcome("income", evidence, "fns_revexp", revexpRaw),
+    expenses: financialMetricOutcome("expenses", evidence, "fns_revexp", revexpRaw),
+  };
+  return { evidence, metricOutcomes, rawObjects };
+}
+
+function financialMetricOutcome(
+  metric: FinancialMetric,
+  evidence: readonly FinancialMetricEvidence[],
+  sourceKind: FinancialSourceAttempt["sourceKind"],
+  raw: CapturedRawObject,
+): FinancialMetricOutcome {
+  const count = evidence.filter((item) => item.metric === metric).length;
+  if (count > 0) return { outcome: "published", evidence: count };
+  return {
+    outcome: "no_data",
+    evidence: 0,
+    sourceAttempt: {
+      sourceKind,
+      sourceRecordKey: raw.sourceRecordKey,
+      observedAt: raw.capturedAt,
+      rawFetchKey: raw.stored.checksumSha256,
+      parserVersion: raw.parserVersion,
+    },
+  };
 }
 
 function fixtureRawBundle(input: {

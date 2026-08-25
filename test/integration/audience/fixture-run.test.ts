@@ -373,6 +373,143 @@ describe("fixture discovery and replay publication", () => {
     expect(after.Contents ?? []).toEqual([]);
   }, 25_000);
 
+  it("publishes parser-derived no-data through the fixture-finance executable", async () => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    const source = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+    await runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2024,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+    }, { repository, source, rawStorage });
+    await replayRun({ runId, dryRun: false }, { repository, rawStorage });
+
+    const child = spawnSync(
+      process.execPath,
+      [
+        "node_modules/tsx/dist/cli.mjs",
+        "src/apps/browser-runner/main.ts",
+        "fixture-finance",
+        "--run-id", runId,
+        "--year", "2024",
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        timeout: 20_000,
+        env: {
+          ...process.env,
+          APP_MODE: "fixture",
+          LIST_ORG_LIVE_ENABLED: "false",
+          DATABASE_URL: temporaryDatabase.connectionString,
+          S3_ENDPOINT: env.s3Endpoint,
+          S3_BUCKET: env.s3Bucket,
+          S3_ACCESS_KEY_ID: env.s3AccessKeyId,
+          S3_SECRET_ACCESS_KEY: env.s3SecretAccessKey,
+        },
+      },
+    );
+
+    expect(child.status, child.stderr).toBe(0);
+    expect(JSON.parse(child.stdout)).toEqual({
+      ok: true,
+      result: { runId, publishedEvidence: 2 },
+    });
+    const task = await database.query<{
+      status: string;
+      fencing_token: string;
+      metric_outcomes: {
+        revenue: {
+          outcome: string;
+          evidence: number;
+          sourceAttempt: {
+            sourceKind: string;
+            sourceRecordKey: string;
+            observedAt: string;
+            rawFetchKey: string;
+            parserVersion: string;
+          };
+        };
+        income: { outcome: string; evidence: number };
+        expenses: { outcome: string; evidence: number };
+      };
+    }>(
+      `SELECT status::text, fencing_token::text,
+              result_json->'metricOutcomes' AS metric_outcomes
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_finance'`,
+      [runId],
+    );
+    expect(task.rows).toEqual([{
+      status: "succeeded",
+      fencing_token: "1",
+      metric_outcomes: {
+        revenue: {
+          outcome: "no_data",
+          evidence: 0,
+          sourceAttempt: {
+            sourceKind: "fns_bfo",
+            sourceRecordKey: "7707083893:2024:bfo-fixture",
+            observedAt: "2026-08-24T00:00:00.000Z",
+            rawFetchKey: expect.stringMatching(/^[0-9a-f]{64}$/u),
+            parserVersion: "fns-bfo/1.0.0",
+          },
+        },
+        income: { outcome: "published", evidence: 1 },
+        expenses: { outcome: "published", evidence: 1 },
+      },
+    }]);
+    const revenueAttempt = task.rows[0]!.metric_outcomes.revenue.sourceAttempt;
+    const rawAttempt = await database.query<{
+      source_kind: string;
+      source_record_key: string;
+      captured_at: string;
+      checksum_sha256: string;
+      parser_version: string;
+    }>(
+      `SELECT source_kind, source_record_key, captured_at::text,
+              checksum_sha256, parser_version
+       FROM audience.source_fetches
+       WHERE run_id = $1 AND source_kind = 'fns-bfo'`,
+      [runId],
+    );
+    expect(rawAttempt.rows).toEqual([{
+      source_kind: "fns-bfo",
+      source_record_key: revenueAttempt.sourceRecordKey,
+      captured_at: "2026-08-24 00:00:00+00",
+      checksum_sha256: revenueAttempt.rawFetchKey,
+      parser_version: revenueAttempt.parserVersion,
+    }]);
+    const evidenceCounts = await database.query<{ metric: string; count: string }>(
+      `SELECT metric::text, count(*)::text AS count
+       FROM audience.financial_evidence evidence
+       JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+       WHERE raw.run_id = $1 GROUP BY metric ORDER BY metric`,
+      [runId],
+    );
+    expect(evidenceCounts.rows).toEqual([
+      { metric: "expenses", count: "1" },
+      { metric: "income", count: "1" },
+    ]);
+    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({
+      financial: { revenue: 0, income: 1, expenses: 1 },
+      consistent: true,
+    });
+  }, 40_000);
+
   it("rejects a successful canary when required fixture finance is absent", async () => {
     const runId = randomUUID();
     await database.query(

@@ -4,6 +4,15 @@
     {
       "inn": "7707083893",
       "form": "0710002",
+      "reportYear": 2024,
+      "unit": "RUB",
+      "correctedAt": "2025-04-01T09:00:00.000Z",
+      "sourceRecordKey": "7707083893:2024:0710002:1",
+      "lines": {}
+    },
+    {
+      "inn": "7707083893",
+      "form": "0710002",
       "reportYear": 2025,
       "unit": "RUB",
       "correctedAt": "2026-03-01T09:00:00.000Z",
