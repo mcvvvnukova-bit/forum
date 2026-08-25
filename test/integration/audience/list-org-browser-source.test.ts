@@ -450,6 +450,53 @@ describe("ListOrgBrowserSource", () => {
     );
   });
 
+  it("collects non-anchor href values so duplicated DOM text and pixels cannot leak", async () => {
+    const result = await collect("/search?scenario=non-anchor-href-secrets");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
+    const leakingElementPixel = { x: 420 + 260 - 10, y: 80 + (32 / 2) };
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(dom).toContain('<button href="https://localhost/public">Public action</button>');
+    expect(dom).toMatch(/href="http:\/\/127\.0\.0\.1:\d+\/results\/page-1\?okved=43\.11&amp;status=work&amp;scenario=non-anchor-href-secrets"/u);
+    expect({
+      domContainsSecret: /non-anchor-user|non-anchor-pass|non-anchor-query|non-anchor-fragment/iu
+        .test(dom),
+      leakingElementPixelIsBlack: await isBlackPixel(
+        card.redactedScreenshotPng,
+        leakingElementPixel.x,
+        leakingElementPixel.y,
+      ),
+    }).toEqual({
+      domContainsSecret: false,
+      leakingElementPixelIsBlack: true,
+    });
+  });
+
+  it("redacts an href-derived term split across descendant text at its rendered container", async () => {
+    const result = await collect("/search?scenario=split-href-secret");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
+    const leakingElementPixel = { x: 420 + 260 - 10, y: 150 + (32 / 2) };
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(dom).toContain('<a href="https://localhost/public">Public fragment</a>');
+    expect(dom).toMatch(/href="http:\/\/127\.0\.0\.1:\d+\/results\/page-1\?okved=43\.11&amp;status=work&amp;scenario=split-href-secret"/u);
+    expect({
+      domContainsContiguousSecret: dom.includes("href-fragment-secret"),
+      domContainsSplitSecret: /href-(?:<[^>]+>)*fragment-secret/iu.test(dom),
+      leakingElementPixelIsBlack: await isBlackPixel(
+        card.redactedScreenshotPng,
+        leakingElementPixel.x,
+        leakingElementPixel.y,
+      ),
+    }).toEqual({
+      domContainsContiguousSecret: false,
+      domContainsSplitSecret: false,
+      leakingElementPixelIsBlack: true,
+    });
+  });
+
   it("removes runtime form values from raw evidence and masks every populated control", async () => {
     const [result, baseline] = await Promise.all([
       collect("/search?scenario=form-secrets"),
@@ -607,6 +654,32 @@ async function countBlackContactBands(png: Uint8Array): Promise<number> {
       }
       return bands;
     }, Buffer.from(png).toString("base64"));
+  } finally {
+    await browser.close();
+  }
+}
+
+async function isBlackPixel(png: Uint8Array, x: number, y: number): Promise<boolean> {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    return await page.evaluate(async ({ base64, sampleX, sampleY }) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${base64}`;
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext("2d");
+      if (context === null) throw new Error("2D canvas is unavailable");
+      context.drawImage(image, 0, 0);
+      const pixel = context.getImageData(sampleX, sampleY, 1, 1).data;
+      return pixel[0] === 0 && pixel[1] === 0 && pixel[2] === 0;
+    }, {
+      base64: Buffer.from(png).toString("base64"),
+      sampleX: x,
+      sampleY: y,
+    });
   } finally {
     await browser.close();
   }

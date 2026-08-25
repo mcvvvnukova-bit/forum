@@ -91,7 +91,7 @@ export async function collectPageSensitiveUrlValues(
 ): Promise<readonly string[]> {
   const urls = await page.evaluate(() => {
     const resolved = [window.location.href];
-    for (const element of document.querySelectorAll("a[href]")) {
+    for (const element of document.querySelectorAll("[href]")) {
       const href = element.getAttribute("href");
       if (href === null || /^(?:mailto|tel):/iu.test(href)) continue;
       try {
@@ -333,6 +333,15 @@ export async function sanitizePageDom(
       const node = text.currentNode as Text;
       node.data = helpers.redact(node.data);
     }
+    // Descendants go first so a cross-node match collapses only its smallest
+    // remaining retained subtree, while ordinary per-node matches keep markup.
+    for (const element of [...clone.querySelectorAll("*")].reverse()) {
+      const value = element.textContent ?? "";
+      const redactedValue = helpers.redact(value);
+      if (redactedValue !== value) {
+        element.replaceChildren(document.createTextNode(redactedValue));
+      }
+    }
     return `<!doctype html>\n${clone.outerHTML}`;
   }, {
     sensitiveNames: sensitiveQueryParameters,
@@ -386,6 +395,44 @@ export function addPageRedactionOverlays(
           || /(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}/u.test(value);
       },
     };
+    // Map each sensitive term's rendered text-node range to its lowest common
+    // element so split text is covered without also masking every ancestor.
+    const textNodes: Array<{ node: Text; start: number; end: number }> = [];
+    const textWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let renderedText = "";
+    while (textWalker.nextNode()) {
+      const node = textWalker.currentNode as Text;
+      const start = renderedText.length;
+      renderedText += node.data;
+      textNodes.push({ node, start, end: renderedText.length });
+    }
+    const normalizedRenderedText = renderedText.toLocaleLowerCase("en-US");
+    for (const term of sensitiveTerms) {
+      const normalizedTerm = term.toLocaleLowerCase("en-US");
+      let searchFrom = 0;
+      let index = normalizedRenderedText.indexOf(normalizedTerm, searchFrom);
+      while (index >= 0) {
+        const end = index + term.length;
+        const first = textNodes.find((item) => item.start <= index && item.end > index);
+        const last = textNodes.find((item) => item.start < end && item.end >= end);
+        if (first !== undefined && last !== undefined) {
+          const ancestors = new Set<HTMLElement>();
+          for (let ancestor = first.node.parentElement; ancestor !== null;
+            ancestor = ancestor.parentElement) {
+            ancestors.add(ancestor);
+          }
+          for (let ancestor = last.node.parentElement; ancestor !== null;
+            ancestor = ancestor.parentElement) {
+            if (ancestors.has(ancestor)) {
+              elements.add(ancestor);
+              break;
+            }
+          }
+        }
+        searchFrom = index + term.length;
+        index = normalizedRenderedText.indexOf(normalizedTerm, searchFrom);
+      }
+    }
     for (const candidate of document.querySelectorAll("*")) {
       if (!(candidate instanceof HTMLElement)) continue;
       const directText = [...candidate.childNodes]

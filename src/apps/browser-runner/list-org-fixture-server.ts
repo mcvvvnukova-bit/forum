@@ -163,6 +163,22 @@ export async function startListOrgFixtureServer(
              </dl>`,
           );
         }
+        if (scenario === "non-anchor-href-secrets" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<button href="https://non-anchor-user:non-anchor-pass@localhost/public?token=non-anchor-query#non-anchor-fragment">Public action</button>
+             <p style="position:absolute;left:420px;top:80px;width:260px;height:32px;margin:0;background:#fff">non-anchor-fragment</p>
+             </dl>`,
+          );
+        }
+        if (scenario === "split-href-secret" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<a href="https://localhost/public#href-fragment-secret">Public fragment</a>
+             <p style="position:absolute;left:420px;top:150px;width:260px;height:32px;margin:0;background:#fff">href-<span>fragment-secret</span></p>
+             </dl>`,
+          );
+        }
         if (scenario === "form-secrets" && companyKey === "1001") {
           body = body.replace(
             "</dl>",
