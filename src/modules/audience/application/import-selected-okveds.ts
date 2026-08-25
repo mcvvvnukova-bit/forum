@@ -24,11 +24,17 @@ export async function importSelectedOkveds(
   return repository.upsertMany(datasetReleaseId, rows);
 }
 
-function parseSelectedOkvedsCsv(csv: string): readonly Omit<OkvedRecord, "datasetReleaseId">[] {
+export function parseSelectedOkvedsCsv(
+  csv: string,
+  expectedSourceVersion?: string,
+): readonly Omit<OkvedRecord, "datasetReleaseId">[] {
   const rows = parseCsv(csv);
 
   if (rows.length === 0 || rows[0]?.join(",") !== "code,name,source_version") {
     throw new Error("selected OKVED CSV must start with code,name,source_version");
+  }
+  if (rows.length === 1) {
+    throw new Error("selected OKVED CSV must contain at least one data row");
   }
 
   return rows.slice(1).map((row, index) => {
@@ -42,6 +48,11 @@ function parseSelectedOkvedsCsv(csv: string): readonly Omit<OkvedRecord, "datase
     }
     if (sourceVersion.trim() === "") {
       throw new Error(`selected OKVED CSV row ${index + 2} must have a source version`);
+    }
+    if (expectedSourceVersion !== undefined && sourceVersion !== expectedSourceVersion) {
+      throw new Error(
+        `selected OKVED CSV row ${index + 2} source version does not match requested release`,
+      );
     }
 
     return { code: parseOkvedCode(code), name, sourceVersion };

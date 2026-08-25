@@ -6,7 +6,9 @@ import type {
   OkvedReleaseRecord,
   OkvedReleaseRepository,
 } from "../../application/release-selected-okveds";
+import type { OkvedRecord } from "../../application/import-selected-okveds";
 import type { Database } from "../../../../shared/postgres/database";
+import { PostgresOkvedRepository } from "./okved-repository";
 
 interface ExistingReleaseRow extends QueryResultRow {
   id: string;
@@ -16,6 +18,23 @@ interface ExistingReleaseRow extends QueryResultRow {
 
 export class PostgresOkvedReleaseRepository implements OkvedReleaseRepository {
   constructor(private readonly database: Database) {}
+
+  publishRelease(input: {
+    sourceVersion: string;
+    objectKey: string;
+    checksumSha256: string;
+    capturedAt: string;
+    rows: readonly Omit<OkvedRecord, "datasetReleaseId">[];
+  }): Promise<OkvedReleaseRecord & { imported: number }> {
+    return this.database.transaction(async (transaction) => {
+      const release = await new PostgresOkvedReleaseRepository(transaction).ensureRelease(input);
+      const imported = await new PostgresOkvedRepository(transaction).upsertMany(
+        release.releaseId,
+        input.rows,
+      );
+      return { ...release, imported };
+    });
+  }
 
   ensureRelease(input: {
     sourceVersion: string;

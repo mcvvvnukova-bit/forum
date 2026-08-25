@@ -123,6 +123,7 @@ describe("task fencing and pg-boss delivery", () => {
         acceptedCompanies: 0,
         duplicates: 0,
         rejected: 0,
+        blockedOrConflicted: 0,
       },
     })).resolves.toBe(true);
 
@@ -401,6 +402,7 @@ describe("task fencing and pg-boss delivery", () => {
         acceptedCompanies: 1,
         duplicates: 0,
         rejected: 0,
+        blockedOrConflicted: 0,
       },
     })).resolves.toBe(true);
 
@@ -570,6 +572,7 @@ async function stageSingleCandidateRun(
       acceptedCompanies: 1,
       duplicates: 0,
       rejected: 0,
+      blockedOrConflicted: 0,
     },
   });
   return { runId, rawStorage, stored };

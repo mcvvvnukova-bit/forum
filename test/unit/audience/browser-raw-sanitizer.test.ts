@@ -79,6 +79,47 @@ describe("browser raw sanitizer persistence boundary", () => {
   });
 
   it.each([
+    ["final URL", (value: string) => sanitizeBrowserUrl(value, [])],
+    ["candidate website", (value: string) => sanitizeBrowserUrl(value, [])],
+    ["action target", (value: string) => sanitizeBrowserActionTarget(value, [], [])],
+  ] as const)("strips userinfo and fragments from a retained %s", (_surface, sanitize) => {
+    expect(sanitize(
+      "https://userinfo-name:userinfo-pass@localhost/results?public=kept#token=fragment-secret",
+    )).toBe("https://localhost/results?public=kept");
+  });
+
+  it("strips fragments from a relative action target without making it absolute", () => {
+    expect(sanitizeBrowserActionTarget(
+      "/results/page-1?public=kept#token=fragment-secret",
+      [],
+      [],
+    )).toBe("/results/page-1?public=kept");
+  });
+
+  it.each([
+    ["relative action target", "action", "/results/page-1#overview"],
+    ["relative DOM href", "dom", "/public#overview"],
+  ])("structurally rejects a fragment in a stored %s", (_case, surface, value) => {
+    const bundle = rawBundle(
+      surface === "dom"
+        ? `<!doctype html><html><body><a href="${value}">Public</a></body></html>`
+        : "<!doctype html><html><body><main>safe</main></body></html>",
+    );
+    if (surface === "action") {
+      bundle.actions = [{
+        id: "123e4567-e89b-42d3-a456-426614174000",
+        at: "2026-08-24T09:00:00.000Z",
+        kind: "navigate",
+        target: value,
+        outcome: "completed",
+        navigationStatus: 200,
+      }];
+    }
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow("raw redaction scan failed");
+  });
+
+  it.each([
     ["plain 8", "Phone8 (495) 111-22-33"],
     ["compact +7", "Phone+7 (495) 111-22-33"],
   ])("rejects a %s phone number in action metadata at the checksum boundary", (_case, target) => {

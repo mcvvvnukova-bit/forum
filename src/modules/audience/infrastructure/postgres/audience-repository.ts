@@ -486,6 +486,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
       accepted_companies: string;
       duplicates: string;
       rejected: string;
+      blocked_or_conflicted: string;
       revenue: string;
       income: string;
       expenses: string;
@@ -594,6 +595,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
          COALESCE((SELECT result_json->'discovery'->>'acceptedCompanies' FROM latest_discovery), '0') AS accepted_companies,
          COALESCE((SELECT result_json->'discovery'->>'duplicates' FROM latest_discovery), '0') AS duplicates,
          COALESCE((SELECT result_json->'discovery'->>'rejected' FROM latest_discovery), '0') AS rejected,
+         COALESCE((SELECT result_json->'discovery'->>'blockedOrConflicted' FROM latest_discovery), '0') AS blocked_or_conflicted,
          (SELECT count(DISTINCT (company_inn, report_year, metric))
           FROM current_financial_evidence WHERE metric = 'revenue')::text AS revenue,
          (SELECT count(DISTINCT (company_inn, report_year, metric))
@@ -670,6 +672,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
       acceptedCompanies: Number(row.accepted_companies),
       duplicates: Number(row.duplicates),
       rejected: Number(row.rejected),
+      blockedOrConflicted: Number(row.blocked_or_conflicted),
     };
     const tasks = {
       total: Number(row.tasks),
@@ -703,7 +706,8 @@ export class PostgresAudienceRepository implements AudienceRepository {
     const violations: string[] = [];
     if (tasks.nonTerminal !== 0) violations.push(`non-terminal tasks: ${tasks.nonTerminal}`);
     const unaccountedOccurrences = discovery.occurrences
-      - discovery.acceptedCompanies - discovery.duplicates - discovery.rejected;
+      - discovery.acceptedCompanies - discovery.duplicates - discovery.rejected
+      - discovery.blockedOrConflicted;
     if (unaccountedOccurrences !== 0) {
       violations.push(`unaccounted discovery occurrences: ${unaccountedOccurrences}`);
     }

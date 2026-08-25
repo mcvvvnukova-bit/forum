@@ -182,7 +182,8 @@ Expected reconciliation fields:
     "uniqueSourceRecords": 3,
     "acceptedCompanies": 3,
     "duplicates": 1,
-    "rejected": 0
+    "rejected": 0,
+    "blockedOrConflicted": 0
   },
   "tasks": { "nonTerminal": 0 },
   "financial": { "revenue": 1, "income": 1, "expenses": 1 },
@@ -288,7 +289,7 @@ Solution: repeat the bucket-upload command in step 2 before discovery.
 ### A run is blocked
 
 Symptom: status is `blocked` with `captcha`, `http_403`, `soft_block`, `policy_block`,
-or `contract_drift`.
+`contract_drift`, or `duplicate_conflict`.
 
 Solution: preserve raw and database evidence, stop processing, and review the source policy.
 Never resume a blocked run. Never rotate an IP or add a proxy. Create a new run only after the

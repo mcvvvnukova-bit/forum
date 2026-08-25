@@ -83,6 +83,16 @@ Integration regression выполняет реальную PostgreSQL-транз
 
 При конфликте run получает terminal blocker и raw-доказательство текущей карточки. Ранее сохранённый raw bundle остаётся связан с первым occurrence. Конфликтующая запись не попадает в companies/rejects как самостоятельный результат.
 
+### Уточнение audit/reconciliation для блокеров и конфликтов
+
+Occurrence добавляется в текущую страницу сразу после полного разбора карточки и проверки возврата к неизменившейся выдаче. Если после этого на той же странице возникает terminal blocker, уже разобранные occurrences сохраняются как partial page вместе с санитизированным raw-доказательством; блокировка не имеет права отбрасывать их.
+
+`DiscoveryAudit` содержит отдельный счётчик `blockedOrConflicted`. Он учитывает один первый occurrence каждого materialized source record, который из-за `duplicate_conflict` был удалён из companies/rejects. Повторное конфликтующее occurrence остаётся в `duplicates`, поэтому каждое occurrence объясняется ровно один раз:
+
+`occurrences = acceptedCompanies + duplicates + rejected + blockedOrConflicted`.
+
+Блокер, достигнутый до полного разбора новой карточки (например, mid-page `http_403` или `contract_drift`), сам по себе не создаёт occurrence и не увеличивает `blockedOrConflicted`; ранее завершённые occurrences partial page продолжают учитываться в своих accepted/rejected/duplicate категориях. Таким образом `duplicate_conflict` по-прежнему исключает организацию из companies/rejects и сохраняет terminal evidence, не нарушая исходный критерий «reconciliation объясняет каждую fixture-запись».
+
 ### Критерий порядка
 
 Один и тот же набор карточек обязан давать одинаковый blocker и одинаковые доменные количества при любой перестановке. Тесты явно покрывают accepted→rejected, rejected→accepted и rejected(reason A)→rejected(reason B).

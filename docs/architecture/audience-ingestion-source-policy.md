@@ -26,6 +26,7 @@ Terminal block reasons are:
 - `soft_block`
 - `policy_block`
 - `contract_drift`
+- `duplicate_conflict`
 
 These reasons do not authorize retries against the same run.
 
@@ -63,7 +64,7 @@ Activation requires a code change and review after the source record is approved
 runtime escape hatch in this slice. On expiry, checksum mismatch, missing owner, or missing route,
 the source remains disabled and the attempted run ends with `policy_block`.
 
-CAPTCHA, HTTP 403, soft blocking, contract drift, and policy blocking are terminal. Operators must
+CAPTCHA, HTTP 403, soft blocking, contract drift, policy blocking, and duplicate conflict are terminal. Operators must
 not resume the run, rotate an IP, add a proxy, or broaden a route. They must preserve evidence,
 notify the named owner, and create a new run only after a new valid decision permits it.
 

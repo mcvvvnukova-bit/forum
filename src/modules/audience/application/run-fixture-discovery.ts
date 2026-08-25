@@ -114,6 +114,19 @@ export async function runFixtureDiscovery(
       page.occurrences.map((occurrence) => occurrence.sourceRecordKey)
     );
     const uniqueSourceRecords = new Set(occurrenceKeys).size;
+    const materializedSourceRecords = new Set([
+      ...result.companies.map((company) => company.sourceRecordKey),
+      ...result.rejects.map((reject) => reject.sourceRecordKey),
+    ]);
+    const occurrenceSourceRecords = new Set(occurrenceKeys);
+    const blockedOrConflicted = new Set(result.blockers.flatMap((blocker) =>
+      blocker.reason === "duplicate_conflict"
+        && blocker.sourceRecordKey !== undefined
+        && occurrenceSourceRecords.has(blocker.sourceRecordKey)
+        && !materializedSourceRecords.has(blocker.sourceRecordKey)
+        ? [blocker.sourceRecordKey]
+        : []
+    )).size;
     const completed = await dependencies.repository.completeDiscovery({
       task,
       status,
@@ -139,6 +152,7 @@ export async function runFixtureDiscovery(
         acceptedCompanies: result.companies.length,
         duplicates: occurrenceKeys.length - uniqueSourceRecords,
         rejected: result.rejects.length,
+        blockedOrConflicted,
       },
     });
     if (!completed) throw new StaleTaskError(task.id);

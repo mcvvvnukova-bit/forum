@@ -143,7 +143,14 @@ describe("ListOrgBrowserSource", () => {
         parserVersion: "list-org-browser/1.0.0",
       }],
       rejects: [],
-      counts: { occurrences: 2, uniqueSourceRecords: 2, accepted: 1, duplicates: 0, rejected: 0 },
+      counts: {
+        occurrences: 3,
+        uniqueSourceRecords: 2,
+        accepted: 1,
+        duplicates: 1,
+        rejected: 0,
+        blockedOrConflicted: 1,
+      },
     };
     expect(domainProjection(acceptedThenRejected)).toEqual(expected);
     expect(domainProjection(rejectedThenAccepted)).toEqual(expected);
@@ -171,6 +178,35 @@ describe("ListOrgBrowserSource", () => {
         navigationStatus: 403,
       }),
     ]));
+  });
+
+  it("preserves parsed occurrences before a mid-page 403 blocker", async () => {
+    const result = await collect("/search?scenario=mid-page-403");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("http_403");
+    expect(result.pages).toEqual([
+      expect.objectContaining({
+        page: 1,
+        occurrences: [expect.objectContaining({ sourceRecordKey: "1001" })],
+      }),
+    ]);
+    expect(result.companies.map((company) => company.sourceRecordKey)).toEqual(["1001"]);
+  });
+
+  it("does not copy a completed page's occurrences into a newly blocked page", async () => {
+    const result = await collect("/search?scenario=page-2-soft-block");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("soft_block");
+    expect(result.pages).toHaveLength(1);
+    expect(result.pages[0]).toMatchObject({
+      page: 1,
+      occurrences: [
+        expect.objectContaining({ sourceRecordKey: "1001" }),
+        expect.objectContaining({ sourceRecordKey: "1002" }),
+      ],
+    });
   });
 
   it("blocks a rendered search scope mismatch and retains checksummed evidence", async () => {
@@ -351,7 +387,7 @@ describe("ListOrgBrowserSource", () => {
     );
     expect(dom).not.toMatch(/secretToken|must-not-be-captured|hidden secret|data-secret|topsecret/);
     expect(JSON.stringify(card?.actions)).not.toMatch(/topsecret|customsecret/);
-    expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(4);
+    expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(5);
   });
 
   it("removes contacts and secrets from links, metadata, aria, comments, duplicate text, actions, and screenshot", async () => {
@@ -370,6 +406,30 @@ describe("ListOrgBrowserSource", () => {
     );
     expect(dom).not.toMatch(/<!--|<meta\b|mailto:|aria-label|data-copy|data-contact|\btitle=/i);
     expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBeGreaterThanOrEqual(6);
+  });
+
+  it("strips URL userinfo and fragments from every retained browser URL surface", async () => {
+    const result = await collect(
+      "/search?scenario=unsafe-url-components#token=action-fragment",
+    );
+    const card = result.rawBundles.find((bundle) => bundle.identity.sourceRecordKey === "1001");
+    const company = result.companies.find((item) => item.sourceRecordKey === "1001");
+    expect(card).toBeDefined();
+    expect(company?.website).toBe("https://localhost/profile?public=kept");
+    expect(card?.finalUrl).not.toMatch(/#|userinfo-name|userinfo-pass/);
+    expect(card?.actions.map((action) => action.target).join("\n")).not.toMatch(
+      /action-fragment|userinfo-name|userinfo-pass/,
+    );
+
+    const dom = new TextDecoder().decode(card!.sanitizedDomUtf8);
+    expect(dom).toContain('href="https://localhost/public?kept=yes"');
+    expect(dom).not.toContain("action-fragment");
+    expect(dom).not.toMatch(/candidate-fragment|dom-fragment|userinfo-name|userinfo-pass/);
+    expect(JSON.parse(new TextDecoder().decode(card!.manifestUtf8))).toMatchObject({
+      candidateEvidence: {
+        website: "https://localhost/profile?public=kept",
+      },
+    });
   });
 
   it("removes runtime form values from raw evidence and masks every populated control", async () => {
@@ -545,6 +605,11 @@ function domainProjection(result: Awaited<ReturnType<ListOrgBrowserSource["colle
       accepted: result.companies.length,
       duplicates: occurrences.length - new Set(occurrences.map((item) => item.sourceRecordKey)).size,
       rejected: result.rejects.length,
+      blockedOrConflicted: new Set(
+        result.blockers.flatMap((blocker) =>
+          blocker.sourceRecordKey === undefined ? [] : [blocker.sourceRecordKey]
+        ),
+      ).size,
     },
   };
 }

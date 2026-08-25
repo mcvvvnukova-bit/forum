@@ -75,6 +75,7 @@ export interface DiscoveryAudit {
   acceptedCompanies: number;
   duplicates: number;
   rejected: number;
+  blockedOrConflicted: number;
 }
 
 export interface ReplayInput {

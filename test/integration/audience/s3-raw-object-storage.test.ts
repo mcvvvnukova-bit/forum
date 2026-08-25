@@ -282,6 +282,65 @@ describe("S3RawObjectStorage", () => {
     },
   );
 
+  const unsafeRetainedUrlCases: Array<[
+    string,
+    string,
+    (manifest: MutableBrowserManifestFixture) => void,
+  ]> = [
+    ["fragment in final URL", "final-fragment", (manifest) => {
+      manifest.finalUrl = "https://fixture.invalid/page#token=final-secret";
+    }],
+    ["userinfo in final URL", "final-userinfo", (manifest) => {
+      manifest.finalUrl = "https://userinfo-name:userinfo-pass@localhost/page";
+    }],
+    ["fragment in action target", "action-fragment", (manifest) => {
+      manifest.actions[0]!.target = "/page#token=action-secret";
+    }],
+    ["userinfo in action target", "action-userinfo", (manifest) => {
+      manifest.actions[0]!.target = "https://userinfo-name:userinfo-pass@localhost/page";
+    }],
+    ["fragment in candidate website", "candidate-fragment", (manifest) => {
+      manifest.candidateEvidence.website = "https://company.example/#token=candidate-secret";
+    }],
+    ["userinfo in candidate website", "candidate-userinfo", (manifest) => {
+      manifest.candidateEvidence.website = "https://userinfo-name:userinfo-pass@localhost/";
+    }],
+  ];
+
+  it.each(unsafeRetainedUrlCases)(
+    "rejects checksum-consistent browser manifest with %s",
+    async (_case, runSlug, mutate) => {
+      const stored = await putChecksumConsistentBrowserManifest(
+        `s3-unsafe-url-${runSlug}`,
+        mutate,
+      );
+
+      const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+      await expect(browserStorage.verify(stored)).rejects.toThrow("raw redaction scan failed");
+    },
+  );
+
+  it.each([
+    ["fragment", "https://fixture.invalid/public#token=dom-secret"],
+    ["userinfo", "https://userinfo-name:userinfo-pass@localhost/public"],
+  ])("rejects checksum-consistent serialized DOM href with %s", async (_case, href) => {
+    const domBytes = new TextEncoder().encode(
+      `<!doctype html><html><body><a href="${href}">Public</a></body></html>`,
+    );
+    const stored = await putChecksumConsistentBrowserManifest(
+      `s3-unsafe-dom-href-${_case}`,
+      (manifest) => {
+        manifest.pageFingerprintSha256 = fixtureSha256(domBytes);
+        manifest.artifacts.sanitizedDom.checksumSha256 = fixtureSha256(domBytes);
+      },
+      () => undefined,
+      domBytes,
+    );
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow("raw redaction scan failed");
+  });
+
   it("rejects a checksum-consistent browser manifest with an incomplete policy", async () => {
     const stored = await putChecksumConsistentBrowserManifest(
       "s3-incomplete-browser-policy",
@@ -614,6 +673,7 @@ describe("S3RawObjectStorage", () => {
     runId: string,
     mutate: (manifest: MutableBrowserManifestFixture) => void,
     expectedIdentity: () => StoredManifestIdentityOverrides | void = () => undefined,
+    domBytes?: Uint8Array,
   ) {
     const bundle = sampleBundle(runId);
     const manifest = JSON.parse(
@@ -621,13 +681,14 @@ describe("S3RawObjectStorage", () => {
     ) as MutableBrowserManifestFixture;
     mutate(manifest);
     const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest));
-    return putManifestBytes(bundle, manifestBytes, expectedIdentity() ?? {});
+    return putManifestBytes(bundle, manifestBytes, expectedIdentity() ?? {}, domBytes);
   }
 
   async function putManifestBytes(
     bundle: ReturnType<typeof sampleBundle>,
     manifestBytes: Uint8Array,
     expectedIdentity: StoredManifestIdentityOverrides = {},
+    domBytes: Uint8Array = bundle.sanitizedDomUtf8,
   ) {
     const checksumSha256 = fixtureSha256(manifestBytes);
     const prefix = `raw/${bundle.identity.runId}/${bundle.sourceKind}/${checksumSha256}`;
@@ -646,7 +707,7 @@ describe("S3RawObjectStorage", () => {
       client.send(new PutObjectCommand({
         Bucket: bucket,
         Key: stored.domKey,
-        Body: bundle.sanitizedDomUtf8,
+        Body: domBytes,
       })),
       client.send(new PutObjectCommand({
         Bucket: bucket,

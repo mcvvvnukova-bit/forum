@@ -156,6 +156,7 @@ describe.sequential("audience parser fixture acceptance", () => {
       acceptedCompanies: 3,
       duplicates: 1,
       rejected: 0,
+      blockedOrConflicted: 0,
     });
     expect(report.tasks.nonTerminal).toBe(0);
     expect(report.financial).toEqual({ revenue: 1, income: 1, expenses: 1 });

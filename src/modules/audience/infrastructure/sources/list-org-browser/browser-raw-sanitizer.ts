@@ -52,13 +52,11 @@ export function sanitizeBrowserUrl(
   sensitiveQueryParameters: readonly string[],
 ): string {
   const url = new URL(value);
-  for (const name of [...url.searchParams.keys()]) {
-    if (isSensitiveFormFieldName(name, sensitiveQueryParameters)) url.searchParams.delete(name);
-  }
+  sanitizeRetainedUrl(url, sensitiveQueryParameters);
   return url.toString();
 }
 
-export function sensitiveQueryValues(
+export function sensitiveBrowserUrlValues(
   value: string,
   sensitiveQueryParameters: readonly string[],
 ): readonly string[] {
@@ -74,7 +72,25 @@ export function sensitiveQueryValues(
       values.push(queryValue);
     }
   }
-  return values;
+  if (url.username !== "") values.push(decodeUrlComponent(url.username));
+  if (url.password !== "") values.push(decodeUrlComponent(url.password));
+  const fragment = decodeUrlComponent(url.hash.slice(1));
+  if (fragment !== "") {
+    values.push(fragment);
+    for (const [name, fragmentValue] of new URLSearchParams(fragment)) {
+      if (fragmentValue !== "") values.push(fragmentValue);
+      else if (name !== "") values.push(name);
+    }
+  }
+  return [...new Set(values.filter((item) => item !== ""))];
+}
+
+function decodeUrlComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 export function sanitizeBrowserActionTarget(
@@ -86,7 +102,18 @@ export function sanitizeBrowserActionTarget(
   try {
     output = sanitizeBrowserUrl(output, sensitiveQueryParameters);
   } catch {
-    // Accessible names and labels are not URLs; redact their text below.
+    if (/^(?:\/|\.\.?\/|\?|#)/u.test(output)) {
+      const url = new URL(output, "https://browser-evidence.invalid");
+      sanitizeRetainedUrl(url, sensitiveQueryParameters);
+      output = output.startsWith("//")
+        ? `//${url.host}${url.pathname}${url.search}`
+        : output.startsWith("?")
+          ? url.search
+          : output.startsWith("#")
+            ? ""
+            : `${url.pathname}${url.search}`;
+    }
+    // Other accessible names and labels are not URLs; redact their text below.
   }
   for (const term of [...new Set(sensitiveValues.filter((item) => item !== ""))]
     .sort((left, right) => right.length - left.length)) {
@@ -147,12 +174,12 @@ export function assertBrowserCaptureSafe(
     throw new Error("browser action id is not a canonical UUID v4");
   }
   const sensitiveNames = bundle.sensitiveFormFieldNames ?? [];
-  assertNoSensitiveUrlParameters(bundle.finalUrl, sensitiveNames);
+  assertRetainedBrowserUrlSafe(bundle.finalUrl, sensitiveNames);
   if (bundle.candidateEvidence?.website !== null && bundle.candidateEvidence?.website !== undefined) {
-    assertNoSensitiveUrlParameters(bundle.candidateEvidence.website, sensitiveNames);
+    assertRetainedBrowserUrlSafe(bundle.candidateEvidence.website, sensitiveNames);
   }
   for (const action of bundle.actions) {
-    assertNoSensitiveUrlParameters(action.target, sensitiveNames);
+    assertRetainedBrowserUrlSafe(action.target, sensitiveNames);
   }
   assertSerializedBrowserDomSafe(
     dom,
@@ -250,6 +277,9 @@ export async function sanitizePageDom(
                 url.searchParams.delete(name);
               }
             }
+            url.username = "";
+            url.password = "";
+            url.hash = "";
             attributeValue = url.toString();
           } catch {
             element.removeAttribute(attribute.name);
@@ -402,7 +432,19 @@ function redactPhoneNumbersOutsideCanonicalUuids(value: string): string {
     .join("");
 }
 
-function assertNoSensitiveUrlParameters(
+function sanitizeRetainedUrl(
+  url: URL,
+  sensitiveNames: readonly string[],
+): void {
+  for (const name of [...url.searchParams.keys()]) {
+    if (isSensitiveFormFieldName(name, sensitiveNames)) url.searchParams.delete(name);
+  }
+  url.username = "";
+  url.password = "";
+  url.hash = "";
+}
+
+function assertRetainedBrowserUrlSafe(
   value: string,
   sensitiveNames: readonly string[],
 ): void {
@@ -412,7 +454,8 @@ function assertNoSensitiveUrlParameters(
   } catch {
     return;
   }
-  if ([...url.searchParams.keys()].some((name) =>
+  if (url.hash !== "" || url.username !== "" || url.password !== ""
+    || [...url.searchParams.keys()].some((name) =>
     isSensitiveFormFieldName(name, sensitiveNames)
   )) {
     throw new Error("raw redaction scan failed");
@@ -437,9 +480,46 @@ export function assertSerializedBrowserDomSafe(
   if (sourceKind !== "list-org-browser") return;
   const forbiddenMarkup = /<!--|<\s*(?:script|style|meta|link|iframe|object|embed|template|noscript|textarea|select|option)\b|\s(?:aria-[\w-]+|data-[\w-]+|title|style|src|action|value|on[\w-]+)=/iu;
   if (forbiddenMarkup.test(dom)
-    || containsUnsafeSerializedFormMarkup(dom, sensitiveFormFieldNames)) {
+    || containsUnsafeSerializedFormMarkup(dom, sensitiveFormFieldNames)
+    || containsUnsafeSerializedHref(dom, sensitiveFormFieldNames)) {
     throw new Error("raw redaction scan failed");
   }
+}
+
+function containsUnsafeSerializedHref(
+  dom: string,
+  sensitiveFormFieldNames: readonly string[],
+): boolean {
+  const hrefAssignmentPattern = /\shref\s*=/giu;
+  const hrefValuePattern = /\shref\s*=\s*(["'])(.*?)\1/gisu;
+  const assignments = [...dom.matchAll(hrefAssignmentPattern)].length;
+  let values = 0;
+  for (const match of dom.matchAll(hrefValuePattern)) {
+    values += 1;
+    const value = decodeHtmlUrlAttribute(match[2] ?? "");
+    try {
+      assertRetainedBrowserUrlSafe(value, sensitiveFormFieldNames);
+    } catch {
+      return true;
+    }
+  }
+  return assignments !== values;
+}
+
+function decodeHtmlUrlAttribute(value: string): string {
+  return value.replace(
+    /&(?:amp|quot|apos|#(?:x[0-9a-f]+|[0-9]+));/giu,
+    (entity) => {
+      const normalized = entity.toLocaleLowerCase("en-US");
+      if (normalized === "&amp;") return "&";
+      if (normalized === "&quot;") return "\"";
+      if (normalized === "&apos;") return "'";
+      const numeric = normalized.startsWith("&#x")
+        ? Number.parseInt(normalized.slice(3, -1), 16)
+        : Number.parseInt(normalized.slice(2, -1), 10);
+      return Number.isSafeInteger(numeric) ? String.fromCodePoint(numeric) : entity;
+    },
+  );
 }
 
 function containsUnsafeSerializedFormMarkup(

@@ -475,6 +475,74 @@ describe("fixture discovery and replay publication", () => {
     expect(audit.rows[0]).toEqual({ fetches: "0", non_terminal: "0" });
   });
 
+  it("does not conceal an unexplained occurrence as a blocker or conflict", async () => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const raw = checksumBrowserRawBundle({
+      sourceKind: "list-org-browser",
+      parserVersion,
+      finalUrl: "http://127.0.0.1/fixtures/results/page-1",
+      capturedAt: "2026-08-24T09:00:00.000Z",
+      navigationStatus: 200,
+      sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>safe</main>"),
+      redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+      pageFingerprintSha256: "a".repeat(64),
+      identity: { runId, page: 1 },
+      sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
+      candidateEvidence: null,
+      actions: [],
+    });
+    const source: OrganizationSource = {
+      collect: async () => ({
+        status: "succeeded",
+        reason: "terminal_marker",
+        companies: [],
+        pages: [{
+          page: 1,
+          raw,
+          occurrences: [{
+            sourceRecordKey: "orphan-occurrence",
+            resultFingerprintBefore: "a".repeat(64),
+            resultFingerprintAfter: "a".repeat(64),
+          }],
+        }],
+        rawBundles: [raw],
+        rejects: [],
+        blockers: [],
+      }),
+    };
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+
+    await runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 1,
+      maxCompanies: 1,
+      fixtureVersion: "unexplained-occurrence-fixture/1.0.0",
+      parserVersion,
+    }, { repository, source, rawStorage });
+
+    const audit = await database.query<{ discovery: unknown }>(
+      `SELECT result_json->'discovery' AS discovery
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId],
+    );
+    expect(audit.rows[0]?.discovery).toEqual({
+      occurrences: 1,
+      uniqueSourceRecords: 1,
+      acceptedCompanies: 0,
+      duplicates: 0,
+      rejected: 0,
+      blockedOrConflicted: 0,
+    });
+    await expect(reconcileRun(runId, repository)).rejects.toThrow(
+      "unaccounted discovery occurrences: 1",
+    );
+  });
+
   it("reconciles an invalid browser record as one reject and publishes only accepted rows", async () => {
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";
@@ -510,6 +578,7 @@ describe("fixture discovery and replay publication", () => {
         acceptedCompanies: 2,
         duplicates: 1,
         rejected: 1,
+        blockedOrConflicted: 0,
       },
       companies: 2,
       companyOkveds: 2,
@@ -518,6 +587,107 @@ describe("fixture discovery and replay publication", () => {
       consistent: true,
     });
   });
+
+  it.each([
+    ["accepted then rejected", "accepted-then-rejected", "duplicate_conflict", {
+      occurrences: 3,
+      uniqueSourceRecords: 2,
+      acceptedCompanies: 1,
+      duplicates: 1,
+      rejected: 0,
+      blockedOrConflicted: 1,
+    }],
+    ["rejected then accepted", "rejected-then-accepted", "duplicate_conflict", {
+      occurrences: 3,
+      uniqueSourceRecords: 2,
+      acceptedCompanies: 1,
+      duplicates: 1,
+      rejected: 0,
+      blockedOrConflicted: 1,
+    }],
+    ["conflicting rejected reasons", "rejected-reason-conflict", "duplicate_conflict", {
+      occurrences: 3,
+      uniqueSourceRecords: 2,
+      acceptedCompanies: 1,
+      duplicates: 1,
+      rejected: 0,
+      blockedOrConflicted: 1,
+    }],
+    ["mid-page 403", "mid-page-403", "http_403", {
+      occurrences: 1,
+      uniqueSourceRecords: 1,
+      acceptedCompanies: 1,
+      duplicates: 0,
+      rejected: 0,
+      blockedOrConflicted: 0,
+    }],
+  ] as const)("persists and reconciles blocked discovery for %s", async (
+    _case,
+    scenario,
+    reason,
+    expectedDiscovery,
+  ) => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    const source = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search?scenario=${scenario}`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+
+    await expect(runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+    }, { repository, source, rawStorage })).resolves.toMatchObject({
+      status: "blocked",
+      reason,
+      discoveredCompanies: 1,
+    });
+
+    const task = await database.query<{
+      status: string;
+      result_json: {
+        reason: string;
+        candidates: Array<{ sourceRecordKey: string }>;
+        rejects: unknown[];
+        blockers: Array<{ reason: string; sourceRecordKey: string }>;
+        discovery: unknown;
+      };
+    }>(
+      `SELECT status::text, result_json
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId],
+    );
+    expect(task.rows).toHaveLength(1);
+    expect(task.rows[0]).toMatchObject({
+      status: "blocked",
+      result_json: {
+        reason,
+        candidates: [expect.objectContaining({ sourceRecordKey: "1001" })],
+        rejects: [],
+        blockers: [expect.objectContaining({ reason })],
+        discovery: expectedDiscovery,
+      },
+    });
+    await expect(reconcileRun(runId, repository)).resolves.toMatchObject({
+      status: "blocked",
+      terminalReason: reason,
+      discovery: expectedDiscovery,
+      tasks: { nonTerminal: 0 },
+      consistent: true,
+    });
+  }, 20_000);
 
   it("keeps discovery audit-only and replays the original run idempotently from verified raw storage", async () => {
     const runId = randomUUID();
@@ -563,6 +733,7 @@ describe("fixture discovery and replay publication", () => {
       acceptedCompanies: 3,
       duplicates: 1,
       rejected: 0,
+      blockedOrConflicted: 0,
     });
     expect(await domainCounts(database, runId)).toEqual({
       companies: 0,

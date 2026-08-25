@@ -58,12 +58,20 @@ export async function startListOrgFixtureServer(
         if (scenario === "mismatched-scope") {
           body = body.replace("<dt>ОКВЭД</dt><dd>43.11</dd>", "<dt>ОКВЭД</dt><dd>43.12</dd>");
         }
+        if (scenario === "mid-page-403") {
+          body = body.replace(
+            /href="\/company\/1002\?[^"]+"/u,
+            'href="/forbidden"',
+          );
+        }
       }
     } else if (url.pathname === "/results/page-2") {
-      body = renderResult(files.page2, scenario).replace(
-        "{{TERMINAL_MARKER}}",
-        scenario === "missing-terminal" ? "" : '<p role="status">Последняя страница</p>',
-      );
+      body = scenario === "page-2-soft-block"
+        ? files.softBlock
+        : renderResult(files.page2, scenario).replace(
+            "{{TERMINAL_MARKER}}",
+            scenario === "missing-terminal" ? "" : '<p role="status">Последняя страница</p>',
+          );
     } else {
       const companyMatch = /^\/company\/(1001|1002|1003)$/.exec(url.pathname);
       const companyKey = companyMatch?.[1];
@@ -131,6 +139,17 @@ export async function startListOrgFixtureServer(
                Duplicate: +7 (495) 111-22-33
              </p>
              <a class="contact-value" href="mailto:backup@alpha.example" title="info@alpha.example">Contact</a>`,
+          );
+        }
+        if (scenario === "unsafe-url-components" && companyKey === "1001") {
+          body = body.replace(
+            "https://alpha.example",
+            "https://userinfo-name:userinfo-pass@localhost/profile?public=kept#candidate-fragment",
+          ).replace(
+            "</dl>",
+            `<a href="https://userinfo-name:userinfo-pass@localhost/public?kept=yes#dom-fragment">Public</a>
+             <p>action-fragment</p>
+             </dl>`,
           );
         }
         if (scenario === "form-secrets" && companyKey === "1001") {

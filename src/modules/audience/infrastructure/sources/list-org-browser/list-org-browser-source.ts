@@ -23,7 +23,7 @@ import {
   sanitizeBrowserActionTarget,
   sanitizePageDom,
   sanitizeBrowserUrl as sanitizeUrl,
-  sensitiveQueryValues,
+  sensitiveBrowserUrlValues,
 } from "./browser-raw-sanitizer";
 import { BrowserActionRecorder } from "./browser-action-recorder";
 import {
@@ -75,6 +75,7 @@ export class ListOrgBrowserSource implements OrganizationSource {
     const blockers: DiscoveryBlocker[] = [];
     const firstSeen = new Map<string, BrowserRecordResult>();
     let currentPage = 1;
+    let currentOccurrences: DiscoveryOccurrence[] = [];
 
     const block = async (
       reason: string,
@@ -90,6 +91,17 @@ export class ListOrgBrowserSource implements OrganizationSource {
         ...(options.sourceRecordKey === undefined ? {} : { sourceRecordKey: options.sourceRecordKey }),
       }, this.#parserVersion));
       if (!rawBundles.includes(raw)) rawBundles.push(raw);
+      if (currentOccurrences.length > 0
+        && !pages.some((page) => page.page === currentPage)) {
+        const pageRaw = raw.identity.sourceRecordKey === undefined
+          ? raw
+          : checksumBrowserRawBundle(await session.captureBlocker({
+              runId: this.#runId,
+              page: currentPage,
+            }, this.#parserVersion));
+        if (!rawBundles.includes(pageRaw)) rawBundles.push(pageRaw);
+        pages.push({ page: currentPage, raw: pageRaw, occurrences: [...currentOccurrences] });
+      }
       blockers.push({
         reason,
         ...(options.sourceRecordKey === undefined ? {} : { sourceRecordKey: options.sourceRecordKey }),
@@ -119,6 +131,8 @@ export class ListOrgBrowserSource implements OrganizationSource {
 
       for (let pageNumber = 1; pageNumber <= scope.maxPages; pageNumber += 1) {
         currentPage = pageNumber;
+        currentOccurrences = [];
+        const occurrences = currentOccurrences;
         if (await session.hasLandmark("Подтверждение CAPTCHA")) {
           return await block("captcha");
         }
@@ -129,7 +143,6 @@ export class ListOrgBrowserSource implements OrganizationSource {
         await verifyRenderedFilters(session, scope);
 
         const linkNames = await session.linkNamesInLandmark(RESULTS_LANDMARK, "Открыть карточку ");
-        const occurrences: DiscoveryOccurrence[] = [];
 
         for (const linkName of linkNames) {
           const before = await session.fingerprint();
@@ -138,12 +151,26 @@ export class ListOrgBrowserSource implements OrganizationSource {
           }
           await session.waitForLandmark(CARD_LANDMARK);
 
-          const parsed = await readCompany(session, scope);
+          let parsed = await readCompany(session, scope);
           const capturedCard = await session.capture(
             { runId: this.#runId, page: pageNumber, sourceRecordKey: parsed.sourceRecordKey },
             this.#parserVersion,
-            ["Телефон", "Email"],
+            parsed.kind === "accepted" && parsed.company.website !== null
+              ? ["Телефон", "Email", "Сайт"]
+              : ["Телефон", "Email"],
           );
+          if (parsed.kind === "accepted" && parsed.company.website !== null) {
+            parsed = {
+              ...parsed,
+              company: {
+                ...parsed.company,
+                website: sanitizeCandidateWebsite(
+                  parsed.company.website,
+                  capturedCard.sensitiveFormFieldNames ?? [],
+                ),
+              },
+            };
+          }
           const cardRaw = checksumBrowserRawBundle({
             ...capturedCard,
             candidateEvidence: parsed.kind === "accepted"
@@ -241,6 +268,15 @@ export class ListOrgBrowserSource implements OrganizationSource {
 
 function isPositiveSafeInteger(value: number): boolean {
   return Number.isSafeInteger(value) && value > 0;
+}
+
+function sanitizeCandidateWebsite(
+  value: string,
+  sensitiveQueryParameters: readonly string[],
+): string {
+  const sanitized = sanitizeUrl(value, sensitiveQueryParameters);
+  const original = new URL(value);
+  return value === original.origin ? new URL(sanitized).origin : sanitized;
 }
 
 function removeMaterializedRecord(
@@ -362,7 +398,7 @@ class PlaywrightBrowserSession implements BrowserSession {
     const sensitiveValues = new Set<string>();
     await context.routeWebSocket("**/*", async (webSocket) => {
       const requestUrl = webSocket.url();
-      for (const value of sensitiveQueryValues(requestUrl, sensitiveQueryParameters)) {
+      for (const value of sensitiveBrowserUrlValues(requestUrl, sensitiveQueryParameters)) {
         sensitiveValues.add(value);
       }
       let origins: { policy: string; evidence: string };
@@ -682,7 +718,7 @@ class PlaywrightBrowserSession implements BrowserSession {
   }
 
   #rememberSensitiveValues(url: string): void {
-    for (const value of sensitiveQueryValues(url, this.#sensitiveQueryParameters)) {
+    for (const value of sensitiveBrowserUrlValues(url, this.#sensitiveQueryParameters)) {
       this.#sensitiveValues.add(value);
     }
   }
