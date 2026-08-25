@@ -78,6 +78,32 @@ describe("browser raw sanitizer persistence boundary", () => {
     );
   });
 
+  it.each([
+    ["plain 8", "Phone8 (495) 111-22-33"],
+    ["compact +7", "Phone+7 (495) 111-22-33"],
+  ])("rejects a %s phone number in action metadata at the checksum boundary", (_case, target) => {
+    const bundle = rawBundle(
+      "<!doctype html><html><body><main>safe</main></body></html>",
+    );
+    bundle.actions = [{
+      id: "123e4567-e89b-42d3-a456-426614174000",
+      at: "2026-08-24T09:00:00.000Z",
+      kind: "navigate",
+      target,
+      outcome: "completed",
+      navigationStatus: 200,
+    }];
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow("raw redaction scan failed");
+  });
+
+  it.each([
+    ["plain 8", "Phone8 (495) 111-22-33", "Phone[REDACTED]"],
+    ["compact +7", "Phone+7 (495) 111-22-33", "Phone[REDACTED]"],
+  ])("redacts a %s phone number from an action target", (_case, target, expected) => {
+    expect(sanitizeBrowserActionTarget(target, [], [])).toBe(expected);
+  });
+
   it("rejects browser evidence whose persisted sensitive-name policy is missing", () => {
     const bundle = rawBundle("<!doctype html><html><body><main>safe</main></body></html>");
     delete bundle.sensitiveFormFieldNames;

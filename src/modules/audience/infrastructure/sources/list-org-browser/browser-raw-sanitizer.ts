@@ -33,7 +33,13 @@ export const SAFE_CAPTURE_ATTRIBUTES = [
 ] as const;
 
 const EMAIL_PATTERN = /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/iu;
-const PHONE_PATTERN = /(?<![0-9a-f-])(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}(?![0-9a-f-])/iu;
+const PHONE_PATTERN = /(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}/u;
+const CANONICAL_UUID_V4_PATTERN_SOURCE = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+const CANONICAL_UUID_V4_PATTERN = new RegExp(`^${CANONICAL_UUID_V4_PATTERN_SOURCE}$`);
+const CANONICAL_UUID_V4_TOKEN_PATTERN = new RegExp(
+  `(?<![0-9a-f-])(${CANONICAL_UUID_V4_PATTERN_SOURCE})(?![0-9a-f-])`,
+  "g",
+);
 const GENERIC_SENSITIVE_NAME_PATTERN_SOURCE = "(?:token|csrf|secret|credential|password|api_key|apikey|authorization|cookie|session)";
 const GENERIC_SENSITIVE_NAME_PATTERN = new RegExp(GENERIC_SENSITIVE_NAME_PATTERN_SOURCE, "iu");
 const SECRET_QUERY_PATTERN = new RegExp(
@@ -86,8 +92,9 @@ export function sanitizeBrowserActionTarget(
     .sort((left, right) => right.length - left.length)) {
     output = replaceEveryCaseInsensitive(output, term, "[REDACTED]");
   }
-  return output.replace(new RegExp(EMAIL_PATTERN.source, "giu"), "[REDACTED]")
-    .replace(new RegExp(PHONE_PATTERN.source, "gu"), "[REDACTED]");
+  return redactPhoneNumbersOutsideCanonicalUuids(
+    output.replace(new RegExp(EMAIL_PATTERN.source, "giu"), "[REDACTED]"),
+  );
 }
 
 export function assertCompleteBrowserSensitivePolicy(
@@ -105,7 +112,7 @@ export function assertCompleteBrowserSensitivePolicy(
 
 export function isCanonicalBrowserActionId(value: unknown): value is string {
   return typeof value === "string"
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
+    && CANONICAL_UUID_V4_PATTERN.test(value);
 }
 
 export function assertBrowserCaptureSafe(
@@ -375,11 +382,24 @@ export function addPageRedactionOverlays(
 function assertNoContactOrSecret(value: string, sensitiveValues: readonly string[]): void {
   const normalized = value.toLocaleLowerCase("en-US");
   if (EMAIL_PATTERN.test(value)
-    || PHONE_PATTERN.test(value)
+    || hasPhoneNumberOutsideCanonicalUuids(value)
     || SECRET_QUERY_PATTERN.test(value)
     || sensitiveValues.some((term) => term !== "" && normalized.includes(term.toLocaleLowerCase("en-US")))) {
     throw new Error("raw redaction scan failed");
   }
+}
+
+function hasPhoneNumberOutsideCanonicalUuids(value: string): boolean {
+  return value.split(CANONICAL_UUID_V4_TOKEN_PATTERN)
+    .some((part, index) => index % 2 === 0 && PHONE_PATTERN.test(part));
+}
+
+function redactPhoneNumbersOutsideCanonicalUuids(value: string): string {
+  return value.split(CANONICAL_UUID_V4_TOKEN_PATTERN)
+    .map((part, index) => index % 2 === 0
+      ? part.replace(new RegExp(PHONE_PATTERN.source, "gu"), "[REDACTED]")
+      : part)
+    .join("");
 }
 
 function assertNoSensitiveUrlParameters(
