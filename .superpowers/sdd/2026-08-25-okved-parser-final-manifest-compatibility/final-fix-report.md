@@ -1,13 +1,13 @@
 # Final whole-branch fix report
 
-Date: 2026-08-25  
-Branch: `codex/okved-parser`  
+Date: 2026-08-25
+Branch: `codex/okved-parser`
 Starting HEAD: `b6365fe9c11578fea5d82d2ae6ae5688601b2a04`
 
 ## Commits
 
 - Implementation: `7eaf32da39ecc97784239d2530bf412abcb43d0d` (`fix: close final parser review findings`).
-- Report: this file is committed separately after it is written; the containing commit hash is supplied in the final handoff because a commit cannot include its own hash without a later metadata commit.
+- Report snapshot: `bf04551b5353dfb2c3b277e676994cc7c567969f` (`docs: record final parser fix verification`). The final handoff also supplies the later formatting-only commit containing this hash, since a commit cannot include its own hash.
 
 ## Changes and design decisions
 
