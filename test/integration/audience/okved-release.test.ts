@@ -132,6 +132,40 @@ describe("selected OKVED release", () => {
         okveds: 0,
       });
 
+      const quotedJunkPath = join(directory, "quoted-junk.csv");
+      await writeFile(
+        quotedJunkPath,
+        `code,name,source_version\n43.11,"Разборка"x,${executableSourceVersion}\n`,
+        "utf8",
+      );
+      const quotedJunk = runOkvedReleaseCli(quotedJunkPath, isolated.connectionString, env);
+      expect(quotedJunk.status, `${quotedJunk.stdout}\n${quotedJunk.stderr}`).toBe(1);
+      await expect(publicationTableCounts(isolated.connectionString)).resolves.toEqual({
+        crawlRuns: 0,
+        sourceFetches: 0,
+        datasetReleases: 0,
+        okveds: 0,
+      });
+
+      const correctedPath = join(directory, "corrected-after-quoted-junk.csv");
+      await writeFile(
+        correctedPath,
+        `code,name,source_version\n43.11,Разборка и снос зданий,${executableSourceVersion}\n`,
+        "utf8",
+      );
+      const corrected = runOkvedReleaseCli(correctedPath, isolated.connectionString, env);
+      expect(corrected.status, `${corrected.stdout}\n${corrected.stderr}`).toBe(0);
+      expect(JSON.parse(corrected.stdout)).toMatchObject({
+        ok: true,
+        result: { reused: false, imported: 1 },
+      });
+      await expect(publicationTableCounts(isolated.connectionString)).resolves.toEqual({
+        crawlRuns: 1,
+        sourceFetches: 1,
+        datasetReleases: 1,
+        okveds: 1,
+      });
+
     } finally {
       await isolated.drop();
       await rm(directory, { recursive: true, force: true });

@@ -60,22 +60,57 @@ export function parseSelectedOkvedsCsv(
 }
 
 function parseCsv(csv: string): string[][] {
+  type CsvState = "unquoted" | "quoted" | "afterQuote";
+
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
-  let quoted = false;
+  let state: CsvState = "unquoted";
+  const finishField = () => {
+    row.push(field);
+    field = "";
+  };
+  const finishRow = () => {
+    finishField();
+    rows.push(row);
+    row = [];
+    state = "unquoted";
+  };
 
   for (let index = 0; index < csv.length; index += 1) {
-    const character = csv[index];
+    const character = csv[index]!;
 
-    if (quoted) {
-      if (character === '"' && csv[index + 1] === '"') {
-        field += '"';
+    if (state === "quoted") {
+      if (character === '"') {
+        if (csv[index + 1] === '"') {
+          field += '"';
+          index += 1;
+        } else {
+          state = "afterQuote";
+        }
+      } else if (character === "\r") {
+        if (csv[index + 1] !== "\n") {
+          throw new Error("selected OKVED CSV has an invalid carriage return");
+        }
+        field += "\r\n";
         index += 1;
-      } else if (character === '"') {
-        quoted = false;
       } else {
         field += character;
+      }
+      continue;
+    }
+
+    if (state === "afterQuote") {
+      if (character === ",") {
+        finishField();
+        state = "unquoted";
+      } else if (character === "\n") {
+        finishRow();
+      } else if (character === "\r" && csv[index + 1] === "\n") {
+        finishRow();
+        index += 1;
+      } else {
+        throw new Error("selected OKVED CSV has text after a closing quote");
       }
       continue;
     }
@@ -84,26 +119,26 @@ function parseCsv(csv: string): string[][] {
       if (field !== "") {
         throw new Error("selected OKVED CSV has an invalid quoted field");
       }
-      quoted = true;
+      state = "quoted";
     } else if (character === ",") {
-      row.push(field);
-      field = "";
+      finishField();
     } else if (character === "\n") {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-    } else if (character !== "\r") {
+      finishRow();
+    } else if (character === "\r" && csv[index + 1] === "\n") {
+      finishRow();
+      index += 1;
+    } else if (character === "\r") {
+      throw new Error("selected OKVED CSV has an invalid carriage return");
+    } else {
       field += character;
     }
   }
 
-  if (quoted) {
+  if (state === "quoted") {
     throw new Error("selected OKVED CSV has an unterminated quoted field");
   }
-  if (field !== "" || row.length > 0) {
-    row.push(field);
-    rows.push(row);
+  if (state === "afterQuote" || field !== "" || row.length > 0) {
+    finishRow();
   }
 
   return rows.filter((parsedRow) => parsedRow.some((value) => value !== ""));
