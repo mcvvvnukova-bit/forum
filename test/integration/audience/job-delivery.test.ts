@@ -17,7 +17,10 @@ import type { BrowserRawBundle } from "../../../src/modules/audience/domain/disc
 import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
 import { PostgresAudienceRepository } from "../../../src/modules/audience/infrastructure/postgres/audience-repository";
-import { MANDATORY_SENSITIVE_QUERY_PARAMETERS } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
+import {
+  MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+  browserVisualSafetyTarget,
+} from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import {
   checksumBrowserRawBundle,
   sha256,
@@ -585,7 +588,9 @@ function visualSafetyProof(): BrowserRawBundle["actions"] {
     id,
     at: "2026-08-24T09:00:00.000Z",
     kind: "verify-visual-safety",
-    target: "painted-surface-policy/1",
+    target: browserVisualSafetyTarget(sha256(new TextEncoder().encode(
+      "<!doctype html><main>redacted</main>",
+    ))),
     navigationStatus: 200,
   } as const;
   return [

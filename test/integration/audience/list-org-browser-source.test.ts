@@ -65,6 +65,20 @@ describe("ListOrgBrowserSource", () => {
     }
   });
 
+  it("binds every screenshot to exactly one ordered sanitized-DOM proof pair", async () => {
+    const result = await collect("/search");
+
+    for (const raw of result.rawBundles) {
+      const proof = raw.actions.filter((action) => action.kind === "verify-visual-safety");
+      expect(proof).toHaveLength(2);
+      expect(proof.map((action) => action.outcome)).toEqual(["intent", "completed"]);
+      expect(new Set(proof.map((action) => action.id)).size).toBe(1);
+      expect(new Set(proof.map((action) => action.target))).toEqual(new Set([
+        `sanitized-inert-render-policy/1;page-fingerprint-sha256=${raw.pageFingerprintSha256}`,
+      ]));
+    }
+  });
+
   it.each([
     ["CAPTCHA landmark", "/captcha", "captcha"],
     ["HTTP 403", "/forbidden", "http_403"],
@@ -228,6 +242,7 @@ describe("ListOrgBrowserSource", () => {
     ["a no-op Next link", "pagination-no-op"],
     ["a repeated page carrying a stale terminal marker", "pagination-repeated-terminal"],
     ["a reordered overlap after the page boundary", "pagination-reordered-boundary"],
+    ["a skip to a later terminal page", "pagination-skips-page"],
   ])("blocks pagination contract drift for %s", async (_case, scenario) => {
     const result = await collect(`/search?scenario=${scenario}`);
 
@@ -249,8 +264,11 @@ describe("ListOrgBrowserSource", () => {
     expect(closeBrowser).toHaveBeenCalledOnce();
   });
 
-  it("creates the browser context with service workers and downloads disabled", async () => {
-    const newContext = vi.fn(async () => { throw new Error("context options captured"); });
+  it("isolates live collection from a scriptless, network-blocked screenshot context", async () => {
+    const newContext = vi.fn(async () => ({
+      routeWebSocket: async () => { throw new Error("context options captured"); },
+      close: async () => undefined,
+    }));
     const factory = new PlaywrightBrowserSessionFactory(fixture.origin, {
       launch: async () => ({
         newContext,
@@ -259,9 +277,14 @@ describe("ListOrgBrowserSource", () => {
     });
 
     await expect(factory.open()).rejects.toThrow("context options captured");
-    expect(newContext).toHaveBeenCalledWith({
+    expect(newContext).toHaveBeenNthCalledWith(1, {
       serviceWorkers: "block",
       acceptDownloads: false,
+    });
+    expect(newContext).toHaveBeenNthCalledWith(2, {
+      serviceWorkers: "block",
+      acceptDownloads: false,
+      javaScriptEnabled: false,
     });
   });
 
@@ -272,7 +295,9 @@ describe("ListOrgBrowserSource", () => {
       launch: async () => ({
         newContext: async () => ({
           routeWebSocket: async () => undefined,
+          exposeBinding: async () => undefined,
           addInitScript: async () => undefined,
+          route: async () => undefined,
           newPage: async () => { throw new Error("page startup failed"); },
           close: closeContext,
         }),
@@ -281,7 +306,7 @@ describe("ListOrgBrowserSource", () => {
     });
 
     await expect(factory.open()).rejects.toThrow("page startup failed");
-    expect(closeContext).toHaveBeenCalledOnce();
+    expect(closeContext).toHaveBeenCalledTimes(2);
     expect(closeBrowser).toHaveBeenCalledOnce();
   });
 
@@ -305,7 +330,7 @@ describe("ListOrgBrowserSource", () => {
 
     await expect(factory.open()).rejects.toThrow("WebSocket route startup failed");
     expect(newPage).not.toHaveBeenCalled();
-    expect(closeContext).toHaveBeenCalledOnce();
+    expect(closeContext).toHaveBeenCalledTimes(2);
     expect(closeBrowser).toHaveBeenCalledOnce();
   });
 
@@ -370,7 +395,7 @@ describe("ListOrgBrowserSource", () => {
       expect(result.status).toBe("blocked");
       expect(result.reason).toBe("policy_block");
       expect(result.blockers.at(-1)).toMatchObject({
-        detail: new URL(probe.url).origin,
+        detail: "service-worker-registration",
         raw: expect.objectContaining({
           checksumSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
         }),
@@ -380,6 +405,19 @@ describe("ListOrgBrowserSource", () => {
       await isolatedFixture.close();
       await probe.close();
     }
+  });
+
+  it("turns a caught service-worker registration rejection into durable policy evidence", async () => {
+    const result = await collect("/search?scenario=service-worker-caught");
+
+    expect(result.status).toBe("blocked");
+    expect(result.reason).toBe("policy_block");
+    expect(result.blockers.at(-1)).toMatchObject({
+      detail: "service-worker-registration",
+      raw: expect.objectContaining({
+        checksumSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
+      }),
+    });
   });
 
   it.each([
@@ -458,7 +496,7 @@ describe("ListOrgBrowserSource", () => {
     );
     expect(dom).not.toMatch(/secretToken|must-not-be-captured|hidden secret|data-secret|topsecret/);
     expect(JSON.stringify(card?.actions)).not.toMatch(/topsecret|customsecret/);
-    expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(5);
+    expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(0);
   });
 
   it("removes contacts and secrets from links, metadata, aria, comments, duplicate text, actions, and screenshot", async () => {
@@ -476,7 +514,7 @@ describe("ListOrgBrowserSource", () => {
       /(?:info|backup)@alpha\.example|\+7 \(495\) (?:111-22-33|222-33-44)|default-secret|configured-secret|unconfigured-secret/i,
     );
     expect(dom).not.toMatch(/<!--|<meta\b|mailto:|aria-label|data-copy|data-contact|\btitle=/i);
-    expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBeGreaterThanOrEqual(6);
+    expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(0);
   });
 
   it("strips URL userinfo and fragments from every retained browser URL surface", async () => {
@@ -532,8 +570,8 @@ describe("ListOrgBrowserSource", () => {
 
     expect(dom).toContain('href="https://localhost/public"');
     expect(dom).not.toMatch(/href-user|href-pass|href-query-secret|href-fragment-secret/);
-    expect(await countBlackContactBands(card.redactedScreenshotPng)).toBeGreaterThanOrEqual(
-      (await countBlackContactBands(baselineCard.redactedScreenshotPng)) + 4,
+    expect(await countBlackContactBands(card.redactedScreenshotPng)).toBe(
+      await countBlackContactBands(baselineCard.redactedScreenshotPng),
     );
   });
 
@@ -556,7 +594,7 @@ describe("ListOrgBrowserSource", () => {
       ),
     }).toEqual({
       domContainsSecret: false,
-      leakingElementPixelIsBlack: true,
+      leakingElementPixelIsBlack: false,
     });
   });
 
@@ -580,7 +618,7 @@ describe("ListOrgBrowserSource", () => {
     }).toEqual({
       domContainsContiguousSecret: false,
       domContainsSplitSecret: false,
-      leakingElementPixelIsBlack: true,
+      leakingElementPixelIsBlack: false,
     });
   });
 
@@ -591,7 +629,7 @@ describe("ListOrgBrowserSource", () => {
 
     expect(result.status, result.reason).toBe("succeeded");
     expect(dom).not.toMatch(/İf(?:<[^>]+>)*oo-unique-secret/iu);
-    expect(await isBlackPixel(card.redactedScreenshotPng, 420 + 250, 220 + 16)).toBe(true);
+    expect(await isBlackPixel(card.redactedScreenshotPng, 420 + 250, 220 + 16)).toBe(false);
     expect(await isBlackPixel(card.redactedScreenshotPng, 300, 236)).toBe(false);
   });
 
@@ -621,7 +659,7 @@ describe("ListOrgBrowserSource", () => {
 
     expect(result.status, result.reason).toBe("succeeded");
     expect(dom).not.toMatch(/operator@(?:<[^>]+>)*example\.test/iu);
-    expect(await isBlackPixel(card.redactedScreenshotPng, 700, 436)).toBe(true);
+    expect(await isBlackPixel(card.redactedScreenshotPng, 700, 436)).toBe(false);
   });
 
   it.each([
@@ -633,26 +671,44 @@ describe("ListOrgBrowserSource", () => {
     ["data image", "painted-image"],
     ["video", "painted-video"],
     ["data background image", "painted-background-data"],
-  ])("fails closed before capture for an unprovable %s painted surface", async (
+  ])("removes an untrusted %s painted surface before inert rendering", async (
     _case,
     scenario,
   ) => {
     const result = await collect(`/search?scenario=${scenario}`);
 
-    expect(result.status).toBe("blocked");
-    expect(result.reason).toBe("contract_drift");
-    const blocker = result.blockers.at(-1)!;
-    expect(blocker.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/u);
-    expect(new TextDecoder().decode(blocker.raw.sanitizedDomUtf8)).not.toContain(
+    expect(result.status, result.reason).toBe("succeeded");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    expect(card.checksumSha256).toMatch(/^[0-9a-f]{64}$/u);
+    expect(new TextDecoder().decode(card.sanitizedDomUtf8)).not.toContain(
       "operator@example.test",
     );
-    expect(blocker.raw.actions).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        kind: "verify-visual-safety",
-        target: "painted-surface-policy/1",
-        outcome: "completed",
-      }),
-    ]));
+    const proof = card.actions.filter((action) => action.kind === "verify-visual-safety");
+    expect(proof.map((action) => action.target)).toEqual([
+      `sanitized-inert-render-policy/1;page-fingerprint-sha256=${card.pageFingerprintSha256}`,
+      `sanitized-inert-render-policy/1;page-fingerprint-sha256=${card.pageFingerprintSha256}`,
+    ]);
+  });
+
+  it("renders the sanitized snapshot even when the live page mutates immediately afterward", async () => {
+    const result = await collect("/search?scenario=mutation-after-sanitized-snapshot");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(new TextDecoder().decode(card.sanitizedDomUtf8)).not.toContain(
+      "late-mutation@example.test",
+    );
+    expect(await isRedPixel(card.redactedScreenshotPng, 780, 40)).toBe(false);
+  });
+
+  it("strips declarative shadow and CSS image surfaces from the inert screenshot", async () => {
+    const result = await collect("/search?scenario=painted-declarative-css");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(dom).not.toMatch(/template|shadowrootmode|mask-image|border-image|list-style-image/iu);
+    expect(await isRedPixel(card.redactedScreenshotPng, 780, 100)).toBe(false);
   });
 
   it("removes non-http href schemes while retaining canonical safe relative navigation", async () => {
@@ -694,7 +750,7 @@ describe("ListOrgBrowserSource", () => {
     expect(dom).toContain('<input type="text" name="public_field">');
     const formBands = await countBlackContactBands(card!.redactedScreenshotPng);
     const baselineBands = await countBlackContactBands(baselineCard!.redactedScreenshotPng);
-    expect(formBands).toBe(baselineBands + 4);
+    expect(formBands).toBe(baselineBands);
   });
 
   it("persists configured-only form policy while removing its control from evidence", async () => {
@@ -729,7 +785,7 @@ describe("ListOrgBrowserSource", () => {
       /password reminder|nonce reminder|nonce button reminder|name="(?:password|nonce)"/i,
     );
     expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(
-      await countBlackContactBands(baselineCard!.redactedScreenshotPng) + 3,
+      await countBlackContactBands(baselineCard!.redactedScreenshotPng),
     );
   });
 
@@ -882,6 +938,32 @@ async function isBlackPixel(png: Uint8Array, x: number, y: number): Promise<bool
       context.drawImage(image, 0, 0);
       const pixel = context.getImageData(sampleX, sampleY, 1, 1).data;
       return pixel[0] === 0 && pixel[1] === 0 && pixel[2] === 0;
+    }, {
+      base64: Buffer.from(png).toString("base64"),
+      sampleX: x,
+      sampleY: y,
+    });
+  } finally {
+    await browser.close();
+  }
+}
+
+async function isRedPixel(png: Uint8Array, x: number, y: number): Promise<boolean> {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    return await page.evaluate(async ({ base64, sampleX, sampleY }) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${base64}`;
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext("2d");
+      if (context === null) throw new Error("2D canvas is unavailable");
+      context.drawImage(image, 0, 0);
+      const pixel = context.getImageData(sampleX, sampleY, 1, 1).data;
+      return pixel[0] > 200 && pixel[1] < 50 && pixel[2] < 50;
     }, {
       base64: Buffer.from(png).toString("base64"),
       sampleX: x,

@@ -520,6 +520,75 @@ describe.sequential("audience parser fixture acceptance", () => {
       consistent: true,
     });
   });
+
+  it("reconciles mixed published/no-data outcomes and rejects missing attempt provenance", async () => {
+    const mixedRunId = randomUUID();
+    const mixedFixture = await startListOrgFixtureServer();
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    try {
+      const source = new ListOrgBrowserSource({
+        searchUrl: `${mixedFixture.origin}/search`,
+        sessions: new PlaywrightBrowserSessionFactory(mixedFixture.origin, {
+          now: () => new Date("2026-08-24T09:00:00.000Z"),
+        }),
+        runId: mixedRunId,
+        parserVersion: "list-org-browser/1.0.0",
+      });
+      await runFixtureDiscovery({
+        runId: mixedRunId,
+        okved: "43.11",
+        year: 2025,
+        dryRun: true,
+        maxPages: 2,
+        maxCompanies: 50,
+        fixtureVersion: "list-org-browser-fixture/1.0.0",
+        parserVersion: "list-org-browser/1.0.0",
+      }, { repository, source, rawStorage });
+    } finally {
+      await mixedFixture.close();
+    }
+    await replayRun({ runId: mixedRunId, dryRun: false }, { repository, rawStorage });
+
+    const staged = await stageFinancialFixtures(mixedRunId, 2025, env, client);
+    const revenue = staged.evidence.filter((item) => item.metric === "revenue");
+    const revexpAttempt = staged.rawObjects.find((item) => item.sourceKind === "fns-revexp")!;
+    const noData = {
+      outcome: "no_data" as const,
+      evidence: 0 as const,
+      sourceAttempt: {
+        sourceKind: "fns_revexp" as const,
+        sourceRecordKey: revexpAttempt.sourceRecordKey,
+        observedAt: revexpAttempt.capturedAt,
+        rawFetchKey: revexpAttempt.stored.checksumSha256,
+        parserVersion: revexpAttempt.parserVersion,
+      },
+    };
+    await publishFinancialEvidence({
+      runId: mixedRunId,
+      reportYear: 2025,
+      evidence: revenue,
+      metricOutcomes: {
+        revenue: { outcome: "published", evidence: revenue.length },
+        income: noData,
+        expenses: noData,
+      },
+      rawObjects: staged.rawObjects,
+    }, { repository });
+
+    await expect(reconcileRun(mixedRunId, repository)).resolves.toMatchObject({
+      financial: { revenue: 1, income: 0, expenses: 0 },
+      consistent: true,
+    });
+    await database.query(
+      `UPDATE audience.crawl_tasks
+       SET result_json = result_json #- '{metricOutcomes,income,sourceAttempt}'
+       WHERE run_id = $1 AND task_kind = 'fixture_finance'`,
+      [mixedRunId],
+    );
+    await expect(reconcileRun(mixedRunId, repository)).rejects.toThrow(
+      "required financial metric outcome is absent: income",
+    );
+  }, 60_000);
 });
 
 interface OrganizationEvidenceRow {
@@ -686,7 +755,18 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv, 
     rawFetchKey: revexpStored.checksumSha256,
     parserVersion: revexpBundle.parserVersion,
   });
-  return { runId, evidence: [...bfo.evidence, ...revexp], rawObjects };
+  const evidence = [...bfo.evidence, ...revexp];
+  return {
+    runId,
+    reportYear: year,
+    evidence,
+    metricOutcomes: {
+      revenue: { outcome: "published" as const, evidence: evidence.filter((item) => item.metric === "revenue").length },
+      income: { outcome: "published" as const, evidence: evidence.filter((item) => item.metric === "income").length },
+      expenses: { outcome: "published" as const, evidence: evidence.filter((item) => item.metric === "expenses").length },
+    },
+    rawObjects,
+  };
 }
 
 function fixtureRawBundle(input: {

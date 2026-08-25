@@ -10,6 +10,9 @@ import type {
   DiscoveryRunInput,
   FencedTask,
   FinancialPublicationInput,
+  FinancialMetricOutcome,
+  FinancialMetricOutcomes,
+  FinancialSourceAttempt,
   PublicationCounts,
   ReconciliationReport,
   ReplayInput,
@@ -42,6 +45,7 @@ interface ResultRow extends QueryResultRow {
 
 interface RunScopeYearRow extends QueryResultRow {
   scope_year: unknown;
+  required_financial_metrics?: unknown;
 }
 
 interface DiscoveryRunRow extends RunRow {
@@ -414,15 +418,33 @@ export class PostgresAudienceRepository implements AudienceRepository {
   async publishFinancial(input: FinancialPublicationInput): Promise<boolean> {
     return this.database.transaction(async (transaction) => {
       if (!await lockFence(transaction, input.task)) return false;
-      const runScopeYear = await lockRunScopeYear(transaction, input.task.runId);
-      if (input.evidence.some((evidence) => evidence.reportYear !== runScopeYear)) {
+      const contract = await lockRunFinancialContract(transaction, input.task.runId);
+      if (input.reportYear !== contract.reportYear
+        || input.evidence.some((evidence) => evidence.reportYear !== contract.reportYear)) {
         throw new Error("financial evidence report year does not match immutable run scope");
       }
+      assertFinancialMetricOutcomes(
+        input.metricOutcomes,
+        contract.requiredMetrics,
+        input.evidence,
+      );
       await transaction.query("SET CONSTRAINTS ALL DEFERRED");
 
       for (const rawObject of input.rawObjects ?? []) {
         const inserted = await insertRawFetch(transaction, input.task, "running", rawObject);
         if (inserted === 0) throw new Error("stale task worker stopped during financial raw audit");
+      }
+
+      for (const metric of contract.requiredMetrics) {
+        const outcome = input.metricOutcomes[metric]!;
+        if (outcome.outcome === "no_data") {
+          await assertFinancialSourceAttempt(
+            transaction,
+            input.task.runId,
+            metric,
+            outcome.sourceAttempt,
+          );
+        }
       }
 
       for (const evidence of input.evidence) {
@@ -462,12 +484,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
         [input.task.id, input.task.runId, input.task.fencingToken,
           JSON.stringify({
             evidence: input.evidence.length,
-            metricOutcomes: Object.fromEntries(
-              ["revenue", "income", "expenses"].flatMap((metric) => {
-                const evidence = input.evidence.filter((item) => item.metric === metric).length;
-                return evidence === 0 ? [] : [[metric, { outcome: "published", evidence }]];
-              }),
-            ),
+            metricOutcomes: input.metricOutcomes,
           })],
       );
       if (update.rowCount !== 1) {
@@ -668,6 +685,23 @@ export class PostgresAudienceRepository implements AudienceRepository {
               SELECT 1 FROM current_financial_evidence evidence
               WHERE evidence.source_fetch_id = raw.id
             )
+            AND NOT EXISTS (
+              SELECT 1
+              FROM latest_financial_task finance,
+                   jsonb_each(COALESCE(finance.result_json->'metricOutcomes', '{}'::jsonb)) outcome
+              WHERE outcome.value->>'outcome' = 'no_data'
+                AND outcome.value->'sourceAttempt'->>'sourceRecordKey' = raw.source_record_key
+                AND outcome.value->'sourceAttempt'->>'parserVersion' = raw.parser_version
+                AND (
+                  outcome.value->'sourceAttempt'->>'rawFetchKey' = raw.object_key
+                  OR outcome.value->'sourceAttempt'->>'rawFetchKey' = raw.checksum_sha256
+                )
+                AND CASE outcome.value->'sourceAttempt'->>'sourceKind'
+                  WHEN 'fns_bfo' THEN 'fns-bfo'
+                  WHEN 'fns_revexp' THEN 'fns-revexp'
+                  ELSE NULL
+                END = raw.source_kind
+            )
             AND NOT (
               raw.source_kind = 'list-org-browser'
               AND (
@@ -793,8 +827,18 @@ export class PostgresAudienceRepository implements AudienceRepository {
             if (outcome.evidence <= 0 || outcome.evidence !== financial[metric]) {
               violations.push(`required financial metric evidence differs from outcome: ${metric}`);
             }
-          } else if (financial[metric] !== 0) {
-            violations.push(`required financial no-data outcome has evidence: ${metric}`);
+          } else {
+            if (financial[metric] !== 0) {
+              violations.push(`required financial no-data outcome has evidence: ${metric}`);
+            }
+            if (!await financialSourceAttemptExists(
+              this.database,
+              runId,
+              metric,
+              outcome.sourceAttempt,
+            )) {
+              violations.push(`required financial no-data source attempt is missing: ${metric}`);
+            }
           }
         }
       }
@@ -816,14 +860,23 @@ export class PostgresAudienceRepository implements AudienceRepository {
   }
 }
 
-async function lockRunScopeYear(database: Database, runId: string): Promise<number> {
+async function lockRunFinancialContract(
+  database: Database,
+  runId: string,
+): Promise<{ reportYear: number; requiredMetrics: readonly FinancialMetric[] }> {
   const result = await database.query<RunScopeYearRow>(
-    `SELECT scope_json->'year' AS scope_year
+    `SELECT scope_json->'year' AS scope_year,
+            scope_json->'requiredFinancialMetrics' AS required_financial_metrics
      FROM audience.crawl_runs WHERE id = $1 FOR UPDATE`,
     [runId],
   );
   if (result.rows[0] === undefined) throw new Error("crawl run does not exist");
-  return parseRunScopeYear(result.rows[0].scope_year);
+  return {
+    reportYear: parseRunScopeYear(result.rows[0].scope_year),
+    requiredMetrics: parseRequiredFinancialMetrics(
+      result.rows[0].required_financial_metrics,
+    ),
+  };
 }
 
 function parseRunScopeYear(value: unknown): number {
@@ -844,13 +897,115 @@ function parseRequiredFinancialMetrics(value: unknown): readonly FinancialMetric
   return value as FinancialMetric[];
 }
 
-type FinancialMetricOutcome =
-  | { outcome: "published"; evidence: number }
-  | { outcome: "no_data"; evidence: 0 };
+function assertFinancialMetricOutcomes(
+  outcomes: FinancialMetricOutcomes,
+  requiredMetrics: readonly FinancialMetric[],
+  evidence: FinancialPublicationInput["evidence"],
+): void {
+  const outcomeKeys = Object.keys(outcomes).sort();
+  const expectedKeys = [...requiredMetrics].sort();
+  if (outcomeKeys.length !== expectedKeys.length
+    || outcomeKeys.some((key, index) => key !== expectedKeys[index])) {
+    throw new Error("financial metric outcomes do not match immutable run requirements");
+  }
+  if (evidence.some((item) => !requiredMetrics.includes(item.metric))) {
+    throw new Error("financial metric outcome is absent for published evidence");
+  }
+  for (const metric of requiredMetrics) {
+    const outcome = outcomes[metric];
+    const evidenceCount = evidence.filter((item) => item.metric === metric).length;
+    if (outcome === undefined) {
+      throw new Error(`financial metric outcome is absent: ${metric}`);
+    }
+    if (outcome.outcome === "published") {
+      if (!hasExactKeys(outcome, ["evidence", "outcome"])
+        || !Number.isSafeInteger(outcome.evidence)
+        || outcome.evidence <= 0
+        || outcome.evidence !== evidenceCount) {
+        throw new Error(`financial metric outcome evidence is invalid: ${metric}`);
+      }
+    } else if (outcome.outcome !== "no_data"
+      || !hasExactKeys(outcome, ["evidence", "outcome", "sourceAttempt"])
+      || outcome.evidence !== 0
+      || evidenceCount !== 0) {
+      throw new Error(`financial metric no-data outcome has evidence: ${metric}`);
+    }
+  }
+}
+
+async function assertFinancialSourceAttempt(
+  database: Database,
+  runId: string,
+  metric: FinancialMetric,
+  attempt: FinancialSourceAttempt,
+): Promise<void> {
+  if (!isFinancialSourceAttemptValid(metric, attempt)) {
+    throw new Error(`financial metric no-data source attempt is invalid: ${metric}`);
+  }
+  if (!await financialSourceAttemptExists(database, runId, metric, attempt)) {
+    throw new Error(`financial metric no-data source attempt is missing: ${metric}`);
+  }
+}
+
+function isFinancialSourceAttemptValid(
+  metric: FinancialMetric,
+  attempt: FinancialSourceAttempt,
+): boolean {
+  const sourceMapping = {
+    revenue: { evidence: "fns_bfo", raw: "fns-bfo" },
+    income: { evidence: "fns_revexp", raw: "fns-revexp" },
+    expenses: { evidence: "fns_revexp", raw: "fns-revexp" },
+  } as const;
+  const expected = sourceMapping[metric];
+  return !(attempt === null || typeof attempt !== "object"
+    || !hasExactKeys(attempt, [
+      "observedAt", "parserVersion", "rawFetchKey", "sourceKind", "sourceRecordKey",
+    ])
+    || attempt.sourceKind !== expected.evidence
+    || attempt.sourceRecordKey.trim() === ""
+    || attempt.rawFetchKey.trim() === ""
+    || attempt.parserVersion.trim() === ""
+    || !isCanonicalInstant(attempt.observedAt));
+}
+
+function hasExactKeys(value: object, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const sortedExpected = [...expected].sort();
+  return actual.length === sortedExpected.length
+    && actual.every((key, index) => key === sortedExpected[index]);
+}
+
+async function financialSourceAttemptExists(
+  database: Database,
+  runId: string,
+  metric: FinancialMetric,
+  attempt: FinancialSourceAttempt,
+): Promise<boolean> {
+  if (!isFinancialSourceAttemptValid(metric, attempt)) return false;
+  const rawSourceKind = metric === "revenue" ? "fns-bfo" : "fns-revexp";
+  const result = await database.query(
+    `SELECT 1 FROM audience.source_fetches
+     WHERE run_id = $1
+       AND source_kind = $2
+       AND source_record_key = $3
+       AND (object_key = $4 OR checksum_sha256 = $4)
+       AND parser_version = $5
+       AND captured_at = $6::timestamptz
+     LIMIT 1`,
+    [runId, rawSourceKind, attempt.sourceRecordKey, attempt.rawFetchKey,
+      attempt.parserVersion, attempt.observedAt],
+  );
+  return result.rowCount === 1;
+}
+
+function isCanonicalInstant(value: string): boolean {
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+}
 
 function parseFinancialMetricOutcomes(
   result: unknown,
-): Partial<Record<FinancialMetric, FinancialMetricOutcome>> {
+): FinancialMetricOutcomes {
   if (result === null || typeof result !== "object" || Array.isArray(result)) return {};
   const candidate = (result as Record<string, unknown>).metricOutcomes;
   if (candidate === null || typeof candidate !== "object" || Array.isArray(candidate)) return {};
@@ -860,13 +1015,45 @@ function parseFinancialMetricOutcomes(
     if (value === null || typeof value !== "object" || Array.isArray(value)) continue;
     const outcome = (value as Record<string, unknown>).outcome;
     const evidence = (value as Record<string, unknown>).evidence;
-    if (outcome === "published" && Number.isSafeInteger(evidence) && Number(evidence) > 0) {
+    if (outcome === "published"
+      && hasExactKeys(value, ["evidence", "outcome"])
+      && Number.isSafeInteger(evidence)
+      && Number(evidence) > 0) {
       outcomes[metric] = { outcome, evidence: Number(evidence) };
-    } else if (outcome === "no_data" && (evidence === 0 || evidence === undefined)) {
-      outcomes[metric] = { outcome, evidence: 0 };
+    } else if (outcome === "no_data"
+      && hasExactKeys(value, ["evidence", "outcome", "sourceAttempt"])
+      && evidence === 0) {
+      const sourceAttempt = parseFinancialSourceAttempt(
+        (value as Record<string, unknown>).sourceAttempt,
+      );
+      if (sourceAttempt !== undefined) {
+        outcomes[metric] = { outcome, evidence: 0, sourceAttempt };
+      }
     }
   }
   return outcomes;
+}
+
+function parseFinancialSourceAttempt(value: unknown): FinancialSourceAttempt | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const candidate = value as Record<string, unknown>;
+  if (!hasExactKeys(candidate, [
+    "observedAt", "parserVersion", "rawFetchKey", "sourceKind", "sourceRecordKey",
+  ])
+    || (candidate.sourceKind !== "fns_bfo" && candidate.sourceKind !== "fns_revexp")
+    || typeof candidate.sourceRecordKey !== "string"
+    || typeof candidate.observedAt !== "string"
+    || typeof candidate.rawFetchKey !== "string"
+    || typeof candidate.parserVersion !== "string") {
+    return undefined;
+  }
+  return {
+    sourceKind: candidate.sourceKind,
+    sourceRecordKey: candidate.sourceRecordKey,
+    observedAt: candidate.observedAt,
+    rawFetchKey: candidate.rawFetchKey,
+    parserVersion: candidate.parserVersion,
+  };
 }
 
 function taskState(row: TaskStateRow): TaskState {

@@ -23,7 +23,10 @@ import {
   ListOrgBrowserSource,
   PlaywrightBrowserSessionFactory,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source";
-import { MANDATORY_SENSITIVE_QUERY_PARAMETERS } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
+import {
+  MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+  browserVisualSafetyTarget,
+} from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
 import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import {
@@ -197,6 +200,46 @@ describe("fixture discovery and replay publication", () => {
     expect(task.rows).toEqual([{ status: "blocked", reason: "policy_block" }]);
   });
 
+  it("durably records a caught service-worker registration as a policy block", async () => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const source = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search?scenario=service-worker-caught`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+
+    await expect(runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+    }, { repository, source, rawStorage })).resolves.toMatchObject({
+      status: "blocked",
+      reason: "policy_block",
+    });
+    const task = await database.query<{ blockers: unknown }>(
+      `SELECT result_json->'blockers' AS blockers FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId],
+    );
+    expect(task.rows[0]?.blockers).toEqual([
+      expect.objectContaining({
+        reason: "policy_block",
+        detail: "service-worker-registration",
+        rawFetchKey: expect.stringMatching(/^[0-9a-f]{64}$/u),
+      }),
+    ]);
+  }, 20_000);
+
   it("fails the task when a source throws an external-request error without raw evidence", async () => {
     const runId = randomUUID();
     const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
@@ -363,6 +406,7 @@ describe("fixture discovery and replay publication", () => {
 
     await expect(publishFinancialEvidence({
       runId,
+      reportYear: 2025,
       evidence: [{
         inn: parseLegalEntityInn("7707083893"),
         reportYear: 2025,
@@ -374,7 +418,20 @@ describe("fixture discovery and replay publication", () => {
         rawFetchKey: "raw/forced-missing-finance.json",
         parserVersion: "fns-bfo/1.0.0",
       }],
-    }, { repository })).rejects.toThrow("financial raw evidence is missing");
+      metricOutcomes: {
+        revenue: { outcome: "published", evidence: 1 },
+        income: {
+          outcome: "no_data",
+          evidence: 0,
+          sourceAttempt: missingFinancialSourceAttempt("fns_revexp", "income"),
+        },
+        expenses: {
+          outcome: "no_data",
+          evidence: 0,
+          sourceAttempt: missingFinancialSourceAttempt("fns_revexp", "expenses"),
+        },
+      },
+    }, { repository })).rejects.toThrow(/financial metric no-data source attempt is missing/);
 
     await expect(repository.runStatus(runId)).resolves.toEqual({
       status: "failed",
@@ -440,6 +497,49 @@ describe("fixture discovery and replay publication", () => {
     expect(JSON.stringify(task.rows[0])).not.toContain("dom-only-action-secret");
     expect(executionError).toBeUndefined();
     expect(summary).toMatchObject({ status: expectedStatus, reason: expectedReason });
+  }, 20_000);
+
+  it("persists the rejected page identity before any skipped-page occurrence is processed", async () => {
+    const runId = randomUUID();
+    const parserVersion = "list-org-browser/1.0.0";
+    const source = new ListOrgBrowserSource({
+      searchUrl: `${fixture.origin}/search?scenario=pagination-skips-page`,
+      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+        now: () => new Date("2026-08-24T09:00:00.000Z"),
+      }),
+      runId,
+      parserVersion,
+    });
+    const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+
+    await expect(runFixtureDiscovery({
+      runId,
+      okved: "43.11",
+      year: 2025,
+      dryRun: true,
+      maxPages: 2,
+      maxCompanies: 50,
+      fixtureVersion: "list-org-browser-fixture/1.0.0",
+      parserVersion,
+    }, { repository, source, rawStorage })).resolves.toMatchObject({
+      status: "blocked",
+      reason: "contract_drift",
+    });
+
+    const audit = await database.query<{ page_identities: unknown }>(
+      `SELECT result_json->'discovery'->'pageIdentities' AS page_identities
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
+      [runId],
+    );
+    expect(audit.rows[0]?.page_identities).toEqual([
+      expect.objectContaining({ page: 1, orderedSourceRecordKeys: ["1001", "1002"] }),
+      expect.objectContaining({
+        page: 2,
+        orderedSourceRecordKeys: ["1002", "1003"],
+        resultFingerprintSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
+      }),
+    ]);
   }, 20_000);
 
   it("recovers expired discovery from page one with lease renewal and write-ahead actions", async () => {
@@ -936,13 +1036,26 @@ function visualSafetyProof(): BrowserRawBundle["actions"] {
     id,
     at: "2026-08-24T09:00:00.000Z",
     kind: "verify-visual-safety",
-    target: "painted-surface-policy/1",
+    target: browserVisualSafetyTarget("a".repeat(64)),
     navigationStatus: 200,
   } as const;
   return [
     { ...event, outcome: "intent" },
     { ...event, outcome: "completed" },
   ];
+}
+
+function missingFinancialSourceAttempt(
+  sourceKind: "fns_bfo" | "fns_revexp",
+  metric: string,
+) {
+  return {
+    sourceKind,
+    sourceRecordKey: `missing-${metric}`,
+    observedAt: "2026-04-01T09:00:00.000Z",
+    rawFetchKey: `raw/missing-${metric}.json`,
+    parserVersion: sourceKind === "fns_bfo" ? "fns-bfo/1.0.0" : "fns-revexp/1.0.0",
+  } as const;
 }
 
 async function seedSelectedOkved(database: PostgresDatabase): Promise<void> {

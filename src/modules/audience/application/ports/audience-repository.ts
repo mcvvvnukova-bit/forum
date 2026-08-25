@@ -126,9 +126,27 @@ export interface ReconciliationReport {
 
 export interface FinancialPublicationInput {
   task: FencedTask;
+  reportYear: number;
   evidence: readonly FinancialMetricEvidence[];
+  metricOutcomes: FinancialMetricOutcomes;
   rawObjects?: readonly CapturedRawObject[];
 }
+
+export interface FinancialSourceAttempt {
+  sourceKind: "fns_bfo" | "fns_revexp";
+  sourceRecordKey: string;
+  observedAt: string;
+  rawFetchKey: string;
+  parserVersion: string;
+}
+
+export type FinancialMetricOutcome =
+  | { outcome: "published"; evidence: number }
+  | { outcome: "no_data"; evidence: 0; sourceAttempt: FinancialSourceAttempt };
+
+export type FinancialMetricOutcomes = Readonly<
+  Partial<Record<FinancialMetric, FinancialMetricOutcome>>
+>;
 
 export interface AudienceRepository {
   loadRunScopeYear(runId: string): Promise<number>;

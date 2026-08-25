@@ -7,7 +7,11 @@ import {
 } from "../../modules/audience/application/publish-financial-evidence";
 import { reconcileRun } from "../../modules/audience/application/reconcile-run";
 import { runFixtureDiscovery } from "../../modules/audience/application/run-fixture-discovery";
-import type { CapturedRawObject } from "../../modules/audience/application/ports/audience-repository";
+import type {
+  CapturedRawObject,
+  FinancialMetricOutcomes,
+} from "../../modules/audience/application/ports/audience-repository";
+import type { FinancialMetric, FinancialMetricEvidence } from "../../modules/audience/domain/financial";
 import { parseLegalEntityInn } from "../../modules/audience/domain/inn";
 import { PostgresAudienceRepository } from "../../modules/audience/infrastructure/postgres/audience-repository";
 import { PostgresOkvedRepository } from "../../modules/audience/infrastructure/postgres/okved-repository";
@@ -88,7 +92,9 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
         const staged = await stageFinancialFixtures(command.runId, command.year, env);
         await publishFinancialEvidence({
           runId: command.runId,
+          reportYear: command.year,
           evidence: staged.evidence,
+          metricOutcomes: publishedMetricOutcomes(staged.evidence),
           rawObjects: staged.rawObjects,
         }, { repository });
         return { runId: command.runId, publishedEvidence: staged.evidence.length };
@@ -111,6 +117,18 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
       await database.close();
     }
   }
+}
+
+function publishedMetricOutcomes(
+  evidence: readonly FinancialMetricEvidence[],
+): FinancialMetricOutcomes {
+  return Object.fromEntries(
+    (["revenue", "income", "expenses"] as const).map((metric: FinancialMetric) => {
+      const count = evidence.filter((item) => item.metric === metric).length;
+      if (count === 0) throw new Error(`financial fixture metric is absent: ${metric}`);
+      return [metric, { outcome: "published", evidence: count }];
+    }),
+  );
 }
 
 async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) {

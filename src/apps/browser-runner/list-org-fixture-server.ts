@@ -117,6 +117,9 @@ export async function startListOrgFixtureServer(
         const second = '<a href="/company/1003?from=2&amp;scenario=pagination-reordered-boundary">Открыть карточку 1003 Гамма Снос</a>';
         body = body.replace(`${first}\n      ${second}`, `${second}\n      ${first}`);
       }
+      if (scenario === "pagination-skips-page" && body !== undefined) {
+        body = body.replace("<dt>Страница</dt><dd>2</dd>", "<dt>Страница</dt><dd>3</dd>");
+      }
     } else {
       const companyMatch = /^\/company\/(1001|1002|1003)$/.exec(url.pathname);
       const companyKey = companyMatch?.[1];
@@ -288,6 +291,41 @@ export async function startListOrgFixtureServer(
              </dl>`,
           );
         }
+        if (scenario === "mutation-after-sanitized-snapshot" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `</dl><script>
+              const nativeClone = Node.prototype.cloneNode;
+              Node.prototype.cloneNode = function (deep) {
+                const snapshot = nativeClone.call(this, deep);
+                if (this !== document.documentElement) return snapshot;
+                queueMicrotask(() => {
+                  const late = document.createElement("p");
+                  late.textContent = "late-mutation@example.test";
+                  late.style.cssText = "position:fixed;left:760px;top:20px;width:40px;height:40px;margin:0;background:#f00;color:#f00;z-index:2147483647";
+                  document.body.append(late);
+                });
+                return snapshot;
+              };
+            </script>`,
+          );
+        }
+        if (scenario === "painted-declarative-css" && companyKey === "1001") {
+          body = body.replace(
+            "</head>",
+            `<style>
+              .masked-contact { position:fixed;left:760px;top:80px;width:40px;height:40px;background:#f00;mask-image:linear-gradient(#000,#000); }
+              .border-contact { position:fixed;left:760px;top:140px;width:20px;height:20px;border:10px solid transparent;border-image-source:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='red'/%3E%3C/svg%3E");border-image-slice:1; }
+              .listed-contact { position:fixed;left:760px;top:200px;list-style-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect width='40' height='40' fill='red'/%3E%3C/svg%3E"); }
+            </style></head>`,
+          ).replace(
+            "</dl>",
+            `</dl><p class="masked-contact">Masked CSS pixels</p>
+             <p class="border-contact">operator@example.test</p>
+             <ul class="listed-contact"><li>operator@example.test</li></ul>
+             <div><template shadowrootmode="closed"><style>:host{display:block;background:#f00}</style>operator@example.test</template></div>`,
+          );
+        }
         if (scenario.startsWith("painted-") && companyKey === "1001") {
           body = injectPaintedSurface(body, scenario);
         }
@@ -370,6 +408,12 @@ function browserIsolationFixtureScript(
   }
   if (scenario === "external-websocket" && options.externalWebSocketUrl !== undefined) {
     return `<script>new WebSocket(${JSON.stringify(options.externalWebSocketUrl)});</script>`;
+  }
+  if (scenario === "service-worker-caught") {
+    return `<script>
+      navigator.serviceWorker.register("/fixture-service-worker.js")
+        .catch(() => undefined);
+    </script>`;
   }
   if (scenario === "service-worker-external" && options.externalHttpUrl !== undefined) {
     return `<script>

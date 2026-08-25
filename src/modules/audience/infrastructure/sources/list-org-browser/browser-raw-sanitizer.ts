@@ -12,13 +12,18 @@ export const MANDATORY_SENSITIVE_QUERY_PARAMETERS = [
 ] as const;
 
 export const BROWSER_VISUAL_SAFETY_ACTION_KIND = "verify-visual-safety";
-export const BROWSER_VISUAL_SAFETY_POLICY = "painted-surface-policy/1";
+export const BROWSER_VISUAL_SAFETY_POLICY = "sanitized-inert-render-policy/1";
+
+export function browserVisualSafetyTarget(pageFingerprintSha256: string): string {
+  return `${BROWSER_VISUAL_SAFETY_POLICY};page-fingerprint-sha256=${pageFingerprintSha256}`;
+}
 
 export type BrowserCaptureSafetyEvidence = Pick<
   BrowserRawBundle,
   | "sourceKind"
   | "finalUrl"
   | "sanitizedDomUtf8"
+  | "pageFingerprintSha256"
   | "candidateEvidence"
   | "actions"
   | "sensitiveFormFieldNames"
@@ -125,6 +130,11 @@ export function sanitizeBrowserActionTarget(
   sensitiveQueryParameters: readonly string[],
   sensitiveValues: readonly string[],
 ): string {
+  const visualTargetPrefix = `${BROWSER_VISUAL_SAFETY_POLICY};page-fingerprint-sha256=`;
+  if (value.startsWith(visualTargetPrefix)
+    && /^[0-9a-f]{64}$/u.test(value.slice(visualTargetPrefix.length))) {
+    return value;
+  }
   let output = value;
   try {
     output = sanitizeBrowserUrl(output, sensitiveQueryParameters);
@@ -174,14 +184,16 @@ export function assertBrowserCaptureSafe(
   sensitiveValues: readonly string[] = [],
 ): void {
   assertCompleteBrowserSensitivePolicy(bundle.sourceKind, bundle.sensitiveFormFieldNames);
-  if (bundle.sourceKind === "list-org-browser" && !hasTerminalVisualSafetyProof(bundle.actions)) {
-    throw new Error("browser visual safety proof is missing");
+  if (bundle.sourceKind === "list-org-browser") {
+    assertExactVisualSafetyProof(bundle.actions, bundle.pageFingerprintSha256);
   }
   const dom = new TextDecoder("utf-8", { fatal: true }).decode(bundle.sanitizedDomUtf8);
   const actionMetadata = bundle.actions.map((action) => ({
     id: action.id,
     kind: action.kind,
-    target: action.target,
+    target: action.kind === BROWSER_VISUAL_SAFETY_ACTION_KIND
+      ? BROWSER_VISUAL_SAFETY_POLICY
+      : action.target,
     outcome: action.outcome,
     navigationStatus: action.navigationStatus,
   }));
@@ -218,16 +230,27 @@ export function assertBrowserCaptureSafe(
   );
 }
 
-function hasTerminalVisualSafetyProof(actions: BrowserRawBundle["actions"]): boolean {
+function assertExactVisualSafetyProof(
+  actions: BrowserRawBundle["actions"],
+  pageFingerprintSha256: string,
+): void {
   const visualActions = actions.filter((action) =>
     action.kind === BROWSER_VISUAL_SAFETY_ACTION_KIND
-      && action.target === BROWSER_VISUAL_SAFETY_POLICY
   );
-  const terminal = visualActions.at(-1);
-  if (terminal?.outcome !== "completed") return false;
-  return visualActions.some((action) =>
-    action.id === terminal.id && action.outcome === "intent"
-  );
+  if (visualActions.length === 0) {
+    throw new Error("browser visual safety proof is missing");
+  }
+  const [intent, completed] = visualActions;
+  const expectedTarget = browserVisualSafetyTarget(pageFingerprintSha256);
+  if (visualActions.length !== 2
+    || intent?.outcome !== "intent"
+    || completed?.outcome !== "completed"
+    || intent.id !== completed.id
+    || !isCanonicalBrowserActionId(intent.id)
+    || intent.target !== expectedTarget
+    || completed.target !== expectedTarget) {
+    throw new Error("browser visual safety proof is invalid");
+  }
 }
 
 export function assertPersistableRawBundle(bundle: BrowserRawBundle): void {
@@ -303,37 +326,18 @@ export function preparePageCapture(
 ): Promise<PreparedPageCapture> {
   return preparePageArtifacts(page, {
     sensitiveNames: sensitiveQueryParameters, redactLabels: redactLabeledValues,
-    redactValues: redactionValues, addOverlays: true,
+    redactValues: redactionValues, addOverlays: false,
   });
 }
 
-export async function assertPageVisualSurfacesSafe(page: Page): Promise<void> {
-  const violations = await page.evaluate(() => {
-    const unsafe: string[] = [];
-    const windowWithMarker = window as Window & { __okvedClosedShadowAttempt?: boolean };
-    if (windowWithMarker.__okvedClosedShadowAttempt === true) unsafe.push("closed-shadow-root");
-    for (const element of document.querySelectorAll("*")) {
-      const style = getComputedStyle(element);
-      if (style.display === "none" || style.visibility === "hidden"
-        || style.visibility === "collapse" || Number(style.opacity) === 0) continue;
-      if (element.shadowRoot !== null) unsafe.push("open-shadow-root");
-      const before = getComputedStyle(element, "::before").content;
-      const after = getComputedStyle(element, "::after").content;
-      if (!["none", "normal", ""].includes(before)) unsafe.push("generated-content");
-      if (!["none", "normal", ""].includes(after)) unsafe.push("generated-content");
-      if (style.backgroundImage !== "none") unsafe.push("background-image");
-      if (/url\s*\(/iu.test(element.getAttribute("style") ?? "")) {
-        unsafe.push("inline-painted-background");
-      }
-    }
-    if (document.querySelector("svg, canvas, img, picture, video, audio, iframe, object, embed") !== null) {
-      unsafe.push("non-dom-painted-surface");
-    }
-    return [...new Set(unsafe)];
-  });
-  if (violations.length > 0) {
-    throw new Error(`browser visual surface cannot be proven safe: ${violations.join(", ")}`);
-  }
+export function assertSanitizedPageDomSafe(
+  sanitizedDomUtf8: Uint8Array,
+  sensitiveFormFieldNames: readonly string[],
+  sensitiveValues: readonly string[],
+): void {
+  const dom = new TextDecoder("utf-8", { fatal: true }).decode(sanitizedDomUtf8);
+  assertNoContactOrSecret(dom, sensitiveValues);
+  assertSerializedBrowserDomSafe(dom, "list-org-browser", sensitiveFormFieldNames);
 }
 
 function preparePageArtifacts(

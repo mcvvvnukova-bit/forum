@@ -117,6 +117,7 @@ export class S3RawObjectStorage implements RawObjectStorage {
         sourceKind: manifest.sourceKind,
         finalUrl: manifest.finalUrl,
         sanitizedDomUtf8: domBytes,
+        pageFingerprintSha256: manifest.pageFingerprintSha256,
         candidateEvidence: manifest.candidateEvidence,
         actions: manifest.actions,
         sensitiveFormFieldNames: manifest.sensitiveFormFieldNames,

@@ -68,9 +68,9 @@ describe("financial evidence publication", () => {
       parserVersion: "fns-bfo/1.0.0",
     };
 
-    await publishFinancialEvidence({ runId, evidence: firstBfo }, { repository });
-    await publishFinancialEvidence({ runId, evidence: revexp }, { repository });
-    await publishFinancialEvidence({ runId, evidence: [newerBfo] }, { repository });
+    await publishForRun(runId, firstBfo);
+    await publishForRun(runId, revexp);
+    await publishForRun(runId, [newerBfo]);
 
     const observation = await database.query<{
       revenue: string;
@@ -133,8 +133,8 @@ describe("financial evidence publication", () => {
       rawFetchKey: "raw/fns-bfo/old.json",
     };
 
-    await publishFinancialEvidence({ runId, evidence: [newer] }, { repository });
-    await publishFinancialEvidence({ runId, evidence: [older] }, { repository });
+    await publishForRun(runId, [newer]);
+    await publishForRun(runId, [older]);
 
     const observation = await database.query<{
       revenue: string;
@@ -184,7 +184,7 @@ describe("financial evidence publication", () => {
       },
     ];
 
-    await expect(publishFinancialEvidence({ runId: failureRunId, evidence }, { repository }))
+    await expect(publishForRun(failureRunId, evidence))
       .rejects.toThrow("financial raw evidence is missing");
 
     const observations = await database.query<{ count: string }>(
@@ -232,7 +232,12 @@ describe("financial evidence publication", () => {
     ];
 
     try {
-      await expect(repository.publishFinancial({ task, evidence })).rejects.toThrow(
+      await expect(repository.publishFinancial({
+        task,
+        reportYear: 2025,
+        evidence,
+        metricOutcomes: metricOutcomesForEvidence(evidence),
+      })).rejects.toThrow(
         "financial evidence report year does not match immutable run scope",
       );
 
@@ -281,7 +286,7 @@ describe("financial evidence publication", () => {
       parserVersion: sourceKind === "fns_bfo" ? "fns-bfo/1.0.0" : "fns-revexp/1.0.0",
     };
 
-    await expect(publishFinancialEvidence({ runId: failureRunId, evidence: [evidence] }, { repository }))
+    await expect(publishForRun(failureRunId, [evidence]))
       .rejects.toThrow(/financial source mapping|financial raw evidence is missing/);
     const rows = await database.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM audience.financial_evidence
@@ -290,7 +295,180 @@ describe("financial evidence publication", () => {
     );
     expect(rows.rows[0]?.count).toBe("0");
   });
+
+  it("atomically persists a mixed published/no-data metric contract", async () => {
+    const mixedRunId = randomUUID();
+    await seedFinancialProvenance(database, mixedRunId);
+    const evidence: FinancialMetricEvidence = {
+      inn: parseLegalEntityInn("7707083893"),
+      reportYear: 2025,
+      metric: "revenue",
+      value: parseMoneyText("125000", "dot"),
+      sourceKind: "fns_bfo",
+      sourceRecordKey: "7707083893:2025:0710002:mixed",
+      observedAt: "2026-04-01T09:00:00.000Z",
+      rawFetchKey: "raw/fns-bfo/old.json",
+      parserVersion: "fns-bfo/1.0.0",
+    };
+    const metricOutcomes = mixedMetricOutcomes();
+
+    await publishFinancialEvidence({
+      runId: mixedRunId,
+      reportYear: 2025,
+      evidence: [evidence],
+      metricOutcomes,
+    }, { repository });
+
+    const task = await database.query<{ result_json: unknown }>(
+      `SELECT result_json FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'fixture_finance' AND status = 'succeeded'`,
+      [mixedRunId],
+    );
+    expect(task.rows).toEqual([{
+      result_json: {
+        evidence: 1,
+        metricOutcomes,
+      },
+    }]);
+  });
+
+  it.each([
+    ["a forged no-data outcome carrying evidence", {
+      ...mixedMetricOutcomes(),
+      revenue: {
+        outcome: "no_data" as const,
+        evidence: 0 as const,
+        sourceAttempt: financialSourceAttempt("fns_bfo", "bfo-old", "raw/fns-bfo/old.json", "fns-bfo/1.0.0"),
+      },
+    }],
+    ["an absent required outcome", {
+      revenue: { outcome: "published" as const, evidence: 1 },
+      income: mixedMetricOutcomes().income,
+    }],
+  ])("rejects %s without partially publishing", async (_case, metricOutcomes) => {
+    const rejectedRunId = randomUUID();
+    await seedFinancialProvenance(database, rejectedRunId);
+    const evidence: FinancialMetricEvidence = {
+      inn: parseLegalEntityInn("7707083893"),
+      reportYear: 2025,
+      metric: "revenue",
+      value: parseMoneyText("42", "dot"),
+      sourceKind: "fns_bfo",
+      sourceRecordKey: "7707083893:2025:0710002:rejected-contract",
+      observedAt: "2026-04-01T09:00:00.000Z",
+      rawFetchKey: "raw/fns-bfo/old.json",
+      parserVersion: "fns-bfo/1.0.0",
+    };
+
+    await expect(publishFinancialEvidence({
+      runId: rejectedRunId,
+      reportYear: 2025,
+      evidence: [evidence],
+      metricOutcomes,
+    }, { repository })).rejects.toThrow(/financial metric .*outcome/);
+    const rows = await database.query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM audience.financial_evidence evidence
+       JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+       WHERE raw.run_id = $1`,
+      [rejectedRunId],
+    );
+    expect(rows.rows[0]?.count).toBe("0");
+  });
+
+  it("keeps a stale finance token unable to publish a no-data contract", async () => {
+    const staleRunId = randomUUID();
+    await seedFinancialProvenance(database, staleRunId);
+    const stale = await repository.createTask(staleRunId, "fixture_finance", 1);
+    await database.query(
+      "UPDATE audience.crawl_tasks SET lease_expires_at = now() - interval '1 second' WHERE id = $1",
+      [stale.id],
+    );
+    const current = await repository.acquireTask(stale.id, 60);
+    expect(current?.fencingToken).toBe(stale.fencingToken + 1);
+
+    await expect(repository.publishFinancial({
+      task: stale,
+      reportYear: 2025,
+      evidence: [],
+      metricOutcomes: {
+        revenue: {
+          outcome: "no_data",
+          evidence: 0,
+          sourceAttempt: financialSourceAttempt("fns_bfo", "bfo-old", "raw/fns-bfo/old.json", "fns-bfo/1.0.0"),
+        },
+        income: mixedMetricOutcomes().income,
+        expenses: mixedMetricOutcomes().expenses,
+      },
+    })).resolves.toBe(false);
+    await expect(repository.taskState(stale.id)).resolves.toMatchObject({
+      status: "running",
+      resultJson: null,
+    });
+  });
+
+  function publishForRun(
+    targetRunId: string,
+    evidence: readonly FinancialMetricEvidence[],
+  ): Promise<void> {
+    return publishFinancialEvidence({
+      runId: targetRunId,
+      reportYear: 2025,
+      evidence,
+      metricOutcomes: metricOutcomesForEvidence(evidence),
+    }, { repository });
+  }
 });
+
+function financialSourceAttempt(
+  sourceKind: "fns_bfo" | "fns_revexp",
+  sourceRecordKey: string,
+  rawFetchKey: string,
+  parserVersion: string,
+) {
+  return {
+    sourceKind,
+    sourceRecordKey,
+    observedAt: "2026-04-01T09:00:00.000Z",
+    rawFetchKey,
+    parserVersion,
+  } as const;
+}
+
+function mixedMetricOutcomes() {
+  return {
+    revenue: { outcome: "published" as const, evidence: 1 },
+    income: {
+      outcome: "no_data" as const,
+      evidence: 0 as const,
+      sourceAttempt: financialSourceAttempt("fns_revexp", "revexp", "raw/fns-revexp/report.xml", "fns-revexp/1.0.0"),
+    },
+    expenses: {
+      outcome: "no_data" as const,
+      evidence: 0 as const,
+      sourceAttempt: financialSourceAttempt("fns_revexp", "revexp", "raw/fns-revexp/report.xml", "fns-revexp/1.0.0"),
+    },
+  };
+}
+
+function metricOutcomesForEvidence(evidence: readonly FinancialMetricEvidence[]) {
+  const count = (metric: FinancialMetricEvidence["metric"]) =>
+    evidence.filter((item) => item.metric === metric).length;
+  return {
+    revenue: count("revenue") > 0
+      ? { outcome: "published" as const, evidence: count("revenue") }
+      : {
+          outcome: "no_data" as const,
+          evidence: 0 as const,
+          sourceAttempt: financialSourceAttempt("fns_bfo", "bfo-old", "raw/fns-bfo/old.json", "fns-bfo/1.0.0"),
+        },
+    income: count("income") > 0
+      ? { outcome: "published" as const, evidence: count("income") }
+      : mixedMetricOutcomes().income,
+    expenses: count("expenses") > 0
+      ? { outcome: "published" as const, evidence: count("expenses") }
+      : mixedMetricOutcomes().expenses,
+  };
+}
 
 async function seedFinancialProvenance(database: PostgresDatabase, runId: string): Promise<void> {
   const organizationFetch = randomUUID();
@@ -305,7 +483,7 @@ async function seedFinancialProvenance(database: PostgresDatabase, runId: string
     await transaction.query(
       `INSERT INTO audience.crawl_runs (
          id, scope_json, fixture_version, parser_version, status, completed_at, published_at
-       ) VALUES ($1, '{"year":2025}'::jsonb, 'financial-fixture/1.0.0', 'financial/1.0.0',
+       ) VALUES ($1, '{"year":2025,"requiredFinancialMetrics":["revenue","income","expenses"]}'::jsonb, 'financial-fixture/1.0.0', 'financial/1.0.0',
          'succeeded', now(), now())`,
       [runId],
     );
@@ -315,7 +493,7 @@ async function seedFinancialProvenance(database: PostgresDatabase, runId: string
            id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
            mime_type, final_url, navigation_status, captured_at, parser_version
          ) VALUES ($1, $2, $3, $4, $5, $6,
-           'application/octet-stream', $7, 200, now(), $8)`,
+           'application/octet-stream', $7, 200, '2026-04-01T09:00:00.000Z', $8)`,
         [id, runId, sourceKind, sourceRecordKey, objectKey, checksum,
           `http://127.0.0.1/fixtures/${sourceRecordKey}`, parserVersion],
       );

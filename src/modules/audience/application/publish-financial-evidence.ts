@@ -1,12 +1,18 @@
 import type { FinancialMetricEvidence } from "../domain/financial";
-import type { AudienceRepository, CapturedRawObject } from "./ports/audience-repository";
+import type {
+  AudienceRepository,
+  CapturedRawObject,
+  FinancialMetricOutcomes,
+} from "./ports/audience-repository";
 import { StaleTaskError } from "./stale-task-error";
 
 const FINANCIAL_LEASE_SECONDS = 300;
 
 export interface PublishFinancialEvidenceCommand {
   runId: string;
+  reportYear: number;
   evidence: readonly FinancialMetricEvidence[];
+  metricOutcomes: FinancialMetricOutcomes;
   rawObjects?: readonly CapturedRawObject[];
 }
 
@@ -32,12 +38,14 @@ export async function publishFinancialEvidence(
   command: PublishFinancialEvidenceCommand,
   dependencies: PublishFinancialEvidenceDependencies,
 ): Promise<void> {
-  if (command.evidence.length === 0) throw new Error("financial evidence is required");
-  const reportYear = command.evidence[0]!.reportYear;
-  if (command.evidence.some((evidence) => evidence.reportYear !== reportYear)) {
+  if (command.evidence.some((evidence) => evidence.reportYear !== command.reportYear)) {
     throw new Error("financial evidence report year does not match immutable run scope");
   }
-  await assertFinancialRunScopeYear(command.runId, reportYear, dependencies.repository);
+  await assertFinancialRunScopeYear(
+    command.runId,
+    command.reportYear,
+    dependencies.repository,
+  );
   const task = await dependencies.repository.createTask(
     command.runId,
     "fixture_finance",
@@ -46,7 +54,9 @@ export async function publishFinancialEvidence(
   try {
     const published = await dependencies.repository.publishFinancial({
       task,
+      reportYear: command.reportYear,
       evidence: command.evidence,
+      metricOutcomes: command.metricOutcomes,
       rawObjects: command.rawObjects,
     });
     if (!published) throw new StaleTaskError(task.id);

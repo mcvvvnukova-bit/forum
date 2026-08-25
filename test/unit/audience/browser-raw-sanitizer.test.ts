@@ -4,6 +4,7 @@ import type { BrowserRawBundle } from "../../../src/modules/audience/domain/disc
 import {
   MANDATORY_SENSITIVE_QUERY_PARAMETERS,
   assertBrowserCaptureSafe,
+  browserVisualSafetyTarget,
   sanitizeBrowserActionTarget,
   sanitizeBrowserUrl,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
@@ -256,6 +257,32 @@ describe("browser raw sanitizer persistence boundary", () => {
     );
   });
 
+  it.each([
+    ["an incomplete intent", (proof: BrowserRawBundle["actions"]) => [proof[0]!]],
+    ["a reordered pair", (proof: BrowserRawBundle["actions"]) => [proof[1]!, proof[0]!, proof[1]!]],
+    ["a duplicate pair", (proof: BrowserRawBundle["actions"]) => [...proof, ...proof]],
+    ["an unmatched intent", (proof: BrowserRawBundle["actions"]) => [{
+      ...proof[0]!,
+      id: "123e4567-e89b-42d3-a456-426614174008",
+    }, ...proof]],
+  ] as const)("rejects visual-safety proof history with %s", (_case, mutate) => {
+    const bundle = rawBundle("<!doctype html><html><body><main>safe</main></body></html>");
+    bundle.actions = mutate(visualSafetyProof());
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow(
+      "browser visual safety proof is invalid",
+    );
+  });
+
+  it("binds the visual-safety proof to the exact sanitized page fingerprint", () => {
+    const bundle = rawBundle("<!doctype html><html><body><main>safe</main></body></html>");
+    bundle.pageFingerprintSha256 = "b".repeat(64);
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow(
+      "browser visual safety proof is invalid",
+    );
+  });
+
   it("rejects contact material in an action ID at the checksum boundary", () => {
     const bundle = rawBundle(
       "<!doctype html><html><body><main>safe</main></body></html>",
@@ -347,13 +374,13 @@ function rawBundle(
   };
 }
 
-function visualSafetyProof(): BrowserRawBundle["actions"] {
+function visualSafetyProof(pageFingerprintSha256 = "0".repeat(64)): BrowserRawBundle["actions"] {
   const id = "123e4567-e89b-42d3-a456-426614174009";
   const event = {
     id,
     at: "2026-08-24T09:00:00.000Z",
     kind: "verify-visual-safety",
-    target: "painted-surface-policy/1",
+    target: browserVisualSafetyTarget(pageFingerprintSha256),
     navigationStatus: 200,
   } as const;
   return [

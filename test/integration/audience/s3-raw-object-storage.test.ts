@@ -13,7 +13,10 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { AppEnv } from "../../../src/shared/config/env";
 import type { BrowserRawBundle } from "../../../src/modules/audience/domain/discovery";
-import { MANDATORY_SENSITIVE_QUERY_PARAMETERS } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
+import {
+  MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+  browserVisualSafetyTarget,
+} from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
 import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 
@@ -207,7 +210,7 @@ describe("S3RawObjectStorage", () => {
       pageFingerprintSha256: fixtureSha256(domBytes),
       identity: { runId, page: 1, sourceRecordKey: "1001" },
       candidateEvidence: null,
-      actions: visualSafetyProof(),
+      actions: visualSafetyProof(fixtureSha256(domBytes)),
       artifacts: {
         sanitizedDom: { file: "dom.html", checksumSha256: fixtureSha256(domBytes) },
         redactedScreenshot: {
@@ -351,6 +354,11 @@ describe("S3RawObjectStorage", () => {
       (manifest) => {
         manifest.pageFingerprintSha256 = fixtureSha256(domBytes);
         manifest.artifacts.sanitizedDom.checksumSha256 = fixtureSha256(domBytes);
+        for (const action of manifest.actions.filter(
+          (item) => item.kind === "verify-visual-safety",
+        )) {
+          action.target = browserVisualSafetyTarget(manifest.pageFingerprintSha256);
+        }
       },
       () => undefined,
       domBytes,
@@ -373,6 +381,37 @@ describe("S3RawObjectStorage", () => {
     const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
     await expect(browserStorage.verify(stored)).rejects.toThrow(
       "browser visual safety proof is missing",
+    );
+  });
+
+  it.each([
+    ["a duplicate pair", (actions: MutableBrowserManifestFixture["actions"]) => [
+      ...actions,
+      ...actions.filter((action) => action.kind === "verify-visual-safety"),
+    ]],
+    ["an unmatched intent", (actions: MutableBrowserManifestFixture["actions"]) => [{
+      ...actions.find((action) => action.kind === "verify-visual-safety")!,
+      id: "123e4567-e89b-42d3-a456-426614174008",
+    }, ...actions]],
+    ["a reordered terminal sequence", (actions: MutableBrowserManifestFixture["actions"]) => {
+      const visual = actions.filter((action) => action.kind === "verify-visual-safety");
+      const other = actions.filter((action) => action.kind !== "verify-visual-safety");
+      return [visual[1]!, visual[0]!, visual[1]!, ...other];
+    }],
+  ] as const)("rejects checksum-consistent visual proof history with %s", async (
+    _case,
+    mutate,
+  ) => {
+    const stored = await putChecksumConsistentBrowserManifest(
+      `s3-malformed-visual-proof-${_case.replaceAll(" ", "-")}`,
+      (manifest) => {
+        manifest.actions = mutate(manifest.actions);
+      },
+    );
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow(
+      "browser visual safety proof is invalid",
     );
   });
 
@@ -813,6 +852,7 @@ function sampleRawBundle(runId: string): BrowserRawBundle {
   const sanitizedDomUtf8 = new TextEncoder().encode(
     "<!doctype html><main>safe evidence</main>",
   );
+  const pageFingerprintSha256 = fixtureSha256(sanitizedDomUtf8);
   return {
     sourceKind: "list-org-browser",
     parserVersion: "list-org-browser/1.0.0",
@@ -821,7 +861,7 @@ function sampleRawBundle(runId: string): BrowserRawBundle {
     navigationStatus: 200,
     sanitizedDomUtf8,
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
-    pageFingerprintSha256: fixtureSha256(sanitizedDomUtf8),
+    pageFingerprintSha256,
     identity: { runId, page: 1, sourceRecordKey: "1001" },
     sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
     candidateEvidence: {
@@ -835,7 +875,7 @@ function sampleRawBundle(runId: string): BrowserRawBundle {
       email: { kind: "sha256", normalizedValueSha256: "c".repeat(64) },
     },
     actions: [
-      ...visualSafetyProof(),
+      ...visualSafetyProof(pageFingerprintSha256),
       {
         id: "123e4567-e89b-42d3-a456-426614174000",
         at: "2026-08-24T09:00:00.000Z",
@@ -848,13 +888,17 @@ function sampleRawBundle(runId: string): BrowserRawBundle {
   };
 }
 
-function visualSafetyProof(): BrowserRawBundle["actions"] {
+function visualSafetyProof(
+  pageFingerprintSha256 = fixtureSha256(new TextEncoder().encode(
+    "<!doctype html><main>safe evidence</main>",
+  )),
+): BrowserRawBundle["actions"] {
   const id = "123e4567-e89b-42d3-a456-426614174009";
   const event = {
     id,
     at: "2026-08-24T09:00:00.000Z",
     kind: "verify-visual-safety",
-    target: "painted-surface-policy/1",
+    target: browserVisualSafetyTarget(pageFingerprintSha256),
     navigationStatus: 200,
   } as const;
   return [
