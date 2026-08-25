@@ -366,6 +366,25 @@ describe("S3RawObjectStorage", () => {
     );
   });
 
+  it.each([
+    ["contact material", "operator@example.test"],
+    ["uppercase UUID", "123E4567-E89B-42D3-A456-426614174000"],
+    ["non-v4 UUID", "123e4567-e89b-12d3-a456-426614174000"],
+    ["non-standard UUID variant", "123e4567-e89b-42d3-7456-426614174000"],
+  ] as const)("rejects checksum-consistent action ID with %s", async (_case, id) => {
+    const stored = await putChecksumConsistentBrowserManifest(
+      `s3-invalid-action-id-${_case.replaceAll(" ", "-")}`,
+      (manifest) => {
+        manifest.actions[0]!.id = id;
+      },
+    );
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow(
+      "raw object checksum verification failed",
+    );
+  });
+
   it("rejects a checksum-consistent page fingerprint that does not match the verified DOM", async () => {
     const stored = await putChecksumConsistentBrowserManifest(
       "s3-page-fingerprint-dom-mismatch",

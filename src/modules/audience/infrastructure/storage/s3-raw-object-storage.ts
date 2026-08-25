@@ -17,7 +17,10 @@ import type {
   ChecksummedBrowserRawBundle,
 } from "../../domain/discovery";
 import type { AppEnv } from "../../../../shared/config/env";
-import { assertBrowserCaptureSafe } from "../sources/list-org-browser/browser-raw-sanitizer";
+import {
+  assertBrowserCaptureSafe,
+  isCanonicalBrowserActionId,
+} from "../sources/list-org-browser/browser-raw-sanitizer";
 import { checksumBrowserRawBundle, RAW_MANIFEST_VERSION, sha256 } from "./raw-bundle";
 
 export class S3RawObjectStorage implements RawObjectStorage {
@@ -258,7 +261,7 @@ function isBrowserActionEvent(value: unknown): value is BrowserActionEvent {
     && hasExactlyKeys(value, [
       "id", "at", "kind", "target", "outcome", "navigationStatus",
     ])
-    && isSafeRetainedText(value.id)
+    && isCanonicalBrowserActionId(value.id)
     && isCanonicalIsoTimestamp(value.at)
     && isSafeRetainedText(value.kind)
     && isSafeRetainedText(value.target)

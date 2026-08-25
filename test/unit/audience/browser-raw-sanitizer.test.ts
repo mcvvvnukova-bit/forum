@@ -103,6 +103,40 @@ describe("browser raw sanitizer persistence boundary", () => {
       finalUrl: "https://fixture.invalid/company/1001?nonce=must-not-persist",
     })).toThrow("raw redaction scan failed");
   });
+
+  it("rejects contact material in an action ID at the checksum boundary", () => {
+    const bundle = rawBundle(
+      "<!doctype html><html><body><main>safe</main></body></html>",
+    );
+    bundle.actions = [{
+      id: "operator@example.test",
+      at: "2026-08-24T09:00:00.000Z",
+      kind: "navigate",
+      target: "/results/page-1",
+      outcome: "completed",
+      navigationStatus: 200,
+    }];
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow("raw redaction scan failed");
+  });
+
+  it("rejects a noncanonical action ID at the checksum boundary", () => {
+    const bundle = rawBundle(
+      "<!doctype html><html><body><main>safe</main></body></html>",
+    );
+    bundle.actions = [{
+      id: "action-1",
+      at: "2026-08-24T09:00:00.000Z",
+      kind: "navigate",
+      target: "/results/page-1",
+      outcome: "completed",
+      navigationStatus: 200,
+    }];
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow(
+      "browser action id is not a canonical UUID v4",
+    );
+  });
 });
 
 function rawBundle(

@@ -103,6 +103,11 @@ export function assertCompleteBrowserSensitivePolicy(
   }
 }
 
+export function isCanonicalBrowserActionId(value: unknown): value is string {
+  return typeof value === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
+}
+
 export function assertBrowserCaptureSafe(
   bundle: BrowserCaptureSafetyEvidence,
   sensitiveValues: readonly string[] = [],
@@ -110,6 +115,7 @@ export function assertBrowserCaptureSafe(
   assertCompleteBrowserSensitivePolicy(bundle.sourceKind, bundle.sensitiveFormFieldNames);
   const dom = new TextDecoder("utf-8", { fatal: true }).decode(bundle.sanitizedDomUtf8);
   const actionMetadata = bundle.actions.map((action) => ({
+    id: action.id,
     kind: action.kind,
     target: action.target,
     outcome: action.outcome,
@@ -130,6 +136,9 @@ export function assertBrowserCaptureSafe(
     JSON.stringify(actionMetadata),
   ].join("\n");
   assertNoContactOrSecret(textualEvidence, sensitiveValues);
+  if (bundle.actions.some((action) => !isCanonicalBrowserActionId(action.id))) {
+    throw new Error("browser action id is not a canonical UUID v4");
+  }
   const sensitiveNames = bundle.sensitiveFormFieldNames ?? [];
   assertNoSensitiveUrlParameters(bundle.finalUrl, sensitiveNames);
   if (bundle.candidateEvidence?.website !== null && bundle.candidateEvidence?.website !== undefined) {
