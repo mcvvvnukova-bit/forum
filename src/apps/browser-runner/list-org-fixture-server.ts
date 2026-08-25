@@ -152,6 +152,17 @@ export async function startListOrgFixtureServer(
              </dl>`,
           );
         }
+        if (scenario === "href-only-url-secrets" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<a href="https://href-user:href-pass@localhost/public?token=href-query-secret#href-fragment-secret">Public</a>
+             <p style="display:block;width:260px;height:24px">href-user</p>
+             <p style="display:block;width:260px;height:24px">href-pass</p>
+             <p style="display:block;width:260px;height:24px">href-query-secret</p>
+             <p style="display:block;width:260px;height:24px">href-fragment-secret</p>
+             </dl>`,
+          );
+        }
         if (scenario === "form-secrets" && companyKey === "1001") {
           body = body.replace(
             "</dl>",

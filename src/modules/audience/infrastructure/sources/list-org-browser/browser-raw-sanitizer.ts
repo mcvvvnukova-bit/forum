@@ -85,6 +85,29 @@ export function sensitiveBrowserUrlValues(
   return [...new Set(values.filter((item) => item !== ""))];
 }
 
+export async function collectPageSensitiveUrlValues(
+  page: Page,
+  sensitiveQueryParameters: readonly string[],
+): Promise<readonly string[]> {
+  const urls = await page.evaluate(() => {
+    const resolved = [window.location.href];
+    for (const element of document.querySelectorAll("a[href]")) {
+      const href = element.getAttribute("href");
+      if (href === null || /^(?:mailto|tel):/iu.test(href)) continue;
+      try {
+        resolved.push(new URL(href, document.baseURI).toString());
+      } catch {
+        // sanitizePageDom removes the corresponding unverifiable attribute.
+      }
+    }
+    return resolved;
+  });
+
+  return [...new Set(urls.flatMap(
+    (url) => sensitiveBrowserUrlValues(url, sensitiveQueryParameters),
+  ))];
+}
+
 function decodeUrlComponent(value: string): string {
   try {
     return decodeURIComponent(value);
@@ -497,6 +520,7 @@ function containsUnsafeSerializedHref(
   for (const match of dom.matchAll(hrefValuePattern)) {
     values += 1;
     const value = decodeHtmlUrlAttribute(match[2] ?? "");
+    if (value === null) return true;
     try {
       assertRetainedBrowserUrlSafe(value, sensitiveFormFieldNames);
     } catch {
@@ -506,20 +530,30 @@ function containsUnsafeSerializedHref(
   return assignments !== values;
 }
 
-function decodeHtmlUrlAttribute(value: string): string {
-  return value.replace(
-    /&(?:amp|quot|apos|#(?:x[0-9a-f]+|[0-9]+));/giu,
-    (entity) => {
-      const normalized = entity.toLocaleLowerCase("en-US");
-      if (normalized === "&amp;") return "&";
-      if (normalized === "&quot;") return "\"";
-      if (normalized === "&apos;") return "'";
-      const numeric = normalized.startsWith("&#x")
-        ? Number.parseInt(normalized.slice(3, -1), 16)
-        : Number.parseInt(normalized.slice(2, -1), 10);
-      return Number.isSafeInteger(numeric) ? String.fromCodePoint(numeric) : entity;
-    },
-  );
+function decodeHtmlUrlAttribute(value: string): string | null {
+  const canonicalEntity = /&(?:amp|quot|apos|#(?:[xX][0-9a-fA-F]+|[0-9]+));/gu;
+  if (value.replace(canonicalEntity, "").includes("&")) return null;
+
+  let invalidNumericReference = false;
+  const decoded = value.replace(canonicalEntity, (entity) => {
+    if (entity === "&amp;") return "&";
+    if (entity === "&quot;") return "\"";
+    if (entity === "&apos;") return "'";
+    const hexadecimal = entity.startsWith("&#x") || entity.startsWith("&#X");
+    const numeric = Number.parseInt(
+      entity.slice(hexadecimal ? 3 : 2, -1),
+      hexadecimal ? 16 : 10,
+    );
+    if (!Number.isInteger(numeric)
+      || numeric < 0
+      || numeric > 0x10ffff
+      || (numeric >= 0xd800 && numeric <= 0xdfff)) {
+      invalidNumericReference = true;
+      return "";
+    }
+    return String.fromCodePoint(numeric);
+  });
+  return invalidNumericReference ? null : decoded;
 }
 
 function containsUnsafeSerializedFormMarkup(

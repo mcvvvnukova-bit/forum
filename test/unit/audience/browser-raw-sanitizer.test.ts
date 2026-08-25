@@ -120,6 +120,30 @@ describe("browser raw sanitizer persistence boundary", () => {
   });
 
   it.each([
+    ["named fragment", "https://fixture.invalid/public&num;href-fragment-secret"],
+    ["semicolonless named-like form", "https://fixture.invalid/public&num"],
+    ["named userinfo", "https://href-user&commat;localhost/public"],
+    ["unknown name", "https://fixture.invalid/public&unknown;value"],
+    ["raw ambiguous ampersand", "https://fixture.invalid/public?a=1&next=2"],
+  ])("rejects a noncanonical serialized DOM href with %s", (_case, href) => {
+    expect(() => checksumBrowserRawBundle(rawBundle(
+      `<!doctype html><html><body><a href="${href}">Public</a></body></html>`,
+    ))).toThrow("raw redaction scan failed");
+  });
+
+  it.each([
+    "https://fixture.invalid/public?a=1&amp;next=2",
+    "https://fixture.invalid/public/a&amp;b",
+    "https://fixture.invalid/public/a&quot;b",
+    "https://fixture.invalid/public/a&apos;b",
+    "https://fixture.invalid/public/a&#38;b",
+  ])("accepts a canonical serialized DOM href %s", (href) => {
+    expect(() => checksumBrowserRawBundle(rawBundle(
+      `<!doctype html><html><body><a href="${href}">Public</a></body></html>`,
+    ))).not.toThrow();
+  });
+
+  it.each([
     ["plain 8", "Phone8 (495) 111-22-33"],
     ["compact +7", "Phone+7 (495) 111-22-33"],
   ])("rejects a %s phone number in action metadata at the checksum boundary", (_case, target) => {

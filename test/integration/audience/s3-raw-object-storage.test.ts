@@ -323,12 +323,14 @@ describe("S3RawObjectStorage", () => {
   it.each([
     ["fragment", "https://fixture.invalid/public#token=dom-secret"],
     ["userinfo", "https://userinfo-name:userinfo-pass@localhost/public"],
+    ["named fragment", "https://fixture.invalid/public&num;href-fragment-secret"],
+    ["named userinfo", "https://href-user&commat;localhost/public"],
   ])("rejects checksum-consistent serialized DOM href with %s", async (_case, href) => {
     const domBytes = new TextEncoder().encode(
       `<!doctype html><html><body><a href="${href}">Public</a></body></html>`,
     );
     const stored = await putChecksumConsistentBrowserManifest(
-      `s3-unsafe-dom-href-${_case}`,
+      `s3-unsafe-dom-href-${_case.replaceAll(" ", "-")}`,
       (manifest) => {
         manifest.pageFingerprintSha256 = fixtureSha256(domBytes);
         manifest.artifacts.sanitizedDom.checksumSha256 = fixtureSha256(domBytes);

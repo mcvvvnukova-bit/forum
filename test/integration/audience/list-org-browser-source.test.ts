@@ -432,6 +432,24 @@ describe("ListOrgBrowserSource", () => {
     });
   });
 
+  it("derives DOM and screenshot redaction terms from every live retained href", async () => {
+    const [result, baseline] = await Promise.all([
+      collect("/search?scenario=href-only-url-secrets"),
+      collect("/search"),
+    ]);
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    const baselineCard = baseline.rawBundles.find(
+      (item) => item.identity.sourceRecordKey === "1001",
+    )!;
+    const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
+
+    expect(dom).toContain('href="https://localhost/public"');
+    expect(dom).not.toMatch(/href-user|href-pass|href-query-secret|href-fragment-secret/);
+    expect(await countBlackContactBands(card.redactedScreenshotPng)).toBeGreaterThanOrEqual(
+      (await countBlackContactBands(baselineCard.redactedScreenshotPng)) + 4,
+    );
+  });
+
   it("removes runtime form values from raw evidence and masks every populated control", async () => {
     const [result, baseline] = await Promise.all([
       collect("/search?scenario=form-secrets"),

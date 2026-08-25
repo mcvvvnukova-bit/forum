@@ -19,6 +19,7 @@ import { checksumBrowserRawBundle, sha256 } from "../../storage/raw-bundle";
 import {
   assertBrowserCaptureSafe,
   addPageRedactionOverlays,
+  collectPageSensitiveUrlValues,
   MANDATORY_SENSITIVE_QUERY_PARAMETERS,
   sanitizeBrowserActionTarget,
   sanitizePageDom,
@@ -635,7 +636,15 @@ class PlaywrightBrowserSession implements BrowserSession {
     const labeledValues = (await Promise.all(
       redactLabeledValues.map((label) => this.#exactLabeledValues(label)),
     )).flat();
-    const redactionValues = [...new Set([...this.#sensitiveValues, ...labeledValues])];
+    const pageUrlValues = await collectPageSensitiveUrlValues(
+      this.#page,
+      this.#sensitiveQueryParameters,
+    );
+    const redactionValues = [...new Set([
+      ...this.#sensitiveValues,
+      ...labeledValues,
+      ...pageUrlValues,
+    ])];
     const sanitizedDomUtf8 = await sanitizePageDom(
       this.#page,
       this.#sensitiveQueryParameters,
