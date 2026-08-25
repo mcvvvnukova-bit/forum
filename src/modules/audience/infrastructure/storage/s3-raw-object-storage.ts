@@ -192,6 +192,17 @@ interface RawManifest {
   };
 }
 
+const LEGACY_RAW_MANIFEST_KEYS = [
+  "version", "sourceKind", "parserVersion", "finalUrl", "capturedAt",
+  "navigationStatus", "pageFingerprintSha256", "identity", "candidateEvidence",
+  "actions", "artifacts",
+] as const;
+
+const CURRENT_RAW_MANIFEST_KEYS = [
+  ...LEGACY_RAW_MANIFEST_KEYS,
+  "sensitiveFormFieldNames",
+] as const;
+
 function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   let value: unknown;
   try {
@@ -206,22 +217,22 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
     throw new Error("raw manifest version 1 is unsupported for browser evidence");
   }
   const isLegacyNonBrowser = value.version === 1;
+  const hasLegacyPolicy = isLegacyNonBrowser
+    && Object.hasOwn(value, "sensitiveFormFieldNames");
+  const expectedKeys = isLegacyNonBrowser && !hasLegacyPolicy
+    ? LEGACY_RAW_MANIFEST_KEYS
+    : CURRENT_RAW_MANIFEST_KEYS;
+  const hasValidSensitivePolicy = isLegacyNonBrowser
+    ? !hasLegacyPolicy
+      || (Array.isArray(value.sensitiveFormFieldNames)
+        && value.sensitiveFormFieldNames.length === 0)
+    : isSafeRetainedTextArray(value.sensitiveFormFieldNames);
   if ((!isLegacyNonBrowser && value.version !== RAW_MANIFEST_VERSION)
-    || !hasExactlyKeys(value, isLegacyNonBrowser
-      ? [
-        "version", "sourceKind", "parserVersion", "finalUrl", "capturedAt",
-        "navigationStatus", "pageFingerprintSha256", "identity", "candidateEvidence",
-        "actions", "artifacts",
-      ]
-      : [
-        "version", "sourceKind", "parserVersion", "sensitiveFormFieldNames", "finalUrl",
-        "capturedAt", "navigationStatus", "pageFingerprintSha256", "identity",
-        "candidateEvidence", "actions", "artifacts",
-      ])
+    || !hasExactlyKeys(value, expectedKeys)
     || typeof value.sourceKind !== "string"
     || !/^[a-z0-9-]+$/.test(value.sourceKind)
     || !isSafeRetainedText(value.parserVersion)
-    || (!isLegacyNonBrowser && !isSafeRetainedTextArray(value.sensitiveFormFieldNames))
+    || !hasValidSensitivePolicy
     || !isSafeRetainedText(value.finalUrl)
     || !isCanonicalIsoTimestamp(value.capturedAt)
     || !isNavigationStatus(value.navigationStatus)

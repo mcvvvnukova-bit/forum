@@ -463,34 +463,24 @@ describe("S3RawObjectStorage", () => {
     },
   );
 
-  it("quarantines a legacy browser manifest that has no persisted form policy", async () => {
-    const bundle = sampleBundle("s3-legacy-browser-manifest");
-    const legacy = JSON.parse(new TextDecoder().decode(bundle.manifestUtf8)) as Record<string, unknown>;
+  it.each([
+    ["without form policy", (manifest: Record<string, unknown>) => {
+      delete manifest.sensitiveFormFieldNames;
+    }],
+    ["with an empty form policy", (manifest: Record<string, unknown>) => {
+      manifest.sensitiveFormFieldNames = [];
+    }],
+  ] as const)("quarantines legacy browser manifest %s", async (_case, mutate) => {
+    const bundle = sampleBundle(`s3-legacy-browser-${_case.replaceAll(" ", "-")}`);
+    const legacy = JSON.parse(
+      new TextDecoder().decode(bundle.manifestUtf8),
+    ) as Record<string, unknown>;
     legacy.version = 1;
-    delete legacy.sensitiveFormFieldNames;
-    const manifestBytes = new TextEncoder().encode(JSON.stringify(legacy));
-    const checksumSha256 = fixtureSha256(manifestBytes);
-    const prefix = `raw/${bundle.identity.runId}/list-org-browser/${checksumSha256}`;
-    const stored = {
-      runId: bundle.identity.runId,
-      sourceKind: "list-org-browser",
-      sourceRecordKey: "1001",
-      parserVersion: bundle.parserVersion,
-      checksumSha256,
-      prefix,
-      manifestKey: `${prefix}/manifest.json`,
-      domKey: `${prefix}/dom.html`,
-      screenshotKey: `${prefix}/screenshot.png`,
-    };
-    await Promise.all([
-      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.domKey, Body: bundle.sanitizedDomUtf8 })),
-      client.send(new PutObjectCommand({
-        Bucket: bucket,
-        Key: stored.screenshotKey,
-        Body: bundle.redactedScreenshotPng,
-      })),
-      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.manifestKey, Body: manifestBytes })),
-    ]);
+    mutate(legacy);
+    const stored = await putManifestBytes(
+      bundle,
+      new TextEncoder().encode(JSON.stringify(legacy)),
+    );
 
     const storage = new S3RawObjectStorage(env, "list-org-browser", client);
     await expect(storage.verify(stored)).rejects.toThrow(
@@ -498,59 +488,43 @@ describe("S3RawObjectStorage", () => {
     );
   });
 
-  it("intentionally verifies a legacy non-browser manifest without browser form policy", async () => {
-    const bundle = checksumBrowserRawBundle({
-      ...sampleRawBundle("s3-legacy-financial-manifest"),
-      sourceKind: "fns-bfo",
-      candidateEvidence: null,
-    });
-    const legacy = JSON.parse(new TextDecoder().decode(bundle.manifestUtf8)) as Record<string, unknown>;
-    legacy.version = 1;
-    delete legacy.sensitiveFormFieldNames;
-    const manifestBytes = new TextEncoder().encode(JSON.stringify(legacy));
-    const checksumSha256 = fixtureSha256(manifestBytes);
-    const prefix = `raw/${bundle.identity.runId}/fns-bfo/${checksumSha256}`;
-    const stored = {
-      runId: bundle.identity.runId,
-      sourceKind: "fns-bfo",
-      sourceRecordKey: "1001",
-      parserVersion: bundle.parserVersion,
-      checksumSha256,
-      prefix,
-      manifestKey: `${prefix}/manifest.json`,
-      domKey: `${prefix}/dom.html`,
-      screenshotKey: `${prefix}/screenshot.png`,
-    };
-    await Promise.all([
-      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.domKey, Body: bundle.sanitizedDomUtf8 })),
-      client.send(new PutObjectCommand({
-        Bucket: bucket,
-        Key: stored.screenshotKey,
-        Body: bundle.redactedScreenshotPng,
-      })),
-      client.send(new PutObjectCommand({ Bucket: bucket, Key: stored.manifestKey, Body: manifestBytes })),
-    ]);
+  it.each([
+    ["without form policy", (manifest: Record<string, unknown>) => {
+      delete manifest.sensitiveFormFieldNames;
+    }],
+    ["with an empty form policy", (manifest: Record<string, unknown>) => {
+      manifest.sensitiveFormFieldNames = [];
+    }],
+  ] as const)("verifies legacy non-browser manifest %s", async (_case, mutate) => {
+    const stored = await putLegacyNonBrowserManifest(
+      `s3-legacy-financial-${_case.replaceAll(" ", "-")}`,
+      mutate,
+    );
 
     const storage = new S3RawObjectStorage(env, "fns-bfo", client);
     await expect(storage.verify(stored)).resolves.toMatchObject({
       sourceKind: "fns-bfo",
       sourceRecordKey: "1001",
-      checksumSha256,
+      checksumSha256: stored.checksumSha256,
     });
   });
 
-  it("rejects a legacy non-browser manifest carrying a v2-only policy field", async () => {
-    const bundle = checksumBrowserRawBundle({
-      ...sampleRawBundle("s3-legacy-financial-extra-field"),
-      sourceKind: "fns-bfo",
-      candidateEvidence: null,
-    });
-    const legacy = JSON.parse(
-      new TextDecoder().decode(bundle.manifestUtf8),
-    ) as Record<string, unknown>;
-    legacy.version = 1;
-    const manifestBytes = new TextEncoder().encode(JSON.stringify(legacy));
-    const stored = await putManifestBytes(bundle, manifestBytes);
+  it.each([
+    ["a non-empty form policy", (manifest: Record<string, unknown>) => {
+      manifest.sensitiveFormFieldNames = ["auth"];
+    }],
+    ["a non-array form policy", (manifest: Record<string, unknown>) => {
+      manifest.sensitiveFormFieldNames = "auth";
+    }],
+    ["an unknown field", (manifest: Record<string, unknown>) => {
+      delete manifest.sensitiveFormFieldNames;
+      manifest.persistedSecret = "must-not-survive-verification";
+    }],
+  ] as const)("rejects legacy non-browser manifest with %s", async (_case, mutate) => {
+    const stored = await putLegacyNonBrowserManifest(
+      `s3-invalid-legacy-financial-${_case.replaceAll(" ", "-")}`,
+      mutate,
+    );
 
     const storage = new S3RawObjectStorage(env, "fns-bfo", client);
     await expect(storage.verify(stored)).rejects.toThrow(
@@ -615,6 +589,26 @@ describe("S3RawObjectStorage", () => {
       "raw object identity verification failed",
     );
   });
+
+  async function putLegacyNonBrowserManifest(
+    runId: string,
+    mutate: (manifest: Record<string, unknown>) => void,
+  ) {
+    const bundle = checksumBrowserRawBundle({
+      ...sampleRawBundle(runId),
+      sourceKind: "fns-bfo",
+      candidateEvidence: null,
+    });
+    const manifest = JSON.parse(
+      new TextDecoder().decode(bundle.manifestUtf8),
+    ) as Record<string, unknown>;
+    manifest.version = 1;
+    mutate(manifest);
+    return putManifestBytes(
+      bundle,
+      new TextEncoder().encode(JSON.stringify(manifest)),
+    );
+  }
 
   async function putChecksumConsistentBrowserManifest(
     runId: string,
