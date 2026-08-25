@@ -344,7 +344,7 @@ describe("ListOrgBrowserSource", () => {
     });
   });
 
-  it("masks empty password and configured-name controls with visible placeholders", async () => {
+  it("masks empty password, configured-name controls, and buttons with visible placeholders", async () => {
     const [result, baseline] = await Promise.all([
       collect("/search?scenario=empty-form-secret", ["nonce"]),
       collect("/search", ["nonce"]),
@@ -357,9 +357,11 @@ describe("ListOrgBrowserSource", () => {
     expect(baselineCard).toBeDefined();
 
     const dom = new TextDecoder().decode(card!.sanitizedDomUtf8);
-    expect(dom).not.toMatch(/password reminder|nonce reminder|name="(?:password|nonce)"/i);
+    expect(dom).not.toMatch(
+      /password reminder|nonce reminder|nonce button reminder|name="(?:password|nonce)"/i,
+    );
     expect(await countBlackContactBands(card!.redactedScreenshotPng)).toBe(
-      await countBlackContactBands(baselineCard!.redactedScreenshotPng) + 2,
+      await countBlackContactBands(baselineCard!.redactedScreenshotPng) + 3,
     );
   });
 

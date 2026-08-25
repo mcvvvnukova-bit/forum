@@ -146,6 +146,8 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
             "</dl>",
             `<input style="display:block;width:260px;height:24px;margin:4px 0" type="password" name="password" value="" placeholder="password reminder">
              <input style="display:block;width:260px;height:24px;margin:4px 0" type="text" name="nonce" value="" placeholder="nonce reminder">
+             <button style="display:block;width:260px;height:24px;margin:4px 0"
+                     type="button" name="nonce" value="">nonce button reminder</button>
              </dl>`,
           );
         }

@@ -326,10 +326,11 @@ export function addPageRedactionOverlays(
       const attributeText = [...candidate.attributes].map((attribute) => attribute.value).join(" ");
       if (helpers.containsSensitive(`${directText} ${attributeText}`)) elements.add(candidate);
     }
-    for (const control of document.querySelectorAll("input, textarea, select")) {
+    for (const control of document.querySelectorAll("input, textarea, select, button")) {
       if ((control instanceof HTMLInputElement
         || control instanceof HTMLTextAreaElement
-        || control instanceof HTMLSelectElement)
+        || control instanceof HTMLSelectElement
+        || control instanceof HTMLButtonElement)
         && (control.value !== ""
           || (control instanceof HTMLInputElement && control.type.toLowerCase() === "password")
           || helpers.isSensitiveFormFieldName(control.name))) {
