@@ -1,3 +1,5 @@
+import { createServer, type Server } from "node:http";
+
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { chromium } from "playwright";
 
@@ -205,6 +207,7 @@ describe("ListOrgBrowserSource", () => {
     const factory = new PlaywrightBrowserSessionFactory(fixture.origin, {
       launch: async () => ({
         newContext: async () => ({
+          routeWebSocket: async () => undefined,
           newPage: async () => { throw new Error("page startup failed"); },
           close: closeContext,
         }),
@@ -213,6 +216,29 @@ describe("ListOrgBrowserSource", () => {
     });
 
     await expect(factory.open()).rejects.toThrow("page startup failed");
+    expect(closeContext).toHaveBeenCalledOnce();
+    expect(closeBrowser).toHaveBeenCalledOnce();
+  });
+
+  it("installs WebSocket routing before page creation and cleans up registration failure", async () => {
+    const closeContext = vi.fn(async () => undefined);
+    const closeBrowser = vi.fn(async () => undefined);
+    const newPage = vi.fn(async () => {
+      throw new Error("page created before WebSocket routing");
+    });
+    const factory = new PlaywrightBrowserSessionFactory(fixture.origin, {
+      launch: async () => ({
+        newContext: async () => ({
+          routeWebSocket: async () => { throw new Error("WebSocket route startup failed"); },
+          newPage,
+          close: closeContext,
+        }),
+        close: closeBrowser,
+      }) as never,
+    });
+
+    await expect(factory.open()).rejects.toThrow("WebSocket route startup failed");
+    expect(newPage).not.toHaveBeenCalled();
     expect(closeContext).toHaveBeenCalledOnce();
     expect(closeBrowser).toHaveBeenCalledOnce();
   });
@@ -263,6 +289,45 @@ describe("ListOrgBrowserSource", () => {
     expect(result.blockers).toHaveLength(1);
     expect(result.blockers[0]).toMatchObject({ detail: "https://external.invalid" });
     expect(result.blockers[0]?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("blocks an external WebSocket before its upgrade reaches the second origin", async () => {
+    const probe = await startExternalWebSocketProbe();
+    const websocketFixture = await startListOrgFixtureServer({
+      externalWebSocketUrl: probe.url,
+    });
+    try {
+      const result = await collect(
+        "/search?scenario=external-websocket",
+        undefined,
+        websocketFixture.origin,
+      );
+
+      expect(result.status).toBe("blocked");
+      expect(result.reason).toBe("policy_block");
+      expect(result.blockers).toEqual([
+        expect.objectContaining({
+          reason: "policy_block",
+          detail: new URL(probe.url).origin,
+          raw: expect.objectContaining({
+            checksumSha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+          }),
+        }),
+      ]);
+      expect(probe.upgradeCount()).toBe(0);
+    } finally {
+      await websocketFixture.close();
+      await probe.close();
+    }
+  });
+
+  it("allows a WebSocket on the configured fixture origin", async () => {
+    const before = fixture.webSocketUpgradeCount();
+
+    const result = await collect("/search?scenario=same-origin-websocket");
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(fixture.webSocketUpgradeCount()).toBeGreaterThan(before);
   });
 
   it("keeps contacts only in the company record and redacts every contact box from raw artifacts", async () => {
@@ -365,11 +430,15 @@ describe("ListOrgBrowserSource", () => {
     );
   });
 
-  async function collect(path: string, sensitiveQueryParameters?: readonly string[]) {
+  async function collect(
+    path: string,
+    sensitiveQueryParameters?: readonly string[],
+    fixtureOrigin = fixture.origin,
+  ) {
     const fixedNow = () => new Date("2026-08-24T09:00:00.000Z");
     const source = new ListOrgBrowserSource({
-      searchUrl: `${fixture.origin}${path}`,
-      sessions: new PlaywrightBrowserSessionFactory(fixture.origin, {
+      searchUrl: `${fixtureOrigin}${path}`,
+      sessions: new PlaywrightBrowserSessionFactory(fixtureOrigin, {
         now: fixedNow,
         sensitiveQueryParameters,
       }),
@@ -385,6 +454,44 @@ describe("ListOrgBrowserSource", () => {
     });
   }
 });
+
+interface ExternalWebSocketProbe {
+  url: string;
+  upgradeCount(): number;
+  close(): Promise<void>;
+}
+
+async function startExternalWebSocketProbe(): Promise<ExternalWebSocketProbe> {
+  let upgrades = 0;
+  const server = createServer((_request, response) => {
+    response.writeHead(404);
+    response.end();
+  });
+  server.on("upgrade", (_request, socket) => {
+    upgrades += 1;
+    socket.destroy();
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  if (address === null || typeof address === "string") {
+    await closeServer(server);
+    throw new Error("external WebSocket probe did not allocate a TCP port");
+  }
+  return {
+    url: `ws://127.0.0.1:${address.port}/external-websocket`,
+    upgradeCount: () => upgrades,
+    close: () => closeServer(server),
+  };
+}
+
+function closeServer(server: Server): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.close((error) => error === undefined ? resolve() : reject(error));
+  });
+}
 
 async function countBlackContactBands(png: Uint8Array): Promise<number> {
   const browser = await chromium.launch({ headless: true });

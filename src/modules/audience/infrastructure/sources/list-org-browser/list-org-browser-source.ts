@@ -316,8 +316,8 @@ class PlaywrightBrowserSession implements BrowserSession {
   readonly #now: () => Date;
   readonly #sensitiveQueryParameters: readonly string[];
   readonly #actions: BrowserActionRecorder;
-  readonly #externalOrigins = new Set<string>();
-  readonly #sensitiveValues = new Set<string>();
+  readonly #externalOrigins: Set<string>;
+  readonly #sensitiveValues: Set<string>;
   #navigationStatus: number | null = null;
   #externalRequestsAcknowledged = false;
 
@@ -328,12 +328,16 @@ class PlaywrightBrowserSession implements BrowserSession {
     now: () => Date,
     sensitiveQueryParameters: readonly string[],
     execution: DiscoveryExecutionContext,
+    externalOrigins: Set<string>,
+    sensitiveValues: Set<string>,
   ) {
     this.#browser = browser;
     this.#context = context;
     this.#page = page;
     this.#now = now;
     this.#sensitiveQueryParameters = sensitiveQueryParameters;
+    this.#externalOrigins = externalOrigins;
+    this.#sensitiveValues = sensitiveValues;
     this.#actions = new BrowserActionRecorder(
       execution,
       now,
@@ -354,6 +358,28 @@ class PlaywrightBrowserSession implements BrowserSession {
     sensitiveQueryParameters: readonly string[],
     execution: DiscoveryExecutionContext,
   ): Promise<PlaywrightBrowserSession> {
+    const externalOrigins = new Set<string>();
+    const sensitiveValues = new Set<string>();
+    await context.routeWebSocket("**/*", async (webSocket) => {
+      const requestUrl = webSocket.url();
+      for (const value of sensitiveQueryValues(requestUrl, sensitiveQueryParameters)) {
+        sensitiveValues.add(value);
+      }
+      let origins: { policy: string; evidence: string };
+      try {
+        origins = browserRequestOrigins(requestUrl);
+      } catch {
+        externalOrigins.add(requestUrl);
+        await webSocket.close({ code: 1008, reason: "fixture origin policy" });
+        return;
+      }
+      if (origins.policy === allowedOrigin) {
+        webSocket.connectToServer();
+        return;
+      }
+      externalOrigins.add(origins.evidence);
+      await webSocket.close({ code: 1008, reason: "fixture origin policy" });
+    });
     const page = await context.newPage();
     page.setDefaultTimeout(2_000);
     const session = new PlaywrightBrowserSession(
@@ -363,6 +389,8 @@ class PlaywrightBrowserSession implements BrowserSession {
       now,
       sensitiveQueryParameters,
       execution,
+      externalOrigins,
+      sensitiveValues,
     );
 
     page.on("response", (response) => {
@@ -377,17 +405,19 @@ class PlaywrightBrowserSession implements BrowserSession {
         await route.continue();
         return;
       }
-      let origin: string;
+      let origins: { policy: string; evidence: string };
       try {
-        origin = new URL(requestUrl).origin;
+        origins = browserRequestOrigins(requestUrl);
       } catch {
-        origin = requestUrl;
+        session.#externalOrigins.add(requestUrl);
+        await route.abort("blockedbyclient");
+        return;
       }
-      if (origin === allowedOrigin) {
+      if (origins.policy === allowedOrigin) {
         await route.continue();
         return;
       }
-      session.#externalOrigins.add(origin);
+      session.#externalOrigins.add(origins.evidence);
       await route.abort("blockedbyclient");
     });
 
@@ -662,6 +692,17 @@ class PlaywrightBrowserSession implements BrowserSession {
       throw new ExternalBrowserRequestError([...this.#externalOrigins].sort());
     }
   }
+}
+
+function browserRequestOrigins(value: string): { policy: string; evidence: string } {
+  const url = new URL(value);
+  const evidence = url.origin;
+  const policyProtocol = url.protocol === "ws:"
+    ? "http:"
+    : url.protocol === "wss:"
+      ? "https:"
+      : url.protocol;
+  return { policy: `${policyProtocol}//${url.host}`, evidence };
 }
 
 function messageOf(error: unknown): string {

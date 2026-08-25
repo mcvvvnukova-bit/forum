@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, join } from "node:path";
@@ -5,7 +6,12 @@ import { fileURLToPath } from "node:url";
 
 export interface ListOrgFixtureServer {
   origin: string;
+  webSocketUpgradeCount(): number;
   close(): Promise<void>;
+}
+
+export interface ListOrgFixtureServerOptions {
+  externalWebSocketUrl?: string;
 }
 
 const fixtureDirectory = join(
@@ -13,8 +19,11 @@ const fixtureDirectory = join(
   "../../../test/fixtures/list-org-browser",
 );
 
-export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer> {
+export async function startListOrgFixtureServer(
+  options: ListOrgFixtureServerOptions = {},
+): Promise<ListOrgFixtureServer> {
   const files = await loadFixtures();
+  let webSocketUpgrades = 0;
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://fixture.invalid");
     const scenario = url.searchParams.get("scenario") ?? "";
@@ -44,7 +53,7 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
           "{{EXTERNAL_RESOURCE}}",
           scenario === "external"
             ? '<img src="https://external.invalid/tracker.png" alt="external tracker">'
-            : "",
+            : webSocketFixtureScript(scenario, options.externalWebSocketUrl),
         );
         if (scenario === "mismatched-scope") {
           body = body.replace("<dt>ОКВЭД</dt><dd>43.11</dd>", "<dt>ОКВЭД</dt><dd>43.12</dd>");
@@ -161,6 +170,26 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
     response.writeHead(status, { "content-type": "text/html; charset=utf-8" });
     response.end(body);
   });
+  server.on("upgrade", (request, socket) => {
+    const url = new URL(request.url ?? "/", "http://fixture.invalid");
+    const key = request.headers["sec-websocket-key"];
+    if (url.pathname !== "/fixture-websocket" || typeof key !== "string") {
+      socket.destroy();
+      return;
+    }
+    webSocketUpgrades += 1;
+    const accept = createHash("sha1")
+      .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+      .digest("base64");
+    socket.end([
+      "HTTP/1.1 101 Switching Protocols",
+      "Upgrade: websocket",
+      "Connection: Upgrade",
+      `Sec-WebSocket-Accept: ${accept}`,
+      "",
+      "",
+    ].join("\r\n"));
+  });
 
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -171,7 +200,11 @@ export async function startListOrgFixtureServer(): Promise<ListOrgFixtureServer>
     await closeServer(server);
     throw new Error("fixture server did not allocate a TCP port");
   }
-  return { origin: `http://127.0.0.1:${address.port}`, close: () => closeServer(server) };
+  return {
+    origin: `http://127.0.0.1:${address.port}`,
+    webSocketUpgradeCount: () => webSocketUpgrades,
+    close: () => closeServer(server),
+  };
 }
 
 function isCompanyKey(value: string | undefined): value is "1001" | "1002" | "1003" {
@@ -181,6 +214,19 @@ function isCompanyKey(value: string | undefined): value is "1001" | "1002" | "10
 function renderResult(template: string, scenario: string): string {
   const query = scenario === "" ? "" : `&amp;scenario=${encodeURIComponent(scenario)}`;
   return template.replaceAll("{{SCENARIO_QUERY}}", query);
+}
+
+function webSocketFixtureScript(
+  scenario: string,
+  externalWebSocketUrl: string | undefined,
+): string {
+  if (scenario === "same-origin-websocket") {
+    return `<script>new WebSocket("ws://" + location.host + "/fixture-websocket");</script>`;
+  }
+  if (scenario === "external-websocket" && externalWebSocketUrl !== undefined) {
+    return `<script>new WebSocket(${JSON.stringify(externalWebSocketUrl)});</script>`;
+  }
+  return "";
 }
 
 async function loadFixtures() {
