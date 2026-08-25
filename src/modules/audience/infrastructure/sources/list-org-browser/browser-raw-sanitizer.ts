@@ -215,20 +215,101 @@ export function assertPersistableRawBundle(bundle: BrowserRawBundle): void {
   assertBrowserCaptureSafe(bundle);
 }
 
+type FoldedText = {
+  text: string;
+  originalStarts: number[];
+  originalEnds: number[];
+};
+
+function foldWithOriginalOffsets(value: string): FoldedText {
+  let text = "";
+  const originalStarts: number[] = [];
+  const originalEnds: number[] = [];
+  for (let originalStart = 0; originalStart < value.length;) {
+    const codePoint = value.codePointAt(originalStart);
+    if (codePoint === undefined) break;
+    const original = String.fromCodePoint(codePoint);
+    const originalEnd = originalStart + original.length;
+    const folded = original.toLocaleLowerCase("en-US");
+    text += folded;
+    for (let offset = 0; offset < folded.length; offset += 1) {
+      originalStarts.push(originalStart);
+      originalEnds.push(originalEnd);
+    }
+    originalStart = originalEnd;
+  }
+  return { text, originalStarts, originalEnds };
+}
+
+function originalMatchRanges(value: string, term: string): Array<{ start: number; end: number }> {
+  const haystack = foldWithOriginalOffsets(value);
+  const needle = foldWithOriginalOffsets(term).text;
+  if (needle === "") return [];
+  const ranges: Array<{ start: number; end: number }> = [];
+  let searchFrom = 0;
+  let index = haystack.text.indexOf(needle, searchFrom);
+  while (index >= 0) {
+    const lastFoldedOffset = index + needle.length - 1;
+    const start = haystack.originalStarts[index];
+    const end = haystack.originalEnds[lastFoldedOffset];
+    if (start !== undefined && end !== undefined) ranges.push({ start, end });
+    searchFrom = index + needle.length;
+    index = haystack.text.indexOf(needle, searchFrom);
+  }
+  return ranges;
+}
+
 export async function sanitizePageDom(
   page: Page,
   sensitiveQueryParameters: readonly string[],
   redactLabeledValues: readonly string[],
   redactionValues: readonly string[],
 ): Promise<Uint8Array> {
-  const html = await page.evaluate(({
+  return (await preparePageArtifacts(page, {
+    sensitiveNames: sensitiveQueryParameters, redactLabels: redactLabeledValues,
+    redactValues: redactionValues, addOverlays: false,
+  })).sanitizedDomUtf8;
+}
+
+export type PreparedPageCapture = {
+  sanitizedDomUtf8: Uint8Array;
+  overlayCounts: Record<string, number>;
+};
+
+export function preparePageCapture(
+  page: Page,
+  sensitiveQueryParameters: readonly string[],
+  redactLabeledValues: readonly string[],
+  redactionValues: readonly string[],
+): Promise<PreparedPageCapture> {
+  return preparePageArtifacts(page, {
+    sensitiveNames: sensitiveQueryParameters, redactLabels: redactLabeledValues,
+    redactValues: redactionValues, addOverlays: true,
+  });
+}
+
+function preparePageArtifacts(
+  page: Page,
+  options: {
+    sensitiveNames: readonly string[];
+    redactLabels: readonly string[];
+    redactValues: readonly string[];
+    addOverlays: boolean;
+  },
+): Promise<PreparedPageCapture> {
+  return page.evaluate(({
     sensitiveNames,
     redactLabels,
     redactValues,
     safeTags,
     safeAttributes,
     genericSensitiveNamePatternSource,
+    addOverlays,
   }) => {
+    type FoldedText = { text: string; originalStarts: number[]; originalEnds: number[] };
+    type RenderedTextEntry = { node: Text; start: number; end: number; rects: DOMRect[] };
+    type RenderedTextSegment = { root: HTMLElement; text: string; entries: RenderedTextEntry[] };
+    type RenderedOccurrence = { first: RenderedTextEntry; last: RenderedTextEntry; container: HTMLElement; crossNode: boolean };
     const clone = document.documentElement.cloneNode(true) as HTMLElement;
     const allowedTags = new Set<string>(safeTags);
     const allowedAttributes = new Set<string>(safeAttributes);
@@ -238,6 +319,133 @@ export async function sanitizePageDom(
       .sort((left, right) => right.length - left.length);
     // Object methods survive tsx/esbuild keepNames serialization without an
     // injected Node-only __name helper inside Playwright's page context.
+    const browserHelpers = {
+      foldWithOriginalOffsets(value: string): FoldedText {
+      let text = "";
+      const originalStarts: number[] = [];
+      const originalEnds: number[] = [];
+      for (let originalStart = 0; originalStart < value.length;) {
+        const codePoint = value.codePointAt(originalStart);
+        if (codePoint === undefined) break;
+        const original = String.fromCodePoint(codePoint);
+        const originalEnd = originalStart + original.length;
+        const folded = original.toLocaleLowerCase("en-US");
+        text += folded;
+        for (let offset = 0; offset < folded.length; offset += 1) {
+          originalStarts.push(originalStart);
+          originalEnds.push(originalEnd);
+        }
+        originalStart = originalEnd;
+      }
+      return { text, originalStarts, originalEnds };
+      },
+      originalMatchRanges(value: string, term: string): Array<{ start: number; end: number }> {
+      const haystack = browserHelpers.foldWithOriginalOffsets(value);
+      const needle = browserHelpers.foldWithOriginalOffsets(term).text;
+      if (needle === "") return [];
+      const ranges: Array<{ start: number; end: number }> = [];
+      let searchFrom = 0;
+      let index = haystack.text.indexOf(needle, searchFrom);
+      while (index >= 0) {
+        const lastFoldedOffset = index + needle.length - 1;
+        const start = haystack.originalStarts[index];
+        const end = haystack.originalEnds[lastFoldedOffset];
+        if (start !== undefined && end !== undefined) ranges.push({ start, end });
+        searchFrom = index + needle.length;
+        index = haystack.text.indexOf(needle, searchFrom);
+      }
+      return ranges;
+      },
+      renderedRects(node: Text): DOMRect[] {
+      for (let element = node.parentElement; element !== null; element = element.parentElement) {
+        const style = getComputedStyle(element);
+        if (style.display === "none" || style.visibility === "hidden"
+          || style.visibility === "collapse" || style.contentVisibility === "hidden"
+          || Number(style.opacity) === 0) return [];
+      }
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      return [...range.getClientRects()].filter((rect) => rect.width > 0 && rect.height > 0);
+      },
+      flowRoot(node: Text): HTMLElement {
+      for (let element = node.parentElement; element !== null; element = element.parentElement) {
+        const style = getComputedStyle(element);
+        if ((style.display !== "inline" && style.display !== "contents")
+          || style.position === "absolute" || style.position === "fixed") return element;
+      }
+      return document.body;
+      },
+      hasLayoutBoundary(previous: RenderedTextEntry, next: Text, nextRects: DOMRect[]): boolean {
+      const range = document.createRange();
+      range.setStartAfter(previous.node);
+      range.setEndBefore(next);
+      if (range.cloneContents().querySelector("br, hr") !== null) return true;
+      const left = previous.rects[previous.rects.length - 1]!;
+      const right = nextRects[0]!;
+      if (Math.abs(left.top - right.top) <= 4 && right.left - left.right > 2) return true;
+      return right.top - left.bottom > 4;
+      },
+      smallestCommonContainer(first: Text, last: Text): HTMLElement {
+      const ancestors = new Set<HTMLElement>();
+      for (let element = first.parentElement; element !== null; element = element.parentElement) ancestors.add(element);
+      for (let element = last.parentElement; element !== null; element = element.parentElement) {
+        if (!ancestors.has(element)) continue;
+        if (element === document.body && (first.parentElement !== document.body || last.parentElement !== document.body)) {
+          throw new Error("rendered sensitive range mapping failed");
+        }
+        return element;
+      }
+      throw new Error("rendered sensitive range mapping failed");
+      },
+      collectRenderedOccurrences(): RenderedOccurrence[] {
+      const segments: RenderedTextSegment[] = [];
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      let segment: RenderedTextSegment | undefined;
+      while (walker.nextNode()) {
+        const node = walker.currentNode as Text;
+        const rects = browserHelpers.renderedRects(node);
+        if (rects.length === 0) continue;
+        const root = browserHelpers.flowRoot(node);
+        const previous = segment?.entries[segment.entries.length - 1];
+        if (segment === undefined || segment.root !== root
+          || (previous !== undefined && browserHelpers.hasLayoutBoundary(previous, node, rects))) {
+          segment = { root, text: "", entries: [] };
+          segments.push(segment);
+        }
+        const start = segment.text.length;
+        segment.text += node.data;
+        segment.entries.push({ node, start, end: segment.text.length, rects });
+      }
+      const occurrences: RenderedOccurrence[] = [];
+      for (const current of segments) {
+        for (const term of terms) for (const range of browserHelpers.originalMatchRanges(current.text, term)) {
+          const first = current.entries.find((entry) => entry.start <= range.start && entry.end > range.start);
+          const last = current.entries.find((entry) => entry.start < range.end && entry.end >= range.end);
+          if (first === undefined || last === undefined) throw new Error("rendered sensitive range mapping failed");
+          occurrences.push({ first, last, container: browserHelpers.smallestCommonContainer(first.node, last.node), crossNode: first.node !== last.node });
+        }
+      }
+      return occurrences;
+      },
+      containsSensitive(value: string): boolean {
+        return terms.some((term) => browserHelpers.originalMatchRanges(value, term).length > 0)
+          || /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/iu.test(value)
+          || /(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}/u.test(value);
+      },
+    };
+    const occurrences = browserHelpers.collectRenderedOccurrences();
+    const liveElements = [...document.querySelectorAll("*")];
+    const cloneElements = [clone, ...clone.querySelectorAll("*")];
+    const elementIndexes = new Map<Element, number>(liveElements.map((element, index) => [element, index]));
+    const crossNodeContainers = new Set(occurrences.filter((item) => item.crossNode).map((item) => item.container));
+    for (const container of [...crossNodeContainers]) {
+      if ([...crossNodeContainers].some((other) => other !== container && other.contains(container))) crossNodeContainers.delete(container);
+    }
+    for (const container of crossNodeContainers) {
+      const cloneContainer = cloneElements[elementIndexes.get(container) ?? -1];
+      if (cloneContainer === undefined) throw new Error("rendered sensitive range mapping failed");
+      cloneContainer.replaceChildren(document.createTextNode("[REDACTED]"));
+    }
     const helpers = {
       isSensitiveFormFieldName(name: string): boolean {
         return sensitive.has(name.toLocaleLowerCase("en-US"))
@@ -246,13 +454,8 @@ export async function sanitizePageDom(
       redact(value: string): string {
         let output = value;
         for (const term of terms) {
-          const normalizedTerm = term.toLocaleLowerCase("en-US");
-          let searchFrom = 0;
-          let index = output.toLocaleLowerCase("en-US").indexOf(normalizedTerm, searchFrom);
-          while (index >= 0) {
-            output = `${output.slice(0, index)}[REDACTED]${output.slice(index + term.length)}`;
-            searchFrom = index + "[REDACTED]".length;
-            index = output.toLocaleLowerCase("en-US").indexOf(normalizedTerm, searchFrom);
+          for (const { start, end } of browserHelpers.originalMatchRanges(output, term).reverse()) {
+            output = `${output.slice(0, start)}[REDACTED]${output.slice(end)}`;
           }
         }
         return output
@@ -333,149 +536,44 @@ export async function sanitizePageDom(
       const node = text.currentNode as Text;
       node.data = helpers.redact(node.data);
     }
-    // Descendants go first so a cross-node match collapses only its smallest
-    // remaining retained subtree, while ordinary per-node matches keep markup.
-    for (const element of [...clone.querySelectorAll("*")].reverse()) {
-      const value = element.textContent ?? "";
-      const redactedValue = helpers.redact(value);
-      if (redactedValue !== value) {
-        element.replaceChildren(document.createTextNode(redactedValue));
-      }
-    }
-    return `<!doctype html>\n${clone.outerHTML}`;
-  }, {
-    sensitiveNames: sensitiveQueryParameters,
-    redactLabels: redactLabeledValues,
-    redactValues: redactionValues,
-    safeTags: SAFE_CAPTURE_TAGS,
-    safeAttributes: SAFE_CAPTURE_ATTRIBUTES,
-    genericSensitiveNamePatternSource: GENERIC_SENSITIVE_NAME_PATTERN_SOURCE,
-  });
-  return new TextEncoder().encode(html);
-}
-
-export function addPageRedactionOverlays(
-  page: Page,
-  labels: readonly string[],
-  sensitiveFormFieldNames: readonly string[],
-  redactionValues: readonly string[],
-): Promise<Record<string, number>> {
-  return page.evaluate(({
-    wantedLabels,
-    sensitiveNames,
-    redactValues,
-    genericSensitiveNamePatternSource,
-  }) => {
     const counts: Record<string, number> = {};
-    const terms = [...document.querySelectorAll("dt")];
-    const elements = new Set<HTMLElement>();
-    for (const label of wantedLabels) {
+    const overlayElements = new Set<HTMLElement>();
+    for (const label of redactLabels) {
       counts[label] = 0;
-      for (const term of terms.filter((candidate) => candidate.textContent?.trim() === label)) {
+      for (const term of [...document.querySelectorAll("dt")].filter((candidate) => candidate.textContent?.trim() === label)) {
         const value = term.nextElementSibling;
-        if (!(value instanceof HTMLElement)) continue;
-        elements.add(value);
-        counts[label] += 1;
+        if (value instanceof HTMLElement) { overlayElements.add(value); counts[label] += 1; }
       }
     }
-    const sensitiveTerms = redactValues.filter((value) => value !== "");
-    const configuredSensitiveNames = new Set(
-      sensitiveNames.map((name) => name.toLocaleLowerCase("en-US")),
-    );
-    const genericSensitiveNamePattern = new RegExp(genericSensitiveNamePatternSource, "iu");
-    const helpers = {
-      isSensitiveFormFieldName(name: string): boolean {
-        return configuredSensitiveNames.has(name.toLocaleLowerCase("en-US"))
-          || genericSensitiveNamePattern.test(name);
-      },
-      containsSensitive(value: string): boolean {
-        const normalized = value.toLocaleLowerCase("en-US");
-        return sensitiveTerms.some((term) => normalized.includes(term.toLocaleLowerCase("en-US")))
-          || /[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+/iu.test(value)
-          || /(?:\+?7|8)[\s().-]*(?:\d[\s().-]*){10}/u.test(value);
-      },
-    };
-    // Map each sensitive term's rendered text-node range to its lowest common
-    // element so split text is covered without also masking every ancestor.
-    const textNodes: Array<{ node: Text; start: number; end: number }> = [];
-    const textWalker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    let renderedText = "";
-    while (textWalker.nextNode()) {
-      const node = textWalker.currentNode as Text;
-      const start = renderedText.length;
-      renderedText += node.data;
-      textNodes.push({ node, start, end: renderedText.length });
-    }
-    const normalizedRenderedText = renderedText.toLocaleLowerCase("en-US");
-    for (const term of sensitiveTerms) {
-      const normalizedTerm = term.toLocaleLowerCase("en-US");
-      let searchFrom = 0;
-      let index = normalizedRenderedText.indexOf(normalizedTerm, searchFrom);
-      while (index >= 0) {
-        const end = index + term.length;
-        const first = textNodes.find((item) => item.start <= index && item.end > index);
-        const last = textNodes.find((item) => item.start < end && item.end >= end);
-        if (first !== undefined && last !== undefined) {
-          const ancestors = new Set<HTMLElement>();
-          for (let ancestor = first.node.parentElement; ancestor !== null;
-            ancestor = ancestor.parentElement) {
-            ancestors.add(ancestor);
-          }
-          for (let ancestor = last.node.parentElement; ancestor !== null;
-            ancestor = ancestor.parentElement) {
-            if (ancestors.has(ancestor)) {
-              elements.add(ancestor);
-              break;
-            }
-          }
-        }
-        searchFrom = index + term.length;
-        index = normalizedRenderedText.indexOf(normalizedTerm, searchFrom);
-      }
-    }
+    for (const occurrence of occurrences) overlayElements.add(occurrence.container);
     for (const candidate of document.querySelectorAll("*")) {
       if (!(candidate instanceof HTMLElement)) continue;
-      const directText = [...candidate.childNodes]
-        .filter((node) => node.nodeType === Node.TEXT_NODE)
-        .map((node) => node.textContent ?? "")
-        .join(" ");
-      const attributeText = [...candidate.attributes].map((attribute) => attribute.value).join(" ");
-      if (helpers.containsSensitive(`${directText} ${attributeText}`)) elements.add(candidate);
+      const directText = [...candidate.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent ?? "").join(" ");
+      const attributes = [...candidate.attributes].map((attribute) => attribute.value).join(" ");
+      if (browserHelpers.containsSensitive(`${directText} ${attributes}`)) overlayElements.add(candidate);
     }
     for (const control of document.querySelectorAll("input, textarea, select, button")) {
-      if ((control instanceof HTMLInputElement
-        || control instanceof HTMLTextAreaElement
-        || control instanceof HTMLSelectElement
-        || control instanceof HTMLButtonElement)
-        && (control.value !== ""
-          || (control instanceof HTMLInputElement && control.type.toLowerCase() === "password")
-          || helpers.isSensitiveFormFieldName(control.name))) {
-        elements.add(control);
-      }
+      if ((control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement || control instanceof HTMLSelectElement || control instanceof HTMLButtonElement)
+        && (control.value !== "" || (control instanceof HTMLInputElement && control.type.toLowerCase() === "password") || helpers.isSensitiveFormFieldName(control.name))) overlayElements.add(control);
     }
-    for (const value of elements) {
+    if (addOverlays) for (const value of overlayElements) {
       const rect = value.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) continue;
       const overlay = document.createElement("div");
       overlay.dataset.browserCaptureRedaction = "true";
       overlay.setAttribute("aria-hidden", "true");
-      Object.assign(overlay.style, {
-        position: "absolute",
-        left: `${rect.left + window.scrollX}px`,
-        top: `${rect.top + window.scrollY}px`,
-        width: `${Math.max(rect.width, 1)}px`,
-        height: `${Math.max(rect.height, 1)}px`,
-        background: "#000",
-        zIndex: "2147483647",
-      });
+      Object.assign(overlay.style, { position: "absolute", left: `${rect.left + window.scrollX}px`, top: `${rect.top + window.scrollY}px`, width: `${Math.max(rect.width, 1)}px`, height: `${Math.max(rect.height, 1)}px`, background: "#000", zIndex: "2147483647" });
       document.body.append(overlay);
     }
-    return counts;
+    return { sanitizedDomUtf8: new TextEncoder().encode(`<!doctype html>\n${clone.outerHTML}`), overlayCounts: counts };
   }, {
-    wantedLabels: labels,
-    sensitiveNames: sensitiveFormFieldNames,
-    redactValues: redactionValues,
+    sensitiveNames: options.sensitiveNames,
+    redactLabels: options.redactLabels,
+    redactValues: options.redactValues,
+    safeTags: SAFE_CAPTURE_TAGS,
+    safeAttributes: SAFE_CAPTURE_ATTRIBUTES,
     genericSensitiveNamePatternSource: GENERIC_SENSITIVE_NAME_PATTERN_SOURCE,
+    addOverlays: options.addOverlays,
   });
 }
 
@@ -727,13 +825,8 @@ function isHtmlWhitespace(character: string): boolean {
 
 function replaceEveryCaseInsensitive(value: string, term: string, replacement: string): string {
   let output = value;
-  const normalizedTerm = term.toLocaleLowerCase("en-US");
-  let searchFrom = 0;
-  let index = output.toLocaleLowerCase("en-US").indexOf(normalizedTerm, searchFrom);
-  while (index >= 0) {
-    output = `${output.slice(0, index)}${replacement}${output.slice(index + term.length)}`;
-    searchFrom = index + replacement.length;
-    index = output.toLocaleLowerCase("en-US").indexOf(normalizedTerm, searchFrom);
+  for (const { start, end } of originalMatchRanges(output, term).reverse()) {
+    output = `${output.slice(0, start)}${replacement}${output.slice(end)}`;
   }
   return output;
 }

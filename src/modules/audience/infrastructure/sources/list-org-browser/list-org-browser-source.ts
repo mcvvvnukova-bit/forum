@@ -18,9 +18,9 @@ import {
 import { checksumBrowserRawBundle, sha256 } from "../../storage/raw-bundle";
 import {
   assertBrowserCaptureSafe,
-  addPageRedactionOverlays,
   collectPageSensitiveUrlValues,
   MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+  preparePageCapture,
   sanitizeBrowserActionTarget,
   sanitizePageDom,
   sanitizeBrowserUrl as sanitizeUrl,
@@ -645,16 +645,10 @@ class PlaywrightBrowserSession implements BrowserSession {
       ...labeledValues,
       ...pageUrlValues,
     ])];
-    const sanitizedDomUtf8 = await sanitizePageDom(
+    const { sanitizedDomUtf8, overlayCounts } = await preparePageCapture(
       this.#page,
       this.#sensitiveQueryParameters,
       redactLabeledValues,
-      redactionValues,
-    );
-    const overlays = await addPageRedactionOverlays(
-      this.#page,
-      redactLabeledValues,
-      this.#sensitiveQueryParameters,
       redactionValues,
     );
     let redactedScreenshotPng: Uint8Array;
@@ -665,7 +659,7 @@ class PlaywrightBrowserSession implements BrowserSession {
         for (const element of elements) element.remove();
       });
     }
-    if (requireEveryLabel && redactLabeledValues.some((label) => (overlays[label] ?? 0) === 0)) {
+    if (requireEveryLabel && redactLabeledValues.some((label) => (overlayCounts[label] ?? 0) === 0)) {
       await this.#actions.finish(actionId, "capture", target, "contract-drift");
       throw new BrowserContractError("a sensitive contact label had no value to redact");
     }

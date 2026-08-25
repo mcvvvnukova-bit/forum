@@ -169,6 +169,10 @@ describe("browser raw sanitizer persistence boundary", () => {
     expect(sanitizeBrowserActionTarget(target, [], [])).toBe(expected);
   });
 
+  it("redacts after a length-changing Unicode fold without shifting original offsets", () => {
+    expect(sanitizeBrowserActionTarget("İfoo", [], ["foo"])).toBe("İ[REDACTED]");
+  });
+
   it("rejects browser evidence whose persisted sensitive-name policy is missing", () => {
     const bundle = rawBundle("<!doctype html><html><body><main>safe</main></body></html>");
     delete bundle.sensitiveFormFieldNames;

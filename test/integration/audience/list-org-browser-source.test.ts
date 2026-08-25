@@ -497,6 +497,27 @@ describe("ListOrgBrowserSource", () => {
     });
   });
 
+  it("maps a Unicode-folded split term back to its original rendered container", async () => {
+    const result = await collect("/search?scenario=unicode-split-href-secret");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(dom).not.toMatch(/İf(?:<[^>]+>)*oo/iu);
+    expect(await isBlackPixel(card.redactedScreenshotPng, 420 + 250, 220 + 16)).toBe(true);
+  });
+
+  it("does not join hidden and separately rendered nodes into a page-wide redaction", async () => {
+    const result = await collect("/search?scenario=hidden-boundary-href-secret");
+    const card = result.rawBundles.find((item) => item.identity.sourceRecordKey === "1001")!;
+    const dom = new TextDecoder().decode(card.sanitizedDomUtf8);
+
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(dom).toContain("Unrelated retained marker");
+    expect(dom).toContain("visible-secret");
+    expect(await isBlackPixel(card.redactedScreenshotPng, 760, 560)).toBe(false);
+  });
+
   it("removes runtime form values from raw evidence and masks every populated control", async () => {
     const [result, baseline] = await Promise.all([
       collect("/search?scenario=form-secrets"),

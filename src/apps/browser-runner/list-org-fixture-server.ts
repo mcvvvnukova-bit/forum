@@ -179,6 +179,23 @@ export async function startListOrgFixtureServer(
              </dl>`,
           );
         }
+        if (scenario === "unicode-split-href-secret" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<a href="https://localhost/public#foo">Public Unicode fragment</a>
+             <p style="position:absolute;left:420px;top:220px;width:260px;height:32px;margin:0;background:#fff;font:24px monospace">İf<span>oo</span></p>
+             </dl>`,
+          );
+        }
+        if (scenario === "hidden-boundary-href-secret" && companyKey === "1001") {
+          body = body.replace(
+            "</dl>",
+            `<a href="https://localhost/public#hidden-visible-secret">Public hidden-boundary fragment</a>
+             <span style="display:none">hidden-</span><p style="position:absolute;left:420px;top:290px;width:260px;height:32px;margin:0;background:#fff">visible-secret</p>
+             <p style="position:absolute;left:420px;top:350px;width:260px;height:32px;margin:0;background:#fff">Unrelated retained marker</p>
+             </dl>`,
+          );
+        }
         if (scenario === "form-secrets" && companyKey === "1001") {
           body = body.replace(
             "</dl>",
