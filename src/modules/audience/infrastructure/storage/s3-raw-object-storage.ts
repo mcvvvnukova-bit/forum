@@ -11,12 +11,13 @@ import type {
   VerifiedRawObject,
 } from "../../application/ports/raw-object-storage";
 import type {
+  BrowserActionEvent,
   CandidateContactEvidence,
   CandidateEvidence,
   ChecksummedBrowserRawBundle,
 } from "../../domain/discovery";
 import type { AppEnv } from "../../../../shared/config/env";
-import { assertSerializedBrowserDomSafe } from "../sources/list-org-browser/browser-raw-sanitizer";
+import { assertBrowserCaptureSafe } from "../sources/list-org-browser/browser-raw-sanitizer";
 import { checksumBrowserRawBundle, RAW_MANIFEST_VERSION, sha256 } from "./raw-bundle";
 
 export class S3RawObjectStorage implements RawObjectStorage {
@@ -107,11 +108,16 @@ export class S3RawObjectStorage implements RawObjectStorage {
         && manifest.candidateEvidence.sourceRecordKey !== manifestRecordKey)) {
       throw new Error("raw object identity verification failed");
     }
-    assertSerializedBrowserDomSafe(
-      new TextDecoder("utf-8", { fatal: true }).decode(domBytes),
-      manifest.sourceKind,
-      manifest.sensitiveFormFieldNames,
-    );
+    if (manifest.sourceKind === "list-org-browser") {
+      assertBrowserCaptureSafe({
+        sourceKind: manifest.sourceKind,
+        finalUrl: manifest.finalUrl,
+        sanitizedDomUtf8: domBytes,
+        candidateEvidence: manifest.candidateEvidence,
+        actions: manifest.actions,
+        sensitiveFormFieldNames: manifest.sensitiveFormFieldNames,
+      });
+    }
     return {
       runId: manifest.identity.runId,
       sourceKind: manifest.sourceKind,
@@ -169,8 +175,10 @@ interface RawManifest {
   sourceKind: string;
   parserVersion: string;
   sensitiveFormFieldNames: readonly string[];
+  finalUrl: string;
   identity: { runId: string; page: number; sourceRecordKey?: string };
   candidateEvidence: CandidateEvidence | null;
+  actions: readonly BrowserActionEvent[];
   artifacts: {
     sanitizedDom: { file: string; checksumSha256: string };
     redactedScreenshot: { file: string; checksumSha256: string };
@@ -198,8 +206,11 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
     || (isLegacyNonBrowser
       && value.sensitiveFormFieldNames !== undefined
       && !isStringArray(value.sensitiveFormFieldNames))
+    || typeof value.finalUrl !== "string"
     || !isRawIdentity(value.identity)
     || !isCandidateEvidenceOrNull(value.candidateEvidence)
+    || !Array.isArray(value.actions)
+    || !value.actions.every(isBrowserActionEvent)
     || !isRecord(value.artifacts)
     || !isArtifact(value.artifacts.sanitizedDom)
     || !isArtifact(value.artifacts.redactedScreenshot)) {
@@ -211,13 +222,31 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
     sensitiveFormFieldNames: isStringArray(value.sensitiveFormFieldNames)
       ? value.sensitiveFormFieldNames
       : [],
+    finalUrl: value.finalUrl,
     identity: value.identity,
     candidateEvidence: value.candidateEvidence,
+    actions: value.actions,
     artifacts: {
       sanitizedDom: value.artifacts.sanitizedDom,
       redactedScreenshot: value.artifacts.redactedScreenshot,
     },
   };
+}
+
+function isBrowserActionEvent(value: unknown): value is BrowserActionEvent {
+  return isRecord(value)
+    && hasExactlyKeys(value, [
+      "id", "at", "kind", "target", "outcome", "navigationStatus",
+    ])
+    && typeof value.id === "string"
+    && typeof value.at === "string"
+    && typeof value.kind === "string"
+    && typeof value.target === "string"
+    && ["intent", "completed", "contract-drift", "failed"].includes(String(value.outcome))
+    && (value.navigationStatus === null
+      || (Number.isSafeInteger(value.navigationStatus)
+        && Number(value.navigationStatus) >= 100
+        && Number(value.navigationStatus) <= 599));
 }
 
 function isRawIdentity(

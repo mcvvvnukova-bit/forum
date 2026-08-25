@@ -11,6 +11,16 @@ export const MANDATORY_SENSITIVE_QUERY_PARAMETERS = [
   "token",
 ] as const;
 
+export type BrowserCaptureSafetyEvidence = Pick<
+  BrowserRawBundle,
+  | "sourceKind"
+  | "finalUrl"
+  | "sanitizedDomUtf8"
+  | "candidateEvidence"
+  | "actions"
+  | "sensitiveFormFieldNames"
+>;
+
 export const SAFE_CAPTURE_TAGS = [
   "html", "head", "body", "main", "header", "footer", "nav", "section", "article",
   "h1", "h2", "h3", "h4", "p", "div", "span", "strong", "em", "small", "br",
@@ -80,10 +90,24 @@ export function sanitizeBrowserActionTarget(
     .replace(new RegExp(PHONE_PATTERN.source, "gu"), "[REDACTED]");
 }
 
+export function assertCompleteBrowserSensitivePolicy(
+  sourceKind: string,
+  sensitiveFormFieldNames: readonly string[] | undefined,
+): void {
+  if (sourceKind !== "list-org-browser") return;
+  const normalized = new Set(
+    (sensitiveFormFieldNames ?? []).map((name) => name.toLocaleLowerCase("en-US")),
+  );
+  if (MANDATORY_SENSITIVE_QUERY_PARAMETERS.some((name) => !normalized.has(name))) {
+    throw new Error("browser raw bundle sensitive form policy is incomplete");
+  }
+}
+
 export function assertBrowserCaptureSafe(
-  bundle: BrowserRawBundle,
+  bundle: BrowserCaptureSafetyEvidence,
   sensitiveValues: readonly string[] = [],
 ): void {
+  assertCompleteBrowserSensitivePolicy(bundle.sourceKind, bundle.sensitiveFormFieldNames);
   const dom = new TextDecoder("utf-8", { fatal: true }).decode(bundle.sanitizedDomUtf8);
   const actionMetadata = bundle.actions.map((action) => ({
     kind: action.kind,
@@ -122,9 +146,6 @@ export function assertBrowserCaptureSafe(
 }
 
 export function assertPersistableRawBundle(bundle: BrowserRawBundle): void {
-  if (bundle.sourceKind === "list-org-browser" && bundle.sensitiveFormFieldNames === undefined) {
-    throw new Error("browser raw bundle sensitive form policy is required");
-  }
   assertBrowserCaptureSafe(bundle);
 }
 

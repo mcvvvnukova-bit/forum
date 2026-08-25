@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BrowserRawBundle } from "../../../src/modules/audience/domain/discovery";
 import {
+  MANDATORY_SENSITIVE_QUERY_PARAMETERS,
   sanitizeBrowserActionTarget,
   sanitizeBrowserUrl,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
@@ -81,7 +82,18 @@ describe("browser raw sanitizer persistence boundary", () => {
     delete bundle.sensitiveFormFieldNames;
 
     expect(() => checksumBrowserRawBundle(bundle)).toThrow(
-      "browser raw bundle sensitive form policy is required",
+      "browser raw bundle sensitive form policy is incomplete",
+    );
+  });
+
+  it("rejects a browser policy that omits a mandatory sensitive name", () => {
+    const bundle = rawBundle("<!doctype html><html><body><main>safe</main></body></html>");
+    bundle.sensitiveFormFieldNames = MANDATORY_SENSITIVE_QUERY_PARAMETERS.filter(
+      (name) => name !== "auth",
+    );
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow(
+      "browser raw bundle sensitive form policy is incomplete",
     );
   });
 
@@ -95,7 +107,7 @@ describe("browser raw sanitizer persistence boundary", () => {
 
 function rawBundle(
   dom: string,
-  sensitiveFormFieldNames: readonly string[] = [],
+  configuredSensitiveFormFieldNames: readonly string[] = [],
 ): BrowserRawBundle {
   return {
     sourceKind: "list-org-browser",
@@ -109,6 +121,9 @@ function rawBundle(
     identity: { runId: "browser-sanitizer-test", page: 1, sourceRecordKey: "1001" },
     candidateEvidence: null,
     actions: [],
-    sensitiveFormFieldNames,
+    sensitiveFormFieldNames: [
+      ...MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+      ...configuredSensitiveFormFieldNames,
+    ],
   };
 }

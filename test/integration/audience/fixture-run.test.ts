@@ -22,6 +22,7 @@ import {
   ListOrgBrowserSource,
   PlaywrightBrowserSessionFactory,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source";
+import { MANDATORY_SENSITIVE_QUERY_PARAMETERS } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
 import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import {
@@ -377,7 +378,7 @@ describe("fixture discovery and replay publication", () => {
       redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       pageFingerprintSha256: "a".repeat(64),
       identity: { runId: foreignRunId, page: 1 },
-      sensitiveFormFieldNames: [],
+      sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
       candidateEvidence: null,
       actions: [],
     };

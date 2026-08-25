@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { AppEnv } from "../../../src/shared/config/env";
 import type { BrowserRawBundle } from "../../../src/modules/audience/domain/discovery";
+import { MANDATORY_SENSITIVE_QUERY_PARAMETERS } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
 import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 
@@ -199,7 +200,7 @@ describe("S3RawObjectStorage", () => {
       version: 2,
       sourceKind: "list-org-browser",
       parserVersion: "list-org-browser/1.0.0",
-      sensitiveFormFieldNames: ["nonce"],
+      sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS, "nonce"],
       finalUrl: "http://127.0.0.1:33333/results/page-1",
       capturedAt: "2026-08-24T09:00:00.000Z",
       navigationStatus: 200,
@@ -244,6 +245,56 @@ describe("S3RawObjectStorage", () => {
 
     const storage = new S3RawObjectStorage(env, "list-org-browser", client);
     await expect(storage.verify(stored)).rejects.toThrow("raw redaction scan failed");
+  });
+
+  const hostileManifestCases: Array<[
+    string,
+    string,
+    (manifest: MutableBrowserManifestFixture) => void,
+  ]> = [
+    ["final URL", "final-url", (manifest: MutableBrowserManifestFixture) => {
+      manifest.finalUrl = "https://fixture.invalid/page?nonce=final-secret";
+    }],
+    ["action target", "action-target", (manifest: MutableBrowserManifestFixture) => {
+      manifest.actions[0]!.target = "https://fixture.invalid/page?nonce=action-secret";
+    }],
+    ["candidate website", "candidate-website", (manifest: MutableBrowserManifestFixture) => {
+      manifest.candidateEvidence.website = "https://fixture.invalid/?nonce=website-secret";
+    }],
+  ];
+
+  it.each(hostileManifestCases)(
+    "rejects checksum-consistent configured secret in %s",
+    async (_case, runSlug, mutate) => {
+      const stored = await putChecksumConsistentBrowserManifest(
+        `s3-hostile-${runSlug}`,
+        (manifest) => {
+          manifest.sensitiveFormFieldNames = [
+            ...MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+            "nonce",
+          ];
+          mutate(manifest);
+        },
+      );
+
+      const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+      await expect(browserStorage.verify(stored)).rejects.toThrow("raw redaction scan failed");
+    },
+  );
+
+  it("rejects a checksum-consistent browser manifest with an incomplete policy", async () => {
+    const stored = await putChecksumConsistentBrowserManifest(
+      "s3-incomplete-browser-policy",
+      (manifest) => {
+        manifest.sensitiveFormFieldNames = [];
+        manifest.finalUrl = "https://fixture.invalid/page?auth=must-not-pass";
+      },
+    );
+
+    const browserStorage = new S3RawObjectStorage(env, "list-org-browser", client);
+    await expect(browserStorage.verify(stored)).rejects.toThrow(
+      "browser raw bundle sensitive form policy is incomplete",
+    );
   });
 
   it("quarantines a legacy browser manifest that has no persisted form policy", async () => {
@@ -379,10 +430,60 @@ describe("S3RawObjectStorage", () => {
       "raw object identity verification failed",
     );
   });
+
+  async function putChecksumConsistentBrowserManifest(
+    runId: string,
+    mutate: (manifest: MutableBrowserManifestFixture) => void,
+  ) {
+    const bundle = sampleBundle(runId);
+    const manifest = JSON.parse(
+      new TextDecoder().decode(bundle.manifestUtf8),
+    ) as MutableBrowserManifestFixture;
+    mutate(manifest);
+    const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest));
+    const checksumSha256 = fixtureSha256(manifestBytes);
+    const prefix = `raw/${runId}/list-org-browser/${checksumSha256}`;
+    const stored = {
+      runId,
+      sourceKind: "list-org-browser",
+      sourceRecordKey: "1001",
+      parserVersion: bundle.parserVersion,
+      checksumSha256,
+      prefix,
+      manifestKey: `${prefix}/manifest.json`,
+      domKey: `${prefix}/dom.html`,
+      screenshotKey: `${prefix}/screenshot.png`,
+    };
+    await Promise.all([
+      client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: stored.domKey,
+        Body: bundle.sanitizedDomUtf8,
+      })),
+      client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: stored.screenshotKey,
+        Body: bundle.redactedScreenshotPng,
+      })),
+      client.send(new PutObjectCommand({
+        Bucket: bucket,
+        Key: stored.manifestKey,
+        Body: manifestBytes,
+      })),
+    ]);
+    return stored;
+  }
 });
 
 function sampleBundle(runId: string) {
   return checksumBrowserRawBundle(sampleRawBundle(runId));
+}
+
+interface MutableBrowserManifestFixture extends Record<string, unknown> {
+  sensitiveFormFieldNames: string[];
+  finalUrl: string;
+  actions: Array<{ target: string }>;
+  candidateEvidence: { website: string | null };
 }
 
 function fixtureSha256(bytes: Uint8Array): string {
@@ -400,7 +501,7 @@ function sampleRawBundle(runId: string): BrowserRawBundle {
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     pageFingerprintSha256: "a".repeat(64),
     identity: { runId, page: 1, sourceRecordKey: "1001" },
-    sensitiveFormFieldNames: [],
+    sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
     candidateEvidence: {
       sourceRecordKey: "1001",
       inn: "7707083893",

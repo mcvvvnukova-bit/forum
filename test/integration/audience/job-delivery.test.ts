@@ -16,6 +16,7 @@ import { createCandidateEvidence } from "../../../src/modules/audience/domain/ca
 import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
 import { PostgresAudienceRepository } from "../../../src/modules/audience/infrastructure/postgres/audience-repository";
+import { MANDATORY_SENSITIVE_QUERY_PARAMETERS } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
 import type { AppEnv } from "../../../src/shared/config/env";
@@ -356,7 +357,7 @@ describe("task fencing and pg-boss delivery", () => {
       redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
       pageFingerprintSha256: "e".repeat(64),
       identity: { runId, page: 1, sourceRecordKey: "1001" },
-      sensitiveFormFieldNames: [],
+      sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
       candidateEvidence: createCandidateEvidence(candidate),
       actions: [],
     });
@@ -522,7 +523,7 @@ async function stageSingleCandidateRun(
     redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
     pageFingerprintSha256: "e".repeat(64),
     identity: { runId, page: 1, sourceRecordKey: "1001" },
-    sensitiveFormFieldNames: [],
+    sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
     candidateEvidence: createCandidateEvidence(candidate),
     actions: [],
   });
