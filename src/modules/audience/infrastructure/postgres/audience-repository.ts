@@ -39,6 +39,10 @@ interface ResultRow extends QueryResultRow {
   result_json: unknown;
 }
 
+interface RunScopeYearRow extends QueryResultRow {
+  scope_year: unknown;
+}
+
 interface DiscoveryRunRow extends RunRow {
   scope_matches: boolean;
   fixture_version: string;
@@ -64,6 +68,15 @@ const BLOCK_REASONS = new Set([
 
 export class PostgresAudienceRepository implements AudienceRepository {
   constructor(private readonly database: Database) {}
+
+  async loadRunScopeYear(runId: string): Promise<number> {
+    const result = await this.database.query<RunScopeYearRow>(
+      "SELECT scope_json->'year' AS scope_year FROM audience.crawl_runs WHERE id = $1",
+      [runId],
+    );
+    if (result.rows[0] === undefined) throw new Error("crawl run does not exist");
+    return parseRunScopeYear(result.rows[0].scope_year);
+  }
 
   async startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart> {
     return this.database.transaction(async (transaction) => {
@@ -400,6 +413,10 @@ export class PostgresAudienceRepository implements AudienceRepository {
   async publishFinancial(input: FinancialPublicationInput): Promise<boolean> {
     return this.database.transaction(async (transaction) => {
       if (!await lockFence(transaction, input.task)) return false;
+      const runScopeYear = await lockRunScopeYear(transaction, input.task.runId);
+      if (input.evidence.some((evidence) => evidence.reportYear !== runScopeYear)) {
+        throw new Error("financial evidence report year does not match immutable run scope");
+      }
       await transaction.query("SET CONSTRAINTS ALL DEFERRED");
 
       for (const rawObject of input.rawObjects ?? []) {
@@ -455,6 +472,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
     const result = await this.database.query<{
       status: CrawlStatus;
       terminal_reason: string | null;
+      scope_year: unknown;
       published_at: string | null;
       tasks: string;
       non_terminal_tasks: string;
@@ -475,6 +493,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
       metrics_without_evidence: string;
       evidence_without_run_raw_checksum: string;
       projections_behind_newest_evidence: string;
+      financial_evidence_outside_scope_year: string;
       unexplained_source_fetches: string;
     } & QueryResultRow>(
       `WITH latest_discovery AS (
@@ -552,7 +571,8 @@ export class PostgresAudienceRepository implements AudienceRepository {
          ORDER BY task.created_at DESC, task.id DESC
          LIMIT 1
        )
-       SELECT run.status, run.terminal_reason, run.published_at,
+       SELECT run.status, run.terminal_reason, run.scope_json->'year' AS scope_year,
+         run.published_at,
          (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = run.id)::text AS tasks,
          (SELECT count(*) FROM audience.crawl_tasks
           WHERE run_id = run.id AND status IN ('pending', 'running'))::text AS non_terminal_tasks,
@@ -608,6 +628,10 @@ export class PostgresAudienceRepository implements AudienceRepository {
             )
          )::text AS projections_behind_newest_evidence,
          (SELECT count(*)
+          FROM current_financial_evidence evidence
+          WHERE to_jsonb(evidence.report_year) IS DISTINCT FROM run.scope_json->'year'
+         )::text AS financial_evidence_outside_scope_year,
+         (SELECT count(*)
           FROM audience.source_fetches raw
           WHERE raw.run_id = run.id
             AND NOT EXISTS (
@@ -639,6 +663,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
     );
     const row = result.rows[0];
     if (row === undefined) throw new Error("crawl run does not exist");
+    parseRunScopeYear(row.scope_year);
     const discovery = {
       occurrences: Number(row.occurrences),
       uniqueSourceRecords: Number(row.unique_source_records),
@@ -705,6 +730,12 @@ export class PostgresAudienceRepository implements AudienceRepository {
     if (staleProjections !== 0) {
       violations.push(`financial projection differs from newest evidence: ${staleProjections}`);
     }
+    const financialEvidenceOutsideScopeYear = Number(row.financial_evidence_outside_scope_year);
+    if (financialEvidenceOutsideScopeYear !== 0) {
+      violations.push(
+        `financial evidence outside run scope year: ${financialEvidenceOutsideScopeYear}`,
+      );
+    }
     if (unexplainedSourceFetches !== 0) {
       violations.push(`unexplained source fetches: ${unexplainedSourceFetches}`);
     }
@@ -723,6 +754,23 @@ export class PostgresAudienceRepository implements AudienceRepository {
     const row = result.rows[0];
     return row === undefined ? null : { status: row.status, terminalReason: row.terminal_reason };
   }
+}
+
+async function lockRunScopeYear(database: Database, runId: string): Promise<number> {
+  const result = await database.query<RunScopeYearRow>(
+    `SELECT scope_json->'year' AS scope_year
+     FROM audience.crawl_runs WHERE id = $1 FOR UPDATE`,
+    [runId],
+  );
+  if (result.rows[0] === undefined) throw new Error("crawl run does not exist");
+  return parseRunScopeYear(result.rows[0].scope_year);
+}
+
+function parseRunScopeYear(value: unknown): number {
+  if (!Number.isSafeInteger(value) || Number(value) < 1900 || Number(value) > 9999) {
+    throw new Error("crawl run scope year is invalid");
+  }
+  return Number(value);
 }
 
 function taskState(row: TaskStateRow): TaskState {

@@ -268,7 +268,28 @@ describe.sequential("audience parser fixture acceptance", () => {
     }
   });
 
-  it("rejects a financial metric whose evidence is outside the run", async () => {
+  it("rejects financial evidence outside either its run or immutable scope year", async () => {
+    const scope = await database.query<{ scope_json: unknown }>(
+      "SELECT scope_json FROM audience.crawl_runs WHERE id = $1",
+      [runId],
+    );
+    await database.query(
+      `UPDATE audience.crawl_runs
+       SET scope_json = jsonb_set(scope_json, '{year}', '2026'::jsonb)
+       WHERE id = $1`,
+      [runId],
+    );
+    try {
+      await expect(reconcileRun(runId, repository)).rejects.toThrow(
+        "financial evidence outside run scope year: 3",
+      );
+    } finally {
+      await database.query(
+        "UPDATE audience.crawl_runs SET scope_json = $2::jsonb WHERE id = $1",
+        [runId, JSON.stringify(scope.rows[0]!.scope_json)],
+      );
+    }
+
     const evidence = await database.query<{ id: string; source_fetch_id: string }>(
       `SELECT id, source_fetch_id FROM audience.financial_evidence
        WHERE metric = 'revenue' ORDER BY collected_at DESC, id DESC LIMIT 1`,

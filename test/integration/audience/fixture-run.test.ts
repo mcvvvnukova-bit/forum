@@ -269,6 +269,63 @@ describe("fixture discovery and replay publication", () => {
     });
   }, 25_000);
 
+  it("rejects a mismatched finance year before staging any raw S3 object", async () => {
+    const runId = randomUUID();
+    await database.query(
+      `INSERT INTO audience.crawl_runs (
+         id, scope_json, fixture_version, parser_version, status, terminal_reason, completed_at
+       ) VALUES ($1, $2::jsonb, 'finance-year-fixture/1.0.0',
+         'list-org-browser/1.0.0', 'succeeded', 'terminal_marker', now())`,
+      [runId, JSON.stringify({
+        okved: "43.11",
+        year: 2025,
+        dryRun: true,
+        maxPages: 2,
+        maxCompanies: 50,
+      })],
+    );
+    const prefix = `raw/${runId}/`;
+    const before = await client.send(new ListObjectsV2Command({
+      Bucket: env.s3Bucket,
+      Prefix: prefix,
+    }));
+    expect(before.Contents ?? []).toEqual([]);
+
+    const child = spawnSync(
+      process.execPath,
+      [
+        "node_modules/tsx/dist/cli.mjs",
+        "src/apps/browser-runner/main.ts",
+        "fixture-finance",
+        "--run-id", runId,
+        "--year", "2026",
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        timeout: 20_000,
+        env: {
+          ...process.env,
+          APP_MODE: "fixture",
+          LIST_ORG_LIVE_ENABLED: "false",
+          DATABASE_URL: temporaryDatabase.connectionString,
+          S3_ENDPOINT: env.s3Endpoint,
+          S3_BUCKET: env.s3Bucket,
+          S3_ACCESS_KEY_ID: env.s3AccessKeyId,
+          S3_SECRET_ACCESS_KEY: env.s3SecretAccessKey,
+        },
+      },
+    );
+
+    expect(child.status, child.stderr).toBe(1);
+    expect(JSON.parse(child.stdout)).toEqual({ ok: false, error: "operation failed" });
+    const after = await client.send(new ListObjectsV2Command({
+      Bucket: env.s3Bucket,
+      Prefix: prefix,
+    }));
+    expect(after.Contents ?? []).toEqual([]);
+  }, 25_000);
+
   it("recovers expired discovery from page one with lease renewal and write-ahead actions", async () => {
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";

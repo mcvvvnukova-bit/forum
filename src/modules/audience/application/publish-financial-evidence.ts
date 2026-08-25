@@ -14,11 +14,30 @@ export interface PublishFinancialEvidenceDependencies {
   repository: AudienceRepository;
 }
 
+export async function assertFinancialRunScopeYear(
+  runId: string,
+  requestedYear: number,
+  repository: AudienceRepository,
+): Promise<void> {
+  if (!Number.isSafeInteger(requestedYear) || requestedYear < 1900 || requestedYear > 9999) {
+    throw new Error("financial report year is invalid");
+  }
+  const runScopeYear = await repository.loadRunScopeYear(runId);
+  if (runScopeYear !== requestedYear) {
+    throw new Error("financial evidence report year does not match immutable run scope");
+  }
+}
+
 export async function publishFinancialEvidence(
   command: PublishFinancialEvidenceCommand,
   dependencies: PublishFinancialEvidenceDependencies,
 ): Promise<void> {
   if (command.evidence.length === 0) throw new Error("financial evidence is required");
+  const reportYear = command.evidence[0]!.reportYear;
+  if (command.evidence.some((evidence) => evidence.reportYear !== reportYear)) {
+    throw new Error("financial evidence report year does not match immutable run scope");
+  }
+  await assertFinancialRunScopeYear(command.runId, reportYear, dependencies.repository);
   const task = await dependencies.repository.createTask(
     command.runId,
     "fixture_finance",

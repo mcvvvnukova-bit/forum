@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
-import { publishFinancialEvidence } from "../../modules/audience/application/publish-financial-evidence";
+import {
+  assertFinancialRunScopeYear,
+  publishFinancialEvidence,
+} from "../../modules/audience/application/publish-financial-evidence";
 import { reconcileRun } from "../../modules/audience/application/reconcile-run";
 import { runFixtureDiscovery } from "../../modules/audience/application/run-fixture-discovery";
 import type { CapturedRawObject } from "../../modules/audience/application/ports/audience-repository";
@@ -81,6 +84,7 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
         }
       }
       case "fixture-finance": {
+        await assertFinancialRunScopeYear(command.runId, command.year, repository);
         const staged = await stageFinancialFixtures(command.runId, command.year, env);
         await publishFinancialEvidence({
           runId: command.runId,

@@ -122,6 +122,7 @@ export interface FinancialPublicationInput {
 }
 
 export interface AudienceRepository {
+  loadRunScopeYear(runId: string): Promise<number>;
   startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart>;
   createDiscoveryRun(input: DiscoveryRunInput): Promise<FencedTask>;
   prepareTask(taskId: string, runId: string, taskKind: string): Promise<void>;

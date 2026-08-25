@@ -113,14 +113,14 @@ describe("financial evidence publication", () => {
   });
 
   it("keeps a newer source-time projection when older evidence arrives later", async () => {
-    const inn = parseLegalEntityInn("7707083893");
+    const inn = parseLegalEntityInn("7704217370");
     const newer: FinancialMetricEvidence = {
       inn,
-      reportYear: 2026,
+      reportYear: 2025,
       metric: "revenue",
       value: parseMoneyText("200", "dot"),
       sourceKind: "fns_bfo",
-      sourceRecordKey: "7707083893:2026:0710002:newer",
+      sourceRecordKey: "7704217370:2025:0710002:newer",
       observedAt: "2026-05-01T09:00:00.000Z",
       rawFetchKey: "raw/fns-bfo/new.json",
       parserVersion: "fns-bfo/1.0.0",
@@ -128,7 +128,7 @@ describe("financial evidence publication", () => {
     const older: FinancialMetricEvidence = {
       ...newer,
       value: parseMoneyText("100", "dot"),
-      sourceRecordKey: "7707083893:2026:0710002:older",
+      sourceRecordKey: "7704217370:2025:0710002:older",
       observedAt: "2026-04-01T09:00:00.000Z",
       rawFetchKey: "raw/fns-bfo/old.json",
     };
@@ -145,7 +145,7 @@ describe("financial evidence publication", () => {
               evidence.observed_at::text
        FROM audience.financial_observations observation
        JOIN audience.financial_evidence evidence ON evidence.id = observation.revenue_evidence_id
-       WHERE observation.company_inn = $1 AND observation.report_year = 2026`,
+       WHERE observation.company_inn = $1 AND observation.report_year = 2025`,
       [inn],
     );
     expect(observation.rows).toEqual([{
@@ -199,6 +199,64 @@ describe("financial evidence publication", () => {
     expect(publishedEvidence.rows[0]?.count).toBe("0");
   });
 
+  it("rolls back evidence and projections when a later metric crosses the locked run year", async () => {
+    const inn = parseLegalEntityInn("7710140679");
+    const task = await repository.createTask(runId, "fixture_finance", 300);
+    const evidence: readonly FinancialMetricEvidence[] = [
+      {
+        inn,
+        reportYear: 2025,
+        metric: "income",
+        value: parseMoneyText("15", "dot"),
+        sourceKind: "fns_revexp",
+        sourceRecordKey: "7710140679:2025:income-year-lock",
+        observedAt: "2026-04-01T09:00:00.000Z",
+        rawFetchKey: "raw/fns-revexp/report.xml",
+        parserVersion: "fns-revexp/1.0.0",
+      },
+      {
+        inn,
+        reportYear: 2026,
+        metric: "revenue",
+        value: parseMoneyText("30", "dot"),
+        sourceKind: "fns_bfo",
+        sourceRecordKey: "7710140679:2026:revenue-year-lock",
+        observedAt: "2026-04-01T09:00:00.000Z",
+        rawFetchKey: "raw/fns-bfo/old.json",
+        parserVersion: "fns-bfo/1.0.0",
+      },
+    ];
+
+    try {
+      await expect(repository.publishFinancial({ task, evidence })).rejects.toThrow(
+        "financial evidence report year does not match immutable run scope",
+      );
+
+      const rows = await database.query<{ evidence: string; observations: string }>(
+        `SELECT
+           (SELECT count(*) FROM audience.financial_evidence
+            WHERE company_inn = $1)::text AS evidence,
+           (SELECT count(*) FROM audience.financial_observations
+            WHERE company_inn = $1)::text AS observations`,
+        [inn],
+      );
+      expect(rows.rows[0]).toEqual({ evidence: "0", observations: "0" });
+    } finally {
+      await database.transaction(async (transaction) => {
+        await transaction.query("SET CONSTRAINTS ALL DEFERRED");
+        await transaction.query(
+          "DELETE FROM audience.financial_observations WHERE company_inn = $1",
+          [inn],
+        );
+        await transaction.query(
+          "DELETE FROM audience.financial_evidence WHERE company_inn = $1",
+          [inn],
+        );
+        await transaction.query("DELETE FROM audience.crawl_tasks WHERE id = $1", [task.id]);
+      });
+    }
+  });
+
   it.each([
     ["revenue mapped to revexp", "revenue", "fns_revexp", "raw/fns-revexp/report.xml"],
     ["income mapped to BFO", "income", "fns_bfo", "raw/fns-bfo/old.json"],
@@ -207,11 +265,11 @@ describe("financial evidence publication", () => {
     const inn = parseLegalEntityInn("7710140679");
     const evidence: FinancialMetricEvidence = {
       inn,
-      reportYear: 2026,
+      reportYear: 2025,
       metric,
       value: parseMoneyText("42", "dot"),
       sourceKind,
-      sourceRecordKey: `${inn}:2026:${metric}`,
+      sourceRecordKey: `${inn}:2025:${metric}`,
       observedAt: "2026-04-01T09:00:00.000Z",
       rawFetchKey,
       parserVersion: sourceKind === "fns_bfo" ? "fns-bfo/1.0.0" : "fns-revexp/1.0.0",
@@ -221,7 +279,7 @@ describe("financial evidence publication", () => {
       .rejects.toThrow(/financial source mapping|financial raw evidence is missing/);
     const rows = await database.query<{ count: string }>(
       `SELECT count(*)::text AS count FROM audience.financial_evidence
-       WHERE company_inn = $1 AND report_year = 2026`,
+       WHERE company_inn = $1 AND report_year = 2025`,
       [inn],
     );
     expect(rows.rows[0]?.count).toBe("0");
@@ -241,7 +299,7 @@ async function seedFinancialProvenance(database: PostgresDatabase, runId: string
     await transaction.query(
       `INSERT INTO audience.crawl_runs (
          id, scope_json, fixture_version, parser_version, status, completed_at, published_at
-       ) VALUES ($1, '{}'::jsonb, 'financial-fixture/1.0.0', 'financial/1.0.0',
+       ) VALUES ($1, '{"year":2025}'::jsonb, 'financial-fixture/1.0.0', 'financial/1.0.0',
          'succeeded', now(), now())`,
       [runId],
     );
@@ -259,6 +317,7 @@ async function seedFinancialProvenance(database: PostgresDatabase, runId: string
     for (const [inn, name, sourceRecordKey] of [
       ["7707083893", "АО Альфа", "1001"],
       ["7710140679", "ООО Бета", "1002"],
+      ["7704217370", "ООО Гамма", "1003"],
     ]) {
       await transaction.query(
         `INSERT INTO audience.companies (inn, name, source_fetch_id, source_record_key)
