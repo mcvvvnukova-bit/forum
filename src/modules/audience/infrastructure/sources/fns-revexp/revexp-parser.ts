@@ -14,6 +14,12 @@ export interface RevexpParserContext {
   parserVersion: string;
 }
 
+export interface RevexpSelectedRecord {
+  inn: string;
+  income?: string;
+  expenses?: string;
+}
+
 const DECODE_CHUNK_BYTES = 16_384;
 
 interface RevexpRecordState {
@@ -22,15 +28,35 @@ interface RevexpRecordState {
   expensesText?: string;
 }
 
-export function parseRevexp(input: Uint8Array, context: RevexpParserContext): FinancialMetricEvidence[] {
+export function parseRevexp(
+  input: Uint8Array | RevexpSelectedRecord | readonly RevexpSelectedRecord[],
+  context: RevexpParserContext,
+): FinancialMetricEvidence[] {
   if (!Number.isSafeInteger(Date.parse(context.observedAt))) {
     throw new Error("revexp source observation timestamp is invalid");
   }
+  const records = input instanceof Uint8Array
+    ? parseXmlRecords(input)
+    : Array.isArray(input) ? input : [input];
+  const evidence: FinancialMetricEvidence[] = [];
+  for (const record of records) {
+    if (record.inn === undefined) throw new Error("revexp XML does not contain ИННЮЛ");
+    evidence.push(...createEvidence(
+      parseLegalEntityInn(record.inn),
+      record.income,
+      record.expenses,
+      context,
+    ));
+  }
+  return evidence;
+}
+
+function parseXmlRecords(input: Uint8Array): RevexpSelectedRecord[] {
   let currentRecord: RevexpRecordState | undefined;
   let records = 0;
   let xmlError: Error | undefined;
   let recordError: Error | undefined;
-  const evidence: FinancialMetricEvidence[] = [];
+  const selectedRecords: RevexpSelectedRecord[] = [];
   const parser = new SaxesParser();
 
   parser.on("opentag", (tag) => {
@@ -55,16 +81,11 @@ export function parseRevexp(input: Uint8Array, context: RevexpParserContext): Fi
       recordError ??= new Error("revexp XML does not contain ИННЮЛ");
       return;
     }
-    try {
-      evidence.push(...createEvidence(
-        parseLegalEntityInn(record.innText),
-        record.incomeText,
-        record.expensesText,
-        context,
-      ));
-    } catch (error) {
-      recordError ??= error instanceof Error ? error : new Error(errorMessage(error));
-    }
+    selectedRecords.push({
+      inn: record.innText,
+      ...(record.incomeText === undefined ? {} : { income: record.incomeText }),
+      ...(record.expensesText === undefined ? {} : { expenses: record.expensesText }),
+    });
   });
   parser.on("error", (error) => {
     xmlError ??= error;
@@ -90,7 +111,7 @@ export function parseRevexp(input: Uint8Array, context: RevexpParserContext): Fi
     throw new Error("revexp XML does not contain ИННЮЛ");
   }
   if (recordError !== undefined) throw recordError;
-  return evidence;
+  return selectedRecords;
 }
 
 function createEvidence(
