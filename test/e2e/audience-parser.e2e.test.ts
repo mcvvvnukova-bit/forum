@@ -166,6 +166,25 @@ describe.sequential("audience parser fixture acceptance", () => {
     expect(JSON.stringify(report)).not.toMatch(/cookie|session|captcha|https?:\/\//iu);
   });
 
+  it("associates all 30 live metric outcomes with their ordered companies", () => {
+    const inn = "7700000016";
+    const report = buildLivePilotReport({
+      summary: { runId: randomUUID(), discoveredCompanies: 10, publishedCompanies: 10, rawObjects: 12, terminalCode: "LIVE_PILOT_RECONCILED" },
+      inns: [inn], outcomes: 30, sourceAttempts: ["published"],
+      reconciliation: { companies: 10, relations: 10, outcomes: 30 },
+      companyMetrics: [
+        { inn, metric: "revenue", value: "1.00", sourceAttemptStatus: "published" },
+        { inn, metric: "income", outcome: "no_data", sourceAttemptStatus: "no_data" },
+        { inn, metric: "expenses", value: "0.00", sourceAttemptStatus: "published" },
+      ],
+    });
+    expect(report.companyMetrics).toEqual([
+      { inn, metric: "revenue", value: "1.00", sourceAttemptStatus: "published" },
+      { inn, metric: "income", outcome: "no_data", sourceAttemptStatus: "no_data" },
+      { inn, metric: "expenses", value: "0.00", sourceAttemptStatus: "published" },
+    ]);
+  });
+
   it("runs release, browser dry-run, raw replay twice, finance, and exact reconciliation", async () => {
     const report = await reconcileRun(runId, repository);
 

@@ -4,6 +4,7 @@ import type { QueryResultRow } from "pg";
 
 import type {
   AudienceRepository,
+  CapturedRawObject,
   CompleteDiscoveryInput,
   CrawlStatus,
   DiscoveryTaskStart,
@@ -281,6 +282,13 @@ export class PostgresAudienceRepository implements AudienceRepository {
       [task.id, task.runId, task.fencingToken, companyInn],
     );
     return result.rowCount === 1;
+  }
+
+  async recordFinancialRaw(task: FencedTask, raw: CapturedRawObject): Promise<boolean> {
+    return this.database.transaction(async (transaction) => {
+      if (!await lockFence(transaction, task)) return false;
+      return (await insertRawFetch(transaction, task, "running", raw)) === 1;
+    });
   }
 
   async completeDiscovery(input: CompleteDiscoveryInput): Promise<boolean> {

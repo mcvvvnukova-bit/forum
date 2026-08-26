@@ -7,6 +7,17 @@ export function buildLivePilotReport(input: {
   outcomes: number;
   sourceAttempts: readonly ("published" | "no_data")[];
   reconciliation: { companies: number; relations: number; outcomes: number };
+  companyMetrics?: readonly ({
+    inn: string;
+    metric: "revenue" | "income" | "expenses";
+    value: string;
+    sourceAttemptStatus: "published";
+  } | {
+    inn: string;
+    metric: "revenue" | "income" | "expenses";
+    outcome: "no_data";
+    sourceAttemptStatus: "no_data";
+  })[];
 }) {
   return {
     runId: input.summary.runId,
@@ -14,5 +25,6 @@ export function buildLivePilotReport(input: {
     outcomes: input.outcomes,
     sourceAttempts: [...input.sourceAttempts],
     reconciliation: { ...input.reconciliation },
+    companyMetrics: input.companyMetrics === undefined ? [] : input.companyMetrics.map((metric) => ({ ...metric })),
   };
 }

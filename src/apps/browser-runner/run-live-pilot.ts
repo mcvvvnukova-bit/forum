@@ -20,6 +20,7 @@ import type { AppEnv } from "../../shared/config/env";
 import { HumanVerificationGate } from "./human-verification";
 import { parseAudienceCli } from "./cli";
 import type { RunLivePilotDependencies } from "../../modules/audience/application/run-live-pilot";
+import { buildLivePilotReport } from "./live-pilot-report";
 
 const LIST_ORG_URL = "https://www.list-org.com/search";
 const BFO_URL = "https://bo.nalog.gov.ru/";
@@ -29,7 +30,7 @@ export async function executeLivePilot(input: {
   env: AppEnv;
   repository: AudienceRepository;
   discoveryRawStorage: RawObjectStorage;
-}): Promise<LivePilotRunResult> {
+}): Promise<object> {
   const runId = randomUUID();
   const verification = new HumanVerificationGate({ input: process.stdin, output: process.stdout });
   const listSource = new ListOrgLiveSource({
@@ -46,10 +47,12 @@ export async function executeLivePilot(input: {
     parserVersion: "list-org-live/1.0.0",
   });
   let selected: readonly { inn: string }[] = [];
+  const companyMetrics: Array<{ inn: string; metric: "revenue" | "income" | "expenses"; value: string; sourceAttemptStatus: "published" } | { inn: string; metric: "revenue" | "income" | "expenses"; outcome: "no_data"; sourceAttemptStatus: "no_data" }> = [];
+  let reconciliation: { companies: number; companyOkveds: number } | undefined;
   const bfoRawStorage = new S3RawObjectStorage(input.env, "fns-bfo-live");
   const revexpRawStorage = new S3FileRawObjectStorage(input.env, "fns-revexp");
   try {
-    return await runLivePilot({ runId, okved: "43.11", year: 2025, maxCompanies: 10 }, {
+    const summary = await runLivePilot({ runId, okved: "43.11", year: 2025, maxCompanies: 10 }, {
       discover: async () => {
         const summary = await runFixtureDiscovery({
           runId, okved: "43.11", year: 2025, dryRun: true, maxPages: 2, maxCompanies: 10,
@@ -105,17 +108,26 @@ export async function executeLivePilot(input: {
         for (let index = 0; index < selected.length; index += 1) {
           const inn = parseLegalEntityInn(selected[index]!.inn);
           const financeTask = financeTasks[index]!;
-          const bfo = await bfoSource.collectRevenue({ inn, reportYear: 2025 });
-          if (bfo.outcome === "blocked") {
-            await input.repository.failTask(financeTask.task, "live_finance_blocked", false);
-            throw new Error(`LIVE_PILOT_SOURCE_BLOCKED:${bfo.reason}`);
-          }
+          const bfo = await bfoSource.collectRevenue({ inn, reportYear: 2025 }, {
+            actionLedger: { record: async (event) => {
+              if (!await input.repository.recordBrowserAction(financeTask.task, event)) {
+                throw new Error("stale live finance task collector");
+              }
+            } },
+          });
           const bfoStored = await bfoRawStorage.put(bfo.raw);
           const bfoRaw: CapturedRawObject = {
             id: randomUUID(), sourceKind: "fns-bfo-live", sourceRecordKey: bfo.raw.identity.sourceRecordKey!,
             mimeType: "application/json", finalUrl: bfo.raw.finalUrl, navigationStatus: bfo.raw.navigationStatus,
             capturedAt: bfo.raw.capturedAt, parserVersion: bfo.raw.parserVersion, stored: bfoStored,
           };
+          if (bfo.outcome === "blocked") {
+            if (!await input.repository.recordFinancialRaw(financeTask.task, bfoRaw)) {
+              throw new Error("stale live finance task raw audit");
+            }
+            await input.repository.failTask(financeTask.task, "live_finance_blocked", false);
+            throw new Error(`LIVE_PILOT_SOURCE_BLOCKED:${bfo.reason}`);
+          }
           const revexpForCompany = parsedRevexp.filter((item) => item.inn === inn);
           const outcomes: FinancialMetricOutcomes = {
             revenue: bfo.outcome === "published"
@@ -128,13 +140,36 @@ export async function executeLivePilot(input: {
               ? { outcome: "published", evidence: 1 }
               : { outcome: "no_data", evidence: 0, sourceAttempt: revexpAttempt(revexpRaw, release.updatedAt) },
           };
+          const reportMetric = (metric: "revenue" | "income" | "expenses", value: string | undefined) => {
+            companyMetrics.push(value === undefined
+              ? { inn, metric, outcome: "no_data", sourceAttemptStatus: "no_data" }
+              : { inn, metric, value, sourceAttemptStatus: "published" });
+          };
+          reportMetric("revenue", bfo.outcome === "published" ? bfo.evidence.value : undefined);
+          reportMetric("income", revexpForCompany.find((item) => item.metric === "income")?.value);
+          reportMetric("expenses", revexpForCompany.find((item) => item.metric === "expenses")?.value);
           await publishFinancialEvidence({ runId, reportYear: 2025, taskKind: "live_finance", companyInn: inn, task: financeTask.task,
             evidence: [...(bfo.outcome === "published" ? [bfo.evidence] : []), ...revexpForCompany],
             metricOutcomes: outcomes, rawObjects: index === 0 ? [bfoRaw, revexpRaw] : [bfoRaw],
           }, { repository: input.repository });
         }
       },
-      reconcile: async () => { await reconcileLivePilotRun(runId, input.repository); },
+      reconcile: async () => {
+        const report = await reconcileLivePilotRun(runId, input.repository);
+        reconciliation = { companies: report.companies, companyOkveds: report.companyOkveds };
+      },
+    });
+    if (summary.terminalCode === "LIVE_PILOT_DISCOVERY_INCOMPLETE") return summary;
+    if (reconciliation === undefined || selected.length !== 10 || companyMetrics.length !== 30) {
+      throw new Error("live pilot report contract is incomplete");
+    }
+    return buildLivePilotReport({
+      summary,
+      inns: selected.map((company) => company.inn),
+      outcomes: companyMetrics.length,
+      sourceAttempts: companyMetrics.map((metric) => metric.sourceAttemptStatus),
+      reconciliation: { companies: reconciliation.companies, relations: reconciliation.companyOkveds, outcomes: companyMetrics.length },
+      companyMetrics,
     });
   } finally {
     bfoRawStorage.close();
