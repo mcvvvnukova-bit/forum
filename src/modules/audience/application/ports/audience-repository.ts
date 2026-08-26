@@ -135,8 +135,10 @@ export interface FinancialPublicationInput {
 
 export interface FinancialSourceAttempt {
   sourceKind: "fns_bfo" | "fns_revexp";
+  rawSourceKind: "fns-bfo" | "fns-bfo-live" | "fns-revexp";
   sourceRecordKey: string;
   observedAt: string;
+  capturedAt: string;
   rawFetchKey: string;
   parserVersion: string;
 }

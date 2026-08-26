@@ -193,13 +193,19 @@ function financialMetricOutcome(
 ): FinancialMetricOutcome {
   const count = evidence.filter((item) => item.metric === metric).length;
   if (count > 0) return { outcome: "published", evidence: count };
+  const rawSourceKind = sourceKind === "fns_bfo" ? "fns-bfo" : "fns-revexp";
+  if (raw.sourceKind !== rawSourceKind) {
+    throw new Error("financial fixture source attempt raw kind does not match its metric source");
+  }
   return {
     outcome: "no_data",
     evidence: 0,
     sourceAttempt: {
       sourceKind,
+      rawSourceKind,
       sourceRecordKey: raw.sourceRecordKey,
       observedAt: raw.capturedAt,
+      capturedAt: raw.capturedAt,
       rawFetchKey: raw.stored.checksumSha256,
       parserVersion: raw.parserVersion,
     },

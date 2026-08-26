@@ -438,8 +438,10 @@ describe("fixture discovery and replay publication", () => {
           evidence: number;
           sourceAttempt: {
             sourceKind: string;
+            rawSourceKind: string;
             sourceRecordKey: string;
             observedAt: string;
+            capturedAt: string;
             rawFetchKey: string;
             parserVersion: string;
           };
@@ -463,8 +465,10 @@ describe("fixture discovery and replay publication", () => {
           evidence: 0,
           sourceAttempt: {
             sourceKind: "fns_bfo",
+            rawSourceKind: "fns-bfo",
             sourceRecordKey: "7707083893:2024:bfo-fixture",
             observedAt: "2026-08-24T00:00:00.000Z",
+            capturedAt: "2026-08-24T00:00:00.000Z",
             rawFetchKey: expect.stringMatching(/^[0-9a-f]{64}$/u),
             parserVersion: "fns-bfo/1.0.0",
           },
@@ -1189,8 +1193,10 @@ function missingFinancialSourceAttempt(
 ) {
   return {
     sourceKind,
+    rawSourceKind: sourceKind === "fns_bfo" ? "fns-bfo" as const : "fns-revexp" as const,
     sourceRecordKey: `missing-${metric}`,
     observedAt: "2026-04-01T09:00:00.000Z",
+    capturedAt: "2026-04-01T09:00:00.000Z",
     rawFetchKey: `raw/missing-${metric}.json`,
     parserVersion: sourceKind === "fns_bfo" ? "fns-bfo/1.0.0" : "fns-revexp/1.0.0",
   } as const;

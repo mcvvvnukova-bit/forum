@@ -57,8 +57,10 @@ describe("BfoLiveSource", () => {
       },
       sourceAttempt: {
         sourceKind: "fns_bfo",
+        rawSourceKind: "fns-bfo-live",
         sourceRecordKey: "7707083893:2025:0710002:2",
         observedAt: "2026-04-01T00:00:00.000Z",
+        capturedAt: "2026-08-26T12:00:00.000Z",
         parserVersion: "fns-bfo-live/1.0.0",
       },
       raw: {
@@ -151,6 +153,8 @@ describe("BfoLiveSource", () => {
       evidence: null,
       sourceAttempt: {
         sourceKind: "fns_bfo",
+        rawSourceKind: "fns-bfo-live",
+        capturedAt: "2026-08-26T12:00:00.000Z",
         rawFetchKey: expect.stringMatching(/^[0-9a-f]{64}$/u),
       },
     });

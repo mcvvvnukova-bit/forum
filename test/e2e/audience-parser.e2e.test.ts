@@ -558,8 +558,10 @@ describe.sequential("audience parser fixture acceptance", () => {
       evidence: 0 as const,
       sourceAttempt: {
         sourceKind: "fns_revexp" as const,
+        rawSourceKind: "fns-revexp" as const,
         sourceRecordKey: revexpAttempt.sourceRecordKey,
         observedAt: revexpAttempt.capturedAt,
+        capturedAt: revexpAttempt.capturedAt,
         rawFetchKey: revexpAttempt.stored.checksumSha256,
         parserVersion: revexpAttempt.parserVersion,
       },

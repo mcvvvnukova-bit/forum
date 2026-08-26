@@ -112,6 +112,102 @@ describe("financial evidence publication", () => {
     ]);
   });
 
+  it("publishes legitimate BFO live no-data with separate official and capture timestamps", async () => {
+    const publicationRunId = randomUUID();
+    await seedBfoLiveNoDataProvenance(database, publicationRunId);
+    const task = await repository.createTask(publicationRunId, "fixture_finance", 300);
+    const sourceAttempt = {
+      sourceKind: "fns_bfo" as const,
+      rawSourceKind: "fns-bfo-live" as const,
+      sourceRecordKey: "7707083893:2025:0710002:2",
+      observedAt: "2026-04-01T00:00:00.000Z",
+      capturedAt: "2026-08-26T12:00:00.000Z",
+      rawFetchKey: "e".repeat(64),
+      parserVersion: "fns-bfo-live/1.0.0",
+    };
+
+    await expect(repository.publishFinancial({
+      task,
+      reportYear: 2025,
+      evidence: [],
+      metricOutcomes: {
+        revenue: { outcome: "no_data", evidence: 0, sourceAttempt },
+      },
+    })).resolves.toBe(true);
+
+    await expect(repository.taskState(task.id)).resolves.toMatchObject({
+      status: "succeeded",
+      resultJson: {
+        evidence: 0,
+        metricOutcomes: {
+          revenue: { outcome: "no_data", evidence: 0, sourceAttempt },
+        },
+      },
+    });
+  });
+
+  it("rejects a forged BFO no-data capture timestamp without fallback to official time", async () => {
+    const publicationRunId = randomUUID();
+    await seedBfoLiveNoDataProvenance(database, publicationRunId);
+    const task = await repository.createTask(publicationRunId, "fixture_finance", 300);
+
+    await expect(repository.publishFinancial({
+      task,
+      reportYear: 2025,
+      evidence: [],
+      metricOutcomes: {
+        revenue: {
+          outcome: "no_data",
+          evidence: 0,
+          sourceAttempt: {
+            sourceKind: "fns_bfo",
+            rawSourceKind: "fns-bfo-live",
+            sourceRecordKey: "7707083893:2025:0710002:2",
+            observedAt: "2026-04-01T00:00:00.000Z",
+            capturedAt: "2026-08-26T12:00:01.000Z",
+            rawFetchKey: "e".repeat(64),
+            parserVersion: "fns-bfo-live/1.0.0",
+          },
+        },
+      },
+    })).rejects.toThrow("financial metric no-data source attempt is missing: revenue");
+  });
+
+  it.each([
+    ["a noncanonical capture timestamp", {
+      observedAt: "2026-04-01T00:00:00.000Z",
+      capturedAt: "2026-08-26 12:00:00+00",
+    }],
+    ["an official timestamp after capture", {
+      observedAt: "2026-08-27T00:00:00.000Z",
+      capturedAt: "2026-08-26T12:00:00.000Z",
+    }],
+  ] as const)("rejects %s before raw lookup", async (_case, timestamps) => {
+    const publicationRunId = randomUUID();
+    await seedBfoLiveNoDataProvenance(database, publicationRunId);
+    const task = await repository.createTask(publicationRunId, "fixture_finance", 300);
+
+    await expect(repository.publishFinancial({
+      task,
+      reportYear: 2025,
+      evidence: [],
+      metricOutcomes: {
+        revenue: {
+          outcome: "no_data",
+          evidence: 0,
+          sourceAttempt: {
+            sourceKind: "fns_bfo",
+            rawSourceKind: "fns-bfo-live",
+            sourceRecordKey: "7707083893:2025:0710002:2",
+            ...timestamps,
+            rawFetchKey: "e".repeat(64),
+            parserVersion: "fns-bfo-live/1.0.0",
+          },
+        },
+      },
+    })).rejects.toThrow("financial metric no-data source attempt is invalid: revenue");
+  });
+
   it("persists the real MIME type and exact stored identity for file and browser raw evidence", async () => {
     const publicationRunId = randomUUID();
     await seedFinancialProvenance(database, publicationRunId);
@@ -131,8 +227,10 @@ describe("financial evidence publication", () => {
           evidence: 0,
           sourceAttempt: {
             sourceKind: "fns_bfo",
+            rawSourceKind: "fns-bfo",
             sourceRecordKey: "bfo-file",
             observedAt: "2026-08-26T09:00:00.000Z",
+            capturedAt: "2026-08-26T09:00:00.000Z",
             rawFetchKey: fileChecksum,
             parserVersion: "fns-bfo/2.0.0",
           },
@@ -542,8 +640,10 @@ function financialSourceAttempt(
 ) {
   return {
     sourceKind,
+    rawSourceKind: sourceKind === "fns_bfo" ? "fns-bfo" as const : "fns-revexp" as const,
     sourceRecordKey,
     observedAt: "2026-04-01T09:00:00.000Z",
+    capturedAt: "2026-04-01T09:00:00.000Z",
     rawFetchKey,
     parserVersion,
   } as const;
@@ -625,5 +725,30 @@ async function seedFinancialProvenance(database: PostgresDatabase, runId: string
         [inn, name, organizationFetch, sourceRecordKey],
       );
     }
+  });
+}
+
+async function seedBfoLiveNoDataProvenance(
+  database: PostgresDatabase,
+  runId: string,
+): Promise<void> {
+  await database.transaction(async (transaction) => {
+    await transaction.query(
+      `INSERT INTO audience.crawl_runs (
+         id, scope_json, fixture_version, parser_version, status, completed_at, published_at
+       ) VALUES ($1, '{"year":2025,"requiredFinancialMetrics":["revenue"]}'::jsonb,
+         'bfo-live-fixture/1.0.0', 'fns-bfo-live/1.0.0', 'succeeded', now(), now())`,
+      [runId],
+    );
+    await transaction.query(
+      `INSERT INTO audience.source_fetches (
+         id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+         mime_type, final_url, navigation_status, captured_at, parser_version
+       ) VALUES (gen_random_uuid(), $1, 'fns-bfo-live', '7707083893:2025:0710002:2',
+         'raw/bfo-live/manifest.json', $2, 'application/json',
+         'https://bo.nalog.gov.ru/statements/opaque', 200, $3::timestamptz,
+         'fns-bfo-live/1.0.0')`,
+      [runId, "e".repeat(64), "2026-08-26T12:00:00.000Z"],
+    );
   });
 }

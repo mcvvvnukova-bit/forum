@@ -283,8 +283,10 @@ export class BfoLiveSource {
       }
       const sourceAttempt: FinancialSourceAttempt = {
         sourceKind: "fns_bfo",
+        rawSourceKind: SOURCE_KIND,
         sourceRecordKey,
         observedAt: sourceObservedAt ?? raw.capturedAt,
+        capturedAt: raw.capturedAt,
         rawFetchKey: raw.checksumSha256,
         parserVersion: this.#parserVersion,
       };

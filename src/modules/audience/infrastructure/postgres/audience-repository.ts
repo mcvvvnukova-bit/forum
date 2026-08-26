@@ -951,21 +951,29 @@ function isFinancialSourceAttemptValid(
   metric: FinancialMetric,
   attempt: FinancialSourceAttempt,
 ): boolean {
-  const sourceMapping = {
-    revenue: { evidence: "fns_bfo", raw: "fns-bfo" },
-    income: { evidence: "fns_revexp", raw: "fns-revexp" },
-    expenses: { evidence: "fns_revexp", raw: "fns-revexp" },
-  } as const;
-  const expected = sourceMapping[metric];
-  return !(attempt === null || typeof attempt !== "object"
+  if (attempt === null || typeof attempt !== "object"
     || !hasExactKeys(attempt, [
-      "observedAt", "parserVersion", "rawFetchKey", "sourceKind", "sourceRecordKey",
-    ])
-    || attempt.sourceKind !== expected.evidence
+      "capturedAt", "observedAt", "parserVersion", "rawFetchKey", "rawSourceKind",
+      "sourceKind", "sourceRecordKey",
+    ])) {
+    return false;
+  }
+  const sourceMapping = {
+    revenue: "fns_bfo",
+    income: "fns_revexp",
+    expenses: "fns_revexp",
+  } as const;
+  const rawSourceKindMatches = metric === "revenue"
+    ? attempt.rawSourceKind === "fns-bfo" || attempt.rawSourceKind === "fns-bfo-live"
+    : attempt.rawSourceKind === "fns-revexp";
+  return !(attempt.sourceKind !== sourceMapping[metric]
+    || !rawSourceKindMatches
     || attempt.sourceRecordKey.trim() === ""
     || attempt.rawFetchKey.trim() === ""
     || attempt.parserVersion.trim() === ""
-    || !isCanonicalInstant(attempt.observedAt));
+    || !isCanonicalInstant(attempt.observedAt)
+    || !isCanonicalInstant(attempt.capturedAt)
+    || Date.parse(attempt.observedAt) > Date.parse(attempt.capturedAt));
 }
 
 function hasExactKeys(value: object, expected: readonly string[]): boolean {
@@ -982,7 +990,6 @@ async function financialSourceAttemptExists(
   attempt: FinancialSourceAttempt,
 ): Promise<boolean> {
   if (!isFinancialSourceAttemptValid(metric, attempt)) return false;
-  const rawSourceKind = metric === "revenue" ? "fns-bfo" : "fns-revexp";
   const result = await database.query(
     `SELECT 1 FROM audience.source_fetches
      WHERE run_id = $1
@@ -992,8 +999,8 @@ async function financialSourceAttemptExists(
        AND parser_version = $5
        AND captured_at = $6::timestamptz
      LIMIT 1`,
-    [runId, rawSourceKind, attempt.sourceRecordKey, attempt.rawFetchKey,
-      attempt.parserVersion, attempt.observedAt],
+    [runId, attempt.rawSourceKind, attempt.sourceRecordKey, attempt.rawFetchKey,
+      attempt.parserVersion, attempt.capturedAt],
   );
   return result.rowCount === 1;
 }
@@ -1038,19 +1045,26 @@ function parseFinancialSourceAttempt(value: unknown): FinancialSourceAttempt | u
   if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
   const candidate = value as Record<string, unknown>;
   if (!hasExactKeys(candidate, [
-    "observedAt", "parserVersion", "rawFetchKey", "sourceKind", "sourceRecordKey",
+    "capturedAt", "observedAt", "parserVersion", "rawFetchKey", "rawSourceKind",
+    "sourceKind", "sourceRecordKey",
   ])
     || (candidate.sourceKind !== "fns_bfo" && candidate.sourceKind !== "fns_revexp")
+    || (candidate.rawSourceKind !== "fns-bfo"
+      && candidate.rawSourceKind !== "fns-bfo-live"
+      && candidate.rawSourceKind !== "fns-revexp")
     || typeof candidate.sourceRecordKey !== "string"
     || typeof candidate.observedAt !== "string"
+    || typeof candidate.capturedAt !== "string"
     || typeof candidate.rawFetchKey !== "string"
     || typeof candidate.parserVersion !== "string") {
     return undefined;
   }
   return {
     sourceKind: candidate.sourceKind,
+    rawSourceKind: candidate.rawSourceKind,
     sourceRecordKey: candidate.sourceRecordKey,
     observedAt: candidate.observedAt,
+    capturedAt: candidate.capturedAt,
     rawFetchKey: candidate.rawFetchKey,
     parserVersion: candidate.parserVersion,
   };
