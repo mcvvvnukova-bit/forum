@@ -27,6 +27,7 @@ export interface BrowserSession {
   captureBlocker(
     identity: BrowserRawBundle["identity"],
     parserVersion: string,
+    acknowledgePolicyViolationOrigins?: readonly string[],
   ): Promise<BrowserRawBundle>;
   close(): Promise<void>;
 }

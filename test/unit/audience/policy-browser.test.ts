@@ -46,6 +46,34 @@ describe("PolicyBrowserSessionFactory", () => {
       if (url.pathname === "/forbidden-target") {
         return { status: 403, headers: {}, body: "forbidden" };
       }
+      if (url.pathname === "/download-only-entry") {
+        return '<main><a href="/download-only-html">Ordinary navigation</a></main>';
+      }
+      if (url.pathname === "/download-only-redirect") {
+        return { status: 302, headers: { location: "/download-only-html" } };
+      }
+      if (url.pathname === "/download-only-html") {
+        return '<main>download-only active HTML</main><script>fetch("/download-active")</script>';
+      }
+      if (url.pathname === "/retry-terminal-entry") {
+        return `<main><a href="/retry-after-terminal">Retry after terminal</a></main><script>
+          document.querySelector("a").addEventListener("click", () => {
+            setTimeout(() => navigator.serviceWorker.register("/worker.js").catch(() => undefined), 150);
+          });
+        </script>`;
+      }
+      if (url.pathname === "/retry-after-terminal") {
+        return { status: 503, headers: {}, body: "retry must stop" };
+      }
+      if (url.pathname === "/blocker-race") {
+        return {
+          status: 403,
+          headers: { "content-type": "text/html; charset=utf-8" },
+          body: `<!doctype html><html><body><main>ordinary blocker</main><script>
+            setTimeout(() => navigator.serviceWorker.register("/worker.js").catch(() => undefined), 75);
+          </script></body></html>`,
+        };
+      }
       if (scenario === "script") return `<script src="${externalUrl}/script.js"></script>`;
       if (scenario === "data-script") {
         return '<script src="data:text/javascript,document.body.append(`active-data-script-ran`)"></script>';
@@ -243,6 +271,78 @@ describe("PolicyBrowserSessionFactory", () => {
     }
   });
 
+  it.each([
+    ["visible link", "/download-only-entry"],
+    ["redirect", "/download-only-redirect"],
+  ] as const)("never treats a download-only URL as ordinary %s authorization", async (
+    kind,
+    entryPath,
+  ) => {
+    const entryUrl = `${allowed.url}${entryPath}`;
+    const downloadOnlyUrl = `${allowed.url}/download-only-html`;
+    const beforeDocument = allowed.requestCount("/download-only-html");
+    const beforeActive = allowed.requestCount("/download-active");
+    const session = await new PolicyBrowserSessionFactory({
+      ...testPolicy(allowed.url, [entryUrl]),
+      allowedDownloadUrls: [downloadOnlyUrl],
+    }).open();
+    try {
+      if (kind === "visible link") {
+        await session.navigate(entryUrl);
+        await expect(session.clickLink("Ordinary navigation"))
+          .rejects.toMatchObject({ origins: [downloadOnlyUrl] });
+      } else {
+        await expect(session.navigate(entryUrl))
+          .rejects.toMatchObject({ origins: [downloadOnlyUrl] });
+      }
+      expect(allowed.requestCount("/download-only-html") - beforeDocument).toBe(0);
+      expect(allowed.requestCount("/download-active") - beforeActive).toBe(0);
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it("surfaces a pre-existing terminal violation instead of acknowledging an ordinary blocker", async () => {
+    const target = `${allowed.url}/?scenario=service-worker`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target))
+        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+      await expect(session.captureBlocker({ runId: "ordinary", page: 1 }, "test/1"))
+        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it("acknowledges only the exact policy-terminal state supplied by its caller", async () => {
+    const target = `${allowed.url}/?scenario=service-worker`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target))
+        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+      await expect(session.captureBlocker(
+        { runId: "policy", page: 1 },
+        "test/1",
+        ["service-worker-registration"],
+      )).resolves.toMatchObject({ identity: { runId: "policy", page: 1 } });
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("surfaces a policy terminal that races with ordinary 403 blocker capture", async () => {
+    const target = `${allowed.url}/blocker-race`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target)).resolves.toBe(403);
+      await expect(session.captureBlocker({ runId: "race", page: 1 }, "test/1"))
+        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
   it("freezes page script and later same-origin network activity after a terminal violation", async () => {
     const target = `${allowed.url}/?scenario=freeze-after-terminal`;
     const before = allowed.requestCount("/after-terminal");
@@ -250,9 +350,15 @@ describe("PolicyBrowserSessionFactory", () => {
     try {
       await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
       await new Promise((resolve) => setTimeout(resolve, 250));
-      const blocker = await session.captureBlocker({ runId: "freeze", page: 1 }, "test/1");
+      const blocker = await session.captureBlocker(
+        { runId: "freeze", page: 1 },
+        "test/1",
+        ["service-worker-registration"],
+      );
       expect(new TextDecoder().decode(blocker.sanitizedDomUtf8)).not.toContain("post-terminal-script-ran");
       expect(allowed.requestCount("/after-terminal") - before).toBe(0);
+      await expect(session.hasVisibleText("freeze fixture"))
+        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
     } finally {
       await session.close().catch(() => undefined);
     }
@@ -321,6 +427,24 @@ describe("PolicyBrowserSessionFactory", () => {
       expect(allowed.requestCount(destinationPath) - before).toBe(3);
     } finally {
       await session.close();
+    }
+  });
+
+  it("dispatches no retry after a concurrent terminal policy event", async () => {
+    const entry = `${allowed.url}/retry-terminal-entry`;
+    const retryPath = "/retry-after-terminal";
+    const before = allowed.requestCount(retryPath);
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [
+      entry,
+      `${allowed.url}${retryPath}`,
+    ]), { transportRetryDelayMs: 300 }).open();
+    try {
+      await session.navigate(entry);
+      await expect(session.clickLink("Retry after terminal"))
+        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+      expect(allowed.requestCount(retryPath) - before).toBe(1);
+    } finally {
+      await session.close().catch(() => undefined);
     }
   });
 

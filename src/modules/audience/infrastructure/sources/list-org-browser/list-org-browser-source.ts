@@ -86,13 +86,14 @@ export class ListOrgBrowserSource implements OrganizationSource {
         sourceRecordKey?: string;
         detail?: string;
         raw?: ReturnType<typeof checksumBrowserRawBundle>;
+        policyViolationOrigins?: readonly string[];
       } = {},
     ): Promise<DiscoveryResult> => {
       const raw = options.raw ?? checksumBrowserRawBundle(await session.captureBlocker({
         runId: this.#runId,
         page: currentPage,
         ...(options.sourceRecordKey === undefined ? {} : { sourceRecordKey: options.sourceRecordKey }),
-      }, this.#parserVersion));
+      }, this.#parserVersion, options.policyViolationOrigins));
       if (!rawBundles.includes(raw)) rawBundles.push(raw);
       if (currentResultFingerprintSha256 !== ""
         && !pages.some((page) => page.page === currentPage)) {
@@ -101,7 +102,7 @@ export class ListOrgBrowserSource implements OrganizationSource {
           : checksumBrowserRawBundle(await session.captureBlocker({
               runId: this.#runId,
               page: currentPage,
-            }, this.#parserVersion));
+            }, this.#parserVersion, options.policyViolationOrigins));
         if (!rawBundles.includes(pageRaw)) rawBundles.push(pageRaw);
         pages.push({
           page: currentPage,
@@ -299,7 +300,10 @@ export class ListOrgBrowserSource implements OrganizationSource {
         return await block("contract_drift");
       }
       if (error instanceof ExternalBrowserRequestError) {
-        return await block("policy_block", { detail: error.origins.join(", ") });
+        return await block("policy_block", {
+          detail: error.origins.join(", "),
+          policyViolationOrigins: error.origins,
+        });
       }
       throw error;
     } finally {
