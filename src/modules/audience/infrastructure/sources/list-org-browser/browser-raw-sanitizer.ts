@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { BrowserRawBundle } from "../../../domain/discovery";
 import type { Page } from "playwright";
 
@@ -23,11 +25,22 @@ export type BrowserCaptureSafetyEvidence = Pick<
   | "sourceKind"
   | "finalUrl"
   | "sanitizedDomUtf8"
+  | "redactedScreenshotPng"
   | "pageFingerprintSha256"
   | "candidateEvidence"
   | "actions"
   | "sensitiveFormFieldNames"
 >;
+
+export type BrowserEvidenceSourceProfile = "full-page" | "projection";
+
+export function browserEvidenceSourceProfile(
+  sourceKind: string,
+): BrowserEvidenceSourceProfile | undefined {
+  if (sourceKind === "list-org-browser") return "full-page";
+  if (sourceKind === "list-org-live") return "projection";
+  return undefined;
+}
 
 export const SAFE_CAPTURE_TAGS = [
   "html", "head", "body", "main", "header", "footer", "nav", "section", "article",
@@ -165,7 +178,7 @@ export function assertCompleteBrowserSensitivePolicy(
   sourceKind: string,
   sensitiveFormFieldNames: readonly string[] | undefined,
 ): void {
-  if (sourceKind !== "list-org-browser") return;
+  if (browserEvidenceSourceProfile(sourceKind) === undefined) return;
   const normalized = new Set(
     (sensitiveFormFieldNames ?? []).map((name) => name.toLocaleLowerCase("en-US")),
   );
@@ -183,9 +196,12 @@ export function assertBrowserCaptureSafe(
   bundle: BrowserCaptureSafetyEvidence,
   sensitiveValues: readonly string[] = [],
 ): void {
+  const sourceProfile = browserEvidenceSourceProfile(bundle.sourceKind);
   assertCompleteBrowserSensitivePolicy(bundle.sourceKind, bundle.sensitiveFormFieldNames);
-  if (bundle.sourceKind === "list-org-browser") {
+  if (sourceProfile === "full-page") {
     assertExactVisualSafetyProof(bundle.actions, bundle.pageFingerprintSha256);
+  } else if (sourceProfile === "projection") {
+    assertLiveProjectionEvidence(bundle);
   }
   const dom = new TextDecoder("utf-8", { fatal: true }).decode(bundle.sanitizedDomUtf8);
   const actionMetadata = bundle.actions.map((action) => ({
@@ -228,6 +244,23 @@ export function assertBrowserCaptureSafe(
     bundle.sourceKind,
     sensitiveNames,
   );
+}
+
+function assertLiveProjectionEvidence(bundle: BrowserCaptureSafetyEvidence): void {
+  if (bundle.redactedScreenshotPng.byteLength !== 0
+    || bundle.actions.length !== 0) {
+    throw new Error("live browser projection contains inconsistent artifact evidence");
+  }
+  if (bundle.pageFingerprintSha256
+    !== createHash("sha256").update(bundle.sanitizedDomUtf8).digest("hex")) {
+    throw new Error("live browser projection fingerprint does not match its DOM");
+  }
+  if (bundle.candidateEvidence !== null
+    && (bundle.candidateEvidence.website !== null
+      || bundle.candidateEvidence.phone.kind !== "null"
+      || bundle.candidateEvidence.email.kind !== "null")) {
+    throw new Error("live browser projection contains non-allowlisted contact evidence");
+  }
 }
 
 function assertExactVisualSafetyProof(
@@ -736,7 +769,7 @@ export function assertSerializedBrowserDomSafe(
   sourceKind: string,
   sensitiveFormFieldNames: readonly string[],
 ): void {
-  if (sourceKind !== "list-org-browser") return;
+  if (browserEvidenceSourceProfile(sourceKind) === undefined) return;
   const forbiddenMarkup = /<!--|<\s*(?:script|style|meta|link|iframe|object|embed|template|noscript|textarea|select|option)\b|\s(?:aria-[\w-]+|data-[\w-]+|title|style|src|action|value|on[\w-]+)=/iu;
   if (forbiddenMarkup.test(dom)
     || containsUnsafeSerializedFormMarkup(dom, sensitiveFormFieldNames)

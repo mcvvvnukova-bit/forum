@@ -8,6 +8,9 @@ export interface ListOrgLiveContractServer {
   requests(): readonly string[];
   companyRequestIds(): readonly string[];
   submittedSearches(): readonly Readonly<Record<string, readonly string[]>>[];
+  initialSearchDispatchCount(): number;
+  maxConcurrentCompanyRequests(): number;
+  foreignDestinationRequestCount(): number;
   close(): Promise<void>;
 }
 
@@ -48,6 +51,14 @@ const companies: Readonly<Record<string, CompanyFixture>> = {
 
 export async function startListOrgLiveContractServer(): Promise<ListOrgLiveContractServer> {
   const fixture = await loadFixtures();
+  let foreignDestinationRequests = 0;
+  const foreignServer = createServer((_request, response) => {
+    foreignDestinationRequests += 1;
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+    response.end("<!doctype html><main>foreign destination</main>");
+  });
+  await listen(foreignServer);
+  const foreignOrigin = serverOrigin(foreignServer);
   const requestLog: string[] = [];
   const companyIds: string[] = [];
   const searches: Array<Readonly<Record<string, readonly string[]>>> = [];
@@ -55,6 +66,10 @@ export async function startListOrgLiveContractServer(): Promise<ListOrgLiveContr
   let currentPage = 1;
   let transientAttempts = 0;
   let captchaResponses = 0;
+  let initialSearchDispatches = 0;
+  let initialSearchComplete = false;
+  let concurrentCompanyRequests = 0;
+  let maximumConcurrentCompanyRequests = 0;
 
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://fixture.invalid");
@@ -78,6 +93,12 @@ export async function startListOrgLiveContractServer(): Promise<ListOrgLiveContr
       searches.push(Object.fromEntries(
         [...new Set(url.searchParams.keys())].map((key) => [key, url.searchParams.getAll(key)]),
       ));
+      if (!initialSearchComplete && currentPage === 1) initialSearchDispatches += 1;
+      if (activeScenario === "transport-reset-exhausted") {
+        transientAttempts += 1;
+        request.socket.destroy();
+        return;
+      }
       if (activeScenario === "transient-then-ok" && transientAttempts++ < 2) {
         responseHtml(response, "<main><h1>Temporary upstream failure</h1></main>", 503);
         return;
@@ -91,6 +112,28 @@ export async function startListOrgLiveContractServer(): Promise<ListOrgLiveContr
         responseHtml(response, '<main aria-label="Forbidden"><h1>Forbidden</h1></main>', 403);
         return;
       }
+      if (activeScenario === "http-418") {
+        responseHtml(response, '<main aria-label="Failure"><h1>Do not retry</h1></main>', 418);
+        return;
+      }
+      if (companyIds.length > 0 && activeScenario.startsWith("return-")) {
+        if (activeScenario === "return-403") {
+          responseHtml(response, '<main aria-label="Forbidden"><h1>Forbidden after card</h1></main>', 403);
+          return;
+        }
+        if (activeScenario === "return-soft-block") {
+          responseHtml(response, '<main aria-label="Доступ временно ограничен"><h1>return-soft-secret</h1></main>');
+          return;
+        }
+        if (activeScenario === "return-captcha") {
+          responseHtml(response, fixture.captcha);
+          return;
+        }
+        if (activeScenario === "return-drift") {
+          responseHtml(response, '<main aria-label="Результаты поиска"><h1>return-drift-secret</h1></main>');
+          return;
+        }
+      }
       if (activeScenario === "soft-block") {
         responseHtml(response, '<main aria-label="Доступ временно ограничен"><h1>Слишком много запросов</h1></main>');
         return;
@@ -100,7 +143,8 @@ export async function startListOrgLiveContractServer(): Promise<ListOrgLiveContr
         return;
       }
       const results = currentPage === 1 ? fixture.page1 : fixture.page2;
-      responseHtml(response, retainScenario(results, activeScenario));
+      initialSearchComplete = true;
+      responseHtml(response, retainScenario(results, activeScenario), activeScenario === "results-202" ? 202 : 200);
       return;
     }
 
@@ -108,8 +152,18 @@ export async function startListOrgLiveContractServer(): Promise<ListOrgLiveContr
     if (companyMatch?.[1] !== undefined && companies[companyMatch[1]] !== undefined) {
       const id = companyMatch[1];
       companyIds.push(id);
+      concurrentCompanyRequests += 1;
+      maximumConcurrentCompanyRequests = Math.max(maximumConcurrentCompanyRequests, concurrentCompanyRequests);
+      let companyRequestFinished = false;
+      const finishCompanyRequest = () => {
+        if (companyRequestFinished) return;
+        companyRequestFinished = true;
+        concurrentCompanyRequests -= 1;
+      };
+      response.once("finish", finishCompanyRequest);
+      response.once("close", finishCompanyRequest);
       if (activeScenario === "foreign-redirect" && id === "1001") {
-        response.writeHead(302, { location: "https://foreign.invalid/company/1001" });
+        response.writeHead(302, { location: `${foreignOrigin}/company/1001` });
         response.end();
         return;
       }
@@ -119,27 +173,25 @@ export async function startListOrgLiveContractServer(): Promise<ListOrgLiveContr
         companies[id]!,
         currentPage,
         activeScenario,
-      ));
+      ), activeScenario === "card-201" ? 201 : 200);
       return;
     }
 
     responseHtml(response, "<main><h1>Not found</h1></main>", 404);
   });
 
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  if (address === null || typeof address === "string") throw new Error("fixture server did not bind TCP");
-  const origin = `http://127.0.0.1:${address.port}`;
+  await listen(server);
+  const origin = serverOrigin(server);
 
   return {
     origin,
     requests: () => [...requestLog],
     companyRequestIds: () => [...companyIds],
     submittedSearches: () => searches.map((search) => ({ ...search })),
-    close: () => closeServer(server),
+    initialSearchDispatchCount: () => initialSearchDispatches,
+    maxConcurrentCompanyRequests: () => maximumConcurrentCompanyRequests,
+    foreignDestinationRequestCount: () => foreignDestinationRequests,
+    close: async () => { await Promise.all([closeServer(server), closeServer(foreignServer)]); },
   };
 }
 
@@ -167,6 +219,12 @@ function renderCompany(
   }
   if (scenario === "missing-label" && id === "1001") {
     html = html.replace("ИНН / КПП:", "Реестровый номер:");
+  }
+  if (scenario === "hidden-duplicate" && id === "1001") {
+    html = html.replace(
+      "<dl>",
+      '<dl><div style="display:none"><dt>Полное юридическое наименование:</dt><dd>hidden-company-secret</dd><dt>ИНН / КПП:</dt><dd>7700000017 / 770001001</dd><dt>Основной (по коду ОКВЭД ред.2):</dt><dd>99.99 hidden-okved-secret</dd></div>',
+    );
   }
   return html;
 }
@@ -212,4 +270,17 @@ function closeServer(server: Server): Promise<void> {
   return new Promise((resolve, reject) => {
     server.close((error) => error === undefined ? resolve() : reject(error));
   });
+}
+
+function listen(server: Server): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+}
+
+function serverOrigin(server: Server): string {
+  const address = server.address();
+  if (address === null || typeof address === "string") throw new Error("fixture server did not bind TCP");
+  return `http://127.0.0.1:${address.port}`;
 }

@@ -11,6 +11,7 @@ import {
 import type {
   BrowserCaptureProjection,
   BrowserOriginPolicy,
+  BrowserPolicyBlockState,
   BrowserPolicyViolation,
   BrowserSession,
   BrowserUrlContract,
@@ -37,6 +38,13 @@ import {
 export type { BrowserCaptureProjection, BrowserOriginPolicy, BrowserPolicyViolation };
 
 export class BrowserPolicyContractError extends Error {}
+
+export class BrowserTransportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BrowserTransportError";
+  }
+}
 
 export interface PolicyBrowserSessionFactoryOptions {
   now?: () => Date;
@@ -133,6 +141,7 @@ class PolicyBrowserSession implements BrowserSession {
   #acknowledgedTerminalVersion = 0;
   #terminal = false;
   #freezePromise: Promise<void> | undefined;
+  #pendingTransportFailure: BrowserTransportError | undefined;
 
   private constructor(options: {
     browser: Browser;
@@ -447,7 +456,10 @@ class PolicyBrowserSession implements BrowserSession {
               : `${existing}, ${ACTIVE_URL_CONTENT_SECURITY_POLICY}`;
           }
           await route.fulfill({ response, headers });
-        } catch {
+        } catch (error) {
+          if (!(error instanceof ExternalBrowserRequestError)) {
+            session.#pendingTransportFailure = new BrowserTransportError(messageOf(error));
+          }
           await route.abort("failed").catch(() => undefined);
         }
         return;
@@ -465,18 +477,25 @@ class PolicyBrowserSession implements BrowserSession {
     await this.#assertAllowedNavigation(url);
     this.#rememberSensitiveValues(url);
     const target = sanitizeBrowserUrl(url, this.#sensitiveQueryParameters);
+    this.#prepareNavigation();
     const actionId = await this.#actions.begin("navigate", target);
     try {
       const response = await this.#page.goto(url, { waitUntil: "load" });
       this.#navigationStatus = response?.status() ?? null;
       await this.#page.waitForTimeout(50);
       this.#assertNoTerminalRequests();
+      const transportFailure = this.#takeTransportFailure();
+      if (transportFailure !== undefined) throw transportFailure;
       this.#rememberCurrentPageUrlIfSafe();
       await this.#actions.finish(actionId, "navigate", target, "completed");
       return this.#navigationStatus;
     } catch (error) {
       await this.#actions.finish(actionId, "navigate", target, "failed");
       this.#assertNoTerminalRequests();
+      const transportFailure = error instanceof BrowserTransportError
+        ? error
+        : this.#takeTransportFailure();
+      if (transportFailure !== undefined) throw transportFailure;
       throw error;
     }
   }
@@ -490,6 +509,7 @@ class PolicyBrowserSession implements BrowserSession {
   }
 
   async clickButton(name: string): Promise<number | null> {
+    this.#prepareNavigation();
     return this.#contractAction("click-button", name, async () => {
       await this.#page.getByRole("button", { name, exact: true }).click();
       await this.#page.waitForLoadState("load");
@@ -499,6 +519,7 @@ class PolicyBrowserSession implements BrowserSession {
   }
 
   async clickLink(name: string): Promise<number | null> {
+    this.#prepareNavigation();
     return this.#contractAction("click-link", name, async () => {
       await this.#page.getByRole("link", { name, exact: true }).click();
       await this.#page.waitForLoadState("load");
@@ -509,6 +530,7 @@ class PolicyBrowserSession implements BrowserSession {
 
   async clickLinkHref(href: string): Promise<number | null> {
     await this.#assertAllowedNavigation(href);
+    this.#prepareNavigation();
     return this.#contractAction("click-link", href, async () => {
       const links = await this.#page.getByRole("link").all();
       const matches = [];
@@ -584,6 +606,11 @@ class PolicyBrowserSession implements BrowserSession {
     return this.#contractAction("read-current-url", "visible-page", async () => this.#page.url());
   }
 
+  async currentNavigationStatus(): Promise<number | null> {
+    this.#assertNoTerminalRequests();
+    return this.#navigationStatus;
+  }
+
   async recordCaptchaWaiting(target: string): Promise<void> {
     this.#assertNoTerminalRequests();
     await this.#actions.record("captcha_waiting", target);
@@ -606,11 +633,15 @@ class PolicyBrowserSession implements BrowserSession {
     try {
       const fragments: string[] = [];
       for (const selector of selectors) {
-        const values = await this.#page.locator(selector).evaluateAll((elements) =>
-          elements.map((element) => element.outerHTML),
-        );
-        if (values.length === 0) throw new Error(`capture projection selector matched no elements: ${selector}`);
-        fragments.push(...values);
+        const candidates = await this.#page.locator(selector).all();
+        const visible = [];
+        for (const candidate of candidates) {
+          if (await candidate.isVisible()) visible.push(candidate);
+        }
+        if (visible.length !== 1) {
+          throw new Error(`capture projection selector must match exactly one visible element: ${selector}`);
+        }
+        fragments.push(await visible[0]!.evaluate((element) => element.outerHTML));
       }
       this.#renderRequests.clear();
       await this.#renderPage.setContent(
@@ -666,6 +697,22 @@ class PolicyBrowserSession implements BrowserSession {
     this.#assertTerminalState(expectedTerminalOrigins, expectedTerminalVersion);
     this.#acknowledgedTerminalVersion = expectedTerminalVersion;
     return bundle;
+  }
+
+  async acknowledgePolicyBlock(
+    acknowledgePolicyViolationOrigins: readonly string[],
+  ): Promise<BrowserPolicyBlockState> {
+    const expectedTerminalOrigins = new Set(acknowledgePolicyViolationOrigins);
+    const expectedTerminalVersion = this.#terminalVersion;
+    this.#assertTerminalState(expectedTerminalOrigins, expectedTerminalVersion);
+    if (this.#freezePromise !== undefined) await this.#freezePromise;
+    this.#assertTerminalState(expectedTerminalOrigins, expectedTerminalVersion);
+    const state = {
+      finalUrl: sanitizeBrowserUrl(this.#safeEvidenceUrl(), this.#sensitiveQueryParameters),
+      navigationStatus: this.#navigationStatus,
+    };
+    this.#acknowledgedTerminalVersion = expectedTerminalVersion;
+    return state;
   }
 
   async close(): Promise<void> {
@@ -773,13 +820,35 @@ class PolicyBrowserSession implements BrowserSession {
     try {
       const value = await action();
       this.#assertNoTerminalRequests();
+      const transportFailure = this.#takeTransportFailure();
+      if (transportFailure !== undefined) throw transportFailure;
       await this.#actions.finish(actionId, kind, target, "completed");
       return value;
     } catch (error) {
-      await this.#actions.finish(actionId, kind, target, "contract-drift");
+      const transportFailure = error instanceof BrowserTransportError
+        ? error
+        : this.#takeTransportFailure();
+      await this.#actions.finish(
+        actionId,
+        kind,
+        target,
+        transportFailure === undefined ? "contract-drift" : "failed",
+      );
       this.#assertNoTerminalRequests();
+      if (transportFailure !== undefined) throw transportFailure;
       throw new BrowserPolicyContractError(messageOf(error));
     }
+  }
+
+  #prepareNavigation(): void {
+    this.#pendingTransportFailure = undefined;
+    this.#navigationStatus = null;
+  }
+
+  #takeTransportFailure(): BrowserTransportError | undefined {
+    const failure = this.#pendingTransportFailure;
+    this.#pendingTransportFailure = undefined;
+    return failure;
   }
 
   async #beginAction(

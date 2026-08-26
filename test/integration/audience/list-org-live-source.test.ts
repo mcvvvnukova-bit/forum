@@ -5,8 +5,14 @@ import { chromium } from "playwright";
 
 import { HumanVerificationGate } from "../../../src/apps/browser-runner/human-verification";
 import type { BrowserSession } from "../../../src/modules/audience/application/ports/browser-session";
-import type { BrowserActionEvent } from "../../../src/modules/audience/domain/discovery";
+import type {
+  BrowserActionEvent,
+  BrowserActionLedger,
+  ChecksummedBrowserRawBundle,
+  DiscoveryScope,
+} from "../../../src/modules/audience/domain/discovery";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
+import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import { PolicyBrowserSessionFactory } from "../../../src/modules/audience/infrastructure/sources/browser/policy-browser";
 import {
   ListOrgLiveSource,
@@ -55,6 +61,7 @@ describe("ListOrgLiveSource", () => {
       "1008", "1009", "1010", "1011", "1012",
     ]);
     expect(fixture.companyRequestIds()).not.toContain("1013");
+    expect(fixture.maxConcurrentCompanyRequests()).toBe(1);
   });
 
   it("submits the source-shaped advanced form with canonical OKVED and both exclusion checkboxes cleared", async () => {
@@ -82,12 +89,17 @@ describe("ListOrgLiveSource", () => {
     }
   });
 
+  it("excludes unrelated result, contact, and person content from every durable raw bundle", async () => {
+    const { result } = await collect("default");
+
+    expect(result.rawBundles.length).toBeGreaterThan(0);
+    expectEveryRawBundleMinimized(result.rawBundles);
+  });
+
   it("uses the shared two-retry document boundary and never retries the terminal fifth response", async () => {
     const recovered = await collect("transient-then-ok");
     expect(recovered.result.companies).toHaveLength(10);
-    expect(fixture.requests().filter((request) =>
-      request.startsWith("GET /search?okved=43.11") && request.includes("scenario=transient-then-ok")
-    ).length).toBeGreaterThanOrEqual(3);
+    expect(fixture.initialSearchDispatchCount()).toBe(3);
   });
 
   it("blocks after the shared retry ceiling instead of returning no data", async () => {
@@ -99,6 +111,53 @@ describe("ListOrgLiveSource", () => {
     ))
       .toHaveLength(3);
     expect(fixture.companyRequestIds()).toEqual([]);
+    expectEveryRawBundleMinimized(result.rawBundles);
+  });
+
+  it("maps an exhausted connection reset to blocked transport_failure after exactly three dispatches", async () => {
+    const { result } = await collect("transport-reset-exhausted");
+
+    expect(result).toMatchObject({ status: "blocked", reason: "transport_failure" });
+    expect(fixture.initialSearchDispatchCount()).toBe(3);
+    expect(fixture.companyRequestIds()).toEqual([]);
+    expectEveryRawBundleMinimized(result.rawBundles);
+  });
+
+  it("never retries a non-transient HTTP failure", async () => {
+    const { result } = await collect("http-418");
+
+    expect(result).toMatchObject({ status: "blocked", reason: "http_failure" });
+    expect(fixture.initialSearchDispatchCount()).toBe(1);
+    expectEveryRawBundleMinimized(result.rawBundles);
+  });
+
+  it("ignores hidden duplicate card fields and persists only the unique visible values", async () => {
+    const { result } = await collect("hidden-duplicate");
+
+    expect(result.companies).toHaveLength(10);
+    expect(result.companies[0]).toMatchObject({ name: "ООО «Альфа Снос»", inn: "7700000016" });
+    expectEveryRawBundleMinimized(result.rawBundles);
+  });
+
+  it.each([
+    ["okved", { okved: parseOkvedCode("43.12") }],
+    ["onlyActive", { onlyActive: true }],
+    ["maxCompanies", { maxCompanies: 11 }],
+    ["maxPages", { maxPages: 3 }],
+  ] as const)("rejects an incompatible live pilot %s scope before opening the browser", async (_field, override) => {
+    await expect(collect("default", undefined, [], override)).rejects.toThrow("live pilot scope");
+    expect(fixture.requests()).toEqual([]);
+  });
+
+  it("persists the observed result and card navigation statuses", async () => {
+    const resultStatus = await collect("results-202");
+    expect(resultStatus.result.pages[0]?.raw.navigationStatus).toBe(202);
+
+    await fixture.close();
+    fixture = await startListOrgLiveContractServer();
+    const cardStatus = await collect("card-201");
+    expect(cardStatus.result.rawBundles.find((raw) => raw.identity.sourceRecordKey === "1001")?.navigationStatus)
+      .toBe(201);
   });
 
   it("records captcha_waiting durably before the real gate and revalidates the existing visible session", async () => {
@@ -112,6 +171,7 @@ describe("ListOrgLiveSource", () => {
         revalidate: (source: TSource) => Promise<void> | void;
         signal?: AbortSignal;
       }) => {
+        expect(events.at(-1)?.kind).toBe("captcha_waiting");
         observedKindsAtGate.push(events.map((event) => event.kind));
         const browser = request.source as BrowserSession;
         await browser.navigate(await browser.currentUrl());
@@ -136,6 +196,7 @@ describe("ListOrgLiveSource", () => {
       output: new PassThrough(),
     }));
     expect(aborted.result).toMatchObject({ status: "blocked", reason: "captcha_aborted" });
+    expectEveryRawBundleMinimized(aborted.result.rawBundles);
 
     await fixture.close();
     fixture = await startListOrgLiveContractServer();
@@ -146,6 +207,7 @@ describe("ListOrgLiveSource", () => {
       output: new PassThrough(),
     }));
     expect(invalid.result).toMatchObject({ status: "blocked", reason: "contract_drift" });
+    expectEveryRawBundleMinimized(invalid.result.rawBundles);
   });
 
   it("treats CAPTCHA operator EOF as a terminal blocker", async () => {
@@ -157,6 +219,29 @@ describe("ListOrgLiveSource", () => {
     }));
 
     expect(result).toMatchObject({ status: "blocked", reason: "captcha_aborted" });
+    expectEveryRawBundleMinimized(result.rawBundles);
+  });
+
+  it.each([
+    ["return-403", "http_403", undefined],
+    ["return-soft-block", "soft_block", undefined],
+    ["return-drift", "contract_drift", undefined],
+    ["return-captcha", "captcha_aborted", "abort"],
+  ] as const)("does not pair stale card evidence with a %s return-page blocker", async (
+    scenario,
+    reason,
+    operatorInput,
+  ) => {
+    const gate = operatorInput === undefined
+      ? undefined
+      : verificationGate(operatorInput);
+    const { result } = await collect(scenario, gate);
+
+    expect(result).toMatchObject({ status: "blocked", reason });
+    expect(result.blockers[0]?.raw.identity.sourceRecordKey).toBe("1001");
+    expect(new TextDecoder().decode(result.blockers[0]?.raw.sanitizedDomUtf8))
+      .toContain(`reason:${reason}`);
+    expectEveryRawBundleMinimized(result.rawBundles);
   });
 
   it.each([
@@ -172,9 +257,13 @@ describe("ListOrgLiveSource", () => {
     expect(result.reason).toBe(reason);
     expect(result.blockers).toHaveLength(1);
     expect(result.blockers[0]?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/u);
+    expectEveryRawBundleMinimized(result.rawBundles);
     if (scenario === "http-403") {
       expect(result.blockers[0]?.raw.navigationStatus).toBe(403);
       expect(fixture.submittedSearches()).toHaveLength(1);
+    }
+    if (scenario === "foreign-redirect") {
+      expect(fixture.foreignDestinationRequestCount()).toBe(0);
     }
   });
 
@@ -182,6 +271,8 @@ describe("ListOrgLiveSource", () => {
     scenario: string,
     humanVerification: HumanVerificationGatePort = failIfCaptchaAppears(),
     actionEvents: BrowserActionEvent[] = [],
+    scopeOverride: Partial<DiscoveryScope> = {},
+    actionLedger?: BrowserActionLedger,
   ) {
     const sessions = new PolicyBrowserSessionFactory({
       allowedOrigins: [fixture.origin],
@@ -212,8 +303,9 @@ describe("ListOrgLiveSource", () => {
       onlyActive: false,
       maxPages: 2,
       maxCompanies: 10,
+      ...scopeOverride,
     }, {
-      actionLedger: { record: async (event) => { actionEvents.push(event); } },
+      actionLedger: actionLedger ?? { record: async (event) => { actionEvents.push(event); } },
     });
     return { result, actionEvents };
   }
@@ -225,4 +317,24 @@ function failIfCaptchaAppears(): HumanVerificationGatePort {
       throw new Error("unexpected CAPTCHA in this scenario");
     },
   };
+}
+
+function verificationGate(inputValue: string): HumanVerificationGate {
+  const input = new PassThrough();
+  input.end(`${inputValue}\n`);
+  return new HumanVerificationGate({ input, output: new PassThrough() });
+}
+
+function expectEveryRawBundleMinimized(
+  rawBundles: readonly ChecksummedBrowserRawBundle[],
+): void {
+  for (const raw of rawBundles) {
+    const dom = new TextDecoder().decode(raw.sanitizedDomUtf8);
+    expect(dom).not.toMatch(
+      /results-person-secret|results-page-two-secret|results\.person|222-33-44|333-44-55|captcha-challenge-secret|Иван Проверяемый|Иван Петров|111-22-33|private\.person|private\.example|hidden-company-secret|hidden-okved-secret/u,
+    );
+    expect(raw.redactedScreenshotPng).toHaveLength(0);
+    expect(raw.actions.some((action) => action.kind === "verify-visual-safety")).toBe(false);
+    expect(checksumBrowserRawBundle(raw).checksumSha256).toBe(raw.checksumSha256);
+  }
 }

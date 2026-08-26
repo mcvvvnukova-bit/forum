@@ -14,12 +14,18 @@ import {
   type OrganizationSource,
 } from "../../../domain/discovery";
 import { checksumBrowserRawBundle, sha256 } from "../../storage/raw-bundle";
-import { BrowserPolicyContractError } from "../browser/policy-browser";
-import { sanitizeBrowserUrl } from "../list-org-browser/browser-raw-sanitizer";
+import {
+  BrowserPolicyContractError,
+  BrowserTransportError,
+} from "../browser/policy-browser";
+import {
+  MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+  sanitizeBrowserUrl,
+} from "../list-org-browser/browser-raw-sanitizer";
 import { BrowserContractError } from "../list-org-browser/browser-record-policy";
 import {
   LIST_ORG_LIVE_CARD_PROJECTION_SELECTORS,
-  LIST_ORG_LIVE_RESULTS_PROJECTION_SELECTORS,
+  listOrgLiveResultsProjectionSelectors,
   parseListOrgLiveCard,
 } from "./list-org-live-contract";
 
@@ -29,6 +35,9 @@ const CARD_LANDMARK = "Карточка организации";
 const CAPTCHA_LANDMARK = "Подтверждение CAPTCHA";
 const SOFT_BLOCK_LANDMARK = "Доступ временно ограничен";
 const SOURCE_KIND = "list-org-live";
+const LIVE_OKVED = "43.11";
+const LIVE_MAX_PAGES = 2;
+const LIVE_MAX_COMPANIES = 10;
 
 export interface HumanVerificationGatePort {
   wait<TSource>(input: {
@@ -73,8 +82,11 @@ export class ListOrgLiveSource implements OrganizationSource {
   }
 
   async collect(scope: DiscoveryScope, execution: DiscoveryExecutionContext = {}): Promise<DiscoveryResult> {
-    if (!isPositiveSafeInteger(scope.maxPages) || !isPositiveSafeInteger(scope.maxCompanies)) {
-      throw new Error("discovery limits must be positive safe integers");
+    if (scope.okved !== LIVE_OKVED
+      || scope.onlyActive !== false
+      || scope.maxPages !== LIVE_MAX_PAGES
+      || scope.maxCompanies !== LIVE_MAX_COMPANIES) {
+      throw new Error("List-Org live pilot scope must be exactly OKVED 43.11, all legal entities, 2 pages, and 10 companies");
     }
 
     const session = await this.#sessions.open(execution);
@@ -86,7 +98,6 @@ export class ListOrgLiveSource implements OrganizationSource {
     const seenInns = new Set<string>();
     let currentPage = 1;
     let currentSourceRecordKey: string | undefined;
-    let currentProjection: BrowserCaptureProjection | undefined;
     let currentOccurrences: DiscoveryOccurrence[] = [];
     let currentOrderedKeys: readonly string[] = [];
     let currentResultFingerprint = "";
@@ -97,28 +108,27 @@ export class ListOrgLiveSource implements OrganizationSource {
       policyOrigins: readonly string[] = [],
     ): Promise<DiscoveryResult> => {
       let raw: ReturnType<typeof checksumBrowserRawBundle>;
+      const identity = {
+        runId: this.#runId,
+        page: currentPage,
+        ...(currentSourceRecordKey === undefined ? {} : { sourceRecordKey: currentSourceRecordKey }),
+      };
       if (policyOrigins.length > 0) {
-        const captured = await session.captureBlocker({
-          runId: this.#runId,
-          page: currentPage,
-          ...(currentSourceRecordKey === undefined ? {} : { sourceRecordKey: currentSourceRecordKey }),
-        }, this.#parserVersion, policyOrigins);
-        raw = checksumBrowserRawBundle({
-          ...captured,
-          sourceKind: SOURCE_KIND,
-          sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><html><body><main>policy block</main></body></html>"),
-          redactedScreenshotPng: new Uint8Array(),
-          pageFingerprintSha256: sha256("<!doctype html><html><body><main>policy block</main></body></html>"),
-          candidateEvidence: null,
-        });
-      } else {
-        const projection = currentProjection ?? await safeHeadingProjection(session);
+        const captured = await session.acknowledgePolicyBlock(policyOrigins);
         raw = this.#projectedRaw(
-          projection,
+          syntheticBlockerProjection(reason),
+          captured.finalUrl,
+          null,
+          identity,
+          captured.navigationStatus,
+        );
+      } else {
+        raw = this.#projectedRaw(
+          syntheticBlockerProjection(reason),
           await safeCurrentUrl(session, this.#searchUrl),
           null,
-          { runId: this.#runId, page: currentPage, ...(currentSourceRecordKey === undefined ? {} : { sourceRecordKey: currentSourceRecordKey }) },
-          currentNavigationStatus,
+          identity,
+          await safeCurrentNavigationStatus(session, currentNavigationStatus),
         );
       }
       rawBundles.push(raw);
@@ -139,64 +149,70 @@ export class ListOrgLiveSource implements OrganizationSource {
       await session.fillField("ОКВЭД", scope.okved);
       await session.setCheckbox("Включать ИП", false);
       await session.setCheckbox("Только действующие", scope.onlyActive);
+      currentNavigationStatus = null;
       status = await session.clickButton("Поиск");
       currentNavigationStatus = status;
       assertNonTerminalStatus(status);
 
-      for (let pageNumber = 1; pageNumber <= scope.maxPages; pageNumber += 1) {
+      for (let pageNumber = 1; pageNumber <= LIVE_MAX_PAGES; pageNumber += 1) {
         currentPage = pageNumber;
         currentSourceRecordKey = undefined;
-        currentProjection = undefined;
         currentOccurrences = [];
         currentOrderedKeys = [];
         currentResultFingerprint = "";
 
-        await this.#settleExpectedPage(session, execution, {
+        const resultLanding = await this.#settleExpectedPage(session, execution, {
           pathname: "/search",
           landmark: RESULTS_LANDMARK,
           auditTarget: `/search:results-page-${pageNumber}`,
         });
         await verifyResultsIdentity(session, scope, pageNumber);
-        const resultUrl = await session.currentUrl();
+        currentNavigationStatus = resultLanding.status;
+        const resultUrl = resultLanding.url;
         const linkHrefs = await session.linkHrefsInLandmark(RESULTS_LANDMARK);
         const companyLinks = linkHrefs.map((href) => parseCompanyLink(href, this.#origin)).filter(isPresent);
         if (companyLinks.length === 0) throw new BrowserContractError("result page contains no /company/<id> links");
         currentOrderedKeys = companyLinks.map((link) => link.sourceRecordKey);
         currentResultFingerprint = await session.fingerprint();
-        const resultProjection = await session.captureProjection(LIST_ORG_LIVE_RESULTS_PROJECTION_SELECTORS);
+        const resultProjection = await session.captureProjection(
+          listOrgLiveResultsProjectionSelectors(currentOrderedKeys),
+        );
 
         for (const link of companyLinks) {
           currentSourceRecordKey = link.sourceRecordKey;
-          currentProjection = undefined;
+          currentNavigationStatus = null;
           const before = await session.fingerprint();
           status = await session.clickLinkHref(link.href);
           currentNavigationStatus = status;
           assertNonTerminalStatus(status);
-          await this.#settleExpectedPage(session, execution, {
+          const cardLanding = await this.#settleExpectedPage(session, execution, {
             pathname: `/company/${link.sourceRecordKey}`,
             landmark: CARD_LANDMARK,
             auditTarget: `/company/${link.sourceRecordKey}:company-card`,
           });
+          currentNavigationStatus = cardLanding.status;
 
           const projection = await session.captureProjection(LIST_ORG_LIVE_CARD_PROJECTION_SELECTORS);
-          currentProjection = projection;
           const parsed = parseListOrgLiveCard(projection, link.sourceRecordKey, scope);
           const cardRaw = this.#projectedRaw(
             projection,
             await session.currentUrl(),
             parsed.kind === "legal-entity" ? createCandidateEvidence(parsed.company) : null,
             { runId: this.#runId, page: pageNumber, sourceRecordKey: link.sourceRecordKey },
+            cardLanding.status,
           );
           rawBundles.push(cardRaw);
 
+          currentNavigationStatus = null;
           status = await session.clickLink("Вернуться к результатам");
           currentNavigationStatus = status;
           assertNonTerminalStatus(status);
-          await this.#settleExpectedPage(session, execution, {
+          const returnedLanding = await this.#settleExpectedPage(session, execution, {
             pathname: "/search",
             landmark: RESULTS_LANDMARK,
             auditTarget: `/search:results-page-${pageNumber}`,
           });
+          currentNavigationStatus = returnedLanding.status;
           await verifyResultsIdentity(session, scope, pageNumber);
           const after = await session.fingerprint();
           if (after !== before) throw new BrowserContractError("result page changed after visiting a company card");
@@ -213,12 +229,13 @@ export class ListOrgLiveSource implements OrganizationSource {
             rawFetchKey: cardRaw.checksumSha256,
             parserVersion: this.#parserVersion,
           });
-          if (companies.length === scope.maxCompanies) {
+          if (companies.length === LIVE_MAX_COMPANIES) {
             const pageRaw = this.#projectedRaw(
               resultProjection,
               resultUrl,
               null,
               { runId: this.#runId, page: pageNumber },
+              resultLanding.status,
             );
             rawBundles.push(pageRaw);
             pages.push(makePage(pageNumber, pageRaw, currentOccurrences, currentOrderedKeys, currentResultFingerprint));
@@ -227,21 +244,23 @@ export class ListOrgLiveSource implements OrganizationSource {
         }
 
         currentSourceRecordKey = undefined;
-        currentProjection = resultProjection;
         const pageRaw = this.#projectedRaw(
           resultProjection,
           resultUrl,
           null,
           { runId: this.#runId, page: pageNumber },
+          resultLanding.status,
         );
         rawBundles.push(pageRaw);
         pages.push(makePage(pageNumber, pageRaw, currentOccurrences, currentOrderedKeys, currentResultFingerprint));
         if (await session.hasVisibleText("Последняя страница")) {
           return makeResult("succeeded", "terminal_marker", companies, pages, rawBundles, rejects, blockers);
         }
-        if (pageNumber === scope.maxPages) {
+        if (pageNumber === LIVE_MAX_PAGES) {
           return makeResult("limited", "max_pages", companies, pages, rawBundles, rejects, blockers);
         }
+        currentSourceRecordKey = undefined;
+        currentNavigationStatus = null;
         status = await session.clickLink("Следующая страница");
         currentNavigationStatus = status;
         assertNonTerminalStatus(status);
@@ -253,6 +272,7 @@ export class ListOrgLiveSource implements OrganizationSource {
       if (error instanceof ExternalBrowserRequestError) {
         return await block("policy_block", error.origins);
       }
+      if (error instanceof BrowserTransportError) return await block("transport_failure");
       if (error instanceof BrowserContractError || error instanceof BrowserPolicyContractError) {
         return await block("contract_drift");
       }
@@ -266,7 +286,8 @@ export class ListOrgLiveSource implements OrganizationSource {
     session: BrowserSession,
     execution: DiscoveryExecutionContext,
     expected: { pathname: string; landmark: string; auditTarget: string },
-  ): Promise<void> {
+  ): Promise<{ url: string; status: number | null }> {
+    assertNonTerminalStatus(await session.currentNavigationStatus());
     if (await session.hasLandmark(CAPTCHA_LANDMARK)) {
       await session.recordCaptchaWaiting(expected.auditTarget);
       await this.#humanVerification.wait({
@@ -278,7 +299,7 @@ export class ListOrgLiveSource implements OrganizationSource {
       });
     }
     if (await session.hasLandmark(SOFT_BLOCK_LANDMARK)) throw new LiveBlockedError("soft_block");
-    await assertExpectedVisiblePage(session, this.#origin, expected.pathname, expected.landmark);
+    return assertExpectedVisiblePage(session, this.#origin, expected.pathname, expected.landmark);
   }
 
   #projectedRaw(
@@ -286,7 +307,7 @@ export class ListOrgLiveSource implements OrganizationSource {
     finalUrl: string,
     candidateEvidence: ReturnType<typeof createCandidateEvidence> | null,
     identity: { runId: string; page: number; sourceRecordKey?: string },
-    navigationStatus: number | null = 200,
+    navigationStatus: number | null,
   ): ReturnType<typeof checksumBrowserRawBundle> {
     return checksumBrowserRawBundle({
       sourceKind: SOURCE_KIND,
@@ -320,11 +341,15 @@ async function assertExpectedVisiblePage(
   origin: string,
   pathname: string,
   landmark: string,
-): Promise<void> {
-  const current = new URL(await session.currentUrl());
+): Promise<{ url: string; status: number | null }> {
+  const status = await session.currentNavigationStatus();
+  assertNonTerminalStatus(status);
+  const currentUrl = await session.currentUrl();
+  const current = new URL(currentUrl);
   if (current.origin !== origin || current.pathname !== pathname || !await session.hasLandmark(landmark)) {
     throw new BrowserContractError("visible page identity changed during manual verification");
   }
+  return { url: currentUrl, status };
 }
 
 async function verifyResultsIdentity(session: BrowserSession, scope: DiscoveryScope, page: number): Promise<void> {
@@ -370,22 +395,31 @@ function makeResult(
   return { status, reason, companies, pages, rawBundles, rejects, blockers };
 }
 
-async function safeHeadingProjection(session: BrowserSession): Promise<BrowserCaptureProjection> {
+async function safeCurrentUrl(session: BrowserSession, fallback: string): Promise<string> {
   try {
-    return await session.captureProjection(["main > h1"]);
+    return sanitizeBrowserUrl(
+      await session.currentUrl(),
+      MANDATORY_SENSITIVE_QUERY_PARAMETERS,
+    );
   } catch {
-    return {
-      selectors: ["synthetic-terminal-marker"],
-      sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><html><body><main>terminal source failure</main></body></html>"),
-      sensitiveFormFieldNames: [],
-    };
+    return fallback;
   }
 }
 
-async function safeCurrentUrl(session: BrowserSession, fallback: string): Promise<string> {
-  try { return await session.currentUrl(); } catch { return fallback; }
+async function safeCurrentNavigationStatus(
+  session: BrowserSession,
+  fallback: number | null,
+): Promise<number | null> {
+  try { return await session.currentNavigationStatus(); } catch { return fallback; }
 }
 
-function isPositiveSafeInteger(value: number): boolean {
-  return Number.isSafeInteger(value) && value > 0;
+function syntheticBlockerProjection(reason: string): BrowserCaptureProjection {
+  if (!/^[a-z0-9_]+$/u.test(reason)) throw new Error("blocker reason is not persistable");
+  return {
+    selectors: ["synthetic-blocker-reason"],
+    sanitizedDomUtf8: new TextEncoder().encode(
+      `<!doctype html><html><body><main>source:${SOURCE_KIND};reason:${reason}</main></body></html>`,
+    ),
+    sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
+  };
 }

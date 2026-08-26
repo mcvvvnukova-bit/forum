@@ -43,6 +43,12 @@ describe("PolicyBrowserSessionFactory", () => {
       if (url.pathname === "/transient-network") {
         return requestNumber < 3 ? { destroySocket: true } : "recovered";
       }
+      if (url.pathname === "/persistent-network") {
+        return { destroySocket: true };
+      }
+      if (url.pathname === "/non-transient-status") {
+        return { status: 418, headers: {}, body: "do not retry" };
+      }
       if (url.pathname === "/forbidden-target") {
         return { status: 403, headers: {}, body: "forbidden" };
       }
@@ -94,6 +100,12 @@ describe("PolicyBrowserSessionFactory", () => {
             fetch("/after-terminal").catch(() => undefined);
           }, 150);
         </script><main>freeze fixture</main>`;
+      }
+      if (scenario === "projection-hidden-duplicate") {
+        return '<main><p class="projected-value" style="display:none">hidden-secret</p><p class="projected-value">visible-value</p></main>';
+      }
+      if (scenario === "projection-visible-duplicate") {
+        return '<main><p class="projected-value">first</p><p class="projected-value">second</p></main>';
       }
       if (scenario === "passive") {
         return [
@@ -331,6 +343,23 @@ describe("PolicyBrowserSessionFactory", () => {
     }
   });
 
+  it("acknowledges a live projection policy block without capturing full-page artifacts", async () => {
+    const target = `${allowed.url}/?scenario=service-worker`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target]), {
+      sourceKind: "list-org-live",
+    }).open();
+    try {
+      await expect(session.navigate(target))
+        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+      await expect(session.acknowledgePolicyBlock(["wrong-origin"]))
+        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+      await expect(session.acknowledgePolicyBlock(["service-worker-registration"]))
+        .resolves.toEqual({ finalUrl: target, navigationStatus: 200 });
+    } finally {
+      await session.close();
+    }
+  });
+
   it("surfaces a policy terminal that races with ordinary 403 blocker capture", async () => {
     const target = `${allowed.url}/blocker-race`;
     const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
@@ -408,6 +437,62 @@ describe("PolicyBrowserSessionFactory", () => {
     try {
       await expect(session.navigate(target)).resolves.toBe(503);
       expect(allowed.requestCount(path) - before).toBe(3);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("propagates an exhausted transient network failure with its typed retry outcome", async () => {
+    const path = "/persistent-network";
+    const target = `${allowed.url}${path}`;
+    const before = allowed.requestCount(path);
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target]), {
+      transportRetryDelayMs: 0,
+    }).open();
+    try {
+      await expect(session.navigate(target)).rejects.toMatchObject({ name: "BrowserTransportError" });
+      expect(allowed.requestCount(path) - before).toBe(3);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("does not retry a non-transient HTTP failure", async () => {
+    const path = "/non-transient-status";
+    const target = `${allowed.url}${path}`;
+    const before = allowed.requestCount(path);
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target]), {
+      transportRetryDelayMs: 0,
+    }).open();
+    try {
+      await expect(session.navigate(target)).resolves.toBe(418);
+      expect(allowed.requestCount(path) - before).toBe(1);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("captures only the unique visible projection match when a hidden duplicate precedes it", async () => {
+    const target = `${allowed.url}/?scenario=projection-hidden-duplicate`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await session.navigate(target);
+      const projection = await session.captureProjection([".projected-value"]);
+      const dom = new TextDecoder().decode(projection.sanitizedDomUtf8);
+      expect(dom).toContain("visible-value");
+      expect(dom).not.toContain("hidden-secret");
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("rejects a projection selector with multiple visible matches", async () => {
+    const target = `${allowed.url}/?scenario=projection-visible-duplicate`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await session.navigate(target);
+      await expect(session.captureProjection([".projected-value"]))
+        .rejects.toThrow("projection selector must match exactly one visible element");
     } finally {
       await session.close();
     }

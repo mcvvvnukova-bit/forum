@@ -623,6 +623,73 @@ describe("S3RawObjectStorage", () => {
     );
   });
 
+  it("stores and re-verifies valid List-Org live projection evidence", async () => {
+    const storage = new S3RawObjectStorage(env, "list-org-live", client);
+    const stored = await storage.put(sampleLiveBundle("s3-live-valid"));
+
+    await expect(storage.verify(stored)).resolves.toMatchObject({
+      sourceKind: "list-org-live",
+      sourceRecordKey: "1001",
+    });
+  });
+
+  it("quarantines legacy List-Org live projection evidence", async () => {
+    const bundle = sampleLiveBundle("s3-live-legacy");
+    const manifest = JSON.parse(
+      new TextDecoder().decode(bundle.manifestUtf8),
+    ) as Record<string, unknown>;
+    manifest.version = 1;
+    delete manifest.sensitiveFormFieldNames;
+    const stored = await putManifestBytes(
+      bundle,
+      new TextEncoder().encode(JSON.stringify(manifest)),
+    );
+
+    const storage = new S3RawObjectStorage(env, "list-org-live", client);
+    await expect(storage.verify(stored)).rejects.toThrow(
+      "raw manifest version 1 is unsupported for browser evidence",
+    );
+  });
+
+  it.each([
+    ["unsafe DOM", (manifest: MutableBrowserManifestFixture, dom: Uint8Array) => {
+      manifest.pageFingerprintSha256 = fixtureSha256(dom);
+      manifest.artifacts.sanitizedDom.checksumSha256 = fixtureSha256(dom);
+    }, new TextEncoder().encode('<!doctype html><html><body><input name="public" value="secret"></body></html>'), undefined],
+    ["an incomplete sensitive-field policy", (manifest: MutableBrowserManifestFixture) => {
+      manifest.sensitiveFormFieldNames = [];
+    }, undefined, undefined],
+    ["copied full-page visual proof", (manifest: MutableBrowserManifestFixture) => {
+      manifest.actions = [...visualSafetyProof(manifest.pageFingerprintSha256)];
+    }, undefined, undefined],
+    ["a non-empty screenshot", (manifest: MutableBrowserManifestFixture, _dom: Uint8Array, screenshot: Uint8Array) => {
+      manifest.artifacts.redactedScreenshot.checksumSha256 = fixtureSha256(screenshot);
+    }, undefined, new Uint8Array([137, 80, 78, 71])],
+  ] as const)("rejects checksum-consistent List-Org live evidence with %s", async (
+    _case,
+    mutate,
+    domOverride,
+    screenshotOverride,
+  ) => {
+    const bundle = sampleLiveBundle(`s3-live-${_case.replaceAll(" ", "-")}`);
+    const dom = domOverride ?? bundle.sanitizedDomUtf8;
+    const screenshot = screenshotOverride ?? bundle.redactedScreenshotPng;
+    const manifest = JSON.parse(
+      new TextDecoder().decode(bundle.manifestUtf8),
+    ) as MutableBrowserManifestFixture;
+    mutate(manifest, dom, screenshot);
+    const stored = await putManifestBytes(
+      bundle,
+      new TextEncoder().encode(JSON.stringify(manifest)),
+      {},
+      dom,
+      screenshot,
+    );
+
+    const storage = new S3RawObjectStorage(env, "list-org-live", client);
+    await expect(storage.verify(stored)).rejects.toThrow(/browser|redaction/u);
+  });
+
   it.each([
     ["without form policy", (manifest: Record<string, unknown>) => {
       delete manifest.sensitiveFormFieldNames;
@@ -765,6 +832,7 @@ describe("S3RawObjectStorage", () => {
     manifestBytes: Uint8Array,
     expectedIdentity: StoredManifestIdentityOverrides = {},
     domBytes: Uint8Array = bundle.sanitizedDomUtf8,
+    screenshotBytes: Uint8Array = bundle.redactedScreenshotPng,
   ) {
     const checksumSha256 = fixtureSha256(manifestBytes);
     const prefix = `raw/${bundle.identity.runId}/${bundle.sourceKind}/${checksumSha256}`;
@@ -789,7 +857,7 @@ describe("S3RawObjectStorage", () => {
       client.send(new PutObjectCommand({
         Bucket: bucket,
         Key: stored.screenshotKey,
-        Body: bundle.redactedScreenshotPng,
+        Body: screenshotBytes,
       })),
       client.send(new PutObjectCommand({
         Bucket: bucket,
@@ -803,6 +871,35 @@ describe("S3RawObjectStorage", () => {
 
 function sampleBundle(runId: string) {
   return checksumBrowserRawBundle(sampleRawBundle(runId));
+}
+
+function sampleLiveBundle(runId: string) {
+  const sanitizedDomUtf8 = new TextEncoder().encode(
+    "<!doctype html><html><body><main><dt>ИНН / КПП:</dt><dd>7707083893 / 770001001</dd></main></body></html>",
+  );
+  return checksumBrowserRawBundle({
+    sourceKind: "list-org-live",
+    parserVersion: "list-org-live/1.0.0",
+    finalUrl: "http://127.0.0.1:33333/company/1001",
+    capturedAt: "2026-08-26T09:00:00.000Z",
+    navigationStatus: 200,
+    sanitizedDomUtf8,
+    redactedScreenshotPng: new Uint8Array(),
+    pageFingerprintSha256: fixtureSha256(sanitizedDomUtf8),
+    identity: { runId, page: 1, sourceRecordKey: "1001" },
+    sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
+    candidateEvidence: {
+      sourceRecordKey: "1001",
+      inn: "7707083893",
+      name: "АО Альфа",
+      website: null,
+      okvedCode: "43.11",
+      isPrimary: true,
+      phone: { kind: "null" },
+      email: { kind: "null" },
+    },
+    actions: [],
+  });
 }
 
 interface MutableBrowserManifestFixture extends Record<string, unknown> {

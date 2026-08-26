@@ -19,6 +19,7 @@ export interface BrowserSession {
   linkNamesInLandmark(name: string, accessibleNamePrefix: string): Promise<readonly string[]>;
   linkHrefsInLandmark(name: string): Promise<readonly string[]>;
   currentUrl(): Promise<string>;
+  currentNavigationStatus(): Promise<number | null>;
   recordCaptchaWaiting(target: string): Promise<void>;
   fingerprint(): Promise<string>;
   captureProjection(selectors: readonly string[]): Promise<BrowserCaptureProjection>;
@@ -33,7 +34,15 @@ export interface BrowserSession {
     parserVersion: string,
     acknowledgePolicyViolationOrigins?: readonly string[],
   ): Promise<BrowserRawBundle>;
+  acknowledgePolicyBlock(
+    acknowledgePolicyViolationOrigins: readonly string[],
+  ): Promise<BrowserPolicyBlockState>;
   close(): Promise<void>;
+}
+
+export interface BrowserPolicyBlockState {
+  readonly finalUrl: string;
+  readonly navigationStatus: number | null;
 }
 
 export interface BrowserOriginPolicy {

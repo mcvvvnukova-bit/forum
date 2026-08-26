@@ -20,6 +20,7 @@ import type {
 import type { AppEnv } from "../../../../shared/config/env";
 import {
   assertBrowserCaptureSafe,
+  browserEvidenceSourceProfile,
   isCanonicalBrowserActionId,
 } from "../sources/list-org-browser/browser-raw-sanitizer";
 import { checksumBrowserRawBundle, RAW_MANIFEST_VERSION, sha256 } from "./raw-bundle";
@@ -117,11 +118,12 @@ export class S3RawObjectStorage implements RawObjectStorage {
         && manifest.candidateEvidence.sourceRecordKey !== manifestRecordKey)) {
       throw new Error("raw object identity verification failed");
     }
-    if (manifest.sourceKind === "list-org-browser") {
+    if (browserEvidenceSourceProfile(manifest.sourceKind) !== undefined) {
       assertBrowserCaptureSafe({
         sourceKind: manifest.sourceKind,
         finalUrl: manifest.finalUrl,
         sanitizedDomUtf8: domBytes,
+        redactedScreenshotPng: screenshotBytes,
         pageFingerprintSha256: manifest.pageFingerprintSha256,
         candidateEvidence: manifest.candidateEvidence,
         actions: manifest.actions,
@@ -219,7 +221,9 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
   if (!isRecord(value)) return null;
   // Version 1 did not require a persisted browser form-policy. Its screenshots
   // therefore cannot be re-verified fail-closed and are deliberately quarantined.
-  if (value.version === 1 && value.sourceKind === "list-org-browser") {
+  if (value.version === 1
+    && typeof value.sourceKind === "string"
+    && browserEvidenceSourceProfile(value.sourceKind) !== undefined) {
     throw new Error("raw manifest version 1 is unsupported for browser evidence");
   }
   const isLegacyNonBrowser = value.version === 1;

@@ -19,9 +19,23 @@ export const LIST_ORG_LIVE_CARD_PROJECTION_SELECTORS = [
   `main[aria-label="Карточка организации"] table:has(caption:text-is("${ADDITIONAL_OKVED_CAPTION}"))`,
 ] as const;
 
-export const LIST_ORG_LIVE_RESULTS_PROJECTION_SELECTORS = [
-  'main[aria-label="Результаты поиска"]',
-] as const;
+export function listOrgLiveResultsProjectionSelectors(
+  sourceRecordKeys: readonly string[],
+): readonly string[] {
+  return [
+    'main[aria-label="Результаты поиска"] > h1',
+    'main[aria-label="Результаты поиска"] dt:text-is("ОКВЭД")',
+    'main[aria-label="Результаты поиска"] dt:text-is("ОКВЭД") + dd',
+    'main[aria-label="Результаты поиска"] dt:text-is("Страница")',
+    'main[aria-label="Результаты поиска"] dt:text-is("Страница") + dd',
+    ...sourceRecordKeys.map((sourceRecordKey) => {
+      if (!/^[1-9][0-9]*$/u.test(sourceRecordKey)) {
+        throw new BrowserContractError("result source record key is malformed");
+      }
+      return `main[aria-label="Результаты поиска"] a[href="/company/${sourceRecordKey}"]`;
+    }),
+  ];
+}
 
 export type ListOrgLiveCard =
   | { kind: "legal-entity"; company: Omit<DiscoveredCompany, "rawFetchKey" | "parserVersion"> }

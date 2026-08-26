@@ -8,9 +8,38 @@ import {
   sanitizeBrowserActionTarget,
   sanitizeBrowserUrl,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
-import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
+import { checksumBrowserRawBundle, sha256 } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 
 describe("browser raw sanitizer persistence boundary", () => {
+  it("applies browser DOM and sensitive-policy checks to live projection evidence", () => {
+    expect(() => checksumBrowserRawBundle(liveProjectionBundle(
+      '<!doctype html><html><body><input name="public" value="must-not-persist"></body></html>',
+    ))).toThrow("raw redaction scan failed");
+
+    const incomplete = liveProjectionBundle("<!doctype html><html><body><main>safe</main></body></html>");
+    incomplete.sensitiveFormFieldNames = [];
+    expect(() => checksumBrowserRawBundle(incomplete)).toThrow(
+      "browser raw bundle sensitive form policy is incomplete",
+    );
+  });
+
+  it.each([
+    ["a non-empty screenshot", (bundle: BrowserRawBundle) => {
+      bundle.redactedScreenshotPng = new Uint8Array([137, 80, 78, 71]);
+    }],
+    ["a visual-safety action copied from a full-page capture", (bundle: BrowserRawBundle) => {
+      bundle.actions = visualSafetyProof(bundle.pageFingerprintSha256);
+    }],
+    ["a fingerprint unrelated to the projection DOM", (bundle: BrowserRawBundle) => {
+      bundle.pageFingerprintSha256 = "f".repeat(64);
+    }],
+  ] as const)("rejects live projection evidence with %s", (_case, mutate) => {
+    const bundle = liveProjectionBundle("<!doctype html><html><body><main>safe</main></body></html>");
+    mutate(bundle);
+
+    expect(() => checksumBrowserRawBundle(bundle)).toThrow(/live browser projection|fingerprint/u);
+  });
+
   it.each([
     ["password", '<input type="password" name="password" value="pw-123">'],
     ["csrf", '<input type="text" name="csrf_token" value="csrf-123">'],
@@ -371,6 +400,24 @@ function rawBundle(
       ...MANDATORY_SENSITIVE_QUERY_PARAMETERS,
       ...configuredSensitiveFormFieldNames,
     ],
+  };
+}
+
+function liveProjectionBundle(dom: string): BrowserRawBundle {
+  const sanitizedDomUtf8 = new TextEncoder().encode(dom);
+  return {
+    sourceKind: "list-org-live",
+    parserVersion: "list-org-live/1.0.0",
+    finalUrl: "https://fixture.invalid/company/1001",
+    capturedAt: "2026-08-26T09:00:00.000Z",
+    navigationStatus: 200,
+    sanitizedDomUtf8,
+    redactedScreenshotPng: new Uint8Array(),
+    pageFingerprintSha256: sha256(sanitizedDomUtf8),
+    identity: { runId: "live-browser-sanitizer-test", page: 1, sourceRecordKey: "1001" },
+    candidateEvidence: null,
+    actions: [],
+    sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
   };
 }
 
