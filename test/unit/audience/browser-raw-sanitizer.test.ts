@@ -11,17 +11,24 @@ import {
 import { checksumBrowserRawBundle, sha256 } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 
 describe("browser raw sanitizer persistence boundary", () => {
-  it("applies browser DOM and sensitive-policy checks to live projection evidence", () => {
-    expect(() => checksumBrowserRawBundle(liveProjectionBundle(
-      '<!doctype html><html><body><input name="public" value="must-not-persist"></body></html>',
-    ))).toThrow("raw redaction scan failed");
+  it.each(["list-org-live", "fns-bfo-live"])(
+    "applies browser DOM and sensitive-policy checks to %s projection evidence",
+    (sourceKind) => {
+      expect(() => checksumBrowserRawBundle(liveProjectionBundle(
+        '<!doctype html><html><body><input name="public" value="must-not-persist"></body></html>',
+        sourceKind,
+      ))).toThrow("raw redaction scan failed");
 
-    const incomplete = liveProjectionBundle("<!doctype html><html><body><main>safe</main></body></html>");
-    incomplete.sensitiveFormFieldNames = [];
-    expect(() => checksumBrowserRawBundle(incomplete)).toThrow(
-      "browser raw bundle sensitive form policy is incomplete",
-    );
-  });
+      const incomplete = liveProjectionBundle(
+        "<!doctype html><html><body><main>safe</main></body></html>",
+        sourceKind,
+      );
+      incomplete.sensitiveFormFieldNames = [];
+      expect(() => checksumBrowserRawBundle(incomplete)).toThrow(
+        "browser raw bundle sensitive form policy is incomplete",
+      );
+    },
+  );
 
   it.each([
     ["a non-empty screenshot", (bundle: BrowserRawBundle) => {
@@ -33,11 +40,16 @@ describe("browser raw sanitizer persistence boundary", () => {
     ["a fingerprint unrelated to the projection DOM", (bundle: BrowserRawBundle) => {
       bundle.pageFingerprintSha256 = "f".repeat(64);
     }],
-  ] as const)("rejects live projection evidence with %s", (_case, mutate) => {
-    const bundle = liveProjectionBundle("<!doctype html><html><body><main>safe</main></body></html>");
-    mutate(bundle);
+  ] as const)("rejects every projection-profile source with %s", (_case, mutate) => {
+    for (const sourceKind of ["list-org-live", "fns-bfo-live"]) {
+      const bundle = liveProjectionBundle(
+        "<!doctype html><html><body><main>safe</main></body></html>",
+        sourceKind,
+      );
+      mutate(bundle);
 
-    expect(() => checksumBrowserRawBundle(bundle)).toThrow(/live browser projection|fingerprint/u);
+      expect(() => checksumBrowserRawBundle(bundle)).toThrow(/live browser projection|fingerprint/u);
+    }
   });
 
   it.each([
@@ -403,11 +415,11 @@ function rawBundle(
   };
 }
 
-function liveProjectionBundle(dom: string): BrowserRawBundle {
+function liveProjectionBundle(dom: string, sourceKind = "list-org-live"): BrowserRawBundle {
   const sanitizedDomUtf8 = new TextEncoder().encode(dom);
   return {
-    sourceKind: "list-org-live",
-    parserVersion: "list-org-live/1.0.0",
+    sourceKind,
+    parserVersion: `${sourceKind}/1.0.0`,
     finalUrl: "https://fixture.invalid/company/1001",
     capturedAt: "2026-08-26T09:00:00.000Z",
     navigationStatus: 200,

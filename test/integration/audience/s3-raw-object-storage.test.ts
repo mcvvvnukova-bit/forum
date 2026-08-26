@@ -690,6 +690,73 @@ describe("S3RawObjectStorage", () => {
     await expect(storage.verify(stored)).rejects.toThrow(/browser|redaction/u);
   });
 
+  it("stores and re-verifies valid BFO live projection evidence", async () => {
+    const storage = new S3RawObjectStorage(env, "fns-bfo-live", client);
+    const stored = await storage.put(sampleBfoLiveBundle("s3-bfo-live-valid"));
+
+    await expect(storage.verify(stored)).resolves.toMatchObject({
+      sourceKind: "fns-bfo-live",
+      sourceRecordKey: "7707083893:2025:0710002:visible",
+    });
+  });
+
+  it("quarantines legacy BFO live projection evidence", async () => {
+    const bundle = sampleBfoLiveBundle("s3-bfo-live-legacy");
+    const manifest = JSON.parse(
+      new TextDecoder().decode(bundle.manifestUtf8),
+    ) as Record<string, unknown>;
+    manifest.version = 1;
+    delete manifest.sensitiveFormFieldNames;
+    const stored = await putManifestBytes(
+      bundle,
+      new TextEncoder().encode(JSON.stringify(manifest)),
+    );
+
+    const storage = new S3RawObjectStorage(env, "fns-bfo-live", client);
+    await expect(storage.verify(stored)).rejects.toThrow(
+      "raw manifest version 1 is unsupported for browser evidence",
+    );
+  });
+
+  it.each([
+    ["unsafe DOM", (manifest: MutableBrowserManifestFixture, dom: Uint8Array) => {
+      manifest.pageFingerprintSha256 = fixtureSha256(dom);
+      manifest.artifacts.sanitizedDom.checksumSha256 = fixtureSha256(dom);
+    }, new TextEncoder().encode('<!doctype html><html><body><input name="public" value="secret"></body></html>'), undefined],
+    ["an incomplete sensitive-field policy", (manifest: MutableBrowserManifestFixture) => {
+      manifest.sensitiveFormFieldNames = [];
+    }, undefined, undefined],
+    ["copied full-page visual proof", (manifest: MutableBrowserManifestFixture) => {
+      manifest.actions = [...visualSafetyProof(manifest.pageFingerprintSha256)];
+    }, undefined, undefined],
+    ["a non-empty screenshot", (manifest: MutableBrowserManifestFixture, _dom: Uint8Array, screenshot: Uint8Array) => {
+      manifest.artifacts.redactedScreenshot.checksumSha256 = fixtureSha256(screenshot);
+    }, undefined, new Uint8Array([137, 80, 78, 71])],
+  ] as const)("rejects checksum-consistent BFO live evidence with %s", async (
+    _case,
+    mutate,
+    domOverride,
+    screenshotOverride,
+  ) => {
+    const bundle = sampleBfoLiveBundle(`s3-bfo-live-${_case.replaceAll(" ", "-")}`);
+    const dom = domOverride ?? bundle.sanitizedDomUtf8;
+    const screenshot = screenshotOverride ?? bundle.redactedScreenshotPng;
+    const manifest = JSON.parse(
+      new TextDecoder().decode(bundle.manifestUtf8),
+    ) as MutableBrowserManifestFixture;
+    mutate(manifest, dom, screenshot);
+    const stored = await putManifestBytes(
+      bundle,
+      new TextEncoder().encode(JSON.stringify(manifest)),
+      { sourceRecordKey: "7707083893:2025:0710002:visible" },
+      dom,
+      screenshot,
+    );
+
+    const storage = new S3RawObjectStorage(env, "fns-bfo-live", client);
+    await expect(storage.verify(stored)).rejects.toThrow(/browser|redaction/u);
+  });
+
   it.each([
     ["without form policy", (manifest: Record<string, unknown>) => {
       delete manifest.sensitiveFormFieldNames;
@@ -898,6 +965,30 @@ function sampleLiveBundle(runId: string) {
       phone: { kind: "null" },
       email: { kind: "null" },
     },
+    actions: [],
+  });
+}
+
+function sampleBfoLiveBundle(runId: string) {
+  const sanitizedDomUtf8 = new TextEncoder().encode(
+    "<!doctype html><html><body><main><h1>Отчетность за 2025 год</h1><dt>ИНН</dt><dd>7707083893</dd><h2>Форма по ОКУД 0710002</h2><p>Ед. измерения: тыс. ₽</p><table><tbody><tr><td>Выручка</td><td>2110</td><td>1 654 023</td></tr></tbody></table></main></body></html>",
+  );
+  return checksumBrowserRawBundle({
+    sourceKind: "fns-bfo-live",
+    parserVersion: "fns-bfo-live/1.0.0",
+    finalUrl: "http://127.0.0.1:33333/statements/record-1?year=2025",
+    capturedAt: "2026-08-26T09:00:00.000Z",
+    navigationStatus: 200,
+    sanitizedDomUtf8,
+    redactedScreenshotPng: new Uint8Array(),
+    pageFingerprintSha256: fixtureSha256(sanitizedDomUtf8),
+    identity: {
+      runId,
+      page: 1,
+      sourceRecordKey: "7707083893:2025:0710002:visible",
+    },
+    sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
+    candidateEvidence: null,
     actions: [],
   });
 }

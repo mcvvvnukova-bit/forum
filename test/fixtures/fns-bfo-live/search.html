@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>БФО — поиск</title></head>
+<body>
+  <main aria-label="{{LANDMARK}}">
+    <h1>{{LANDMARK}}</h1>
+    <form action="/search" method="get">
+      <label for="organization-query">Введите ИНН или название организации</label>
+      <input id="organization-query" name="query" type="text" placeholder="Введите ИНН или название организации">
+      {{SCENARIO_INPUT}}
+      <button type="submit">Найти</button>
+    </form>
+    {{RESULTS}}
+    <aside>results-unrelated-secret, +7 (495) 222-33-44, results.person@example.test</aside>
+  </main>
+</body>
+</html>

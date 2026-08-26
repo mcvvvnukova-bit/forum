@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>БФО — отчетность 2025</title></head>
+<body>
+  <main aria-label="Отчетность за 2025 год">
+    <h1>Отчетность за 2025 год</h1>
+    <dl><dt>ИНН</dt><dd>{{INN}}</dd></dl>
+    <section aria-label="Форма по ОКУД 0710002">
+      <h2>Форма по ОКУД 0710002</h2>
+      <p>Ед. измерения: тыс. ₽</p>
+      <table>
+        <thead><tr><th>Наименование</th><th>Код</th><th>За 2025 год</th></tr></thead>
+        <tbody>
+          <tr><td>Прочие доходы</td><td>2340</td><td>unrelated-row-secret</td></tr>
+          {{REVENUE_ROWS}}
+          <tr><td>Себестоимость продаж</td><td>2120</td><td>987 654</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <a href="/download/report.pdf" download>Скачать отчет</a>
+    <aside>Контакт report.person@example.test, +7 (495) 111-22-33, report-unrelated-secret</aside>
+  </main>
+</body>
+</html>

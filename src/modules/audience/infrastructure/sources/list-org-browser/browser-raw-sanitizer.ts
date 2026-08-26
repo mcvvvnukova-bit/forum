@@ -39,6 +39,7 @@ export function browserEvidenceSourceProfile(
 ): BrowserEvidenceSourceProfile | undefined {
   if (sourceKind === "list-org-browser") return "full-page";
   if (sourceKind === "list-org-live") return "projection";
+  if (sourceKind === "fns-bfo-live") return "projection";
   return undefined;
 }
 

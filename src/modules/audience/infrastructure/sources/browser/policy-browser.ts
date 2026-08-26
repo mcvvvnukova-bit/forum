@@ -558,7 +558,10 @@ class PolicyBrowserSession implements BrowserSession {
 
   async hasVisibleText(text: string): Promise<boolean> {
     this.#assertNoTerminalRequests();
-    return this.#page.getByText(text, { exact: true }).isVisible();
+    for (const candidate of await this.#page.getByText(text, { exact: true }).all()) {
+      if (await candidate.isVisible()) return true;
+    }
+    return false;
   }
 
   async readLabeledText(label: string): Promise<string> {
@@ -581,6 +584,7 @@ class PolicyBrowserSession implements BrowserSession {
       const links = await this.#page.getByRole("main", { name, exact: true }).getByRole("link").all();
       const values: string[] = [];
       for (const link of links) {
+        if (!await link.isVisible()) continue;
         const value = (await link.innerText()).trim();
         if (value.startsWith(accessibleNamePrefix)) values.push(value);
       }
@@ -641,7 +645,11 @@ class PolicyBrowserSession implements BrowserSession {
         if (visible.length !== 1) {
           throw new Error(`capture projection selector must match exactly one visible element: ${selector}`);
         }
-        fragments.push(await visible[0]!.evaluate((element) => element.outerHTML));
+        fragments.push(await visible[0]!.evaluate((element) => {
+          const html = element.outerHTML;
+          if (element.tagName.toLowerCase() === "tr") return `<table><tbody>${html}</tbody></table>`;
+          return html;
+        }));
       }
       const currentPageUrl = this.#page.url();
       if (this.#safeEvidenceUrl() !== currentPageUrl) {
