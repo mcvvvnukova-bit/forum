@@ -18,6 +18,10 @@ import type {
 import type { StoredBrowserRawObject } from "../../modules/audience/application/ports/raw-object-storage";
 import type { FinancialMetric, FinancialMetricEvidence } from "../../modules/audience/domain/financial";
 import { parseLegalEntityInn } from "../../modules/audience/domain/inn";
+import {
+  assertLivePilotPolicyActive,
+  LIVE_PILOT_POLICY,
+} from "../../modules/audience/domain/live-pilot-policy";
 import { PostgresAudienceRepository } from "../../modules/audience/infrastructure/postgres/audience-repository";
 import { PostgresOkvedRepository } from "../../modules/audience/infrastructure/postgres/okved-repository";
 import { parseBfo } from "../../modules/audience/infrastructure/sources/fns-bfo/bfo-parser";
@@ -42,6 +46,7 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
   const command = parseAudienceCli(argv);
   const env = parseEnv(inputEnv);
   assertAudienceCommandActivation(command, env);
+  if (command.kind === "live-pilot") assertLivePilotPolicyActive(LIVE_PILOT_POLICY);
   const database = new PostgresDatabase(env.databaseUrl);
   const repository = new PostgresAudienceRepository(database);
   const rawStorage = new S3RawObjectStorage(

@@ -30,7 +30,7 @@ import { parseAudienceCli } from "./cli";
 import type { RunLivePilotDependencies } from "../../modules/audience/application/run-live-pilot";
 import { buildLivePilotReport } from "./live-pilot-report";
 import {
-  assertLivePilotPolicyChecksum,
+  assertLivePilotPolicyActive,
   LIVE_PILOT_POLICY,
   type LivePilotPolicy,
 } from "../../modules/audience/domain/live-pilot-policy";
@@ -71,10 +71,7 @@ export async function executeLivePilot(input: {
   testOnlyActivePolicy?: LivePilotPolicy;
 }): Promise<object> {
   const policy = input.testOnlyActivePolicy ?? LIVE_PILOT_POLICY;
-  assertLivePilotPolicyChecksum(policy);
-  if (policy.authorization.status !== "active") {
-    throw new Error("LIVE_PILOT_AUTHORIZATION_CONSUMED");
-  }
+  assertLivePilotPolicyActive(policy);
   if (input.testOnlyActivePolicy !== undefined) {
     assertTestOnlyPolicyInjection(input.env, input.factories, policy);
   }

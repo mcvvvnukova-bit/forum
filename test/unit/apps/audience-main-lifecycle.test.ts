@@ -4,11 +4,16 @@ const harness = vi.hoisted(() => ({
   events: [] as string[],
   output: [] as string[],
   liveOperation: vi.fn<(...args: unknown[]) => Promise<object>>(),
+  fixtureOperation: vi.fn<(...args: unknown[]) => Promise<object>>(),
   reconcileOperation: vi.fn<(...args: unknown[]) => Promise<object>>(),
 }));
 
 vi.mock("../../../src/shared/postgres/database", () => ({
   PostgresDatabase: class {
+    constructor() {
+      harness.events.push("database:constructed");
+    }
+
     close(): Promise<void> {
       harness.events.push("database:closed");
       return Promise.resolve();
@@ -17,11 +22,27 @@ vi.mock("../../../src/shared/postgres/database", () => ({
 }));
 
 vi.mock("../../../src/modules/audience/infrastructure/postgres/audience-repository", () => ({
-  PostgresAudienceRepository: class {},
+  PostgresAudienceRepository: class {
+    constructor() {
+      harness.events.push("repository:constructed");
+    }
+  },
+}));
+
+vi.mock("../../../src/modules/audience/infrastructure/postgres/okved-repository", () => ({
+  PostgresOkvedRepository: class {
+    find(): Promise<object> {
+      return Promise.resolve({ code: "43.11", name: "fixture OKVED" });
+    }
+  },
 }));
 
 vi.mock("../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage", () => ({
   S3RawObjectStorage: class {
+    constructor() {
+      harness.events.push("raw-storage:constructed");
+    }
+
     close(): void {
       harness.events.push("raw-storage:closed");
     }
@@ -30,6 +51,22 @@ vi.mock("../../../src/modules/audience/infrastructure/storage/s3-raw-object-stor
 
 vi.mock("../../../src/apps/browser-runner/run-live-pilot", () => ({
   executeLivePilot: (...args: unknown[]) => harness.liveOperation(...args),
+}));
+
+vi.mock("../../../src/modules/audience/application/run-fixture-discovery", () => ({
+  runFixtureDiscovery: (...args: unknown[]) => harness.fixtureOperation(...args),
+}));
+
+vi.mock("../../../src/apps/browser-runner/list-org-fixture-server", () => ({
+  startListOrgFixtureServer: async () => ({
+    origin: "http://127.0.0.1:4311",
+    close: async () => {},
+  }),
+}));
+
+vi.mock("../../../src/modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source", () => ({
+  ListOrgBrowserSource: class {},
+  PlaywrightBrowserSessionFactory: class {},
 }));
 
 vi.mock("../../../src/modules/audience/application/reconcile-run", () => ({
@@ -52,6 +89,12 @@ const originalEnvironment = new Map(
   environmentNames.map((name) => [name, process.env[name]]),
 );
 
+const liveCommand = {
+  label: "live-pilot",
+  argv: ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "10"],
+  appMode: "live",
+} as const;
+
 interface CommandCase {
   label: string;
   argv: readonly string[];
@@ -64,13 +107,16 @@ interface CommandCase {
 
 const commandCases: readonly CommandCase[] = [
   {
-    label: "live-pilot",
-    argv: ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "10"],
-    appMode: "live",
-    install: (operation) => harness.liveOperation.mockImplementation(operation),
-    success: { runId: "safe-live-run", terminalCode: "LIVE_PILOT_RECONCILED" },
-    failure: new Error("LIVE_PILOT_SOURCE_BLOCKED:http_403-private-detail"),
-    publicError: "live pilot source blocked",
+    label: "fixture-discover",
+    argv: [
+      "fixture-discover", "--okved", "43.11", "--year", "2025",
+      "--max-pages", "1", "--max-companies", "1", "--dry-run",
+    ],
+    appMode: "fixture",
+    install: (operation) => harness.fixtureOperation.mockImplementation(operation),
+    success: { runId: "safe-fixture-run", status: "succeeded" },
+    failure: new Error("private fixture detail"),
+    publicError: "operation failed",
   },
   {
     label: "reconcile",
@@ -89,6 +135,7 @@ describe("audience CLI resource lifetime", () => {
     harness.events.length = 0;
     harness.output.length = 0;
     harness.liveOperation.mockReset();
+    harness.fixtureOperation.mockReset();
     harness.reconcileOperation.mockReset();
     process.exitCode = undefined;
     vi.spyOn(process.stdout, "write").mockImplementation(((chunk: unknown) => {
@@ -107,6 +154,19 @@ describe("audience CLI resource lifetime", () => {
     }
   });
 
+  it("rejects the consumed production policy before public DB or S3 construction", async () => {
+    await startProductionMain(liveCommand);
+    await waitForOutput();
+
+    expect(harness.events).toEqual([]);
+    expect(harness.liveOperation).not.toHaveBeenCalled();
+    expect(JSON.parse(harness.output.join(""))).toEqual({
+      ok: false,
+      error: "operation failed",
+    });
+    expect(process.exitCode).toBe(1);
+  });
+
   it.each(commandCases)("keeps resources open until $label succeeds", async (command) => {
     const completion = deferred<object>();
     command.install(async () => {
@@ -120,11 +180,19 @@ describe("audience CLI resource lifetime", () => {
 
     await startProductionMain(command);
 
-    expect(harness.events).toEqual(["operation:started"]);
+    expect(harness.events).toEqual([
+      "database:constructed",
+      "repository:constructed",
+      "raw-storage:constructed",
+      "operation:started",
+    ]);
     completion.resolve(command.success);
     await waitForOutput();
 
     expect(harness.events).toEqual([
+      "database:constructed",
+      "repository:constructed",
+      "raw-storage:constructed",
       "operation:started",
       "operation:settled",
       "raw-storage:closed",
@@ -149,11 +217,19 @@ describe("audience CLI resource lifetime", () => {
 
     await startProductionMain(command);
 
-    expect(harness.events).toEqual(["operation:started"]);
+    expect(harness.events).toEqual([
+      "database:constructed",
+      "repository:constructed",
+      "raw-storage:constructed",
+      "operation:started",
+    ]);
     completion.reject(command.failure);
     await waitForOutput();
 
     expect(harness.events).toEqual([
+      "database:constructed",
+      "repository:constructed",
+      "raw-storage:constructed",
       "operation:started",
       "operation:settled",
       "raw-storage:closed",
@@ -168,7 +244,7 @@ describe("audience CLI resource lifetime", () => {
   });
 });
 
-async function startProductionMain(command: CommandCase): Promise<void> {
+async function startProductionMain(command: Pick<CommandCase, "argv" | "appMode">): Promise<void> {
   process.argv = [process.execPath, "src/apps/browser-runner/main.ts", ...command.argv];
   Object.assign(process.env, {
     APP_MODE: command.appMode,

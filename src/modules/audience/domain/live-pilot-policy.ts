@@ -109,3 +109,10 @@ export function assertLivePilotPolicyChecksum(policy: LivePilotPolicy): void {
     throw new Error("LIVE_PILOT_POLICY_CHECKSUM_MISMATCH");
   }
 }
+
+export function assertLivePilotPolicyActive(policy: LivePilotPolicy): void {
+  assertLivePilotPolicyChecksum(policy);
+  if (policy.authorization.status !== "active") {
+    throw new Error("LIVE_PILOT_AUTHORIZATION_CONSUMED");
+  }
+}
