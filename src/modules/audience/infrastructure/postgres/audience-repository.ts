@@ -84,6 +84,59 @@ const BLOCK_REASONS = new Set([
 export class PostgresAudienceRepository implements AudienceRepository {
   constructor(private readonly database: Database) {}
 
+  async acquireLivePilotAttempt(input: {
+    scopeKey: string;
+    commandContract: Readonly<Record<string, unknown>>;
+    policyChecksumSha256: string;
+  }): Promise<boolean> {
+    if (input.scopeKey.trim() === ""
+      || !/^[0-9a-f]{64}$/u.test(input.policyChecksumSha256)
+      || input.commandContract === null
+      || Array.isArray(input.commandContract)) {
+      throw new Error("live pilot attempt identity is invalid");
+    }
+    return this.database.transaction(async (transaction) => {
+      await transaction.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+        [input.scopeKey],
+      );
+      const priorGuard = await transaction.query(
+        "SELECT 1 FROM audience.live_pilot_attempts WHERE scope_key = $1",
+        [input.scopeKey],
+      );
+      if (priorGuard.rowCount !== 0) return false;
+
+      const exactScope = JSON.stringify({
+        okved: "43.11",
+        year: 2025,
+        dryRun: true,
+        maxPages: 2,
+        maxCompanies: 10,
+        onlyActive: false,
+        requiredFinancialMetrics: ["revenue", "income", "expenses"],
+      });
+      const priorRun = await transaction.query(
+        `SELECT 1
+         FROM audience.crawl_runs
+         WHERE scope_json = $1::jsonb
+           AND fixture_version = 'list-org-live/1.0.0'
+           AND parser_version = 'list-org-live/1.0.0'
+         LIMIT 1`,
+        [exactScope],
+      );
+      if (priorRun.rowCount !== 0) return false;
+
+      const inserted = await transaction.query(
+        `INSERT INTO audience.live_pilot_attempts (
+           scope_key, command_contract, policy_checksum_sha256
+         ) VALUES ($1, $2::jsonb, $3)
+         ON CONFLICT (scope_key) DO NOTHING`,
+        [input.scopeKey, JSON.stringify(input.commandContract), input.policyChecksumSha256],
+      );
+      return inserted.rowCount === 1;
+    });
+  }
+
   async loadRunScopeYear(runId: string): Promise<number> {
     const result = await this.database.query<RunScopeYearRow>(
       "SELECT scope_json->'year' AS scope_year FROM audience.crawl_runs WHERE id = $1",

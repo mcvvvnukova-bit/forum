@@ -28,8 +28,8 @@ describe("audience core migration", () => {
 
     expect(await tableNames(client, "audience")).toEqual([
       "companies", "company_okveds", "crawl_runs", "crawl_tasks", "dataset_releases",
-      "financial_evidence", "financial_observations", "okveds", "organization_evidence",
-      "run_company_matches", "source_fetches",
+      "financial_evidence", "financial_observations", "live_pilot_attempts", "okveds",
+      "organization_evidence", "run_company_matches", "source_fetches",
     ]);
     expect(await keyedConstraints(client, "p")).toEqual([
       "companies(inn)",
@@ -39,6 +39,7 @@ describe("audience core migration", () => {
       "dataset_releases(id)",
       "financial_evidence(id)",
       "financial_observations(company_inn,report_year)",
+      "live_pilot_attempts(scope_key)",
       "okveds(code)",
       "organization_evidence(id)",
       "run_company_matches(run_id,company_inn,matched_okved_code)",
@@ -100,6 +101,7 @@ describe("audience core migration", () => {
       ["revenue", 18, 2],
     ]);
 
+    await migrate("down");
     await migrate("down");
     expect(await tableNames(client, "audience")).toEqual([]);
 

@@ -3,7 +3,7 @@ import { assertAudienceCommandActivation, parseEnv } from "../../../../src/share
 
 const validEnvironment = {
   APP_MODE: "live",
-  DATABASE_URL: "postgresql://app:password@127.0.0.1:5432/okved",
+  DATABASE_URL: "postgresql://app:password@127.0.0.1:5433/okved",
   S3_ENDPOINT: "http://127.0.0.1:9000",
   S3_BUCKET: "okved-raw",
   S3_ACCESS_KEY_ID: "okved-local",
@@ -43,7 +43,7 @@ describe("parseEnv", () => {
   it("defaults the live source gate to disabled", () => {
     expect(parseEnv(validEnvironment)).toEqual({
       appMode: "live",
-      databaseUrl: "postgresql://app:password@127.0.0.1:5432/okved",
+      databaseUrl: "postgresql://app:password@127.0.0.1:5433/okved",
       s3Endpoint: "http://127.0.0.1:9000",
       s3Bucket: "okved-raw",
       s3AccessKeyId: "okved-local",
@@ -76,5 +76,26 @@ describe("parseEnv", () => {
       { kind: "live-pilot", okved: "43.11", year: 2025, maxCompanies: 10 },
       parseEnv({ ...validEnvironment, LIST_ORG_LIVE_ENABLED: "true", FNS_LIVE_ENABLED: "true" }),
     )).not.toThrow();
+  });
+
+  it.each([
+    ["PostgreSQL host", { DATABASE_URL: "postgresql://app:password@localhost:5433/okved" }],
+    ["PostgreSQL port", { DATABASE_URL: "postgresql://app:password@127.0.0.1:5432/okved" }],
+    ["PostgreSQL database", { DATABASE_URL: "postgresql://app:password@127.0.0.1:5433/other" }],
+    ["PostgreSQL query", { DATABASE_URL: "postgresql://app:password@127.0.0.1:5433/okved?sslmode=disable" }],
+    ["MinIO endpoint", { S3_ENDPOINT: "http://localhost:9000" }],
+    ["MinIO bucket", { S3_BUCKET: "okved-raw-test" }],
+  ])("rejects a live pilot with a non-owned exact %s", (_case, override) => {
+    const env = parseEnv({
+      ...validEnvironment,
+      LIST_ORG_LIVE_ENABLED: "true",
+      FNS_LIVE_ENABLED: "true",
+      ...override,
+    });
+
+    expect(() => assertAudienceCommandActivation(
+      { kind: "live-pilot", okved: "43.11", year: 2025, maxCompanies: 10 },
+      env,
+    )).toThrow("exact owned runtime coordinates");
   });
 });

@@ -40,11 +40,32 @@ export function assertAudienceCommandActivation(command: AudienceCliCommand, env
     if (env.appMode !== "live" || !env.listOrgLiveEnabled || !env.fnsLiveEnabled) {
       throw new Error("live pilot requires APP_MODE=live, LIST_ORG_LIVE_ENABLED=true, and FNS_LIVE_ENABLED=true");
     }
+    assertExactLivePilotCoordinates(env);
     return;
   }
 
   if (env.appMode !== "fixture" || env.listOrgLiveEnabled || env.fnsLiveEnabled) {
     throw new Error("audience CLI is fixture-only");
+  }
+}
+
+function assertExactLivePilotCoordinates(env: AppEnv): void {
+  let database: URL;
+  try {
+    database = new URL(env.databaseUrl);
+  } catch {
+    throw new Error("live pilot requires exact owned runtime coordinates");
+  }
+  const databaseIsExact = (database.protocol === "postgres:" || database.protocol === "postgresql:")
+    && database.hostname === "127.0.0.1"
+    && database.port === "5433"
+    && database.pathname === "/okved"
+    && database.search === ""
+    && database.hash === "";
+  if (!databaseIsExact
+    || env.s3Endpoint !== "http://127.0.0.1:9000"
+    || env.s3Bucket !== "okved-raw") {
+    throw new Error("live pilot requires exact owned runtime coordinates");
   }
 }
 

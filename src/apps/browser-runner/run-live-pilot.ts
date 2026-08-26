@@ -28,6 +28,7 @@ import { HumanVerificationGate } from "./human-verification";
 import { parseAudienceCli } from "./cli";
 import type { RunLivePilotDependencies } from "../../modules/audience/application/run-live-pilot";
 import { buildLivePilotReport } from "./live-pilot-report";
+import { LIVE_PILOT_POLICY } from "../../modules/audience/domain/live-pilot-policy";
 
 const LIST_ORG_URL = "https://www.list-org.com/search";
 const BFO_URL = "https://bo.nalog.gov.ru/";
@@ -62,6 +63,14 @@ export async function executeLivePilot(input: {
   discoveryRawStorage: RawObjectStorage;
   factories?: LivePilotFactories;
 }): Promise<object> {
+  const attemptAcquired = await input.repository.acquireLivePilotAttempt({
+    scopeKey: LIVE_PILOT_POLICY.scopeKey,
+    commandContract: LIVE_PILOT_POLICY.command,
+    policyChecksumSha256: LIVE_PILOT_POLICY.checksumSha256,
+  });
+  if (!attemptAcquired) {
+    throw new Error("LIVE_PILOT_ATTEMPT_ALREADY_CONSUMED");
+  }
   const runId = randomUUID();
   const factories = input.factories ?? productionLivePilotFactories();
   const verification = new HumanVerificationGate({ input: process.stdin, output: process.stdout });

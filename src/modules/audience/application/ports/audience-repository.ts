@@ -163,6 +163,11 @@ export type FinancialMetricOutcomes = Readonly<
 >;
 
 export interface AudienceRepository {
+  acquireLivePilotAttempt(input: {
+    scopeKey: string;
+    commandContract: Readonly<Record<string, unknown>>;
+    policyChecksumSha256: string;
+  }): Promise<boolean>;
   loadRunScopeYear(runId: string): Promise<number>;
   startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart>;
   createDiscoveryRun(input: DiscoveryRunInput): Promise<FencedTask>;
