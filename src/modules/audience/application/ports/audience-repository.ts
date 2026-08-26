@@ -164,6 +164,7 @@ export interface AudienceRepository {
   renewTaskLease(task: FencedTask, leaseSeconds: number): Promise<boolean>;
   taskState(taskId: string): Promise<TaskState | null>;
   recordBrowserAction(task: FencedTask, event: BrowserActionEvent): Promise<boolean>;
+  bindTaskCompany(task: FencedTask, companyInn: string): Promise<boolean>;
   completeDiscovery(input: CompleteDiscoveryInput): Promise<boolean>;
   failTask(task: FencedTask, errorCode: string, failRun: boolean): Promise<boolean>;
   loadReplayInput(runId: string): Promise<ReplayInput>;

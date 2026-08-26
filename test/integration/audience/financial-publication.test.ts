@@ -117,9 +117,13 @@ describe("financial evidence publication", () => {
     const publicationRunId = randomUUID();
     const companyInn = parseLegalEntityInn("7707083893");
     await seedFinancialProvenance(database, publicationRunId);
-    const bfoAttempt = financialSourceAttempt(
-      "fns_bfo", "bfo-old", "raw/fns-bfo/old.json", "fns-bfo/1.0.0",
-    );
+    await insertBfoLiveRawFetch(database, publicationRunId);
+    const bfoAttempt = {
+      sourceKind: "fns_bfo" as const, rawSourceKind: "fns-bfo-live" as const,
+      sourceRecordKey: "7707083893:2025:0710002:2",
+      observedAt: "2026-04-01T00:00:00.000Z", capturedAt: "2026-08-26T12:00:00.000Z",
+      rawFetchKey: "e".repeat(64), parserVersion: "fns-bfo-live/1.0.0",
+    };
     const revexpAttempt = financialSourceAttempt(
       "fns_revexp", "revexp", "raw/fns-revexp/report.xml", "fns-revexp/1.0.0",
     );
@@ -144,6 +148,22 @@ describe("financial evidence publication", () => {
       [publicationRunId],
     );
     expect(task.rows).toEqual([{ task_kind: "live_finance", company_inn: companyInn }]);
+  });
+
+  it("rejects live BFO no-data provenance that belongs to another company or fixture raw", async () => {
+    const publicationRunId = randomUUID();
+    await seedFinancialProvenance(database, publicationRunId);
+    await expect(publishFinancialEvidence({
+      runId: publicationRunId, reportYear: 2025, taskKind: "live_finance", companyInn: "7707083893",
+      evidence: [],
+      metricOutcomes: {
+        revenue: { outcome: "no_data", evidence: 0, sourceAttempt: {
+          ...financialSourceAttempt("fns_bfo", "bfo-old", "raw/fns-bfo/old.json", "fns-bfo/1.0.0"),
+        } },
+        income: mixedMetricOutcomes().income,
+        expenses: mixedMetricOutcomes().expenses,
+      },
+    }, { repository })).rejects.toThrow("live revenue source attempt does not match owned company");
   });
 
   it("publishes BFO live revenue against the exact fns-bfo-live raw identity", async () => {

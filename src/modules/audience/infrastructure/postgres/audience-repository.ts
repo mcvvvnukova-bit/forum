@@ -269,6 +269,20 @@ export class PostgresAudienceRepository implements AudienceRepository {
     return result.rowCount === 1;
   }
 
+  async bindTaskCompany(task: FencedTask, companyInn: string): Promise<boolean> {
+    if (task.taskKind !== "live_finance") throw new Error("only live finance tasks may bind a company");
+    parseLegalEntityInn(companyInn);
+    const result = await this.database.query(
+      `UPDATE audience.crawl_tasks
+       SET result_json = COALESCE(result_json, '{}'::jsonb) || jsonb_build_object('companyInn', $4),
+           updated_at = now()
+       WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'
+         AND (result_json IS NULL OR result_json->>'companyInn' IS NULL OR result_json->>'companyInn' = $4)`,
+      [task.id, task.runId, task.fencingToken, companyInn],
+    );
+    return result.rowCount === 1;
+  }
+
   async completeDiscovery(input: CompleteDiscoveryInput): Promise<boolean> {
     if (input.status === "blocked" && !BLOCK_REASONS.has(input.reason)) {
       throw new Error("discovery block reason is not terminal");
@@ -472,7 +486,12 @@ export class PostgresAudienceRepository implements AudienceRepository {
       }
 
       for (const evidence of input.evidence) {
-        const sourceFetchId = await findFinancialSourceFetch(transaction, input.task.runId, evidence);
+        const sourceFetchId = await findFinancialSourceFetch(
+          transaction,
+          input.task.runId,
+          evidence,
+          input.task.taskKind === "live_finance" && evidence.metric === "revenue",
+        );
         const inserted = await transaction.query<{ id: string } & QueryResultRow>(
           `WITH fence AS (
              SELECT 1 FROM audience.crawl_tasks
@@ -949,6 +968,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
       [runId],
     );
     const scopedInns = new Set(companies.rows.map((item) => item.company_inn));
+    const discoveredInns = new Set(discovery.candidates.map((candidate) => candidate.inn));
     const violations: string[] = [];
     const outcomeCounts: Record<FinancialMetric, number> = { revenue: 0, income: 0, expenses: 0 };
     const ownedInns = new Set<string>();
@@ -961,6 +981,11 @@ export class PostgresAudienceRepository implements AudienceRepository {
     }
     if (Number(count.companies) !== 10 || Number(count.matches) !== 10 || Number(count.relations) !== 10) {
       violations.push("live publication does not contain exactly 10 scoped OKVED relations");
+    }
+    if (row.published_at === null) violations.push("live pilot was not published");
+    if (discoveredInns.size !== scopedInns.size
+      || [...discoveredInns].some((inn) => !scopedInns.has(inn))) {
+      violations.push("published companies differ from discovery candidates");
     }
     if (Number(count.non_terminal) !== 0) violations.push(`non-terminal tasks: ${count.non_terminal}`);
     if (Number(count.out_of_scope_evidence) !== 0) violations.push("financial evidence outside run scope year");

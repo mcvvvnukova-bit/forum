@@ -271,6 +271,9 @@ function publicError(error: unknown): string {
   if (error instanceof Error && error.message.startsWith("LIVE_PILOT_SOURCE_BLOCKED:")) {
     return "live pilot source blocked";
   }
+  if (error instanceof Error && error.message === "live pilot discovery blocked") {
+    return "live pilot discovery blocked";
+  }
   if (error instanceof Error && error.message.startsWith("reconciliation failed:")) {
     return "live pilot reconciliation failed";
   }

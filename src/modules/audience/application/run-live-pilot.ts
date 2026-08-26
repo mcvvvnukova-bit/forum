@@ -9,7 +9,16 @@ export interface RunLivePilotCommand {
 export interface LivePilotDiscoverySummary {
   status: "succeeded" | "blocked";
   discoveredCompanies: number;
+  acceptedCompanies: number;
+  candidates: readonly { inn: string }[];
   rawObjects: number;
+}
+
+export class LivePilotDiscoveryBlockedError extends Error {
+  constructor() {
+    super("live pilot discovery blocked");
+    this.name = "LivePilotDiscoveryBlockedError";
+  }
 }
 
 export interface LivePilotRunResult {
@@ -40,7 +49,8 @@ export async function runLivePilot(
 ): Promise<LivePilotRunResult> {
   assertFixedLivePilotCommand(command);
   const discovery = await dependencies.discover();
-  if (discovery.status !== "succeeded" || discovery.discoveredCompanies !== 10) {
+  if (discovery.status === "blocked") throw new LivePilotDiscoveryBlockedError();
+  if (!hasExactDiscoveryPreflight(discovery)) {
     return {
       runId: command.runId,
       discoveredCompanies: discovery.discoveredCompanies,
@@ -59,6 +69,25 @@ export async function runLivePilot(
     rawObjects: discovery.rawObjects,
     terminalCode: "LIVE_PILOT_RECONCILED",
   };
+}
+
+function hasExactDiscoveryPreflight(discovery: LivePilotDiscoverySummary): boolean {
+  if (discovery.status !== "succeeded"
+    || discovery.discoveredCompanies !== 10
+    || discovery.acceptedCompanies !== 10
+    || discovery.candidates.length !== 10) return false;
+  const inns: string[] = [];
+  for (const candidate of discovery.candidates) {
+    try {
+      // Keep the application preflight independent of parser/source internals.
+      if (!/^\d{10}$/u.test(candidate.inn)) return false;
+      const weights = [2, 4, 10, 3, 5, 9, 4, 6, 8] as const;
+      const checksum = weights.reduce((sum, weight, index) => sum + Number(candidate.inn[index]) * weight, 0) % 11 % 10;
+      if (checksum !== Number(candidate.inn[9])) return false;
+      inns.push(candidate.inn);
+    } catch { return false; }
+  }
+  return new Set(inns).size === 10;
 }
 
 function assertFixedLivePilotCommand(command: RunLivePilotCommand): void {

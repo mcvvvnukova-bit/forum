@@ -160,6 +160,7 @@ export async function findFinancialSourceFetch(
   database: Database,
   runId: string,
   evidence: FinancialMetricEvidence,
+  requireExactSourceRecordKey = false,
 ): Promise<string> {
   const mapping = {
     revenue: "fns_bfo",
@@ -181,8 +182,10 @@ export async function findFinancialSourceFetch(
        AND (object_key = $2 OR checksum_sha256 = $2)
        AND source_kind = $3
        AND parser_version = $4
+       AND ($5::boolean = false OR source_record_key = $6)
      ORDER BY created_at DESC LIMIT 1`,
-    [runId, evidence.rawFetchKey, evidence.rawSourceKind, evidence.parserVersion],
+    [runId, evidence.rawFetchKey, evidence.rawSourceKind, evidence.parserVersion,
+      requireExactSourceRecordKey, evidence.sourceRecordKey],
   );
   const id = result.rows[0]?.id;
   if (id === undefined) throw new Error("financial raw evidence is missing");

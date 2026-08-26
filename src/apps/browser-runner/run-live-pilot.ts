@@ -57,7 +57,11 @@ export async function executeLivePilot(input: {
           taskKind: "live_discovery", onlyActive: false, sourceKind: "list-org-live",
         }, { repository: input.repository, source: listSource, rawStorage: input.discoveryRawStorage });
         selected = (await input.repository.loadReplayInput(runId)).candidates;
-        return summary;
+        return {
+          ...summary,
+          acceptedCompanies: selected.length,
+          candidates: selected.map((candidate) => ({ inn: candidate.inn })),
+        };
       },
       replay: async () => { await replayRun({ runId, dryRun: false }, { repository: input.repository, rawStorage: input.discoveryRawStorage }); },
       finance: async () => {
@@ -88,10 +92,24 @@ export async function executeLivePilot(input: {
           }, { sourceKind: "fns-bfo-live" }),
           humanVerification: verification, runId, parserVersion: "fns-bfo-live/1.0.0",
         });
+        // Ownership is fixed before any BFO navigation so a block/failure is
+        // attributable to one of the ten selected companies.
+        const financeTasks = [] as Array<{ inn: string; task: Awaited<ReturnType<AudienceRepository["createTask"]>> }>;
+        for (const company of selected) {
+          const task = await input.repository.createTask(runId, "live_finance", 300);
+          if (!await input.repository.bindTaskCompany(task, company.inn)) {
+            throw new Error("live finance task ownership could not be bound");
+          }
+          financeTasks.push({ inn: company.inn, task });
+        }
         for (let index = 0; index < selected.length; index += 1) {
           const inn = parseLegalEntityInn(selected[index]!.inn);
+          const financeTask = financeTasks[index]!;
           const bfo = await bfoSource.collectRevenue({ inn, reportYear: 2025 });
-          if (bfo.outcome === "blocked") throw new Error(`LIVE_PILOT_SOURCE_BLOCKED:${bfo.reason}`);
+          if (bfo.outcome === "blocked") {
+            await input.repository.failTask(financeTask.task, "live_finance_blocked", false);
+            throw new Error(`LIVE_PILOT_SOURCE_BLOCKED:${bfo.reason}`);
+          }
           const bfoStored = await bfoRawStorage.put(bfo.raw);
           const bfoRaw: CapturedRawObject = {
             id: randomUUID(), sourceKind: "fns-bfo-live", sourceRecordKey: bfo.raw.identity.sourceRecordKey!,
@@ -110,7 +128,7 @@ export async function executeLivePilot(input: {
               ? { outcome: "published", evidence: 1 }
               : { outcome: "no_data", evidence: 0, sourceAttempt: revexpAttempt(revexpRaw, release.updatedAt) },
           };
-          await publishFinancialEvidence({ runId, reportYear: 2025, taskKind: "live_finance", companyInn: inn,
+          await publishFinancialEvidence({ runId, reportYear: 2025, taskKind: "live_finance", companyInn: inn, task: financeTask.task,
             evidence: [...(bfo.outcome === "published" ? [bfo.evidence] : []), ...revexpForCompany],
             metricOutcomes: outcomes, rawObjects: index === 0 ? [bfoRaw, revexpRaw] : [bfoRaw],
           }, { repository: input.repository });

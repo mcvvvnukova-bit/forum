@@ -2,6 +2,7 @@ import type { FinancialMetricEvidence } from "../domain/financial";
 import type {
   AudienceRepository,
   CapturedRawObject,
+  FencedTask,
   FinancialMetricOutcomes,
 } from "./ports/audience-repository";
 import { StaleTaskError } from "./stale-task-error";
@@ -17,6 +18,7 @@ export interface PublishFinancialEvidenceCommand {
   rawObjects?: readonly CapturedRawObject[];
   taskKind?: "fixture_finance" | "live_finance";
   companyInn?: string;
+  task?: FencedTask;
 }
 
 export interface PublishFinancialEvidenceDependencies {
@@ -48,6 +50,7 @@ export async function publishFinancialEvidence(
     if (command.evidence.some((evidence) => evidence.inn !== command.companyInn)) {
       throw new Error("live finance evidence belongs to another company");
     }
+    assertLiveCompanyFinancialProvenance(command.companyInn, command.evidence, command.metricOutcomes);
   } else if (command.companyInn !== undefined) {
     throw new Error("fixture finance task cannot own a company INN");
   }
@@ -59,11 +62,12 @@ export async function publishFinancialEvidence(
     command.reportYear,
     dependencies.repository,
   );
-  const task = await dependencies.repository.createTask(
-    command.runId,
-    taskKind,
-    FINANCIAL_LEASE_SECONDS,
+  const task = command.task ?? await dependencies.repository.createTask(
+    command.runId, taskKind, FINANCIAL_LEASE_SECONDS,
   );
+  if (task.runId !== command.runId || task.taskKind !== taskKind) {
+    throw new Error("financial task identity does not match command");
+  }
   try {
     const published = await dependencies.repository.publishFinancial({
       task,
@@ -83,5 +87,25 @@ export async function publishFinancialEvidence(
       );
     }
     throw error;
+  }
+}
+
+function assertLiveCompanyFinancialProvenance(
+  companyInn: string,
+  evidence: readonly FinancialMetricEvidence[],
+  outcomes: FinancialMetricOutcomes,
+): void {
+  for (const item of evidence) {
+    if (item.metric !== "revenue") continue;
+    if (item.rawSourceKind !== "fns-bfo-live"
+      || !new RegExp(`^${companyInn}:2025:0710002:`).test(item.sourceRecordKey)) {
+      throw new Error("live revenue evidence does not match owned company");
+    }
+  }
+  const revenue = outcomes.revenue;
+  if (revenue?.outcome === "no_data"
+    && (revenue.sourceAttempt.rawSourceKind !== "fns-bfo-live"
+      || !new RegExp(`^${companyInn}:2025:0710002:`).test(revenue.sourceAttempt.sourceRecordKey))) {
+    throw new Error("live revenue source attempt does not match owned company");
   }
 }
