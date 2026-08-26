@@ -62,6 +62,7 @@ describe("financial evidence publication", () => {
       metric: "revenue",
       value: parseMoneyText("130000", "dot"),
       sourceKind: "fns_bfo",
+      rawSourceKind: "fns-bfo",
       sourceRecordKey: "7707083893:2025:0710002:3",
       observedAt: "2026-05-01T09:00:00.000Z",
       rawFetchKey: "raw/fns-bfo/new.json",
@@ -112,6 +113,68 @@ describe("financial evidence publication", () => {
     ]);
   });
 
+  it("publishes BFO live revenue against the exact fns-bfo-live raw identity", async () => {
+    const publicationRunId = randomUUID();
+    await seedFinancialProvenance(database, publicationRunId);
+    await insertBfoLiveRawFetch(database, publicationRunId);
+    const evidence: FinancialMetricEvidence = {
+      inn: parseLegalEntityInn("7707083893"),
+      reportYear: 2025,
+      metric: "revenue",
+      value: parseMoneyText("1654023000", "dot"),
+      sourceKind: "fns_bfo",
+      rawSourceKind: "fns-bfo-live",
+      sourceRecordKey: "7707083893:2025:0710002:2",
+      observedAt: "2026-04-01T00:00:00.000Z",
+      rawFetchKey: "e".repeat(64),
+      parserVersion: "fns-bfo-live/1.0.0",
+    };
+
+    await publishFinancialEvidence({
+      runId: publicationRunId,
+      reportYear: 2025,
+      evidence: [evidence],
+      metricOutcomes: metricOutcomesForEvidence([evidence]),
+    }, { repository });
+
+    const rows = await database.query<{ source_kind: string; source_record_key: string }>(
+      `SELECT raw.source_kind, raw.source_record_key
+       FROM audience.financial_evidence evidence
+       JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+       WHERE raw.run_id = $1 AND evidence.metric = 'revenue'`,
+      [publicationRunId],
+    );
+    expect(rows.rows).toEqual([{
+      source_kind: "fns-bfo-live",
+      source_record_key: "7707083893:2025:0710002:2",
+    }]);
+  });
+
+  it("rejects BFO live revenue when its explicit rawSourceKind names fixture raw", async () => {
+    const publicationRunId = randomUUID();
+    await seedFinancialProvenance(database, publicationRunId);
+    await insertBfoLiveRawFetch(database, publicationRunId);
+    const evidence: FinancialMetricEvidence = {
+      inn: parseLegalEntityInn("7707083893"),
+      reportYear: 2025,
+      metric: "revenue",
+      value: parseMoneyText("1654023000", "dot"),
+      sourceKind: "fns_bfo",
+      rawSourceKind: "fns-bfo",
+      sourceRecordKey: "7707083893:2025:0710002:2",
+      observedAt: "2026-04-01T00:00:00.000Z",
+      rawFetchKey: "e".repeat(64),
+      parserVersion: "fns-bfo-live/1.0.0",
+    };
+
+    await expect(publishFinancialEvidence({
+      runId: publicationRunId,
+      reportYear: 2025,
+      evidence: [evidence],
+      metricOutcomes: metricOutcomesForEvidence([evidence]),
+    }, { repository })).rejects.toThrow("financial raw evidence is missing");
+  });
+
   it("publishes legitimate BFO live no-data with separate official and capture timestamps", async () => {
     const publicationRunId = randomUUID();
     await seedBfoLiveNoDataProvenance(database, publicationRunId);
@@ -144,6 +207,60 @@ describe("financial evidence publication", () => {
         },
       },
     });
+
+    await expect(repository.reconcile(publicationRunId)).resolves.toMatchObject({
+      unexplainedSourceFetches: 0,
+      consistent: true,
+    });
+  });
+
+  it("reconciliation rejects a persisted rawSourceKind that mismatches the raw row", async () => {
+    const reconciliationRunId = randomUUID();
+    const sourceAttempt = {
+      sourceKind: "fns_bfo",
+      rawSourceKind: "fns-bfo-live",
+      sourceRecordKey: "bfo-forged-kind",
+      observedAt: "2026-04-01T00:00:00.000Z",
+      capturedAt: "2026-08-26T12:00:00.000Z",
+      rawFetchKey: "f".repeat(64),
+      parserVersion: "fns-bfo-live/1.0.0",
+    };
+    await database.transaction(async (transaction) => {
+      await transaction.query(
+        `INSERT INTO audience.crawl_runs (
+           id, scope_json, fixture_version, parser_version, status, terminal_reason,
+           completed_at, published_at
+         ) VALUES ($1, '{"year":2025}'::jsonb, 'forged-kind/1.0.0',
+           'financial/1.0.0', 'succeeded', 'terminal_marker', now(), now())`,
+        [reconciliationRunId],
+      );
+      await transaction.query(
+        `INSERT INTO audience.source_fetches (
+           id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+           mime_type, final_url, navigation_status, captured_at, parser_version
+         ) VALUES (gen_random_uuid(), $1, 'fns-bfo', $2, 'raw/forged-kind.json', $3,
+           'application/json', 'http://127.0.0.1/fixtures/forged-kind.json', 200,
+           $4::timestamptz, $5)`,
+        [reconciliationRunId, sourceAttempt.sourceRecordKey, sourceAttempt.rawFetchKey,
+          sourceAttempt.capturedAt, sourceAttempt.parserVersion],
+      );
+      await transaction.query(
+        `INSERT INTO audience.crawl_tasks (
+           id, run_id, task_kind, status, attempts, fencing_token, result_json, completed_at
+         ) VALUES (gen_random_uuid(), $1, 'fixture_finance', 'succeeded', 1, 1,
+           $2::jsonb, now())`,
+        [reconciliationRunId, JSON.stringify({
+          evidence: 0,
+          metricOutcomes: {
+            revenue: { outcome: "no_data", evidence: 0, sourceAttempt },
+          },
+        })],
+      );
+    });
+
+    await expect(repository.reconcile(reconciliationRunId)).rejects.toThrow(
+      "unexplained source fetches: 1",
+    );
   });
 
   it("rejects a forged BFO no-data capture timestamp without fallback to official time", async () => {
@@ -333,6 +450,7 @@ describe("financial evidence publication", () => {
       metric: "revenue",
       value: parseMoneyText("200", "dot"),
       sourceKind: "fns_bfo",
+      rawSourceKind: "fns-bfo",
       sourceRecordKey: "7704217370:2025:0710002:newer",
       observedAt: "2026-05-01T09:00:00.000Z",
       rawFetchKey: "raw/fns-bfo/new.json",
@@ -379,6 +497,7 @@ describe("financial evidence publication", () => {
         metric: "income",
         value: parseMoneyText("10", "dot"),
         sourceKind: "fns_revexp",
+        rawSourceKind: "fns-revexp",
         sourceRecordKey: "7710140679:2025:income",
         observedAt: "2026-04-01T09:00:00.000Z",
         rawFetchKey: "raw/fns-revexp/report.xml",
@@ -390,6 +509,7 @@ describe("financial evidence publication", () => {
         metric: "expenses",
         value: parseMoneyText("5", "dot"),
         sourceKind: "fns_revexp",
+        rawSourceKind: "fns-revexp",
         sourceRecordKey: "7710140679:2025:expenses",
         observedAt: "2026-04-01T09:00:00.000Z",
         rawFetchKey: "raw/missing.xml",
@@ -426,6 +546,7 @@ describe("financial evidence publication", () => {
         metric: "income",
         value: parseMoneyText("15", "dot"),
         sourceKind: "fns_revexp",
+        rawSourceKind: "fns-revexp",
         sourceRecordKey: "7710140679:2025:income-year-lock",
         observedAt: "2026-04-01T09:00:00.000Z",
         rawFetchKey: "raw/fns-revexp/report.xml",
@@ -437,6 +558,7 @@ describe("financial evidence publication", () => {
         metric: "revenue",
         value: parseMoneyText("30", "dot"),
         sourceKind: "fns_bfo",
+        rawSourceKind: "fns-bfo",
         sourceRecordKey: "7710140679:2026:revenue-year-lock",
         observedAt: "2026-04-01T09:00:00.000Z",
         rawFetchKey: "raw/fns-bfo/old.json",
@@ -493,6 +615,7 @@ describe("financial evidence publication", () => {
       metric,
       value: parseMoneyText("42", "dot"),
       sourceKind,
+      rawSourceKind: sourceKind === "fns_bfo" ? "fns-bfo" : "fns-revexp",
       sourceRecordKey: `${inn}:2025:${metric}`,
       observedAt: "2026-04-01T09:00:00.000Z",
       rawFetchKey,
@@ -518,6 +641,7 @@ describe("financial evidence publication", () => {
       metric: "revenue",
       value: parseMoneyText("125000", "dot"),
       sourceKind: "fns_bfo",
+      rawSourceKind: "fns-bfo",
       sourceRecordKey: "7707083893:2025:0710002:mixed",
       observedAt: "2026-04-01T09:00:00.000Z",
       rawFetchKey: "raw/fns-bfo/old.json",
@@ -567,6 +691,7 @@ describe("financial evidence publication", () => {
       metric: "revenue",
       value: parseMoneyText("42", "dot"),
       sourceKind: "fns_bfo",
+      rawSourceKind: "fns-bfo",
       sourceRecordKey: "7707083893:2025:0710002:rejected-contract",
       observedAt: "2026-04-01T09:00:00.000Z",
       rawFetchKey: "raw/fns-bfo/old.json",
@@ -735,9 +860,11 @@ async function seedBfoLiveNoDataProvenance(
   await database.transaction(async (transaction) => {
     await transaction.query(
       `INSERT INTO audience.crawl_runs (
-         id, scope_json, fixture_version, parser_version, status, completed_at, published_at
+         id, scope_json, fixture_version, parser_version, status, terminal_reason,
+         completed_at, published_at
        ) VALUES ($1, '{"year":2025,"requiredFinancialMetrics":["revenue"]}'::jsonb,
-         'bfo-live-fixture/1.0.0', 'fns-bfo-live/1.0.0', 'succeeded', now(), now())`,
+         'bfo-live-fixture/1.0.0', 'fns-bfo-live/1.0.0', 'succeeded',
+         'terminal_marker', now(), now())`,
       [runId],
     );
     await transaction.query(
@@ -751,4 +878,20 @@ async function seedBfoLiveNoDataProvenance(
       [runId, "e".repeat(64), "2026-08-26T12:00:00.000Z"],
     );
   });
+}
+
+async function insertBfoLiveRawFetch(
+  database: PostgresDatabase,
+  runId: string,
+): Promise<void> {
+  await database.query(
+    `INSERT INTO audience.source_fetches (
+       id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+       mime_type, final_url, navigation_status, captured_at, parser_version
+     ) VALUES (gen_random_uuid(), $1, 'fns-bfo-live', '7707083893:2025:0710002:2',
+       'raw/bfo-live/published-manifest.json', $2, 'application/json',
+       'https://bo.nalog.gov.ru/statements/opaque', 200, $3::timestamptz,
+       'fns-bfo-live/1.0.0')`,
+    [runId, "e".repeat(64), "2026-08-26T12:00:00.000Z"],
+  );
 }

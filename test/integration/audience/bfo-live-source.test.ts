@@ -51,6 +51,7 @@ describe("BfoLiveSource", () => {
         metric: "revenue",
         value: "1654023000.00",
         sourceKind: "fns_bfo",
+        rawSourceKind: "fns-bfo-live",
         sourceRecordKey: "7707083893:2025:0710002:2",
         observedAt: "2026-04-01T00:00:00.000Z",
         parserVersion: "fns-bfo-live/1.0.0",

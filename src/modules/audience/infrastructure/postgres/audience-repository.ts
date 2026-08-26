@@ -696,11 +696,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
                   outcome.value->'sourceAttempt'->>'rawFetchKey' = raw.object_key
                   OR outcome.value->'sourceAttempt'->>'rawFetchKey' = raw.checksum_sha256
                 )
-                AND CASE outcome.value->'sourceAttempt'->>'sourceKind'
-                  WHEN 'fns_bfo' THEN 'fns-bfo'
-                  WHEN 'fns_revexp' THEN 'fns-revexp'
-                  ELSE NULL
-                END = raw.source_kind
+                AND outcome.value->'sourceAttempt'->>'rawSourceKind' = raw.source_kind
             )
             AND NOT (
               raw.source_kind = 'list-org-browser'

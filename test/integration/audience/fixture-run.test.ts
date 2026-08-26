@@ -555,6 +555,7 @@ describe("fixture discovery and replay publication", () => {
         metric: "revenue",
         value: parseMoneyText("1", "dot"),
         sourceKind: "fns_bfo",
+        rawSourceKind: "fns-bfo",
         sourceRecordKey: "7707083893:2025:0710002:forced-failure",
         observedAt: "2026-04-01T09:00:00.000Z",
         rawFetchKey: "raw/forced-missing-finance.json",

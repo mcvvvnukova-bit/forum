@@ -158,13 +158,18 @@ export async function findFinancialSourceFetch(
   evidence: FinancialMetricEvidence,
 ): Promise<string> {
   const mapping = {
-    revenue: { evidenceSourceKind: "fns_bfo", rawSourceKind: "fns-bfo" },
-    income: { evidenceSourceKind: "fns_revexp", rawSourceKind: "fns-revexp" },
-    expenses: { evidenceSourceKind: "fns_revexp", rawSourceKind: "fns-revexp" },
+    revenue: "fns_bfo",
+    income: "fns_revexp",
+    expenses: "fns_revexp",
   } as const;
-  const expected = mapping[evidence.metric];
-  if (evidence.sourceKind !== expected.evidenceSourceKind) {
+  if (evidence.sourceKind !== mapping[evidence.metric]) {
     throw new Error("financial source mapping does not match metric");
+  }
+  const rawSourceMatchesMetric = evidence.metric === "revenue"
+    ? evidence.rawSourceKind === "fns-bfo" || evidence.rawSourceKind === "fns-bfo-live"
+    : evidence.rawSourceKind === "fns-revexp";
+  if (!rawSourceMatchesMetric) {
+    throw new Error("financial raw source mapping does not match metric");
   }
   const result = await database.query<{ id: string } & QueryResultRow>(
     `SELECT id FROM audience.source_fetches
@@ -173,7 +178,7 @@ export async function findFinancialSourceFetch(
        AND source_kind = $3
        AND parser_version = $4
      ORDER BY created_at DESC LIMIT 1`,
-    [runId, evidence.rawFetchKey, expected.rawSourceKind, evidence.parserVersion],
+    [runId, evidence.rawFetchKey, evidence.rawSourceKind, evidence.parserVersion],
   );
   const id = result.rows[0]?.id;
   if (id === undefined) throw new Error("financial raw evidence is missing");
