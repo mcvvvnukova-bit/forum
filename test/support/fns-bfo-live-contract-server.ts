@@ -38,6 +38,7 @@ export async function startFnsBfoLiveContractServer(): Promise<FnsBfoLiveContrac
   let downloadRequests = 0;
   let captchaResponses = 0;
   let foreignDestinationRequests = 0;
+  let requestedInn = DEFAULT_INN;
 
   const foreignServer = createServer((_request, response) => {
     foreignDestinationRequests += 1;
@@ -73,6 +74,7 @@ export async function startFnsBfoLiveContractServer(): Promise<FnsBfoLiveContrac
       activeScenario = url.searchParams.get("scenario") ?? activeScenario;
       const query = url.searchParams.get("query") ?? "";
       searches.push(query);
+      requestedInn = query;
       searchDispatches += 1;
       if (activeScenario === "transport-reset-exhausted") {
         request.socket.destroy();
@@ -95,7 +97,7 @@ export async function startFnsBfoLiveContractServer(): Promise<FnsBfoLiveContrac
         responseHtml(response, '<!doctype html><main aria-label="Failure">Do not retry</main>', 418);
         return;
       }
-      const resultInn = activeScenario === "wrong-result-inn" ? WRONG_INN : DEFAULT_INN;
+      const resultInn = activeScenario === "wrong-result-inn" ? WRONG_INN : requestedInn;
       const localHref = "/cards/record-1";
       const resultHref = activeScenario === "foreign-navigation"
         ? `${foreignOrigin}/cards/record-1`
@@ -111,7 +113,7 @@ export async function startFnsBfoLiveContractServer(): Promise<FnsBfoLiveContrac
 
     const organizationMatch = /^\/cards\/(record-[1-9][0-9]*)$/u.exec(url.pathname);
     if (organizationMatch?.[1] !== undefined) {
-      responseHtml(response, organizationPage(organizationMatch[1], DEFAULT_INN, activeScenario));
+      responseHtml(response, organizationPage(organizationMatch[1], requestedInn, activeScenario));
       return;
     }
 
@@ -129,7 +131,7 @@ export async function startFnsBfoLiveContractServer(): Promise<FnsBfoLiveContrac
       response.once("finish", finish);
       response.once("close", finish);
 
-      const inn = DEFAULT_INN;
+      const inn = requestedInn;
       const year = url.searchParams.get("year");
       activeScenario = url.searchParams.get("scenario") ?? activeScenario;
       if (year !== "2025") {

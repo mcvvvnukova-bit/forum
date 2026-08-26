@@ -530,7 +530,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
       const update = await transaction.query(
         `UPDATE audience.crawl_tasks
          SET status = 'succeeded', lease_expires_at = NULL, completed_at = now(), updated_at = now(),
-             result_json = $4::jsonb
+             result_json = COALESCE(result_json, '{}'::jsonb) || $4::jsonb
          WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'`,
         [input.task.id, input.task.runId, input.task.fencingToken,
           JSON.stringify({
@@ -913,17 +913,29 @@ export class PostgresAudienceRepository implements AudienceRepository {
       published_at: string | null;
       scope_json: { year?: unknown; okved?: unknown };
       result_json: unknown;
+      discovery_tasks: string;
     } & QueryResultRow>(
       `SELECT run.status, run.terminal_reason, run.published_at, run.scope_json,
-              task.result_json
+              discovery.result_json,
+              (SELECT count(*) FROM audience.crawl_tasks task
+               WHERE task.run_id = run.id AND task.task_kind = 'live_discovery')::text
+                AS discovery_tasks
        FROM audience.crawl_runs run
-       JOIN audience.crawl_tasks task
-         ON task.run_id = run.id AND task.task_kind = 'live_discovery'
+       LEFT JOIN LATERAL (
+         SELECT task.result_json
+         FROM audience.crawl_tasks task
+         WHERE task.run_id = run.id AND task.task_kind = 'live_discovery'
+         ORDER BY task.created_at, task.id
+         LIMIT 1
+       ) discovery ON true
        WHERE run.id = $1`,
       [runId],
     );
     const row = run.rows[0];
     if (row === undefined) throw new Error("crawl run does not exist");
+    if (Number(row.discovery_tasks) !== 1) {
+      throw new Error("reconciliation failed: live discovery task count is not 1");
+    }
     const discovery = parseLiveDiscoveryAudit(row.result_json);
     const scopeYear = parseRunScopeYear(row.scope_json.year);
     if (scopeYear !== 2025 || row.scope_json.okved !== "43.11") {
@@ -932,6 +944,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
     const counts = await this.database.query<{
       tasks: string; non_terminal: string; source_fetches: string; companies: string;
       relations: string; matches: string; out_of_scope_evidence: string;
+      invalid_financial_provenance: string;
     } & QueryResultRow>(
       `SELECT
          (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = $1)::text AS tasks,
@@ -947,7 +960,23 @@ export class PostgresAudienceRepository implements AudienceRepository {
          (SELECT count(*) FROM audience.run_company_matches WHERE run_id = $1)::text AS matches,
          (SELECT count(*) FROM audience.financial_evidence evidence
           JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
-          WHERE raw.run_id = $1 AND evidence.report_year <> 2025)::text AS out_of_scope_evidence`,
+          WHERE raw.run_id = $1 AND evidence.report_year <> 2025)::text AS out_of_scope_evidence,
+         (SELECT count(*) FROM audience.financial_evidence evidence
+          JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+          WHERE raw.run_id = $1 AND evidence.report_year = 2025
+            AND NOT (
+              (evidence.metric = 'revenue'
+                AND raw.source_kind = 'fns-bfo-live'
+                AND evidence.source_record_key = raw.source_record_key
+                AND raw.source_record_key ~ ('^' || evidence.company_inn || ':2025:0710002:[^:]+$')
+                AND evidence.parser_version = raw.parser_version)
+              OR
+              (evidence.metric IN ('income', 'expenses')
+                AND raw.source_kind = 'fns-revexp'
+                AND raw.source_record_key = '7707329152-revexp:2025'
+                AND evidence.source_record_key = evidence.company_inn || ':2025:revexp'
+                AND evidence.parser_version = raw.parser_version)
+            ))::text AS invalid_financial_provenance`,
       [runId],
     );
     const count = counts.rows[0]!;
@@ -997,6 +1026,9 @@ export class PostgresAudienceRepository implements AudienceRepository {
     }
     if (Number(count.non_terminal) !== 0) violations.push(`non-terminal tasks: ${count.non_terminal}`);
     if (Number(count.out_of_scope_evidence) !== 0) violations.push("financial evidence outside run scope year");
+    if (Number(count.invalid_financial_provenance) !== 0) {
+      violations.push("published financial evidence provenance is invalid");
+    }
     if (financeTasks.rows.length !== 10) violations.push("live finance task count is not 10");
     for (const task of financeTasks.rows) {
       if (task.status !== "succeeded") {
@@ -1035,7 +1067,10 @@ export class PostgresAudienceRepository implements AudienceRepository {
       violations.push("live pilot does not contain 30 terminal company metric outcomes");
     }
     const unexplained = await unexplainedLiveRawFetches(
-      this.database, runId, discovery.candidates.map((candidate) => candidate.sourceRecordKey),
+      this.database,
+      runId,
+      discovery.audit.pageIdentities?.flatMap((page) => page.orderedSourceRecordKeys)
+        ?? discovery.candidates.map((candidate) => candidate.sourceRecordKey),
     );
     if (unexplained !== 0) violations.push(`unexplained source fetches: ${unexplained}`);
     if (violations.length > 0) throw new Error(`reconciliation failed: ${violations.join("; ")}`);
@@ -1295,6 +1330,7 @@ function parseLiveDiscoveryAudit(value: unknown): {
   if (fields.some((field) => !Number.isSafeInteger(record[field]) || Number(record[field]) < 0)) {
     throw new Error("live discovery audit is invalid");
   }
+  const pageIdentities = parseLiveDiscoveryPageIdentities(record.pageIdentities);
   return {
     candidates,
     acceptedCompanies: Number(record.acceptedCompanies),
@@ -1305,8 +1341,36 @@ function parseLiveDiscoveryAudit(value: unknown): {
       duplicates: Number(record.duplicates),
       rejected: Number(record.rejected),
       blockedOrConflicted: Number(record.blockedOrConflicted),
+      ...(pageIdentities === undefined ? {} : { pageIdentities }),
     },
   };
+}
+
+function parseLiveDiscoveryPageIdentities(
+  value: unknown,
+): ReconciliationReport["discovery"]["pageIdentities"] {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new Error("live discovery audit is invalid");
+  return value.map((item) => {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error("live discovery audit is invalid");
+    }
+    const page = item as Record<string, unknown>;
+    if (!hasExactKeys(page, ["orderedSourceRecordKeys", "page", "resultFingerprintSha256"])
+      || !Number.isSafeInteger(page.page)
+      || Number(page.page) <= 0
+      || !Array.isArray(page.orderedSourceRecordKeys)
+      || page.orderedSourceRecordKeys.some((key) => typeof key !== "string" || key.trim() === "")
+      || typeof page.resultFingerprintSha256 !== "string"
+      || !/^[0-9a-f]{64}$/u.test(page.resultFingerprintSha256)) {
+      throw new Error("live discovery audit is invalid");
+    }
+    return {
+      page: Number(page.page),
+      orderedSourceRecordKeys: page.orderedSourceRecordKeys as string[],
+      resultFingerprintSha256: page.resultFingerprintSha256,
+    };
+  });
 }
 
 function parseLiveFinancialTask(value: unknown): {
@@ -1318,7 +1382,6 @@ function parseLiveFinancialTask(value: unknown): {
   if (typeof companyInn !== "string") return undefined;
   try { parseLegalEntityInn(companyInn); } catch { return undefined; }
   const outcomes = parseFinancialMetricOutcomes(value);
-  if (Object.keys(outcomes).length !== 3) return undefined;
   return { companyInn, outcomes };
 }
 

@@ -13,7 +13,11 @@ export async function publishOrganizationCandidates(
     const fetchResult = await database.query<{ id: string } & QueryResultRow>(
       `SELECT id
        FROM audience.source_fetches
-       WHERE run_id = $1 AND source_kind = 'list-org-browser'
+       WHERE run_id = $1
+         AND source_kind = CASE WHEN EXISTS (
+           SELECT 1 FROM audience.crawl_tasks
+           WHERE run_id = $1 AND task_kind = 'live_discovery'
+         ) THEN 'list-org-live' ELSE 'list-org-browser' END
          AND checksum_sha256 = $2 AND source_record_key = $3
        ORDER BY created_at
        LIMIT 1`,

@@ -9,9 +9,11 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { runner } from "node-pg-migrate";
+import { chromium } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { buildLivePilotReport } from "../../src/apps/browser-runner/live-pilot-report";
+import { executeLivePilot, type LivePilotFactories } from "../../src/apps/browser-runner/run-live-pilot";
 
 import { importSelectedOkveds } from "../../src/modules/audience/application/import-selected-okveds";
 import type { CapturedRawObject } from "../../src/modules/audience/application/ports/audience-repository";
@@ -22,16 +24,33 @@ import { runFixtureDiscovery } from "../../src/modules/audience/application/run-
 import { parseLegalEntityInn } from "../../src/modules/audience/domain/inn";
 import { PostgresAudienceRepository } from "../../src/modules/audience/infrastructure/postgres/audience-repository";
 import { PostgresOkvedRepository } from "../../src/modules/audience/infrastructure/postgres/okved-repository";
+import { PolicyBrowserSessionFactory } from "../../src/modules/audience/infrastructure/sources/browser/policy-browser";
 import { parseBfo } from "../../src/modules/audience/infrastructure/sources/fns-bfo/bfo-parser";
+import { BfoLiveSource } from "../../src/modules/audience/infrastructure/sources/fns-bfo-live/bfo-live-source";
 import { parseRevexp } from "../../src/modules/audience/infrastructure/sources/fns-revexp/revexp-parser";
+import type { RevexpTransport } from "../../src/modules/audience/infrastructure/sources/fns-revexp/revexp-release";
+import { ListOrgLiveSource } from "../../src/modules/audience/infrastructure/sources/list-org-live/list-org-live-source";
 import {
   ListOrgBrowserSource,
   PlaywrightBrowserSessionFactory,
 } from "../../src/modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source";
 import { checksumBrowserRawBundle, sha256 } from "../../src/modules/audience/infrastructure/storage/raw-bundle";
+import { S3FileRawObjectStorage } from "../../src/modules/audience/infrastructure/storage/s3-file-raw-object-storage";
 import { S3RawObjectStorage } from "../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
 import type { AppEnv } from "../../src/shared/config/env";
-import { PostgresDatabase } from "../../src/shared/postgres/database";
+import { PostgresDatabase, type Database } from "../../src/shared/postgres/database";
+import {
+  startFnsBfoLiveContractServer,
+  type FnsBfoLiveContractServer,
+} from "../support/fns-bfo-live-contract-server";
+import {
+  startRevexpContractServer,
+  type RevexpContractServer,
+} from "../support/fns-revexp-contract-server";
+import {
+  startListOrgLiveContractServer,
+  type ListOrgLiveContractServer,
+} from "../support/list-org-live-contract-server";
 import {
   startListOrgFixtureServer,
   type ListOrgFixtureServer,
@@ -630,6 +649,953 @@ describe.sequential("audience parser fixture acceptance", () => {
     );
   }, 60_000);
 });
+
+interface LiveReconciliationMismatchCase {
+  readonly name: string;
+  readonly expected: string;
+  mutate(database: PostgresDatabase, runId: string): Promise<() => Promise<void>>;
+}
+
+const liveReconciliationMismatchCases: readonly LiveReconciliationMismatchCase[] = [
+  {
+    name: "an unexpected discovery task",
+    expected: "live discovery task count is not 1",
+    mutate: async (database, runId) => {
+      const discovery = (await database.query<{ result_json: unknown }>(
+        `SELECT result_json FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'live_discovery'
+         ORDER BY created_at, id LIMIT 1`,
+        [runId],
+      )).rows[0]!;
+      const duplicateId = randomUUID();
+      await database.query(
+        `INSERT INTO audience.crawl_tasks (
+           id, run_id, task_kind, status, attempts, fencing_token,
+           result_json, completed_at
+         ) VALUES ($1, $2, 'live_discovery', 'succeeded', 1, 1, $3::jsonb, now())`,
+        [duplicateId, runId, JSON.stringify(discovery.result_json)],
+      );
+      return async () => {
+        await database.query("DELETE FROM audience.crawl_tasks WHERE id = $1", [duplicateId]);
+      };
+    },
+  },
+  {
+    name: "a missing company/metric outcome",
+    expected: "required financial metric outcome is absent: income",
+    mutate: async (database, runId) => {
+      const task = (await database.query<{ id: string; result_json: unknown }>(
+        `SELECT id, result_json FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'live_finance'
+         ORDER BY created_at, id LIMIT 1`,
+        [runId],
+      )).rows[0]!;
+      await database.query(
+        `UPDATE audience.crawl_tasks
+         SET result_json = result_json #- '{metricOutcomes,income}'
+         WHERE id = $1`,
+        [task.id],
+      );
+      return async () => {
+        await database.query(
+          "UPDATE audience.crawl_tasks SET result_json = $2::jsonb WHERE id = $1",
+          [task.id, JSON.stringify(task.result_json)],
+        );
+      };
+    },
+  },
+  {
+    name: "a duplicate company/metric outcome",
+    expected: "live finance task ownership is foreign or duplicate",
+    mutate: async (database, runId) => {
+      const source = (await database.query<{ result_json: unknown }>(
+        `SELECT result_json FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'live_finance' AND status = 'succeeded'
+         ORDER BY created_at, id LIMIT 1`,
+        [runId],
+      )).rows[0]!;
+      const taskId = randomUUID();
+      await database.query(
+        `INSERT INTO audience.crawl_tasks (
+           id, run_id, task_kind, status, attempts, fencing_token,
+           result_json, completed_at
+         ) VALUES ($1, $2, 'live_finance', 'succeeded', 1, 1, $3::jsonb, now())`,
+        [taskId, runId, JSON.stringify(source.result_json)],
+      );
+      return async () => {
+        await database.query("DELETE FROM audience.crawl_tasks WHERE id = $1", [taskId]);
+      };
+    },
+  },
+  ...(["failed", "blocked"] as const).map((status): LiveReconciliationMismatchCase => ({
+    name: `a ${status} finance task`,
+    expected: `live finance task did not succeed: ${status}`,
+    mutate: async (database, runId) => {
+      const taskId = (await database.query<{ id: string }>(
+        `SELECT id FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'live_finance'
+         ORDER BY created_at, id LIMIT 1`,
+        [runId],
+      )).rows[0]!.id;
+      await database.query(
+        "UPDATE audience.crawl_tasks SET status = $2::audience.crawl_status WHERE id = $1",
+        [taskId, status],
+      );
+      return async () => {
+        await database.query(
+          "UPDATE audience.crawl_tasks SET status = 'succeeded' WHERE id = $1",
+          [taskId],
+        );
+      };
+    },
+  })),
+  {
+    name: "financial evidence from the wrong year",
+    expected: "financial evidence outside run scope year",
+    mutate: async (database, runId) => {
+      const companyInn = (await database.query<{ company_inn: string }>(
+        `SELECT evidence.company_inn FROM audience.financial_evidence evidence
+         JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+         WHERE raw.run_id = $1 ORDER BY evidence.company_inn LIMIT 1`,
+        [runId],
+      )).rows[0]!.company_inn;
+      await database.transaction(async (transaction) => {
+        await transaction.query("SET CONSTRAINTS ALL DEFERRED");
+        await transaction.query(
+          `UPDATE audience.financial_observations SET report_year = 2024
+           WHERE company_inn = $1 AND report_year = 2025`,
+          [companyInn],
+        );
+        await transaction.query(
+          `UPDATE audience.financial_evidence SET report_year = 2024
+           WHERE company_inn = $1 AND report_year = 2025
+             AND source_fetch_id IN (SELECT id FROM audience.source_fetches WHERE run_id = $2)`,
+          [companyInn, runId],
+        );
+      });
+      return async () => {
+        await database.transaction(async (transaction) => {
+          await transaction.query("SET CONSTRAINTS ALL DEFERRED");
+          await transaction.query(
+            `UPDATE audience.financial_observations SET report_year = 2025
+             WHERE company_inn = $1 AND report_year = 2024`,
+            [companyInn],
+          );
+          await transaction.query(
+            `UPDATE audience.financial_evidence SET report_year = 2025
+             WHERE company_inn = $1 AND report_year = 2024
+               AND source_fetch_id IN (SELECT id FROM audience.source_fetches WHERE run_id = $2)`,
+            [companyInn, runId],
+          );
+        });
+      };
+    },
+  },
+  {
+    name: "a wrong OKVED scope",
+    expected: "live pilot scope is invalid",
+    mutate: async (database, runId) => {
+      const scope = (await database.query<{ scope_json: unknown }>(
+        "SELECT scope_json FROM audience.crawl_runs WHERE id = $1",
+        [runId],
+      )).rows[0]!.scope_json;
+      await database.query(
+        `UPDATE audience.crawl_runs
+         SET scope_json = jsonb_set(scope_json, '{okved}', '"43.12"'::jsonb)
+         WHERE id = $1`,
+        [runId],
+      );
+      return async () => {
+        await database.query(
+          "UPDATE audience.crawl_runs SET scope_json = $2::jsonb WHERE id = $1",
+          [runId, JSON.stringify(scope)],
+        );
+      };
+    },
+  },
+  {
+    name: "only 9 published companies",
+    expected: "live publication does not contain exactly 10 scoped OKVED relations",
+    mutate: async (database, runId) => {
+      const match = await firstRunMatch(database, runId);
+      await deleteRunMatch(database, match);
+      return async () => { await insertRunMatch(database, match); };
+    },
+  },
+  {
+    name: "11 published companies",
+    expected: "live publication does not contain exactly 10 scoped OKVED relations",
+    mutate: async (database, runId) => {
+      await insertExtraRunCompany(database, runId);
+      return async () => { await deleteExtraRunCompany(database, runId); };
+    },
+  },
+  {
+    name: "an unexplained raw object",
+    expected: "unexplained source fetches: 1",
+    mutate: async (database, runId) => {
+      const fetchId = randomUUID();
+      await database.query(
+        `INSERT INTO audience.source_fetches (
+           id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+           mime_type, final_url, navigation_status, captured_at, parser_version
+         ) VALUES ($1, $2, 'unexpected-loopback', 'orphan', 'raw/orphan/manifest.json', $3,
+           'application/json', 'http://127.0.0.1/orphan', 200, now(), 'acceptance/1.0.0')`,
+        [fetchId, runId, "f".repeat(64)],
+      );
+      return async () => {
+        await database.query("DELETE FROM audience.source_fetches WHERE id = $1", [fetchId]);
+      };
+    },
+  },
+  {
+    name: "published finance with missing source provenance",
+    expected: "published financial evidence provenance is invalid",
+    mutate: async (database, runId) => {
+      const evidence = (await database.query<{ id: string; source_fetch_id: string }>(
+        `SELECT evidence.id, evidence.source_fetch_id
+         FROM audience.financial_evidence evidence
+         JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+         WHERE raw.run_id = $1 AND evidence.metric = 'revenue'
+         ORDER BY evidence.id LIMIT 1`,
+        [runId],
+      )).rows[0]!;
+      const wrongRawId = (await database.query<{ id: string }>(
+        `SELECT id FROM audience.source_fetches
+         WHERE run_id = $1 AND source_kind = 'list-org-live'
+         ORDER BY created_at, id LIMIT 1`,
+        [runId],
+      )).rows[0]!.id;
+      await database.query(
+        "UPDATE audience.financial_evidence SET source_fetch_id = $2 WHERE id = $1",
+        [evidence.id, wrongRawId],
+      );
+      return async () => {
+        await database.query(
+          "UPDATE audience.financial_evidence SET source_fetch_id = $2 WHERE id = $1",
+          [evidence.id, evidence.source_fetch_id],
+        );
+      };
+    },
+  },
+  {
+    name: "a ten-company discovery/publication set mismatch",
+    expected: "published companies differ from discovery candidates",
+    mutate: async (database, runId) => {
+      const removed = await firstRunMatch(database, runId);
+      await database.transaction(async (transaction) => {
+        await deleteRunMatch(transaction, removed);
+        await insertExtraRunCompany(transaction, runId);
+      });
+      return async () => {
+        await database.transaction(async (transaction) => {
+          await deleteExtraRunCompany(transaction, runId);
+          await insertRunMatch(transaction, removed);
+        });
+      };
+    },
+  },
+];
+
+describe.sequential("live pilot production-path loopback acceptance", () => {
+  const orderedInns = [
+    "7700000016", "7700000023", "7700000030", "7700000048", "7700000055",
+    "7700000062", "7700000070", "7700000087", "7700000094", "7700000104",
+  ] as const;
+  const fixedNow = () => new Date("2026-08-26T12:00:00.000Z");
+  let temporaryDatabase: TemporaryDatabase | undefined;
+  let database: PostgresDatabase | undefined;
+  let repository: PostgresAudienceRepository | undefined;
+  let client: S3Client | undefined;
+  let env: AppEnv | undefined;
+  let discoveryRawStorage: S3RawObjectStorage | undefined;
+  let listServer: ListOrgLiveContractServer | undefined;
+  let bfoServer: FnsBfoLiveContractServer | undefined;
+  let revexpServer: RevexpContractServer | undefined;
+  let successfulRunId: string | undefined;
+  let launchedBrowsers = 0;
+  let closedBrowsers = 0;
+
+  beforeAll(async () => {
+    temporaryDatabase = await createTemporaryDatabase();
+    await runner({
+      databaseUrl: temporaryDatabase.connectionString,
+      dir: "migrations",
+      direction: "up",
+      migrationsTable: "okved_migrations",
+      migrationsSchema: "public",
+    });
+    database = new PostgresDatabase(temporaryDatabase.connectionString);
+    repository = new PostgresAudienceRepository(database);
+    env = {
+      appMode: "fixture",
+      databaseUrl: temporaryDatabase.connectionString,
+      s3Endpoint: "http://127.0.0.1:9000",
+      s3Bucket: `okved-live-e2e-${randomUUID()}`,
+      s3AccessKeyId: "okved-local",
+      s3SecretAccessKey: "okved-local-secret",
+      listOrgLiveEnabled: false,
+      fnsLiveEnabled: false,
+    };
+    client = new S3Client({
+      endpoint: env.s3Endpoint,
+      region: "us-east-1",
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: env.s3AccessKeyId,
+        secretAccessKey: env.s3SecretAccessKey,
+      },
+    });
+    await client.send(new CreateBucketCommand({ Bucket: env.s3Bucket }));
+    await releaseAndImportSelectedOkved(database, env, client);
+    discoveryRawStorage = new S3RawObjectStorage(env, "list-org-live", client);
+    [listServer, bfoServer, revexpServer] = await Promise.all([
+      startListOrgLiveContractServer(),
+      startFnsBfoLiveContractServer(),
+      startRevexpContractServer(),
+    ]);
+  }, 60_000);
+
+  afterAll(async () => {
+    discoveryRawStorage?.close();
+    await Promise.all([
+      listServer?.close(),
+      bfoServer?.close(),
+      revexpServer?.close(),
+    ]);
+    if (client !== undefined && env !== undefined) {
+      const listed = await client.send(new ListObjectsV2Command({ Bucket: env.s3Bucket }));
+      const objects = (listed.Contents ?? []).flatMap((item) =>
+        item.Key === undefined ? [] : [{ Key: item.Key }]
+      );
+      if (objects.length > 0) {
+        await client.send(new DeleteObjectsCommand({
+          Bucket: env.s3Bucket,
+          Delete: { Objects: objects },
+        }));
+      }
+      await client.send(new DeleteBucketCommand({ Bucket: env.s3Bucket }));
+      client.destroy();
+    }
+    await database?.close();
+    await temporaryDatabase?.drop();
+  });
+
+  it("runs the real production orchestration through source-shaped loopback adapters", async () => {
+    if (env === undefined || repository === undefined || discoveryRawStorage === undefined
+      || database === undefined || listServer === undefined || bfoServer === undefined
+      || revexpServer === undefined) {
+      throw new Error("live pilot acceptance setup is incomplete");
+    }
+    const revexpTransport = revexpServer.transport;
+    const openTrackedBrowser = async () => {
+      const browser = await chromium.launch({
+        headless: true,
+        args: ["--disable-features=LocalNetworkAccessChecks"],
+      });
+      launchedBrowsers += 1;
+      browser.on("disconnected", () => { closedBrowsers += 1; });
+      return browser;
+    };
+    const listSessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [listServer.origin],
+      allowedNavigationUrls: [
+        { origin: listServer.origin, pathname: "/search" },
+        { origin: listServer.origin, pathname: "/company/*" },
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
+      sourceKind: "list-org-live",
+      transportRetryDelayMs: 0,
+      launch: openTrackedBrowser,
+      now: fixedNow,
+    });
+    const bfoSessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [bfoServer.origin],
+      allowedNavigationUrls: [
+        { origin: bfoServer.origin, pathname: "/" },
+        { origin: bfoServer.origin, pathname: "/search" },
+        { origin: bfoServer.origin, pathname: "/cards/*" },
+        { origin: bfoServer.origin, pathname: "/statements/*" },
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
+      sourceKind: "fns-bfo-live",
+      transportRetryDelayMs: 0,
+      launch: openTrackedBrowser,
+      now: fixedNow,
+    });
+    const noCaptcha = { wait: async () => { throw new Error("unexpected CAPTCHA"); } };
+    let listSourceCreations = 0;
+    let bfoSourceCreations = 0;
+    let storageClosures = 0;
+    const report = await executeLivePilot({
+      env,
+      repository,
+      discoveryRawStorage,
+      factories: {
+        endpoints: {
+          listOrgSearchUrl: `${listServer.origin}/search`,
+          bfoSearchUrl: `${bfoServer.origin}/`,
+          revexpMetadataUrl: revexpServer.metadataUrl,
+        },
+        createListBrowserSessions: () => listSessions,
+        createBfoBrowserSessions: () => bfoSessions,
+        createListSource: (options) => {
+          listSourceCreations += 1;
+          return new ListOrgLiveSource({ ...options, humanVerification: noCaptcha, now: fixedNow });
+        },
+        createBfoSource: (options) => {
+          bfoSourceCreations += 1;
+          return new BfoLiveSource({ ...options, humanVerification: noCaptcha, now: fixedNow });
+        },
+        createRevexpTransport: () => revexpTransport,
+        createBfoRawStorage: (factoryEnv) => {
+          const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", client);
+          return {
+            put: storage.put.bind(storage),
+            close: () => {
+              storageClosures += 1;
+              storage.close();
+            },
+          };
+        },
+        createRevexpRawStorage: (factoryEnv) => {
+          const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", client);
+          return {
+            put: storage.put.bind(storage),
+            close: () => {
+              storageClosures += 1;
+              storage.close();
+            },
+          };
+        },
+      },
+    }) as {
+      runId: string;
+      inns: readonly string[];
+      outcomes: number;
+      sourceAttempts: readonly string[];
+      reconciliation: { companies: number; relations: number; outcomes: number };
+      companyMetrics: readonly {
+        inn: string;
+        metric: "revenue" | "income" | "expenses";
+        value: string;
+        sourceAttemptStatus: "published";
+      }[];
+    };
+
+    expect(report.inns).toEqual(orderedInns);
+    successfulRunId = report.runId;
+    expect(report.outcomes).toBe(30);
+    expect(report.reconciliation).toEqual({ companies: 10, relations: 10, outcomes: 30 });
+    expect(report.companyMetrics).toHaveLength(30);
+    expect(report.companyMetrics.map(({ inn, metric }) => `${inn}:${metric}`)).toEqual(
+      orderedInns.flatMap((inn) => ["revenue", "income", "expenses"].map((metric) => `${inn}:${metric}`)),
+    );
+    expect(JSON.stringify(report)).not.toMatch(/cookie|session|captcha|header|https?:\/\//iu);
+
+    const state = await database.query<{
+      companies: string;
+      relations: string;
+      finance_tasks: string;
+      outcomes: string;
+      list_raw_before_replay: boolean;
+      loopback_raw: boolean;
+    }>(
+      `SELECT
+         (SELECT count(DISTINCT company_inn) FROM audience.run_company_matches WHERE run_id = $1)::text AS companies,
+         (SELECT count(*) FROM audience.run_company_matches WHERE run_id = $1 AND matched_okved_code = '43.11')::text AS relations,
+         (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = $1 AND task_kind = 'live_finance' AND status = 'succeeded')::text AS finance_tasks,
+         (SELECT count(*) * 3 FROM audience.crawl_tasks WHERE run_id = $1 AND task_kind = 'live_finance' AND status = 'succeeded')::text AS outcomes,
+         (SELECT bool_and(raw.created_at <= replay.created_at)
+          FROM audience.source_fetches raw
+          CROSS JOIN LATERAL (
+            SELECT created_at FROM audience.crawl_tasks
+            WHERE run_id = $1 AND task_kind = 'replay_write'
+            ORDER BY created_at LIMIT 1
+          ) replay
+          WHERE raw.run_id = $1 AND raw.source_kind = 'list-org-live') AS list_raw_before_replay,
+         (SELECT bool_and(final_url LIKE 'http://127.0.0.1:%')
+          FROM audience.source_fetches WHERE run_id = $1) AS loopback_raw`,
+      [report.runId],
+    );
+    expect(state.rows).toEqual([{
+      companies: "10",
+      relations: "10",
+      finance_tasks: "10",
+      outcomes: "30",
+      list_raw_before_replay: true,
+      loopback_raw: true,
+    }]);
+    const rawIdentities = await database.query<{
+      source_kind: string;
+      source_record_key: string;
+      count: string;
+    }>(
+      `SELECT source_kind, source_record_key, count(*)::text AS count
+       FROM audience.source_fetches
+       WHERE run_id = $1 AND source_kind IN ('fns-bfo-live', 'fns-revexp')
+       GROUP BY source_kind, source_record_key
+       ORDER BY source_kind, source_record_key`,
+      [report.runId],
+    );
+    expect(rawIdentities.rows.filter((row) => row.source_kind === "fns-revexp")).toEqual([{
+      source_kind: "fns-revexp",
+      source_record_key: "7707329152-revexp:2025",
+      count: "1",
+    }]);
+    expect(rawIdentities.rows.filter((row) => row.source_kind === "fns-bfo-live"))
+      .toHaveLength(10);
+    expect(rawIdentities.rows.filter((row) => row.source_kind === "fns-bfo-live")
+      .map((row) => row.source_record_key.split(":")[0])).toEqual(orderedInns);
+    const financeAudit = await database.query<{
+      company_inn: string;
+      action_ledger: unknown;
+      metric_outcomes: unknown;
+    }>(
+      `SELECT result_json->>'companyInn' AS company_inn,
+              result_json->'actionLedger' AS action_ledger,
+              result_json->'metricOutcomes' AS metric_outcomes
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'live_finance'
+       ORDER BY created_at, id`,
+      [report.runId],
+    );
+    expect(financeAudit.rows.map((row) => row.company_inn)).toEqual(orderedInns);
+    for (const row of financeAudit.rows) {
+      expect(row.action_ledger).toEqual(expect.arrayContaining([
+        expect.objectContaining({ kind: "navigate", outcome: "intent" }),
+        expect.objectContaining({ kind: "capture-projection", outcome: "completed" }),
+      ]));
+      expect(row.metric_outcomes).toEqual({
+        revenue: { outcome: "published", evidence: 1 },
+        income: { outcome: "published", evidence: 1 },
+        expenses: { outcome: "published", evidence: 1 },
+      });
+    }
+    const sharedRevexp = await database.query<{
+      evidence_rows: string;
+      raw_rows: string;
+      raw_identities: string;
+    }>(
+      `SELECT
+         count(*)::text AS evidence_rows,
+         count(DISTINCT raw.id)::text AS raw_rows,
+         count(DISTINCT concat_ws(chr(31), raw.source_kind, raw.source_record_key,
+           raw.checksum_sha256, raw.parser_version))::text AS raw_identities
+       FROM audience.financial_evidence evidence
+       JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+       WHERE raw.run_id = $1 AND evidence.metric IN ('income', 'expenses')`,
+      [report.runId],
+    );
+    expect(sharedRevexp.rows).toEqual([{
+      evidence_rows: "20",
+      raw_rows: "1",
+      raw_identities: "1",
+    }]);
+    expect(listServer.companyRequestIds()).toEqual([
+      "1001", "1002", "1003", "1004", "1005", "1006", "1007",
+      "1008", "1009", "1010", "1011", "1012",
+    ]);
+    expect(bfoServer.submittedInns()).toEqual(orderedInns);
+    expect(bfoServer.maxConcurrentReportRequests()).toBe(1);
+    expect(bfoServer.apiRequestCount()).toBe(0);
+    expect(bfoServer.downloadRequestCount()).toBe(0);
+    expect(revexpServer.successfulArchiveDownloads()).toBe(1);
+    expect(listSourceCreations).toBe(1);
+    expect(bfoSourceCreations).toBe(1);
+    expect(storageClosures).toBe(2);
+    expect(launchedBrowsers).toBe(11);
+    expect(closedBrowsers).toBe(11);
+  }, 180_000);
+
+  it("keeps a source-shaped short discovery evidence-only with zero publication", async () => {
+    if (env === undefined || repository === undefined || discoveryRawStorage === undefined
+      || database === undefined || listServer === undefined || bfoServer === undefined
+      || revexpServer === undefined || client === undefined) {
+      throw new Error("live pilot acceptance setup is incomplete");
+    }
+    const activeClient = client;
+    const beforeBfoSearches = bfoServer.submittedInns().length;
+    const beforeRevexpDownloads = revexpServer.successfulArchiveDownloads();
+    let shortBrowsersOpened = 0;
+    let shortBrowsersClosed = 0;
+    let shortStorageClosures = 0;
+    const listSessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [listServer.origin],
+      allowedNavigationUrls: [
+        { origin: listServer.origin, pathname: "/search" },
+        { origin: listServer.origin, pathname: "/company/*" },
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
+      sourceKind: "list-org-live",
+      transportRetryDelayMs: 0,
+      now: fixedNow,
+      launch: async () => {
+        const browser = await chromium.launch({
+          headless: true,
+          args: ["--disable-features=LocalNetworkAccessChecks"],
+        });
+        shortBrowsersOpened += 1;
+        browser.on("disconnected", () => { shortBrowsersClosed += 1; });
+        return browser;
+      },
+    });
+    const noCaptcha = { wait: async () => { throw new Error("unexpected CAPTCHA"); } };
+    const result = await executeLivePilot({
+      env,
+      repository,
+      discoveryRawStorage,
+      factories: {
+        endpoints: {
+          listOrgSearchUrl: `${listServer.origin}/search?scenario=short`,
+          bfoSearchUrl: `${bfoServer.origin}/`,
+          revexpMetadataUrl: revexpServer.metadataUrl,
+        },
+        createListBrowserSessions: () => listSessions,
+        createBfoBrowserSessions: () => { throw new Error("finance browser must not open"); },
+        createListSource: (options) => new ListOrgLiveSource({
+          ...options,
+          humanVerification: noCaptcha,
+          now: fixedNow,
+        }),
+        createBfoSource: () => { throw new Error("BFO source must not be created"); },
+        createRevexpTransport: () => { throw new Error("revexp transport must not be created"); },
+        createBfoRawStorage: (factoryEnv) => {
+          const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", activeClient);
+          return {
+            put: storage.put.bind(storage),
+            close: () => {
+              shortStorageClosures += 1;
+              storage.close();
+            },
+          };
+        },
+        createRevexpRawStorage: (factoryEnv) => {
+          const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", activeClient);
+          return {
+            put: storage.put.bind(storage),
+            close: () => {
+              shortStorageClosures += 1;
+              storage.close();
+            },
+          };
+        },
+      },
+    }) as {
+      runId: string;
+      discoveredCompanies: number;
+      publishedCompanies: number;
+      rawObjects: number;
+      terminalCode: string;
+    };
+
+    expect(result).toMatchObject({
+      discoveredCompanies: 5,
+      publishedCompanies: 0,
+      terminalCode: "LIVE_PILOT_DISCOVERY_INCOMPLETE",
+    });
+    expect(result.rawObjects).toBeGreaterThan(0);
+    const persisted = await database.query<{
+      source_fetches: string;
+      replay_tasks: string;
+      companies: string;
+      relations: string;
+    }>(
+      `SELECT
+         (SELECT count(*) FROM audience.source_fetches WHERE run_id = $1)::text AS source_fetches,
+         (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = $1 AND task_kind = 'replay_write')::text AS replay_tasks,
+         (SELECT count(*) FROM audience.run_company_matches WHERE run_id = $1)::text AS companies,
+         (SELECT count(*) FROM audience.company_okveds relation
+          JOIN audience.run_company_matches match
+            ON match.run_id = $1 AND match.company_inn = relation.company_inn
+               AND match.matched_okved_code = relation.okved_code)::text AS relations`,
+      [result.runId],
+    );
+    expect(persisted.rows).toEqual([{
+      source_fetches: String(result.rawObjects),
+      replay_tasks: "0",
+      companies: "0",
+      relations: "0",
+    }]);
+    expect(bfoServer.submittedInns()).toHaveLength(beforeBfoSearches);
+    expect(revexpServer.successfulArchiveDownloads()).toBe(beforeRevexpDownloads);
+    expect(shortStorageClosures).toBe(2);
+    expect(shortBrowsersOpened).toBe(1);
+    expect(shortBrowsersClosed).toBe(1);
+  }, 60_000);
+
+  it("terminalizes every pre-bound finance task when the live BFO source blocks", async () => {
+    if (env === undefined || repository === undefined || discoveryRawStorage === undefined
+      || database === undefined || listServer === undefined || bfoServer === undefined
+      || client === undefined) {
+      throw new Error("live pilot acceptance setup is incomplete");
+    }
+    const activeClient = client;
+    const beforeRuns = new Set((await database.query<{ id: string }>(
+      "SELECT id FROM audience.crawl_runs",
+    )).rows.map((row) => row.id));
+    const beforeBfoSearches = bfoServer.submittedInns().length;
+    const blockedRevexpServer = await startRevexpContractServer();
+    let browsersOpened = 0;
+    let browsersClosed = 0;
+    let storageClosures = 0;
+    const openTrackedBrowser = async () => {
+      const browser = await chromium.launch({
+        headless: true,
+        args: ["--disable-features=LocalNetworkAccessChecks"],
+      });
+      browsersOpened += 1;
+      browser.on("disconnected", () => { browsersClosed += 1; });
+      return browser;
+    };
+    const listSessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [listServer.origin],
+      allowedNavigationUrls: [
+        { origin: listServer.origin, pathname: "/search" },
+        { origin: listServer.origin, pathname: "/company/*" },
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
+      sourceKind: "list-org-live",
+      transportRetryDelayMs: 0,
+      launch: openTrackedBrowser,
+      now: fixedNow,
+    });
+    const bfoSessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [bfoServer.origin],
+      allowedNavigationUrls: [
+        { origin: bfoServer.origin, pathname: "/" },
+        { origin: bfoServer.origin, pathname: "/search" },
+        { origin: bfoServer.origin, pathname: "/cards/*" },
+        { origin: bfoServer.origin, pathname: "/statements/*" },
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
+      sourceKind: "fns-bfo-live",
+      transportRetryDelayMs: 0,
+      launch: openTrackedBrowser,
+      now: fixedNow,
+    });
+    const noCaptcha = { wait: async () => { throw new Error("unexpected CAPTCHA"); } };
+    const factories: LivePilotFactories = {
+      endpoints: {
+        listOrgSearchUrl: `${listServer.origin}/search`,
+        bfoSearchUrl: `${bfoServer.origin}/?scenario=report-soft-block`,
+        revexpMetadataUrl: blockedRevexpServer.metadataUrl,
+      },
+      createListBrowserSessions: () => listSessions,
+      createBfoBrowserSessions: () => bfoSessions,
+      createListSource: (options) => new ListOrgLiveSource({
+        ...options,
+        humanVerification: noCaptcha,
+        now: fixedNow,
+      }),
+      createBfoSource: (options) => new BfoLiveSource({
+        ...options,
+        humanVerification: noCaptcha,
+        now: fixedNow,
+      }),
+      createRevexpTransport: (): RevexpTransport => blockedRevexpServer.transport,
+      createBfoRawStorage: (factoryEnv) => {
+        const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", activeClient);
+        return {
+          put: storage.put.bind(storage),
+          close: () => {
+            storageClosures += 1;
+            storage.close();
+          },
+        };
+      },
+      createRevexpRawStorage: (factoryEnv) => {
+        const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", activeClient);
+        return {
+          put: storage.put.bind(storage),
+          close: () => {
+            storageClosures += 1;
+            storage.close();
+          },
+        };
+      },
+    };
+
+    try {
+      await expect(executeLivePilot({
+        env,
+        repository,
+        discoveryRawStorage,
+        factories,
+      })).rejects.toThrow("LIVE_PILOT_SOURCE_BLOCKED:soft_block");
+
+      const newRuns = (await database.query<{
+        id: string;
+        status: string;
+        terminal_reason: string | null;
+      }>(
+        "SELECT id, status, terminal_reason FROM audience.crawl_runs ORDER BY created_at, id",
+      )).rows.filter((row) => !beforeRuns.has(row.id));
+      expect(newRuns).toHaveLength(1);
+      expect(newRuns[0]).toMatchObject({
+        status: "failed",
+        terminal_reason: "live_finance_blocked",
+      });
+      const blockedRunId = newRuns[0]!.id;
+      const tasks = await database.query<{
+        status: string;
+        error_code: string | null;
+        company_inn: string | null;
+        action_ledger: unknown;
+      }>(
+        `SELECT status, error_json->>'code' AS error_code,
+                result_json->>'companyInn' AS company_inn,
+                result_json->'actionLedger' AS action_ledger
+         FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'live_finance'
+         ORDER BY created_at, id`,
+        [blockedRunId],
+      );
+      expect(tasks.rows).toHaveLength(10);
+      expect(tasks.rows.map((task) => task.company_inn)).toEqual(orderedInns);
+      expect(tasks.rows.map((task) => task.status)).toEqual(Array(10).fill("failed"));
+      expect(tasks.rows.map((task) => task.error_code)).toEqual([
+        "live_finance_blocked",
+        ...Array(9).fill("live_finance_cancelled"),
+      ]);
+      expect(tasks.rows[0]!.action_ledger).toEqual(expect.arrayContaining([
+        expect.objectContaining({ kind: "navigate", outcome: "intent" }),
+        expect.objectContaining({ kind: "click-button", outcome: "completed" }),
+      ]));
+      const rawAudit = await database.query<{
+        bfo_raw: string;
+        revexp_raw: string;
+        loopback_only: boolean;
+      }>(
+        `SELECT
+           count(*) FILTER (WHERE source_kind = 'fns-bfo-live')::text AS bfo_raw,
+           count(*) FILTER (WHERE source_kind = 'fns-revexp')::text AS revexp_raw,
+           bool_and(final_url LIKE 'http://127.0.0.1:%') AS loopback_only
+         FROM audience.source_fetches WHERE run_id = $1`,
+        [blockedRunId],
+      );
+      expect(rawAudit.rows).toEqual([{
+        bfo_raw: "1",
+        revexp_raw: "0",
+        loopback_only: true,
+      }]);
+      expect(bfoServer.submittedInns().slice(beforeBfoSearches)).toEqual([orderedInns[0]]);
+      expect(blockedRevexpServer.successfulArchiveDownloads()).toBe(1);
+      expect(storageClosures).toBe(2);
+      expect(browsersOpened).toBe(2);
+      expect(browsersClosed).toBe(2);
+    } finally {
+      await blockedRevexpServer.close();
+    }
+  }, 180_000);
+
+  it.each(liveReconciliationMismatchCases)(
+    "reconciliation rejects $name",
+    async ({ expected, mutate }) => {
+      if (database === undefined || repository === undefined || successfulRunId === undefined) {
+        throw new Error("successful live pilot state is unavailable");
+      }
+      await expect(repository.reconcile(successfulRunId)).resolves.toMatchObject({
+        companies: 10,
+        companyOkveds: 10,
+        financial: { revenue: 10, income: 10, expenses: 10 },
+        consistent: true,
+      });
+      const restore = await mutate(database, successfulRunId);
+      try {
+        await expect(repository.reconcile(successfulRunId)).rejects.toThrow(expected);
+      } finally {
+        await restore();
+      }
+    },
+  );
+});
+
+interface RunMatchRow {
+  run_id: string;
+  company_inn: string;
+  matched_okved_code: string;
+  source_fetch_id: string;
+  source_record_key: string;
+  created_at: string;
+}
+
+async function firstRunMatch(database: Database, runId: string): Promise<RunMatchRow> {
+  const result = await database.query<RunMatchRow>(
+    `SELECT run_id, company_inn, matched_okved_code, source_fetch_id,
+            source_record_key, created_at::text
+     FROM audience.run_company_matches
+     WHERE run_id = $1 ORDER BY company_inn LIMIT 1`,
+    [runId],
+  );
+  const row = result.rows[0];
+  if (row === undefined) throw new Error("live run match is missing");
+  return row;
+}
+
+async function deleteRunMatch(database: Database, match: RunMatchRow): Promise<void> {
+  await database.query(
+    `DELETE FROM audience.run_company_matches
+     WHERE run_id = $1 AND company_inn = $2 AND matched_okved_code = $3`,
+    [match.run_id, match.company_inn, match.matched_okved_code],
+  );
+}
+
+async function insertRunMatch(database: Database, match: RunMatchRow): Promise<void> {
+  await database.query(
+    `INSERT INTO audience.run_company_matches (
+       run_id, company_inn, matched_okved_code, source_fetch_id,
+       source_record_key, created_at
+     ) VALUES ($1, $2, $3, $4, $5, $6::timestamptz)`,
+    [match.run_id, match.company_inn, match.matched_okved_code,
+      match.source_fetch_id, match.source_record_key, match.created_at],
+  );
+}
+
+async function insertExtraRunCompany(database: Database, runId: string): Promise<void> {
+  const raw = (await database.query<{ id: string }>(
+    `SELECT id FROM audience.source_fetches
+     WHERE run_id = $1 AND source_kind = 'list-org-live'
+     ORDER BY created_at, id LIMIT 1`,
+    [runId],
+  )).rows[0];
+  if (raw === undefined) throw new Error("live discovery raw is missing");
+  await database.query(
+    `INSERT INTO audience.companies (
+       inn, name, website, phone, email, source_fetch_id, source_record_key
+     ) VALUES ('7700000111', 'ООО «Лишняя компания»', NULL, NULL, NULL, $1, 'extra-company')`,
+    [raw.id],
+  );
+  await database.query(
+    `INSERT INTO audience.company_okveds (
+       company_inn, okved_code, is_primary, source_fetch_id, source_record_key
+     ) VALUES ('7700000111', '43.11', true, $1, 'extra-company')`,
+    [raw.id],
+  );
+  await database.query(
+    `INSERT INTO audience.run_company_matches (
+       run_id, company_inn, matched_okved_code, source_fetch_id, source_record_key
+     ) VALUES ($1, '7700000111', '43.11', $2, 'extra-company')`,
+    [runId, raw.id],
+  );
+}
+
+async function deleteExtraRunCompany(database: Database, runId: string): Promise<void> {
+  await database.query(
+    `DELETE FROM audience.run_company_matches
+     WHERE run_id = $1 AND company_inn = '7700000111' AND matched_okved_code = '43.11'`,
+    [runId],
+  );
+  await database.query(
+    "DELETE FROM audience.company_okveds WHERE company_inn = '7700000111' AND okved_code = '43.11'",
+  );
+  await database.query("DELETE FROM audience.companies WHERE inn = '7700000111'");
+}
 
 interface OrganizationEvidenceRow {
   id: string;

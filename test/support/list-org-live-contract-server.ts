@@ -142,7 +142,12 @@ export async function startListOrgLiveContractServer(): Promise<ListOrgLiveContr
         responseHtml(response, fixture.captcha);
         return;
       }
-      const results = currentPage === 1 ? fixture.page1 : fixture.page2;
+      const results = activeScenario === "short" && currentPage === 1
+        ? fixture.page1.replace(
+          '<a href="/search?okved=43.11&amp;page=2">Следующая страница</a>',
+          '<p role="status">Последняя страница</p>',
+        )
+        : currentPage === 1 ? fixture.page1 : fixture.page2;
       initialSearchComplete = true;
       responseHtml(response, retainScenario(results, activeScenario), activeScenario === "results-202" ? 202 : 200);
       return;
