@@ -134,7 +134,7 @@ The existing helper recomputes the manifest checksum after mutation, so these ca
 Run:
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
 ```
 
 Then run:
@@ -464,8 +464,8 @@ node --version
 Expected: `v24.x.x`.
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml ps
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml ps
 ```
 
 Expected: PostgreSQL is healthy on host 5433 and MinIO is healthy on host 9000. Do not operate on host PostgreSQL 5432.
@@ -509,7 +509,7 @@ Expected: `git diff --check` and the protected-file diff exit 0; `git status` sh
 - [ ] **Step 6: Stop only the owned services and preserve volumes**
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml down
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml down
 ```
 
 Expected: project `okved-parser` containers stop. Do not add `-v`; preserved volumes remain available for later acceptance runs.

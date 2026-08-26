@@ -277,7 +277,7 @@ it("rejects a checksum-consistent browser manifest with an incomplete policy", a
 - [ ] **Step 7: Start owned services and verify S3 RED**
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
 ```
 
 ```bash
@@ -462,13 +462,13 @@ git commit -m "fix: mask sensitive buttons in browser evidence"
 - [ ] **Step 1: Start only owned services with explicit gates**
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
 ```
 
 Confirm the ports with:
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml ps
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml ps
 ```
 
 Project `okved-parser` must map PostgreSQL to host 5433 and MinIO to host 9000. Do not run `down -v`.
@@ -515,7 +515,7 @@ Expected: build/diff check exit 0 and both Git output checks are empty.
 - [ ] **Step 6: Stop owned containers and record evidence**
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml down
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml down
 ```
 
 Preserve volumes. Record exact counts, migration results, e2e result, build, gates, cleanup, HEAD, and clean status in the Task 3 report. Do not create an empty docs commit when README/runbook/source-policy remain accurate.

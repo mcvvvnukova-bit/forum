@@ -245,24 +245,18 @@ This does not authorize stopping or deleting any unrelated native PostgreSQL ser
 
 Symptom: Compose reports `Bind for 127.0.0.1:5432 failed: port is already allocated`.
 
-Solution: leave the other PostgreSQL process untouched. Create an ignored temporary overlay:
+Solution: leave the other PostgreSQL process untouched. Use the tracked owned
+overlay at `deployment/okved-parser/postgres-5433.compose.yaml`:
 
 ```bash
-mkdir -p .superpowers
-cat > .superpowers/postgres-5433.compose.yaml <<'YAML'
-services:
-  postgres:
-    ports: !override
-      - "127.0.0.1:5433:5432"
-YAML
-
 export DATABASE_URL='postgresql://okved:okved-local-password@127.0.0.1:5433/okved'
 export TEST_DATABASE_ADMIN_URL='postgresql://okved:okved-local-password@127.0.0.1:5433/postgres'
-docker compose -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
 ```
 
 Use both `-f` arguments for later Compose startup, shutdown, and volume cleanup commands.
-Do not commit the overlay.
+Keep the overlay tracked so every operator resolves the same loopback port while
+retaining the base Compose volumes and MinIO mappings.
 
 ### Chromium executable is missing
 

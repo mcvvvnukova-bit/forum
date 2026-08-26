@@ -28,6 +28,8 @@ replays twice, publishes three financial metrics, and reconciles every count.
 
 If port 5432 belongs to another PostgreSQL instance, do not stop it.
 Use the isolated 5433 procedure in the [canary runbook](docs/runbooks/audience-parser-canary.md#postgresql-port-5432-is-already-in-use).
+The reusable overlay is tracked at
+`deployment/okved-parser/postgres-5433.compose.yaml`.
 
 ## What the fixture proves
 
@@ -53,16 +55,18 @@ npm run migrate:down
 The complete manual fixture flow is in the [audience parser canary runbook](docs/runbooks/audience-parser-canary.md).
 Source activation rules are in the [audience ingestion source policy](docs/architecture/audience-ingestion-source-policy.md).
 
-One exceptional, operator-controlled workflow authorizes a single bounded pilot
-for OKVED `43.11`, year 2025, and exactly 10 legal entities. It requires owned
-PostgreSQL on port 5433, owned MinIO, a visible browser, all live feature gates,
-and manual CAPTCHA handling in the same session. Read and follow the
-[bounded live-pilot runbook](docs/runbooks/okved-live-pilot.md) before any live
-access. The command does not authorize other live collection.
+The repository records one exceptional, operator-controlled authorization for a
+bounded pilot covering OKVED `43.11`, year 2025, and exactly 10 legal entities.
+That authorization was consumed on 2026-08-26. The
+[live-pilot runbook](docs/runbooks/okved-live-pilot.md) now documents the
+historical command and the post-attempt audit only; it does not authorize a
+rerun. Any new live attempt requires a new explicit authorization, reviewed
+policy record, checksum, and one-shot scope.
 
 ## Current scope
 
-Fixture mode is the default. The only live exception is the one bounded workflow
-linked above. This slice does not authorize another live run, full 967-code
-traversal, export or hidden API use, proxy or IP rotation, or arbitrary
-non-loopback source traffic. IP support remains a separate stage-2 plan.
+Fixture mode is the default and the only currently authorized execution mode.
+The consumed live exception linked above does not authorize another live run,
+full 967-code traversal, export or hidden API use, proxy or IP rotation, or
+arbitrary non-loopback source traffic. IP support remains a separate stage-2
+plan.

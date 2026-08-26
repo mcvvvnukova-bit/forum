@@ -48,7 +48,7 @@
 Run:
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
 ```
 
 Expected: PostgreSQL is healthy on `127.0.0.1:5433`, MinIO is healthy on `127.0.0.1:9000`, and no command connects to `5432`.
@@ -477,7 +477,7 @@ Run:
 
 ```bash
 node --version
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml ps
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml ps
 docker ps --format '{{.Names}}\t{{.Ports}}' | rg 'okved-parser|5433|9000|9001'
 ```
 
@@ -512,9 +512,9 @@ Run:
 
 ```bash
 git diff --check 95e08fc..HEAD
-git diff --exit-code 95e08fc..HEAD -- migrations compose.yaml .superpowers/postgres-5433.compose.yaml CONTEXT.md .playwright-cli/console-2026-08-21T09-16-39-068Z.log docs/plans/2026-08-24-001-feat-okved-parser-pilot-plan.md
+git diff --exit-code 95e08fc..HEAD -- migrations compose.yaml deployment/okved-parser/postgres-5433.compose.yaml CONTEXT.md .playwright-cli/console-2026-08-21T09-16-39-068Z.log docs/plans/2026-08-24-001-feat-okved-parser-pilot-plan.md
 git status --short
-rg -n 'APP_MODE|LIST_ORG_LIVE_ENABLED|5432|5433|list-org.com|nalog.gov.ru' src test compose.yaml .superpowers/postgres-5433.compose.yaml
+rg -n 'APP_MODE|LIST_ORG_LIVE_ENABLED|5432|5433|list-org.com|nalog.gov.ru' src test compose.yaml deployment/okved-parser/postgres-5433.compose.yaml
 ```
 
 Expected: diff check is clean; migrations, compose, and protected files have no task diff; worktree is clean; fixture gates remain explicit; no new live-source call or `5432` test binding exists.
@@ -524,7 +524,7 @@ Expected: diff check is clean; migrations, compose, and protected files have no 
 Run:
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml down
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml down
 docker ps --format '{{.Names}}\t{{.Ports}}' | rg 'okved-parser|5433|9000|9001' || true
 docker volume ls --format '{{.Name}}' | rg '^okved-parser_(postgres_data|minio_data)$'
 ```

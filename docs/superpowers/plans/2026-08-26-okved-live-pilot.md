@@ -166,7 +166,7 @@ git commit -m "feat: gate bounded live pilot command"
 - [ ] **Step 3: Start owned services and confirm RED.**
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false FNS_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false FNS_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
 APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false FNS_LIVE_ENABLED=false DATABASE_URL=postgresql://okved:okved-local-password@127.0.0.1:5433/okved TEST_DATABASE_ADMIN_URL=postgresql://okved:okved-local-password@127.0.0.1:5433/postgres S3_ENDPOINT=http://127.0.0.1:9000 S3_BUCKET=okved-raw S3_ACCESS_KEY_ID=okved-local S3_SECRET_ACCESS_KEY=okved-local-secret npm test -- test/integration/audience/s3-raw-object-storage.test.ts test/integration/audience/s3-file-raw-object-storage.test.ts test/integration/audience/financial-publication.test.ts
 ```
 
@@ -437,7 +437,7 @@ If CAPTCHA appears, leave the browser open, let the operator complete it manuall
 - [ ] **Step 9: Stop owned services without deleting data.**
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml down
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml down
 ```
 
 Do not pass `-v`; the pilot database and immutable object evidence must remain recoverable.

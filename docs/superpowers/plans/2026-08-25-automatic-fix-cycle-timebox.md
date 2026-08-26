@@ -353,7 +353,7 @@ Expected: exactly the five intended tracked files are committed. Append the comm
 - Modify: `.superpowers/sdd/2026-08-25-okved-parser-residual-input-hardening/progress.md`
 - Create per wave: `.superpowers/sdd/2026-08-25-okved-parser-residual-input-hardening/automatic-fix-wave-<N>-report.md`
 - Create per review: `.superpowers/sdd/2026-08-25-okved-parser-residual-input-hardening/automatic-fix-wave-<N>-review.md`
-- Verify only: `migrations/*.sql`, `compose.yaml`, `.superpowers/postgres-5433.compose.yaml`, protected files, and the complete branch diff.
+- Verify only: `migrations/*.sql`, `compose.yaml`, `deployment/okved-parser/postgres-5433.compose.yaml`, protected files, and the complete branch diff.
 
 **Interfaces:**
 
@@ -378,9 +378,9 @@ Expected: `now` is earlier than the recorded deadline. If it is not, skip to Ste
 Run:
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
 node --version
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml ps
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml ps
 docker ps --format '{{.Names}}\t{{.Ports}}' | rg 'okved-parser|5433|9000|9001'
 ```
 
@@ -415,8 +415,8 @@ Expected: full suite, dedicated e2e, build, and diff check all pass. Record exac
 Run:
 
 ```bash
-git diff --exit-code 385563c..HEAD -- migrations compose.yaml .superpowers/postgres-5433.compose.yaml CONTEXT.md .playwright-cli/console-2026-08-21T09-16-39-068Z.log docs/plans/2026-08-24-001-feat-okved-parser-pilot-plan.md
-rg -n 'APP_MODE|LIST_ORG_LIVE_ENABLED|5432|5433|list-org.com|nalog.gov.ru' src test compose.yaml .superpowers/postgres-5433.compose.yaml
+git diff --exit-code 385563c..HEAD -- migrations compose.yaml deployment/okved-parser/postgres-5433.compose.yaml CONTEXT.md .playwright-cli/console-2026-08-21T09-16-39-068Z.log docs/plans/2026-08-24-001-feat-okved-parser-pilot-plan.md
+rg -n 'APP_MODE|LIST_ORG_LIVE_ENABLED|5432|5433|list-org.com|nalog.gov.ru' src test compose.yaml deployment/okved-parser/postgres-5433.compose.yaml
 git status --short
 ```
 
@@ -473,7 +473,7 @@ Expected: the terminal state is explicit and contains no unsupported completion 
 Run:
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml down
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml down
 docker ps --format '{{.Names}}\t{{.Ports}}' | rg 'okved-parser|5433|9000|9001' || true
 docker volume ls --format '{{.Name}}' | rg '^okved-parser_(postgres_data|minio_data)$'
 ```

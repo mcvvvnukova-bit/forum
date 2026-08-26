@@ -1,23 +1,35 @@
-# Run the bounded OKVED 43.11 live pilot
+# Audit the consumed OKVED 43.11 live pilot
+
+## Status: authorization consumed
+
+The one-shot authorization for this pilot was consumed on 2026-08-26. This
+runbook is now an audit and historical command reference. It does not authorize
+another live attempt.
+
+Do not execute the public-source preflight or live command in this document. A
+new live attempt requires new explicit authorization, a new reviewed policy
+record and checksum, and a new one-shot scope. The durable guard rejects a
+replacement for the consumed scope even when the prior run failed or remained
+incomplete.
 
 ## Scope
 
-Run this exceptional workflow once. It uses the visible List-Org and FNS BFO
-browser interfaces for the first 10 legal entities in the default List-Org order.
-It publishes only OKVED `43.11` and financial outcomes for 2025.
+The consumed exceptional workflow used the visible List-Org and FNS BFO browser
+interfaces for the first 10 legal entities in the default List-Org order. Its
+scope covered only OKVED `43.11` and financial outcomes for 2025.
 
 Do not use this runbook for another OKVED, year, company limit, or run. Do not use
 an export, API, hidden endpoint, report download, proxy, IP rotation, stealth mode,
 browser script, or CAPTCHA solver. Do not replace a selected company because a
 financial value is unavailable.
 
-The fixed command is:
+The historical fixed command identity was:
 
 ```text
 audience live-pilot --okved 43.11 --year 2025 --max-companies 10
 ```
 
-The application requires all three gates:
+The historical command required all three gates:
 
 ```text
 APP_MODE=live
@@ -25,18 +37,18 @@ LIST_ORG_LIVE_ENABLED=true
 FNS_LIVE_ENABLED=true
 ```
 
-The live browser is headed and sequential. The command must remain attached to an
-interactive terminal.
+These values document the consumed contract. They are not instructions to set
+the gates or launch a browser now.
 
-## Approved endpoints and origins
+## Reviewed endpoints and origins
 
-Use only these owned local service endpoints:
+The consumed contract allowed only these owned local service endpoints:
 
 - PostgreSQL: `127.0.0.1:5433`, database `okved`
 - MinIO S3 API: `127.0.0.1:9000`, bucket `okved-raw`
 - MinIO console: `127.0.0.1:9001`
 
-Use only these public HTTPS source origins:
+It allowed only these public HTTPS source origins:
 
 - `https://www.list-org.com/search`
 - `https://bo.nalog.gov.ru/`
@@ -70,7 +82,7 @@ The BFO adapter requires these exact visible labels:
 Any changed or missing label is contract drift. Let the adapter fail closed. Do
 not edit the contract or start another live attempt without new explicit approval.
 
-## CAPTCHA procedure
+## Historical CAPTCHA procedure
 
 Do not close the browser or the command when the CLI prints the manual-verification
 prompt. The adapter has already written `captcha_waiting` to the durable task
@@ -88,26 +100,30 @@ Do not type `continue` on the user's behalf before authorization. An abort,
 closed browser, failed revalidation, returning CAPTCHA, `403`, soft block, or
 contract drift ends the attempt. Do not run it again.
 
-## 1. Prepare the owned services
+## 1. Historical owned-service preparation
 
-Run every Compose command with the project name and the 5433 overlay:
+The consumed attempt used every Compose command with the project name and the
+tracked 5433 overlay. These non-public service commands remain suitable for
+local fixture verification:
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml up -d --wait postgres minio
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml ps
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml up -d --wait postgres minio
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml ps
 ```
 
 Expected: `postgres` and `minio` are healthy. PostgreSQL publishes only
 `127.0.0.1:5433->5432/tcp`. MinIO publishes `127.0.0.1:9000` and
 `127.0.0.1:9001`.
 
-## 2. Snapshot counts and verify the migration cycle
+## 2. Historical migration preflight — preserve the pilot database
 
-Snapshot the existing owned database before the destructive down/up migration
-cycle. Keep the output in the operator log.
+The attempt snapshot the owned database before its down/up migration cycle. The
+following SQL records that historical procedure. Do not now run a migration
+cycle against the preserved pilot database; use a fresh isolated test database
+for code verification.
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml exec -T postgres \
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
   psql -U okved -d okved -X -v ON_ERROR_STOP=1 -c "
 SELECT
   CASE WHEN to_regclass('audience.crawl_runs') IS NULL THEN NULL
@@ -125,7 +141,7 @@ SELECT
 "
 ```
 
-Run both commands only against the explicit 5433 URL:
+The historical migration commands used only the explicit 5433 URL:
 
 ```bash
 APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false FNS_LIVE_ENABLED=false DATABASE_URL=postgresql://okved:okved-local-password@127.0.0.1:5433/okved npm run migrate:down
@@ -150,18 +166,21 @@ git status --short
 Expected: the full suite and build exit 0. Only this runbook and the README are
 changed before live access.
 
-## 4. Perform the strict preflight
+## 4. Historical strict preflight — do not execute public checks
+
+This section records the preflight contract used by the consumed attempt. Do not
+repeat its public `curl` checks without new explicit authorization.
 
 Resolve the exact Compose containers and verify their ownership labels and host
 ports:
 
 ```bash
-POSTGRES_CONTAINER="$(docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml ps -q postgres)"
-MINIO_CONTAINER="$(docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml ps -q minio)"
+POSTGRES_CONTAINER="$(docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml ps -q postgres)"
+MINIO_CONTAINER="$(docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml ps -q minio)"
 docker inspect --format '{{ index .Config.Labels "com.docker.compose.project" }} {{ index .Config.Labels "com.docker.compose.service" }}' "$POSTGRES_CONTAINER" "$MINIO_CONTAINER"
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml port postgres 5432
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml port minio 9000
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml port minio 9001
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml port postgres 5432
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml port minio 9000
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml port minio 9001
 ```
 
 Expected labels: `okved-parser postgres` and `okved-parser minio`. Expected ports:
@@ -241,21 +260,22 @@ its `Location` remains on the approved source-owned HTTPS allowlist. Abort on HT
 downgrade, unknown origin, `403`, or source unavailability. Do not add an alternate
 URL.
 
-## 5. Execute the command once
+## 5. Historical command identity — do not execute
 
-Run this command exactly once. Do not pipe it through a wrapper and do not change
-an option or environment value:
+The consumed attempt used the following exact command. Do not run it again. A
+new explicit authorization must define a new one-shot scope before any future
+live command may be considered:
 
 ```bash
 APP_MODE=live LIST_ORG_LIVE_ENABLED=true FNS_LIVE_ENABLED=true DATABASE_URL=postgresql://okved:okved-local-password@127.0.0.1:5433/okved S3_ENDPOINT=http://127.0.0.1:9000 S3_BUCKET=okved-raw S3_ACCESS_KEY_ID=okved-local S3_SECRET_ACCESS_KEY=okved-local-secret npm run audience -- live-pilot --okved 43.11 --year 2025 --max-companies 10
 ```
 
-Record the command exit code and safe terminal JSON. Do not record raw page text,
-query URLs, stack traces, session data, or CAPTCHA contents. If the CLI pauses for
-manual verification, follow the CAPTCHA procedure above.
+The operator record captured the command exit code and safe terminal JSON. It
+excluded raw page text, query URLs, stack traces, session data, and CAPTCHA
+contents.
 
-On success, set `RUN_ID` to the returned UUID. On failure, find the new live run
-created by this attempt and set the same variable. Do not start another command:
+Historical audits identify the consumed run by the returned UUID or the owned
+database. They do not start another command:
 
 ```bash
 RUN_ID='<uuid-from-terminal-or-owned-database>'
@@ -266,7 +286,7 @@ RUN_ID='<uuid-from-terminal-or-owned-database>'
 Confirm the run identity and terminal state:
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml exec -T postgres \
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
   psql -U okved -d okved -X -v ON_ERROR_STOP=1 -v run_id="$RUN_ID" -c "
 SELECT id, status, terminal_reason, scope_json, fixture_version, parser_version,
        published_at IS NOT NULL AS published
@@ -281,7 +301,7 @@ required metrics, source version `list-org-live/1.0.0`, and `published = true`.
 Confirm task coverage and terminality:
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml exec -T postgres \
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
   psql -U okved -d okved -X -v ON_ERROR_STOP=1 -v run_id="$RUN_ID" -c "
 SELECT task_kind, status, count(*) AS tasks
 FROM audience.crawl_tasks
@@ -301,7 +321,7 @@ For success, expect one successful `live_discovery`, one successful replay task,
 Confirm the ordered discovery selection and published relations:
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml exec -T postgres \
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
   psql -U okved -d okved -X -v ON_ERROR_STOP=1 -v run_id="$RUN_ID" -c "
 WITH discovery AS (
   SELECT result_json
@@ -328,7 +348,7 @@ For success, expect 10 ordered unique INNs, 10 matches, and 10 relations.
 Confirm all 30 terminal outcomes and their visible values or `no_data` state:
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml exec -T postgres \
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
   psql -U okved -d okved -X -v ON_ERROR_STOP=1 -v run_id="$RUN_ID" -c "
 WITH finance AS (
   SELECT result_json->>'companyInn' AS inn, result_json->'metricOutcomes' AS outcomes
@@ -372,7 +392,7 @@ Confirm exact value and `no_data` provenance, one `revexp` archive, and no
 out-of-scope evidence:
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml exec -T postgres \
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
   psql -U okved -d okved -X -v ON_ERROR_STOP=1 -v run_id="$RUN_ID" -c "
 SELECT evidence.company_inn, evidence.report_year, evidence.metric, evidence.amount,
        raw.source_kind, raw.source_record_key, raw.object_key, raw.checksum_sha256,
@@ -476,10 +496,11 @@ NODE
 Expected: every object verifies and the final count equals the run-scoped
 `source_fetches` count.
 
-## 8. Write the sanitized evidence report
+## 8. Audit the sanitized evidence report
 
-Write `docs/runbooks/evidence/okved-live-pilot-2026-08-26.md` after every terminal
-result, including failure or block. Include only:
+The immutable historical facts are recorded in
+`docs/runbooks/evidence/okved-live-pilot-2026-08-26.md`. Do not rewrite that
+report to describe later code hardening. When auditing it, expect only:
 
 - live-attempt count `1`, command exit code, run ID, status, and terminal reason;
 - CAPTCHA interaction status without challenge data;
@@ -498,7 +519,7 @@ browser/session state, CAPTCHA content, screenshots, and stack traces.
 Stop only the scoped Compose project. Preserve both volumes:
 
 ```bash
-docker compose -p okved-parser -f compose.yaml -f .superpowers/postgres-5433.compose.yaml down
+docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml down
 ```
 
 Expected: only the `okved-parser` containers and network stop. Do not pass `-v`.
