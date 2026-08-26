@@ -20,6 +20,10 @@ interface TaskRow extends QueryResultRow {
   fencing_token: string;
 }
 
+export function isDiscoveryTaskKind(value: string): value is "fixture_discovery" | "live_discovery" {
+  return value === "fixture_discovery" || value === "live_discovery";
+}
+
 export interface RawFetchRow extends QueryResultRow {
   run_id: string;
   source_kind: string;

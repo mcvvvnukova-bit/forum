@@ -11,6 +11,8 @@ import {
 import { runner } from "node-pg-migrate";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { buildLivePilotReport } from "../../src/apps/browser-runner/live-pilot-report";
+
 import { importSelectedOkveds } from "../../src/modules/audience/application/import-selected-okveds";
 import type { CapturedRawObject } from "../../src/modules/audience/application/ports/audience-repository";
 import { publishFinancialEvidence } from "../../src/modules/audience/application/publish-financial-evidence";
@@ -146,6 +148,22 @@ describe.sequential("audience parser fixture acceptance", () => {
     }
     await database?.close();
     await temporaryDatabase?.drop();
+  });
+
+  it("projects only safe terminal live-pilot report fields", () => {
+    const report = buildLivePilotReport({
+      summary: {
+        runId: randomUUID(), discoveredCompanies: 10, publishedCompanies: 10,
+        rawObjects: 12, terminalCode: "LIVE_PILOT_RECONCILED",
+      },
+      inns: ["7700000016"], outcomes: 30, sourceAttempts: ["published", "no_data"],
+      reconciliation: { companies: 10, relations: 10, outcomes: 30 },
+    });
+    expect(report).toEqual(expect.objectContaining({
+      inns: ["7700000016"], outcomes: 30,
+      reconciliation: { companies: 10, relations: 10, outcomes: 30 },
+    }));
+    expect(JSON.stringify(report)).not.toMatch(/cookie|session|captcha|https?:\/\//iu);
   });
 
   it("runs release, browser dry-run, raw replay twice, finance, and exact reconciliation", async () => {

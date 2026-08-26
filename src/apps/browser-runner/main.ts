@@ -268,6 +268,12 @@ function publicError(error: unknown): string {
   if (error instanceof Error && error.message.startsWith("blocked run cannot be resumed")) {
     return "blocked run cannot be resumed; create a new run";
   }
+  if (error instanceof Error && error.message.startsWith("LIVE_PILOT_SOURCE_BLOCKED:")) {
+    return "live pilot source blocked";
+  }
+  if (error instanceof Error && error.message.startsWith("reconciliation failed:")) {
+    return "live pilot reconciliation failed";
+  }
   return "operation failed";
 }
 

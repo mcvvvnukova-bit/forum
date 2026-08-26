@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { runLivePilot, type LivePilotRunResult } from "../../modules/audience/application/run-live-pilot";
 import { publishFinancialEvidence } from "../../modules/audience/application/publish-financial-evidence";
-import { reconcileRun } from "../../modules/audience/application/reconcile-run";
+import { reconcileLivePilotRun } from "../../modules/audience/application/reconcile-run";
 import { replayRun } from "../../modules/audience/application/replay-run";
 import { runFixtureDiscovery } from "../../modules/audience/application/run-fixture-discovery";
 import type { AudienceRepository, CapturedRawObject, FinancialMetricOutcomes } from "../../modules/audience/application/ports/audience-repository";
@@ -18,6 +18,8 @@ import { S3FileRawObjectStorage } from "../../modules/audience/infrastructure/st
 import { S3RawObjectStorage } from "../../modules/audience/infrastructure/storage/s3-raw-object-storage";
 import type { AppEnv } from "../../shared/config/env";
 import { HumanVerificationGate } from "./human-verification";
+import { parseAudienceCli } from "./cli";
+import type { RunLivePilotDependencies } from "../../modules/audience/application/run-live-pilot";
 
 const LIST_ORG_URL = "https://www.list-org.com/search";
 const BFO_URL = "https://bo.nalog.gov.ru/";
@@ -114,12 +116,29 @@ export async function executeLivePilot(input: {
           }, { repository: input.repository });
         }
       },
-      reconcile: async () => { await reconcileRun(runId, input.repository); },
+      reconcile: async () => { await reconcileLivePilotRun(runId, input.repository); },
     });
   } finally {
     bfoRawStorage.close();
     revexpRawStorage.close();
   }
+}
+
+/** Local-contract entry point used by the CLI acceptance test. It parses the
+ * exact public grammar before any injected source port can be opened. */
+export async function executeInjectedLivePilot<TReport>(
+  argv: readonly string[],
+  dependencies: RunLivePilotDependencies & { report(summary: LivePilotRunResult): TReport },
+): Promise<TReport> {
+  const command = parseAudienceCli(argv);
+  if (command.kind !== "live-pilot") throw new Error("live-pilot command is required");
+  const summary = await runLivePilot({
+    runId: randomUUID(),
+    okved: command.okved,
+    year: command.year,
+    maxCompanies: command.maxCompanies,
+  }, dependencies);
+  return dependencies.report(summary);
 }
 
 function revexpAttempt(raw: CapturedRawObject, observedAt: string) {

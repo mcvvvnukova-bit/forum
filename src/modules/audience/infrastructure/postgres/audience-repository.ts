@@ -25,6 +25,7 @@ import type { Database } from "../../../../shared/postgres/database";
 import {
   acquire,
   findFinancialSourceFetch,
+  isDiscoveryTaskKind,
   insertRawFetch,
   lockFence,
   parseStagedCandidates,
@@ -87,6 +88,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
 
   async startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart> {
     const taskKind = input.taskKind ?? "fixture_discovery";
+    if (!isDiscoveryTaskKind(taskKind)) throw new Error("discovery task kind is invalid");
     const onlyActive = input.scope.onlyActive ?? taskKind === "fixture_discovery";
     if ((taskKind === "fixture_discovery" && onlyActive !== true)
       || (taskKind === "live_discovery" && onlyActive !== false)) {
