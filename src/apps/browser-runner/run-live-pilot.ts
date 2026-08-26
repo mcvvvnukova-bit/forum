@@ -5,7 +5,14 @@ import { publishFinancialEvidence } from "../../modules/audience/application/pub
 import { reconcileLivePilotRun } from "../../modules/audience/application/reconcile-run";
 import { replayRun } from "../../modules/audience/application/replay-run";
 import { runFixtureDiscovery } from "../../modules/audience/application/run-fixture-discovery";
-import type { AudienceRepository, CapturedRawObject, FinancialMetricOutcomes } from "../../modules/audience/application/ports/audience-repository";
+import { withRenewingTaskLease } from "../../modules/audience/application/task-lease";
+import type {
+  AudienceRepository,
+  CapturedRawObject,
+  FencedTask,
+  FinancialMetricOutcomes,
+  PreparedTask,
+} from "../../modules/audience/application/ports/audience-repository";
 import type { RawObjectStorage } from "../../modules/audience/application/ports/raw-object-storage";
 import { parseLegalEntityInn } from "../../modules/audience/domain/inn";
 import { PolicyBrowserSessionFactory } from "../../modules/audience/infrastructure/sources/browser/policy-browser";
@@ -36,6 +43,10 @@ export interface LivePilotFactories {
     readonly bfoSearchUrl: string;
     readonly revexpMetadataUrl: string;
   };
+  readonly financeTaskLease?: {
+    readonly leaseSeconds: number;
+    readonly renewalIntervalMs?: number;
+  };
   createListBrowserSessions(origin: string): PolicyBrowserSessionFactory;
   createBfoBrowserSessions(origin: string): PolicyBrowserSessionFactory;
   createListSource(options: ListOrgLiveSourceOptions): ListOrgLiveSource;
@@ -62,7 +73,7 @@ export async function executeLivePilot(input: {
     runId,
     parserVersion: "list-org-live/1.0.0",
   });
-  let selected: readonly { inn: string }[] = [];
+  let selected: readonly { inn: string; sourceRecordKey: string }[] = [];
   const companyMetrics: Array<{ inn: string; metric: "revenue" | "income" | "expenses"; value: string; sourceAttemptStatus: "published" } | { inn: string; metric: "revenue" | "income" | "expenses"; outcome: "no_data"; sourceAttemptStatus: "no_data" }> = [];
   let reconciliation: { companies: number; companyOkveds: number } | undefined;
   let bfoRawStorage: LivePilotBfoRawStorage | undefined;
@@ -79,26 +90,46 @@ export async function executeLivePilot(input: {
           fixtureVersion: "list-org-live/1.0.0", parserVersion: "list-org-live/1.0.0",
           taskKind: "live_discovery", onlyActive: false, sourceKind: "list-org-live",
         }, { repository: input.repository, source: listSource, rawStorage: input.discoveryRawStorage });
-        selected = (await input.repository.loadReplayInput(runId)).candidates;
+        const replayInput = await input.repository.loadReplayInput(runId);
+        selected = replayInput.candidates;
         return {
           ...summary,
-          acceptedCompanies: selected.length,
-          candidates: selected.map((candidate) => ({ inn: candidate.inn })),
+          acceptedCompanies: replayInput.discoveryAudit.acceptedCompanies,
+          acceptedSourceRecordKeys: replayInput.discoveryAudit.acceptedSourceRecordKeys ?? [],
+          candidates: selected.map((candidate) => ({
+            inn: candidate.inn,
+            sourceRecordKey: candidate.sourceRecordKey,
+          })),
         };
       },
       replay: async () => { await replayRun({ runId, dryRun: false }, { repository: input.repository, rawStorage: input.discoveryRawStorage }); },
       finance: async () => {
-        const financeTasks = [] as Array<{ inn: string; task: Awaited<ReturnType<AudienceRepository["createTask"]>> }>;
+        const financeTaskLease = factories.financeTaskLease ?? { leaseSeconds: 300 };
+        const financeTasks: Array<{ inn: string; task: PreparedTask }> = [];
+        const acquiredFinanceTasks = new Map<string, FencedTask>();
         let runFailureRecorded = false;
+        const failPreparedTask = async (
+          financeTask: { task: PreparedTask },
+          errorCode: string,
+          failRun: boolean,
+        ): Promise<boolean> => {
+          const existingFence = acquiredFinanceTasks.get(financeTask.task.id);
+          if (existingFence !== undefined
+            && await input.repository.failTask(existingFence, errorCode, failRun)) return true;
+          const acquired = await input.repository.acquireTask(
+            financeTask.task.id,
+            financeTaskLease.leaseSeconds,
+          );
+          if (acquired === null) return false;
+          acquiredFinanceTasks.set(financeTask.task.id, acquired);
+          return input.repository.failTask(acquired, errorCode, failRun);
+        };
         try {
-          // Bind all ten owners before any shared or company-specific finance
-          // collection so every later failure has terminal task attribution.
+          // Persist all ten immutable owners without starting their leases.
+          // Each company lease begins only when its sequential turn starts.
           for (const company of selected) {
-            const task = await input.repository.createTask(runId, "live_finance", 300);
+            const task = await input.repository.prepareLiveFinanceTask(runId, company.inn);
             financeTasks.push({ inn: company.inn, task });
-            if (!await input.repository.bindTaskCompany(task, company.inn)) {
-              throw new Error("live finance task ownership could not be bound");
-            }
           }
 
           const transport = factories.createRevexpTransport();
@@ -130,25 +161,45 @@ export async function executeLivePilot(input: {
 
           for (let index = 0; index < selected.length; index += 1) {
             const inn = parseLegalEntityInn(selected[index]!.inn);
-            const financeTask = financeTasks[index]!;
-            const bfo = await bfoSource.collectRevenue({ inn, reportYear: 2025 }, {
-              actionLedger: { record: async (event) => {
-                if (!await input.repository.recordBrowserAction(financeTask.task, event)) {
-                  throw new Error("stale live finance task collector");
-                }
-              } },
-            });
-            const bfoStored = await activeBfoRawStorage.put(bfo.raw);
-            const bfoRaw: CapturedRawObject = {
-              id: randomUUID(), sourceKind: "fns-bfo-live", sourceRecordKey: bfo.raw.identity.sourceRecordKey!,
-              mimeType: "application/json", finalUrl: bfo.raw.finalUrl, navigationStatus: bfo.raw.navigationStatus,
-              capturedAt: bfo.raw.capturedAt, parserVersion: bfo.raw.parserVersion, stored: bfoStored,
-            };
+            const preparedFinanceTask = financeTasks[index]!;
+            const task = await input.repository.acquireTask(
+              preparedFinanceTask.task.id,
+              financeTaskLease.leaseSeconds,
+            );
+            if (task === null || task.runId !== runId || task.taskKind !== "live_finance") {
+              throw new Error("live finance task could not be acquired for its company turn");
+            }
+            acquiredFinanceTasks.set(task.id, task);
+            const { bfo, bfoRaw } = await withRenewingTaskLease(
+              input.repository,
+              task,
+              financeTaskLease,
+              async (signal) => {
+                const bfo = await bfoSource.collectRevenue({ inn, reportYear: 2025 }, {
+                  signal,
+                  actionLedger: { record: async (event) => {
+                    if (!await input.repository.recordBrowserAction(task, event)) {
+                      throw new Error("stale live finance task collector");
+                    }
+                  } },
+                });
+                const bfoStored = await activeBfoRawStorage.put(bfo.raw);
+                const bfoRaw: CapturedRawObject = {
+                  id: randomUUID(), sourceKind: "fns-bfo-live", sourceRecordKey: bfo.raw.identity.sourceRecordKey!,
+                  mimeType: "application/json", finalUrl: bfo.raw.finalUrl, navigationStatus: bfo.raw.navigationStatus,
+                  capturedAt: bfo.raw.capturedAt, parserVersion: bfo.raw.parserVersion, stored: bfoStored,
+                };
+                return { bfo, bfoRaw };
+              },
+            );
+            if (!await input.repository.renewTaskLease(task, financeTaskLease.leaseSeconds)) {
+              throw new Error("stale live finance task before publication");
+            }
             if (bfo.outcome === "blocked") {
-              if (!await input.repository.recordFinancialRaw(financeTask.task, bfoRaw)) {
+              if (!await input.repository.recordFinancialRaw(task, bfoRaw)) {
                 throw new Error("stale live finance task raw audit");
               }
-              if (!await input.repository.failTask(financeTask.task, "live_finance_blocked", true)) {
+              if (!await input.repository.failTask(task, "live_finance_blocked", true)) {
                 throw new Error("stale live finance task blocker");
               }
               runFailureRecorded = true;
@@ -174,7 +225,7 @@ export async function executeLivePilot(input: {
             reportMetric("revenue", bfo.outcome === "published" ? bfo.evidence.value : undefined);
             reportMetric("income", revexpForCompany.find((item) => item.metric === "income")?.value);
             reportMetric("expenses", revexpForCompany.find((item) => item.metric === "expenses")?.value);
-            await publishFinancialEvidence({ runId, reportYear: 2025, taskKind: "live_finance", companyInn: inn, task: financeTask.task,
+            await publishFinancialEvidence({ runId, reportYear: 2025, taskKind: "live_finance", companyInn: inn, task,
               evidence: [...(bfo.outcome === "published" ? [bfo.evidence] : []), ...revexpForCompany],
               metricOutcomes: outcomes, rawObjects: index === 0 ? [bfoRaw, revexpRaw] : [bfoRaw],
             }, { repository: input.repository });
@@ -186,14 +237,14 @@ export async function executeLivePilot(input: {
           }
           if (!runFailureRecorded) {
             for (const financeTask of financeTasks) {
-              if (await input.repository.failTask(financeTask.task, "live_finance_failed", true)) {
+              if (await failPreparedTask(financeTask, "live_finance_failed", true)) {
                 runFailureRecorded = true;
                 break;
               }
             }
           }
           for (const financeTask of financeTasks) {
-            await input.repository.failTask(financeTask.task, "live_finance_cancelled", false);
+            await failPreparedTask(financeTask, "live_finance_cancelled", false);
           }
           throw error;
         }

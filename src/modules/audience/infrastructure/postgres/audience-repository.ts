@@ -14,6 +14,7 @@ import type {
   FinancialMetricOutcome,
   FinancialMetricOutcomes,
   FinancialSourceAttempt,
+  PreparedTask,
   PublicationCounts,
   ReconciliationReport,
   ReplayInput,
@@ -22,6 +23,11 @@ import type {
 import type { BrowserActionEvent, DiscoveredCompany } from "../../domain/discovery";
 import type { FinancialMetric } from "../../domain/financial";
 import { parseLegalEntityInn } from "../../domain/inn";
+import {
+  expectedLiveFinancialRawSourceRecordKey,
+  isExactLiveFinancialAttemptIdentity,
+  isExactLiveFinancialEvidenceIdentity,
+} from "../../domain/live-financial-provenance";
 import type { Database } from "../../../../shared/postgres/database";
 import {
   acquire,
@@ -226,6 +232,32 @@ export class PostgresAudienceRepository implements AudienceRepository {
     return task;
   }
 
+  async prepareLiveFinanceTask(runId: string, companyInn: string): Promise<PreparedTask> {
+    parseLegalEntityInn(companyInn);
+    const taskId = randomUUID();
+    return this.database.transaction(async (transaction) => {
+      const run = await transaction.query<RunRow>(
+        "SELECT status, terminal_reason FROM audience.crawl_runs WHERE id = $1 FOR UPDATE",
+        [runId],
+      );
+      const row = run.rows[0];
+      if (row === undefined) throw new Error("crawl run does not exist");
+      if (row.status === "blocked") {
+        throw new Error(`blocked run cannot be resumed (${row.terminal_reason ?? "blocked"}); create a new run`);
+      }
+      if (row.status !== "succeeded") {
+        throw new Error(`cannot prepare live_finance for a ${row.status} run`);
+      }
+      await transaction.query(
+        `INSERT INTO audience.crawl_tasks (
+           id, run_id, task_kind, status, result_json
+         ) VALUES ($1, $2, 'live_finance', 'pending', jsonb_build_object('companyInn', $3::text))`,
+        [taskId, runId, companyInn],
+      );
+      return { id: taskId, runId, taskKind: "live_finance" };
+    });
+  }
+
   acquireTask(taskId: string, leaseSeconds: number): Promise<FencedTask | null> {
     return acquire(this.database, taskId, leaseSeconds);
   }
@@ -398,7 +430,8 @@ export class PostgresAudienceRepository implements AudienceRepository {
       [runId],
     );
     const task = taskResult.rows[0];
-    const candidates = parseStagedCandidates(task?.result_json);
+    const staged = parseLiveDiscoveryAudit(task?.result_json);
+    const candidates = staged.candidates;
     const sourceKind = task?.task_kind === "live_discovery" ? "list-org-live" : "list-org-browser";
     const rawResult = await this.database.query<RawFetchRow>(
       `SELECT run_id, source_kind, source_record_key, parser_version,
@@ -413,6 +446,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
       runId,
       status: run.status,
       terminalReason: run.terminal_reason,
+      discoveryAudit: staged.audit,
       candidates,
       rawObjects: rawResult.rows.map(storedRawObject),
     };
@@ -454,17 +488,40 @@ export class PostgresAudienceRepository implements AudienceRepository {
 
   async publishFinancial(input: FinancialPublicationInput): Promise<boolean> {
     return this.database.transaction(async (transaction) => {
-      if (!await lockFence(transaction, input.task)) return false;
+      const persistedTask = await lockFinancialTaskIdentity(transaction, input.task);
+      if (persistedTask === undefined) return false;
+      if (persistedTask.taskKind !== input.task.taskKind) {
+        throw new Error("financial task identity does not match persisted task");
+      }
       const contract = await lockRunFinancialContract(transaction, input.task.runId);
       if (input.reportYear !== contract.reportYear
         || input.evidence.some((evidence) => evidence.reportYear !== contract.reportYear)) {
         throw new Error("financial evidence report year does not match immutable run scope");
       }
-      if (input.task.taskKind === "live_finance") {
+      let liveTaskOwner: string | undefined;
+      if (persistedTask.taskKind === "live_finance") {
+        const persistedCompanyInn = persistedTask.companyInn;
+        if (persistedCompanyInn === undefined) {
+          throw new Error("live finance task is missing its persisted company owner");
+        }
         if (input.companyInn === undefined) throw new Error("live finance task requires a company INN");
         parseLegalEntityInn(input.companyInn);
+        if (persistedCompanyInn !== input.companyInn) {
+          throw new Error("live finance publication does not match persisted task owner");
+        }
         if (input.evidence.some((evidence) => evidence.inn !== input.companyInn)) {
           throw new Error("live finance evidence belongs to another company");
+        }
+        liveTaskOwner = persistedCompanyInn;
+        for (const evidence of input.evidence) {
+          if (!isExactLiveFinancialEvidenceIdentity(
+            persistedCompanyInn,
+            contract.reportYear,
+            evidence.metric,
+            evidence,
+          )) {
+            throw new Error(`live ${evidence.metric} evidence does not match persisted task owner`);
+          }
         }
       } else if (input.companyInn !== undefined) {
         throw new Error("only live finance tasks may own a company INN");
@@ -489,6 +546,9 @@ export class PostgresAudienceRepository implements AudienceRepository {
             input.task.runId,
             metric,
             outcome.sourceAttempt,
+            liveTaskOwner === undefined
+              ? undefined
+              : { companyInn: liveTaskOwner, reportYear: contract.reportYear },
           );
         }
       }
@@ -498,7 +558,13 @@ export class PostgresAudienceRepository implements AudienceRepository {
           transaction,
           input.task.runId,
           evidence,
-          input.task.taskKind === "live_finance" && evidence.metric === "revenue",
+          liveTaskOwner !== undefined
+            ? expectedLiveFinancialRawSourceRecordKey(
+              contract.reportYear,
+              evidence.metric,
+              evidence.sourceRecordKey,
+            )
+            : undefined,
         );
         const inserted = await transaction.query<{ id: string } & QueryResultRow>(
           `WITH fence AS (
@@ -1053,8 +1119,20 @@ export class PostgresAudienceRepository implements AudienceRepository {
           if (persisted !== outcome.evidence) {
             violations.push(`required financial metric evidence differs from outcome: ${metric}`);
           }
-        } else if (persisted !== 0 || !await financialSourceAttemptExists(
-          this.database, runId, metric, outcome.sourceAttempt,
+        } else if (persisted !== 0) {
+          violations.push(`required financial no-data outcome has evidence: ${metric}`);
+        } else if (!isExactLiveFinancialAttemptIdentity(
+          financial.companyInn,
+          scopeYear,
+          metric,
+          outcome.sourceAttempt,
+        )) {
+          violations.push(`required financial no-data source attempt is invalid: ${metric}`);
+        } else if (!await financialSourceAttemptExists(
+          this.database,
+          runId,
+          metric,
+          outcome.sourceAttempt,
         )) {
           violations.push(`required financial no-data source attempt is missing: ${metric}`);
         }
@@ -1121,6 +1199,30 @@ async function lockRunFinancialContract(
   };
 }
 
+async function lockFinancialTaskIdentity(
+  database: Database,
+  task: FencedTask,
+): Promise<{ taskKind: string; companyInn?: string } | undefined> {
+  const result = await database.query<{
+    task_kind: string;
+    company_inn: string | null;
+  } & QueryResultRow>(
+    `SELECT task_kind, result_json ->> 'companyInn' AS company_inn
+     FROM audience.crawl_tasks
+     WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'
+     FOR UPDATE`,
+    [task.id, task.runId, task.fencingToken],
+  );
+  const row = result.rows[0];
+  if (row === undefined) return undefined;
+  if (row.task_kind !== "live_finance") return { taskKind: row.task_kind };
+  if (row.company_inn === null) {
+    throw new Error("live finance task is missing its persisted company owner");
+  }
+  parseLegalEntityInn(row.company_inn);
+  return { taskKind: row.task_kind, companyInn: row.company_inn };
+}
+
 function parseRunScopeYear(value: unknown): number {
   if (!Number.isSafeInteger(value) || Number(value) < 1900 || Number(value) > 9999) {
     throw new Error("crawl run scope year is invalid");
@@ -1180,9 +1282,18 @@ async function assertFinancialSourceAttempt(
   runId: string,
   metric: FinancialMetric,
   attempt: FinancialSourceAttempt,
+  live?: { companyInn: string; reportYear: number },
 ): Promise<void> {
   if (!isFinancialSourceAttemptValid(metric, attempt)) {
     throw new Error(`financial metric no-data source attempt is invalid: ${metric}`);
+  }
+  if (live !== undefined && !isExactLiveFinancialAttemptIdentity(
+    live.companyInn,
+    live.reportYear,
+    metric,
+    attempt,
+  )) {
+    throw new Error(`live ${metric} source attempt does not match persisted task owner`);
   }
   if (!await financialSourceAttemptExists(database, runId, metric, attempt)) {
     throw new Error(`financial metric no-data source attempt is missing: ${metric}`);
@@ -1331,6 +1442,9 @@ function parseLiveDiscoveryAudit(value: unknown): {
     throw new Error("live discovery audit is invalid");
   }
   const pageIdentities = parseLiveDiscoveryPageIdentities(record.pageIdentities);
+  const acceptedSourceRecordKeys = parseLiveAcceptedSourceRecordKeys(
+    record.acceptedSourceRecordKeys,
+  );
   return {
     candidates,
     acceptedCompanies: Number(record.acceptedCompanies),
@@ -1341,9 +1455,19 @@ function parseLiveDiscoveryAudit(value: unknown): {
       duplicates: Number(record.duplicates),
       rejected: Number(record.rejected),
       blockedOrConflicted: Number(record.blockedOrConflicted),
+      ...(acceptedSourceRecordKeys === undefined ? {} : { acceptedSourceRecordKeys }),
       ...(pageIdentities === undefined ? {} : { pageIdentities }),
     },
   };
+}
+
+function parseLiveAcceptedSourceRecordKeys(value: unknown): readonly string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)
+    || value.some((key) => typeof key !== "string" || key.trim() === "")) {
+    throw new Error("live discovery audit is invalid");
+  }
+  return value as string[];
 }
 
 function parseLiveDiscoveryPageIdentities(

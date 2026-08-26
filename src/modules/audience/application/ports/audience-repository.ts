@@ -12,6 +12,12 @@ export interface FencedTask {
   fencingToken: number;
 }
 
+export interface PreparedTask {
+  id: string;
+  runId: string;
+  taskKind: string;
+}
+
 export interface TaskState {
   id: string;
   runId: string;
@@ -80,6 +86,7 @@ export interface DiscoveryAudit {
   duplicates: number;
   rejected: number;
   blockedOrConflicted: number;
+  acceptedSourceRecordKeys?: readonly string[];
   pageIdentities?: readonly DiscoveryPageIdentityAudit[];
 }
 
@@ -93,6 +100,7 @@ export interface ReplayInput {
   runId: string;
   status: CrawlStatus;
   terminalReason: string | null;
+  discoveryAudit: DiscoveryAudit;
   candidates: readonly DiscoveredCompany[];
   rawObjects: readonly StoredRawObject[];
 }
@@ -159,6 +167,7 @@ export interface AudienceRepository {
   startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart>;
   createDiscoveryRun(input: DiscoveryRunInput): Promise<FencedTask>;
   prepareTask(taskId: string, runId: string, taskKind: string): Promise<void>;
+  prepareLiveFinanceTask(runId: string, companyInn: string): Promise<PreparedTask>;
   createTask(runId: string, taskKind: string, leaseSeconds: number): Promise<FencedTask>;
   acquireTask(taskId: string, leaseSeconds: number): Promise<FencedTask | null>;
   renewTaskLease(task: FencedTask, leaseSeconds: number): Promise<boolean>;

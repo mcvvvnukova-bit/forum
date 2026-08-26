@@ -7,6 +7,10 @@ import type {
 } from "./ports/audience-repository";
 import { StaleTaskError } from "./stale-task-error";
 import { parseLegalEntityInn } from "../domain/inn";
+import {
+  isExactLiveFinancialAttemptIdentity,
+  isExactLiveFinancialEvidenceIdentity,
+} from "../domain/live-financial-provenance";
 
 const FINANCIAL_LEASE_SECONDS = 300;
 
@@ -50,7 +54,12 @@ export async function publishFinancialEvidence(
     if (command.evidence.some((evidence) => evidence.inn !== command.companyInn)) {
       throw new Error("live finance evidence belongs to another company");
     }
-    assertLiveCompanyFinancialProvenance(command.companyInn, command.evidence, command.metricOutcomes);
+    assertLiveCompanyFinancialProvenance(
+      command.companyInn,
+      command.reportYear,
+      command.evidence,
+      command.metricOutcomes,
+    );
   } else if (command.companyInn !== undefined) {
     throw new Error("fixture finance task cannot own a company INN");
   }
@@ -62,8 +71,11 @@ export async function publishFinancialEvidence(
     command.reportYear,
     dependencies.repository,
   );
-  const task = command.task ?? await dependencies.repository.createTask(
-    command.runId, taskKind, FINANCIAL_LEASE_SECONDS,
+  const task = command.task ?? await createFinancialTask(
+    dependencies.repository,
+    command.runId,
+    taskKind,
+    command.companyInn,
   );
   if (task.runId !== command.runId || task.taskKind !== taskKind) {
     throw new Error("financial task identity does not match command");
@@ -90,22 +102,43 @@ export async function publishFinancialEvidence(
   }
 }
 
+async function createFinancialTask(
+  repository: AudienceRepository,
+  runId: string,
+  taskKind: "fixture_finance" | "live_finance",
+  companyInn: string | undefined,
+): Promise<FencedTask> {
+  if (taskKind === "fixture_finance") {
+    return repository.createTask(runId, taskKind, FINANCIAL_LEASE_SECONDS);
+  }
+  if (companyInn === undefined) throw new Error("live finance task requires a company INN");
+  const prepared = await repository.prepareLiveFinanceTask(runId, companyInn);
+  const task = await repository.acquireTask(prepared.id, FINANCIAL_LEASE_SECONDS);
+  if (task === null) throw new Error("prepared live finance task could not be acquired");
+  return task;
+}
+
 function assertLiveCompanyFinancialProvenance(
   companyInn: string,
+  reportYear: number,
   evidence: readonly FinancialMetricEvidence[],
   outcomes: FinancialMetricOutcomes,
 ): void {
   for (const item of evidence) {
-    if (item.metric !== "revenue") continue;
-    if (item.rawSourceKind !== "fns-bfo-live"
-      || !new RegExp(`^${companyInn}:2025:0710002:`).test(item.sourceRecordKey)) {
-      throw new Error("live revenue evidence does not match owned company");
+    if (!isExactLiveFinancialEvidenceIdentity(companyInn, reportYear, item.metric, item)) {
+      throw new Error(`live ${item.metric} evidence does not match owned company`);
     }
   }
-  const revenue = outcomes.revenue;
-  if (revenue?.outcome === "no_data"
-    && (revenue.sourceAttempt.rawSourceKind !== "fns-bfo-live"
-      || !new RegExp(`^${companyInn}:2025:0710002:`).test(revenue.sourceAttempt.sourceRecordKey))) {
-    throw new Error("live revenue source attempt does not match owned company");
+  for (const metric of ["revenue", "income", "expenses"] as const) {
+    const outcome = outcomes[metric];
+    if (outcome?.outcome === "no_data"
+      && !isExactLiveFinancialAttemptIdentity(
+        companyInn,
+        reportYear,
+        metric,
+        outcome.sourceAttempt,
+      )) {
+      throw new Error(`live ${metric} source attempt does not match owned company`);
+    }
   }
 }

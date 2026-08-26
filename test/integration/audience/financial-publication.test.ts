@@ -118,15 +118,14 @@ describe("financial evidence publication", () => {
     const companyInn = parseLegalEntityInn("7707083893");
     await seedFinancialProvenance(database, publicationRunId);
     await insertBfoLiveRawFetch(database, publicationRunId);
+    await insertLiveRevexpRawFetch(database, publicationRunId);
     const bfoAttempt = {
       sourceKind: "fns_bfo" as const, rawSourceKind: "fns-bfo-live" as const,
       sourceRecordKey: "7707083893:2025:0710002:2",
       observedAt: "2026-04-01T00:00:00.000Z", capturedAt: "2026-08-26T12:00:00.000Z",
       rawFetchKey: "e".repeat(64), parserVersion: "fns-bfo-live/1.0.0",
     };
-    const revexpAttempt = financialSourceAttempt(
-      "fns_revexp", "revexp", "raw/fns-revexp/report.xml", "fns-revexp/1.0.0",
-    );
+    const revexpAttempt = liveRevexpSourceAttempt();
 
     await publishFinancialEvidence({
       runId: publicationRunId,
@@ -164,6 +163,121 @@ describe("financial evidence publication", () => {
         expenses: mixedMetricOutcomes().expenses,
       },
     }, { repository })).rejects.toThrow("live revenue source attempt does not match owned company");
+  });
+
+  it.each([
+    {
+      name: "fixture BFO",
+      rawSourceKind: "fns-bfo" as const,
+      sourceRecordKey: "bfo-old",
+      rawFetchKey: "raw/fns-bfo/old.json",
+      capturedAt: "2026-04-01T09:00:00.000Z",
+      parserVersion: "fns-bfo/1.0.0",
+      insertRaw: false,
+    },
+    {
+      name: "another company",
+      rawSourceKind: "fns-bfo-live" as const,
+      sourceRecordKey: "7710140679:2025:0710002:2",
+      rawFetchKey: "1".repeat(64),
+      capturedAt: "2026-08-26T12:00:00.000Z",
+      parserVersion: "fns-bfo-live/1.0.0",
+      insertRaw: true,
+    },
+    {
+      name: "wrong year",
+      rawSourceKind: "fns-bfo-live" as const,
+      sourceRecordKey: "7707083893:2024:0710002:2",
+      rawFetchKey: "2".repeat(64),
+      capturedAt: "2026-08-26T12:00:00.000Z",
+      parserVersion: "fns-bfo-live/1.0.0",
+      insertRaw: true,
+    },
+    {
+      name: "wrong form",
+      rawSourceKind: "fns-bfo-live" as const,
+      sourceRecordKey: "7707083893:2025:0710001:2",
+      rawFetchKey: "3".repeat(64),
+      capturedAt: "2026-08-26T12:00:00.000Z",
+      parserVersion: "fns-bfo-live/1.0.0",
+      insertRaw: true,
+    },
+  ])("repository rejects live revenue no-data backed by $name", async (invalid) => {
+    const publicationRunId = randomUUID();
+    const companyInn = parseLegalEntityInn("7707083893");
+    await seedFinancialProvenance(database, publicationRunId);
+    await insertLiveRevexpRawFetch(database, publicationRunId);
+    if (invalid.insertRaw) {
+      await insertCustomBfoLiveRawFetch(
+        database,
+        publicationRunId,
+        invalid.sourceRecordKey,
+        invalid.rawFetchKey,
+      );
+    }
+    const prepared = await repository.prepareLiveFinanceTask(publicationRunId, companyInn);
+    const task = await repository.acquireTask(prepared.id, 300);
+    if (task === null) throw new Error("live finance task was not acquired");
+    const revexpAttempt = liveRevexpSourceAttempt();
+
+    await expect(repository.publishFinancial({
+      task,
+      reportYear: 2025,
+      companyInn,
+      evidence: [],
+      metricOutcomes: {
+        revenue: {
+          outcome: "no_data",
+          evidence: 0,
+          sourceAttempt: {
+            sourceKind: "fns_bfo",
+            rawSourceKind: invalid.rawSourceKind,
+            sourceRecordKey: invalid.sourceRecordKey,
+            observedAt: "2026-04-01T00:00:00.000Z",
+            capturedAt: invalid.capturedAt,
+            rawFetchKey: invalid.rawFetchKey,
+            parserVersion: invalid.parserVersion,
+          },
+        },
+        income: { outcome: "no_data", evidence: 0, sourceAttempt: revexpAttempt },
+        expenses: { outcome: "no_data", evidence: 0, sourceAttempt: revexpAttempt },
+      },
+    })).rejects.toThrow("live revenue source attempt does not match persisted task owner");
+  });
+
+  it("repository rejects a published live raw identity mismatch despite a spoofed caller task kind", async () => {
+    const publicationRunId = randomUUID();
+    const companyInn = parseLegalEntityInn("7707083893");
+    await seedFinancialProvenance(database, publicationRunId);
+    await insertBfoLiveRawFetch(database, publicationRunId);
+    await insertLiveRevexpRawFetch(database, publicationRunId);
+    const prepared = await repository.prepareLiveFinanceTask(publicationRunId, companyInn);
+    const task = await repository.acquireTask(prepared.id, 300);
+    if (task === null) throw new Error("live finance task was not acquired");
+    const evidence: FinancialMetricEvidence = {
+      inn: companyInn,
+      reportYear: 2025,
+      metric: "revenue",
+      value: parseMoneyText("1654023000", "dot"),
+      sourceKind: "fns_bfo",
+      rawSourceKind: "fns-bfo-live",
+      sourceRecordKey: "7710140679:2025:0710002:2",
+      observedAt: "2026-04-01T00:00:00.000Z",
+      rawFetchKey: "e".repeat(64),
+      parserVersion: "fns-bfo-live/1.0.0",
+    };
+    const revexpAttempt = liveRevexpSourceAttempt();
+
+    await expect(repository.publishFinancial({
+      task: { ...task, taskKind: "fixture_finance" },
+      reportYear: 2025,
+      evidence: [evidence],
+      metricOutcomes: {
+        revenue: { outcome: "published", evidence: 1 },
+        income: { outcome: "no_data", evidence: 0, sourceAttempt: revexpAttempt },
+        expenses: { outcome: "no_data", evidence: 0, sourceAttempt: revexpAttempt },
+      },
+    })).rejects.toThrow("financial task identity does not match persisted task");
   });
 
   it("publishes BFO live revenue against the exact fns-bfo-live raw identity", async () => {
@@ -947,4 +1061,50 @@ async function insertBfoLiveRawFetch(
        'fns-bfo-live/1.0.0')`,
     [runId, "e".repeat(64), "2026-08-26T12:00:00.000Z"],
   );
+}
+
+async function insertCustomBfoLiveRawFetch(
+  database: PostgresDatabase,
+  runId: string,
+  sourceRecordKey: string,
+  checksum: string,
+): Promise<void> {
+  await database.query(
+    `INSERT INTO audience.source_fetches (
+       id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+       mime_type, final_url, navigation_status, captured_at, parser_version
+     ) VALUES (gen_random_uuid(), $1, 'fns-bfo-live', $2,
+       'raw/bfo-live/custom-manifest.json', $3, 'application/json',
+       'http://127.0.0.1/fns-bfo-live/statements/opaque', 200, $4::timestamptz,
+       'fns-bfo-live/1.0.0')`,
+    [runId, sourceRecordKey, checksum, "2026-08-26T12:00:00.000Z"],
+  );
+}
+
+async function insertLiveRevexpRawFetch(
+  database: PostgresDatabase,
+  runId: string,
+): Promise<void> {
+  await database.query(
+    `INSERT INTO audience.source_fetches (
+       id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+       mime_type, final_url, navigation_status, captured_at, parser_version
+     ) VALUES (gen_random_uuid(), $1, 'fns-revexp', '7707329152-revexp:2025',
+       'raw/fns-revexp/live-report.xml', $2, 'application/xml',
+       'http://127.0.0.1/fns-revexp/revexp-2025.zip', 200, $3::timestamptz,
+       'fns-revexp/1.0.0')`,
+    [runId, "f".repeat(64), "2026-08-26T12:00:00.000Z"],
+  );
+}
+
+function liveRevexpSourceAttempt() {
+  return {
+    sourceKind: "fns_revexp" as const,
+    rawSourceKind: "fns-revexp" as const,
+    sourceRecordKey: "7707329152-revexp:2025",
+    observedAt: "2026-04-01T00:00:00.000Z",
+    capturedAt: "2026-08-26T12:00:00.000Z",
+    rawFetchKey: "f".repeat(64),
+    parserVersion: "fns-revexp/1.0.0",
+  };
 }

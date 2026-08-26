@@ -163,6 +163,7 @@ export async function runFixtureDiscovery(
         duplicates: occurrenceKeys.length - uniqueSourceRecords,
         rejected: result.rejects.length,
         blockedOrConflicted,
+        acceptedSourceRecordKeys: result.companies.map((company) => company.sourceRecordKey),
         pageIdentities: result.pages.map((page) => ({
           page: page.page,
           orderedSourceRecordKeys: [...page.orderedSourceRecordKeys],

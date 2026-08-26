@@ -10,7 +10,8 @@ export interface LivePilotDiscoverySummary {
   status: "succeeded" | "blocked";
   discoveredCompanies: number;
   acceptedCompanies: number;
-  candidates: readonly { inn: string }[];
+  acceptedSourceRecordKeys: readonly string[];
+  candidates: readonly { inn: string; sourceRecordKey: string }[];
   rawObjects: number;
 }
 
@@ -75,15 +76,18 @@ function hasExactDiscoveryPreflight(discovery: LivePilotDiscoverySummary): boole
   if (discovery.status !== "succeeded"
     || discovery.discoveredCompanies !== 10
     || discovery.acceptedCompanies !== 10
-    || discovery.candidates.length !== 10) return false;
+    || discovery.candidates.length !== 10
+    || discovery.acceptedSourceRecordKeys.length !== 10) return false;
   const inns: string[] = [];
-  for (const candidate of discovery.candidates) {
+  for (const [index, candidate] of discovery.candidates.entries()) {
     try {
       // Keep the application preflight independent of parser/source internals.
       if (!/^\d{10}$/u.test(candidate.inn)) return false;
       const weights = [2, 4, 10, 3, 5, 9, 4, 6, 8] as const;
       const checksum = weights.reduce((sum, weight, index) => sum + Number(candidate.inn[index]) * weight, 0) % 11 % 10;
       if (checksum !== Number(candidate.inn[9])) return false;
+      if (candidate.sourceRecordKey.trim() === ""
+        || candidate.sourceRecordKey !== discovery.acceptedSourceRecordKeys[index]) return false;
       inns.push(candidate.inn);
     } catch { return false; }
   }

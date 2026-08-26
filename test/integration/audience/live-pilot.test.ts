@@ -19,6 +19,7 @@ describe("bounded live pilot orchestration", () => {
         status: "succeeded" as const,
         discoveredCompanies: 9,
         acceptedCompanies: 9,
+        acceptedSourceRecordKeys: [],
         candidates: [],
         rawObjects: 9,
       }),
@@ -42,7 +43,11 @@ describe("bounded live pilot orchestration", () => {
     }, {
       discover: async () => ({
         status: "succeeded" as const, discoveredCompanies: 10, acceptedCompanies: 10,
-        candidates: Array.from({ length: 10 }, () => ({ inn: "7700000016" })), rawObjects: 10,
+        acceptedSourceRecordKeys: Array.from({ length: 10 }, (_, index) => `record-${index + 1}`),
+        candidates: Array.from({ length: 10 }, (_, index) => ({
+          inn: "7700000016",
+          sourceRecordKey: `record-${index + 1}`,
+        })), rawObjects: 10,
       }),
       replay: async () => { replayed = true; },
       finance: async () => { throw new Error("finance must not start"); },
@@ -56,7 +61,10 @@ describe("bounded live pilot orchestration", () => {
     await expect(runLivePilot({
       runId: randomUUID(), okved: "43.11", year: 2025, maxCompanies: 10,
     }, {
-      discover: async () => ({ status: "blocked" as const, discoveredCompanies: 0, acceptedCompanies: 0, candidates: [], rawObjects: 1 }),
+      discover: async () => ({
+        status: "blocked" as const, discoveredCompanies: 0, acceptedCompanies: 0,
+        acceptedSourceRecordKeys: [], candidates: [], rawObjects: 1,
+      }),
       replay: async () => undefined,
       finance: async () => undefined,
       reconcile: async () => undefined,
@@ -70,7 +78,8 @@ describe("bounded live pilot orchestration", () => {
       {
         discover: async () => ({
           status: "succeeded" as const, discoveredCompanies: 10, acceptedCompanies: 10,
-          candidates: ["7700000016", "7700000023", "7700000030", "7700000048", "7700000055", "7700000062", "7700000070", "7700000087", "7700000094", "7700000104"].map((inn) => ({ inn })), rawObjects: 12,
+          acceptedSourceRecordKeys: Array.from({ length: 10 }, (_, index) => `record-${index + 1}`),
+          candidates: ["7700000016", "7700000023", "7700000030", "7700000048", "7700000055", "7700000062", "7700000070", "7700000087", "7700000094", "7700000104"].map((inn, index) => ({ inn, sourceRecordKey: `record-${index + 1}` })), rawObjects: 12,
         }),
         replay: async () => { commands.push("replay-after-evidence"); },
         finance: async () => {

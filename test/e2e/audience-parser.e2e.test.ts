@@ -16,7 +16,11 @@ import { buildLivePilotReport } from "../../src/apps/browser-runner/live-pilot-r
 import { executeLivePilot, type LivePilotFactories } from "../../src/apps/browser-runner/run-live-pilot";
 
 import { importSelectedOkveds } from "../../src/modules/audience/application/import-selected-okveds";
-import type { CapturedRawObject } from "../../src/modules/audience/application/ports/audience-repository";
+import type {
+  AudienceRepository,
+  CapturedRawObject,
+  FencedTask,
+} from "../../src/modules/audience/application/ports/audience-repository";
 import { publishFinancialEvidence } from "../../src/modules/audience/application/publish-financial-evidence";
 import { reconcileRun } from "../../src/modules/audience/application/reconcile-run";
 import { replayRun } from "../../src/modules/audience/application/replay-run";
@@ -656,6 +660,8 @@ interface LiveReconciliationMismatchCase {
   mutate(database: PostgresDatabase, runId: string): Promise<() => Promise<void>>;
 }
 
+type InvalidLiveRevenueNoDataKind = "fixture" | "foreign_company" | "wrong_year";
+
 const liveReconciliationMismatchCases: readonly LiveReconciliationMismatchCase[] = [
   {
     name: "an unexpected discovery task",
@@ -753,41 +759,31 @@ const liveReconciliationMismatchCases: readonly LiveReconciliationMismatchCase[]
     name: "financial evidence from the wrong year",
     expected: "financial evidence outside run scope year",
     mutate: async (database, runId) => {
-      const companyInn = (await database.query<{ company_inn: string }>(
-        `SELECT evidence.company_inn FROM audience.financial_evidence evidence
+      const evidenceId = (await database.query<{ id: string }>(
+        `SELECT evidence.id FROM audience.financial_evidence evidence
          JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
-         WHERE raw.run_id = $1 ORDER BY evidence.company_inn LIMIT 1`,
+         WHERE raw.run_id = $1
+           AND NOT EXISTS (
+             SELECT 1 FROM audience.financial_observations observation
+             WHERE evidence.id IN (
+               observation.revenue_evidence_id,
+               observation.income_evidence_id,
+               observation.expenses_evidence_id
+             )
+           )
+         ORDER BY evidence.company_inn, evidence.metric LIMIT 1`,
         [runId],
-      )).rows[0]!.company_inn;
-      await database.transaction(async (transaction) => {
-        await transaction.query("SET CONSTRAINTS ALL DEFERRED");
-        await transaction.query(
-          `UPDATE audience.financial_observations SET report_year = 2024
-           WHERE company_inn = $1 AND report_year = 2025`,
-          [companyInn],
-        );
-        await transaction.query(
-          `UPDATE audience.financial_evidence SET report_year = 2024
-           WHERE company_inn = $1 AND report_year = 2025
-             AND source_fetch_id IN (SELECT id FROM audience.source_fetches WHERE run_id = $2)`,
-          [companyInn, runId],
-        );
-      });
+      )).rows[0]?.id;
+      if (evidenceId === undefined) throw new Error("unprojected live financial evidence is missing");
+      await database.query(
+        "UPDATE audience.financial_evidence SET report_year = 2024 WHERE id = $1",
+        [evidenceId],
+      );
       return async () => {
-        await database.transaction(async (transaction) => {
-          await transaction.query("SET CONSTRAINTS ALL DEFERRED");
-          await transaction.query(
-            `UPDATE audience.financial_observations SET report_year = 2025
-             WHERE company_inn = $1 AND report_year = 2024`,
-            [companyInn],
-          );
-          await transaction.query(
-            `UPDATE audience.financial_evidence SET report_year = 2025
-             WHERE company_inn = $1 AND report_year = 2024
-               AND source_fetch_id IN (SELECT id FROM audience.source_fetches WHERE run_id = $2)`,
-            [companyInn, runId],
-          );
-        });
+        await database.query(
+          "UPDATE audience.financial_evidence SET report_year = 2025 WHERE id = $1",
+          [evidenceId],
+        );
       };
     },
   },
@@ -878,6 +874,19 @@ const liveReconciliationMismatchCases: readonly LiveReconciliationMismatchCase[]
       };
     },
   },
+  ...([
+    ["fixture BFO no-data provenance", "fixture"],
+    ["foreign-company BFO no-data provenance", "foreign_company"],
+    ["wrong-year BFO no-data provenance", "wrong_year"],
+  ] as const).map(([name, kind]): LiveReconciliationMismatchCase => ({
+    name,
+    expected: "required financial no-data source attempt is invalid: revenue",
+    mutate: (database, runId) => replaceLiveRevenueWithInvalidNoData(
+      database,
+      runId,
+      kind,
+    ),
+  })),
   {
     name: "a ten-company discovery/publication set mismatch",
     expected: "published companies differ from discovery candidates",
@@ -896,6 +905,200 @@ const liveReconciliationMismatchCases: readonly LiveReconciliationMismatchCase[]
     },
   },
 ];
+
+async function replaceLiveRevenueWithInvalidNoData(
+  database: PostgresDatabase,
+  runId: string,
+  kind: InvalidLiveRevenueNoDataKind,
+): Promise<() => Promise<void>> {
+  const task = (await database.query<{
+    id: string;
+    company_inn: string;
+    result_json: unknown;
+  }>(
+    `SELECT id, result_json ->> 'companyInn' AS company_inn, result_json
+     FROM audience.crawl_tasks
+     WHERE run_id = $1 AND task_kind = 'live_finance' AND status = 'succeeded'
+     ORDER BY created_at, id LIMIT 1`,
+    [runId],
+  )).rows[0];
+  if (task === undefined) throw new Error("successful live finance task is missing");
+  const evidence = (await database.query<{
+    id: string;
+    company_inn: string;
+    report_year: number;
+    amount: string;
+    source_fetch_id: string;
+    source_record_key: string;
+    parser_version: string;
+    observed_at: string;
+    collected_at: string;
+  }>(
+    `SELECT evidence.id, evidence.company_inn, evidence.report_year,
+            evidence.amount::text, evidence.source_fetch_id,
+            evidence.source_record_key, evidence.parser_version,
+            evidence.observed_at::text, evidence.collected_at::text
+     FROM audience.financial_evidence evidence
+     JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+     WHERE raw.run_id = $1 AND evidence.company_inn = $2
+       AND evidence.report_year = 2025 AND evidence.metric = 'revenue'
+     ORDER BY evidence.collected_at, evidence.id LIMIT 1`,
+    [runId, task.company_inn],
+  )).rows[0];
+  if (evidence === undefined) throw new Error("live revenue evidence is missing");
+  const observation = (await database.query<{
+    revenue: string | null;
+    revenue_evidence_id: string | null;
+  }>(
+    `SELECT revenue::text, revenue_evidence_id
+     FROM audience.financial_observations
+     WHERE company_inn = $1 AND report_year = 2025`,
+    [task.company_inn],
+  )).rows[0];
+  const originalRaw = (await database.query<{
+    id: string;
+    source_kind: string;
+    source_record_key: string;
+    object_key: string;
+    checksum_sha256: string;
+    mime_type: string;
+    final_url: string;
+    navigation_status: number | null;
+    captured_at: string;
+    parser_version: string;
+    metadata_json: unknown;
+    created_at: string;
+  }>(
+    `SELECT id, source_kind, source_record_key, object_key, checksum_sha256,
+            mime_type, final_url, navigation_status, captured_at::text,
+            parser_version, metadata_json, created_at::text
+     FROM audience.source_fetches WHERE id = $1`,
+    [evidence.source_fetch_id],
+  )).rows[0];
+  if (originalRaw === undefined) throw new Error("live revenue raw is missing");
+
+  let insertedRawId: string | undefined;
+  let source: {
+    source_kind: "fns-bfo" | "fns-bfo-live";
+    source_record_key: string;
+    checksum_sha256: string;
+    parser_version: string;
+    captured_at: string;
+  };
+  if (kind === "foreign_company") {
+    const row = (await database.query<typeof source>(
+      `SELECT source_kind, source_record_key, checksum_sha256, parser_version,
+              captured_at::text
+       FROM audience.source_fetches
+       WHERE run_id = $1 AND source_kind = 'fns-bfo-live'
+         AND source_record_key !~ ('^' || $2 || ':')
+       ORDER BY created_at, id LIMIT 1`,
+      [runId, task.company_inn],
+    )).rows[0];
+    if (row === undefined) throw new Error("foreign-company BFO raw is missing");
+    source = row;
+  } else {
+    insertedRawId = randomUUID();
+    const fixture = kind === "fixture";
+    source = {
+      source_kind: fixture ? "fns-bfo" : "fns-bfo-live",
+      source_record_key: fixture
+        ? `${task.company_inn}:2025:fixture`
+        : `${task.company_inn}:2024:0710002:2`,
+      checksum_sha256: (fixture ? "4" : "5").repeat(64),
+      parser_version: fixture ? "fns-bfo/1.0.0" : "fns-bfo-live/1.0.0",
+      captured_at: "2026-08-26T12:00:00.000Z",
+    };
+    await database.query(
+      `INSERT INTO audience.source_fetches (
+         id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+         mime_type, final_url, navigation_status, captured_at, parser_version
+       ) VALUES ($1, $2, $3, $4, $5, $6, 'application/json',
+         'http://127.0.0.1/invalid-bfo', 200, $7::timestamptz, $8)`,
+      [insertedRawId, runId, source.source_kind, source.source_record_key,
+        `raw/invalid-bfo/${insertedRawId}/manifest.json`, source.checksum_sha256,
+        source.captured_at, source.parser_version],
+    );
+  }
+
+  const noDataOutcome = {
+    outcome: "no_data",
+    evidence: 0,
+    sourceAttempt: {
+      sourceKind: "fns_bfo",
+      rawSourceKind: source.source_kind,
+      sourceRecordKey: source.source_record_key,
+      observedAt: "2026-04-01T00:00:00.000Z",
+      capturedAt: new Date(source.captured_at).toISOString(),
+      rawFetchKey: source.checksum_sha256,
+      parserVersion: source.parser_version,
+    },
+  };
+  await database.transaction(async (transaction) => {
+    await transaction.query("SET CONSTRAINTS ALL DEFERRED");
+    if (observation?.revenue_evidence_id === evidence.id) {
+      await transaction.query(
+        `UPDATE audience.financial_observations
+         SET revenue = NULL, revenue_evidence_id = NULL
+         WHERE company_inn = $1 AND report_year = 2025`,
+        [task.company_inn],
+      );
+    }
+    await transaction.query("DELETE FROM audience.financial_evidence WHERE id = $1", [evidence.id]);
+    await transaction.query("DELETE FROM audience.source_fetches WHERE id = $1", [originalRaw.id]);
+    await transaction.query(
+      `UPDATE audience.crawl_tasks
+       SET result_json = jsonb_set(
+         result_json, '{metricOutcomes,revenue}', $2::jsonb, true
+       ) WHERE id = $1`,
+      [task.id, JSON.stringify(noDataOutcome)],
+    );
+  });
+
+  return async () => {
+    await database.transaction(async (transaction) => {
+      await transaction.query("SET CONSTRAINTS ALL DEFERRED");
+      await transaction.query(
+        "UPDATE audience.crawl_tasks SET result_json = $2::jsonb WHERE id = $1",
+        [task.id, JSON.stringify(task.result_json)],
+      );
+      await transaction.query(
+        `INSERT INTO audience.source_fetches (
+           id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
+           mime_type, final_url, navigation_status, captured_at, parser_version,
+           metadata_json, created_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
+           $10::timestamptz, $11, $12::jsonb, $13::timestamptz)`,
+        [originalRaw.id, runId, originalRaw.source_kind, originalRaw.source_record_key,
+          originalRaw.object_key, originalRaw.checksum_sha256, originalRaw.mime_type,
+          originalRaw.final_url, originalRaw.navigation_status, originalRaw.captured_at,
+          originalRaw.parser_version, JSON.stringify(originalRaw.metadata_json),
+          originalRaw.created_at],
+      );
+      await transaction.query(
+        `INSERT INTO audience.financial_evidence (
+           id, company_inn, report_year, metric, amount, source_fetch_id,
+           source_record_key, parser_version, observed_at, collected_at
+         ) VALUES ($1, $2, $3, 'revenue', $4::numeric, $5, $6, $7,
+           $8::timestamptz, $9::timestamptz)`,
+        [evidence.id, evidence.company_inn, evidence.report_year, evidence.amount,
+          evidence.source_fetch_id, evidence.source_record_key, evidence.parser_version,
+          evidence.observed_at, evidence.collected_at],
+      );
+      if (observation?.revenue_evidence_id === evidence.id) {
+        await transaction.query(
+          `UPDATE audience.financial_observations
+           SET revenue = $3::numeric, revenue_evidence_id = $4
+           WHERE company_inn = $1 AND report_year = $2`,
+          [task.company_inn, 2025, observation.revenue, evidence.id],
+        );
+      }
+      if (insertedRawId !== undefined) {
+        await transaction.query("DELETE FROM audience.source_fetches WHERE id = $1", [insertedRawId]);
+      }
+    });
+  };
+}
 
 describe.sequential("live pilot production-path loopback acceptance", () => {
   const orderedInns = [
@@ -1326,6 +1529,304 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     expect(shortBrowsersOpened).toBe(1);
     expect(shortBrowsersClosed).toBe(1);
   }, 60_000);
+
+  it("keeps publication at zero when persisted discovery audit disagrees with candidates", async () => {
+    if (env === undefined || repository === undefined || discoveryRawStorage === undefined
+      || database === undefined || listServer === undefined || bfoServer === undefined
+      || revexpServer === undefined || client === undefined) {
+      throw new Error("live pilot acceptance setup is incomplete");
+    }
+    const activeClient = client;
+    const activeDatabase = database;
+    const beforeRuns = new Set((await database.query<{ id: string }>(
+      "SELECT id FROM audience.crawl_runs",
+    )).rows.map((row) => row.id));
+    let storageClosures = 0;
+    let browsersOpened = 0;
+    let browsersClosed = 0;
+    const listSessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [listServer.origin],
+      allowedNavigationUrls: [
+        { origin: listServer.origin, pathname: "/search" },
+        { origin: listServer.origin, pathname: "/company/*" },
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
+      sourceKind: "list-org-live",
+      transportRetryDelayMs: 0,
+      now: fixedNow,
+      launch: async () => {
+        const browser = await chromium.launch({
+          headless: true,
+          args: ["--disable-features=LocalNetworkAccessChecks"],
+        });
+        browsersOpened += 1;
+        browser.on("disconnected", () => { browsersClosed += 1; });
+        return browser;
+      },
+    });
+    const noCaptcha = { wait: async () => { throw new Error("unexpected CAPTCHA"); } };
+    const mismatchedRepository = new Proxy<AudienceRepository>(repository, {
+      get: (target, property) => {
+        if (property === "loadReplayInput") {
+          return async (runId: string) => {
+            await activeDatabase.query(
+              `UPDATE audience.crawl_tasks
+               SET result_json = jsonb_set(result_json, '{discovery,acceptedCompanies}', '9'::jsonb)
+               WHERE run_id = $1 AND task_kind = 'live_discovery'`,
+              [runId],
+            );
+            return target.loadReplayInput(runId);
+          };
+        }
+        const value = Reflect.get(target, property);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    let executionError: unknown;
+    let result: {
+      runId: string;
+      discoveredCompanies: number;
+      publishedCompanies: number;
+      terminalCode: string;
+    } | undefined;
+    try {
+      result = await executeLivePilot({
+        env,
+        repository: mismatchedRepository,
+        discoveryRawStorage,
+        factories: {
+          endpoints: {
+            listOrgSearchUrl: `${listServer.origin}/search`,
+            bfoSearchUrl: `${bfoServer.origin}/`,
+            revexpMetadataUrl: revexpServer.metadataUrl,
+          },
+          createListBrowserSessions: () => listSessions,
+          createBfoBrowserSessions: () => { throw new Error("finance browser must not open"); },
+          createListSource: (options) => new ListOrgLiveSource({
+            ...options,
+            humanVerification: noCaptcha,
+            now: fixedNow,
+          }),
+          createBfoSource: () => { throw new Error("BFO source must not be created"); },
+          createRevexpTransport: () => { throw new Error("finance transport must not be created"); },
+          createBfoRawStorage: (factoryEnv) => {
+            const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", activeClient);
+            return {
+              put: storage.put.bind(storage),
+              close: () => {
+                storageClosures += 1;
+                storage.close();
+              },
+            };
+          },
+          createRevexpRawStorage: (factoryEnv) => {
+            const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", activeClient);
+            return {
+              put: storage.put.bind(storage),
+              close: () => {
+                storageClosures += 1;
+                storage.close();
+              },
+            };
+          },
+        },
+      }) as typeof result;
+    } catch (error) {
+      executionError = error;
+    }
+
+    const newRuns = (await database.query<{ id: string }>(
+      "SELECT id FROM audience.crawl_runs ORDER BY created_at, id",
+    )).rows.filter((row) => !beforeRuns.has(row.id));
+    expect(newRuns).toHaveLength(1);
+    const runId = newRuns[0]!.id;
+    const publication = await database.query<{
+      replay_tasks: string;
+      companies: string;
+      relations: string;
+    }>(
+      `SELECT
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = $1 AND task_kind = 'replay_write')::text AS replay_tasks,
+         (SELECT count(*) FROM audience.run_company_matches WHERE run_id = $1)::text AS companies,
+         (SELECT count(*) FROM audience.company_okveds relation
+          JOIN audience.run_company_matches match
+            ON match.run_id = $1 AND match.company_inn = relation.company_inn)::text AS relations`,
+      [runId],
+    );
+    expect(executionError).toBeUndefined();
+    expect(result).toMatchObject({
+      runId,
+      discoveredCompanies: 10,
+      publishedCompanies: 0,
+      terminalCode: "LIVE_PILOT_DISCOVERY_INCOMPLETE",
+    });
+    expect(publication.rows).toEqual([{ replay_tasks: "0", companies: "0", relations: "0" }]);
+    expect(storageClosures).toBe(2);
+    expect(browsersOpened).toBe(1);
+    expect(browsersClosed).toBe(1);
+  }, 60_000);
+
+  it("renews the active later-company finance lease so its fence cannot be stolen", async () => {
+    if (env === undefined || repository === undefined || discoveryRawStorage === undefined
+      || database === undefined || listServer === undefined || bfoServer === undefined
+      || client === undefined) {
+      throw new Error("live pilot acceptance setup is incomplete");
+    }
+    const activeClient = client;
+    const activeDatabase = database;
+    const leaseRevexpServer = await startRevexpContractServer();
+    let storageClosures = 0;
+    let browsersOpened = 0;
+    let browsersClosed = 0;
+    let releaseDelayedAction: (() => void) | undefined;
+    const delayedAction = new Promise<void>((resolve) => { releaseDelayedAction = resolve; });
+    let announceSecondTask: ((task: FencedTask) => void) | undefined;
+    const secondTaskStarted = new Promise<FencedTask>((resolve) => { announceSecondTask = resolve; });
+    let delayedTaskId: string | undefined;
+    const leaseRepository = new Proxy<AudienceRepository>(repository, {
+      get: (target, property) => {
+        if (property === "recordBrowserAction") {
+          return async (task: FencedTask, event: Parameters<AudienceRepository["recordBrowserAction"]>[1]) => {
+            const recorded = await target.recordBrowserAction(task, event);
+            if (!recorded || delayedTaskId !== undefined) return recorded;
+            const owner = (await activeDatabase.query<{ company_inn: string | null }>(
+              "SELECT result_json->>'companyInn' AS company_inn FROM audience.crawl_tasks WHERE id = $1",
+              [task.id],
+            )).rows[0]?.company_inn;
+            if (owner === orderedInns[1]) {
+              delayedTaskId = task.id;
+              announceSecondTask?.(task);
+              await delayedAction;
+            }
+            return recorded;
+          };
+        }
+        const value = Reflect.get(target, property);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const openTrackedBrowser = async () => {
+      const browser = await chromium.launch({
+        headless: true,
+        args: ["--disable-features=LocalNetworkAccessChecks"],
+      });
+      browsersOpened += 1;
+      browser.on("disconnected", () => { browsersClosed += 1; });
+      return browser;
+    };
+    const listSessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [listServer.origin],
+      allowedNavigationUrls: [
+        { origin: listServer.origin, pathname: "/search" },
+        { origin: listServer.origin, pathname: "/company/*" },
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
+      sourceKind: "list-org-live", transportRetryDelayMs: 0,
+      launch: openTrackedBrowser, now: fixedNow,
+    });
+    const bfoSessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [bfoServer.origin],
+      allowedNavigationUrls: [
+        { origin: bfoServer.origin, pathname: "/" },
+        { origin: bfoServer.origin, pathname: "/search" },
+        { origin: bfoServer.origin, pathname: "/cards/*" },
+        { origin: bfoServer.origin, pathname: "/statements/*" },
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
+      sourceKind: "fns-bfo-live", transportRetryDelayMs: 0,
+      launch: openTrackedBrowser, now: fixedNow,
+    });
+    const noCaptcha = { wait: async () => { throw new Error("unexpected CAPTCHA"); } };
+    const factories = {
+      endpoints: {
+        listOrgSearchUrl: `${listServer.origin}/search`,
+        bfoSearchUrl: `${bfoServer.origin}/`,
+        revexpMetadataUrl: leaseRevexpServer.metadataUrl,
+      },
+      financeTaskLease: { leaseSeconds: 1, renewalIntervalMs: 100 },
+      createListBrowserSessions: () => listSessions,
+      createBfoBrowserSessions: () => bfoSessions,
+      createListSource: (options: Parameters<LivePilotFactories["createListSource"]>[0]) =>
+        new ListOrgLiveSource({ ...options, humanVerification: noCaptcha, now: fixedNow }),
+      createBfoSource: (options: Parameters<LivePilotFactories["createBfoSource"]>[0]) =>
+        new BfoLiveSource({ ...options, humanVerification: noCaptcha, now: fixedNow }),
+      createRevexpTransport: (): RevexpTransport => leaseRevexpServer.transport,
+      createBfoRawStorage: (factoryEnv: AppEnv) => {
+        const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", activeClient);
+        return {
+          put: storage.put.bind(storage),
+          close: () => { storageClosures += 1; storage.close(); },
+        };
+      },
+      createRevexpRawStorage: (factoryEnv: AppEnv) => {
+        const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", activeClient);
+        return {
+          put: storage.put.bind(storage),
+          close: () => { storageClosures += 1; storage.close(); },
+        };
+      },
+    };
+    let executionError: unknown;
+    let report: { runId: string } | undefined;
+    const execution = executeLivePilot({
+      env,
+      repository: leaseRepository,
+      discoveryRawStorage,
+      factories,
+    }).then((value) => { report = value as { runId: string }; }, (error: unknown) => {
+      executionError = error;
+    });
+
+    let stolenFence: FencedTask | null = null;
+    try {
+      const laterTask = await Promise.race([
+        secondTaskStarted,
+        execution.then(() => {
+          throw executionError ?? new Error("live pilot completed before the second finance task started");
+        }),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error("second finance task did not start")), 30_000);
+        }),
+      ]);
+      await database.query(
+        `UPDATE audience.crawl_tasks
+         SET lease_expires_at = now() + interval '1 second'
+         WHERE id = $1 AND fencing_token = $2 AND status = 'running'`,
+        [laterTask.id, laterTask.fencingToken],
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1_200));
+      stolenFence = await repository.acquireTask(laterTask.id, 1);
+    } finally {
+      releaseDelayedAction?.();
+      await execution;
+      await leaseRevexpServer.close();
+    }
+
+    expect(stolenFence).toBeNull();
+    expect(executionError).toBeUndefined();
+    expect(report).toBeDefined();
+    const tasks = await database.query<{
+      company_inn: string;
+      status: string;
+      fencing_token: string;
+    }>(
+      `SELECT result_json->>'companyInn' AS company_inn, status, fencing_token::text
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'live_finance'
+       ORDER BY created_at, id`,
+      [report!.runId],
+    );
+    expect(tasks.rows.map((task) => task.company_inn)).toEqual(orderedInns);
+    expect(tasks.rows.map((task) => task.status)).toEqual(Array(10).fill("succeeded"));
+    expect(tasks.rows.map((task) => task.fencing_token)).toEqual(Array(10).fill("1"));
+    expect(storageClosures).toBe(2);
+    expect(browsersOpened).toBe(11);
+    expect(browsersClosed).toBe(11);
+  }, 180_000);
 
   it("terminalizes every pre-bound finance task when the live BFO source blocks", async () => {
     if (env === undefined || repository === undefined || discoveryRawStorage === undefined
