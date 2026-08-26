@@ -396,6 +396,10 @@ export type PlaywrightBrowserSessionFactoryOptions = PolicyBrowserSessionFactory
 /** Compatibility fixture adapter. Live adapters use PolicyBrowserSessionFactory with HTTPS origins. */
 export class PlaywrightBrowserSessionFactory extends PolicyBrowserSessionFactory {
   constructor(allowedOrigin: string, options: PlaywrightBrowserSessionFactoryOptions = {}) {
-    super({ allowedOrigins: [new URL(allowedOrigin).origin], allowInsecureHttpForTesting: true }, options);
+    super({ allowedOrigins: [new URL(allowedOrigin).origin], allowInsecureHttpForTesting: true }, {
+      ...options,
+      launch: options.launch ?? (() => chromium.launch({ headless: true })),
+    });
   }
 }
+import { chromium } from "playwright";

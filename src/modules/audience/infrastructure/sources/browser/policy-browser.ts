@@ -55,7 +55,7 @@ export class PolicyBrowserSessionFactory implements PolicyBrowserSessionFactoryP
       ...MANDATORY_SENSITIVE_QUERY_PARAMETERS,
       ...(options.sensitiveQueryParameters ?? []),
     ])];
-    this.#launch = options.launch ?? (() => chromium.launch({ headless: true }));
+    this.#launch = options.launch ?? (() => chromium.launch({ headless: false }));
     this.#sourceKind = options.sourceKind ?? "list-org-browser";
   }
 
@@ -161,13 +161,14 @@ class PolicyBrowserSession implements BrowserSession {
   }): Promise<PolicyBrowserSession> {
     const renderRequests = new Set<string>();
     const terminalOrigins = new Set<string>();
+    let session: PolicyBrowserSession | undefined;
     await options.context.routeWebSocket("**/*", async (webSocket) => {
       const requestUrl = webSocket.url();
       let origin: string;
       try {
         origin = browserRequestOrigin(requestUrl).policy;
       } catch {
-        terminalOrigins.add(requestUrl);
+        terminalOrigins.add(requestUrl); if (session !== undefined) session.#recordViolation({ disposition: "terminal", resourceType: "websocket", origin: requestUrl });
         await webSocket.close({ code: 1008, reason: "browser origin policy" });
         return;
       }
@@ -175,13 +176,16 @@ class PolicyBrowserSession implements BrowserSession {
         webSocket.connectToServer();
         return;
       }
-      terminalOrigins.add(browserRequestOrigin(requestUrl).evidence);
+      const evidence = browserRequestOrigin(requestUrl).evidence;
+      terminalOrigins.add(evidence); if (session !== undefined) session.#recordViolation({ disposition: "terminal", resourceType: "websocket", origin: evidence });
       await webSocket.close({ code: 1008, reason: "browser origin policy" });
     });
     await options.context.exposeBinding("__okvedPolicyViolation", (_source, evidence: unknown) => {
-      terminalOrigins.add(evidence === "service-worker-registration"
+      const origin = evidence === "service-worker-registration"
         ? evidence
-        : "browser-policy-violation");
+        : "browser-policy-violation";
+      terminalOrigins.add(origin);
+      if (session !== undefined) session.#recordViolation({ disposition: "terminal", resourceType: "service-worker", origin });
     });
     await options.context.addInitScript(() => {
       if (navigator.serviceWorker === undefined) return;
@@ -204,7 +208,7 @@ class PolicyBrowserSession implements BrowserSession {
     const renderPage = await options.renderContext.newPage();
     page.setDefaultTimeout(2_000);
     renderPage.setDefaultTimeout(2_000);
-    const session = new PolicyBrowserSession({
+    session = new PolicyBrowserSession({
       ...options,
       page,
       renderPage,
@@ -236,10 +240,6 @@ class PolicyBrowserSession implements BrowserSession {
       const request = route.request();
       const requestUrl = request.url();
       session.#rememberSensitiveValues(requestUrl);
-      if (requestUrl.startsWith("data:")) {
-        await route.continue();
-        return;
-      }
       let origins: { policy: string; evidence: string };
       try {
         origins = browserRequestOrigin(requestUrl);
@@ -270,6 +270,7 @@ class PolicyBrowserSession implements BrowserSession {
   }
 
   async navigate(url: string): Promise<number | null> {
+    this.#assertAllowedNavigation(url);
     this.#rememberSensitiveValues(url);
     const target = sanitizeBrowserUrl(url, this.#sensitiveQueryParameters);
     const actionId = await this.#actions.begin("navigate", target);
@@ -541,6 +542,18 @@ class PolicyBrowserSession implements BrowserSession {
 
   #assertNoTerminalRequests(): void {
     if (this.#terminalOrigins.size > 0) throw new ExternalBrowserRequestError([...this.#terminalOrigins].sort());
+  }
+
+  #assertAllowedNavigation(value: string): void {
+    let origin: string;
+    try { origin = browserRequestOrigin(value).policy; } catch {
+      this.#recordTerminalRequest("document", value);
+      throw new ExternalBrowserRequestError([...this.#terminalOrigins].sort());
+    }
+    if (!this.#allowedOrigins.has(origin)) {
+      this.#recordTerminalRequest("document", new URL(value).origin);
+      throw new ExternalBrowserRequestError([...this.#terminalOrigins].sort());
+    }
   }
 }
 
