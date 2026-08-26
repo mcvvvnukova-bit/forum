@@ -223,6 +223,7 @@ describe("S3RawObjectStorage", () => {
     const checksumSha256 = fixtureSha256(manifestBytes);
     const prefix = `raw/${runId}/list-org-browser/${checksumSha256}`;
     const stored = {
+      kind: "browser" as const,
       runId,
       sourceKind: "list-org-browser",
       sourceRecordKey: "1001",
@@ -768,6 +769,7 @@ describe("S3RawObjectStorage", () => {
     const checksumSha256 = fixtureSha256(manifestBytes);
     const prefix = `raw/${bundle.identity.runId}/${bundle.sourceKind}/${checksumSha256}`;
     const stored = {
+      kind: "browser" as const,
       runId: bundle.identity.runId,
       sourceKind: bundle.sourceKind,
       sourceRecordKey: expectedIdentity.sourceRecordKey ?? "1001",

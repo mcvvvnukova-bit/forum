@@ -6,7 +6,7 @@ import type {
   FencedTask,
   PublicationCounts,
 } from "../../application/ports/audience-repository";
-import type { StoredRawObject } from "../../application/ports/raw-object-storage";
+import type { StoredBrowserRawObject } from "../../application/ports/raw-object-storage";
 import type { DiscoveredCompany } from "../../domain/discovery";
 import type { FinancialMetricEvidence } from "../../domain/financial";
 import { parseLegalEntityInn } from "../../domain/inn";
@@ -64,7 +64,8 @@ export async function insertRawFetch(
   if (raw.stored.runId !== task.runId
     || raw.stored.sourceKind !== raw.sourceKind
     || raw.stored.sourceRecordKey !== raw.sourceRecordKey
-    || raw.stored.parserVersion !== raw.parserVersion) {
+    || raw.stored.parserVersion !== raw.parserVersion
+    || (raw.stored.kind === "file" && raw.stored.mimeType !== raw.mimeType)) {
     throw new Error("stored raw identity does not match source audit");
   }
   const result = await database.query(
@@ -77,22 +78,23 @@ export async function insertRawFetch(
        id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
        mime_type, final_url, navigation_status, captured_at, parser_version
      )
-     SELECT $5, $2, $6, $7, $8, $9, 'application/json', $10, $11, $12, $13
+     SELECT $5, $2, $6, $7, $8, $9, $10, $11, $12, $13, $14
      FROM fence
      ON CONFLICT (run_id, source_kind, source_record_key, checksum_sha256)
      DO UPDATE SET object_key = EXCLUDED.object_key`,
     [task.id, task.runId, task.fencingToken, status, raw.id, raw.sourceKind,
       raw.sourceRecordKey, raw.stored.manifestKey, raw.stored.checksumSha256,
-      raw.finalUrl, raw.navigationStatus, raw.capturedAt, raw.parserVersion],
+      raw.mimeType, raw.finalUrl, raw.navigationStatus, raw.capturedAt, raw.parserVersion],
   );
   return result.rowCount ?? 0;
 }
 
-export function storedRawObject(row: RawFetchRow): StoredRawObject {
+export function storedRawObject(row: RawFetchRow): StoredBrowserRawObject {
   const suffix = "/manifest.json";
   if (!row.object_key.endsWith(suffix)) throw new Error("stored raw manifest key is invalid");
   const prefix = row.object_key.slice(0, -suffix.length);
   return {
+    kind: "browser",
     runId: row.run_id,
     sourceKind: row.source_kind,
     sourceRecordKey: row.source_record_key,

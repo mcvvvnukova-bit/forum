@@ -44,6 +44,7 @@ export interface CapturedRawObject {
   id: string;
   sourceKind: string;
   sourceRecordKey: string;
+  mimeType: string;
   finalUrl: string;
   navigationStatus: number | null;
   capturedAt: string;

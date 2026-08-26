@@ -99,6 +99,7 @@ export async function runFixtureDiscovery(
             id: randomUUID(),
             sourceKind: "list-org-browser",
             sourceRecordKey: raw.identity.sourceRecordKey ?? `page:${raw.identity.page}`,
+            mimeType: "application/json",
             finalUrl: raw.finalUrl,
             navigationStatus: raw.navigationStatus,
             capturedAt: raw.capturedAt,

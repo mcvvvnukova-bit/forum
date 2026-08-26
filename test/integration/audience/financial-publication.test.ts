@@ -112,6 +112,121 @@ describe("financial evidence publication", () => {
     ]);
   });
 
+  it("persists the real MIME type and exact stored identity for file and browser raw evidence", async () => {
+    const publicationRunId = randomUUID();
+    await seedFinancialProvenance(database, publicationRunId);
+    const task = await repository.createTask(publicationRunId, "fixture_finance", 300);
+    const fileChecksum = "e".repeat(64);
+    const browserChecksum = "f".repeat(64);
+    const filePrefix = `raw/${publicationRunId}/fns-bfo/${fileChecksum}`;
+    const browserPrefix = `raw/${publicationRunId}/list-org-browser/${browserChecksum}`;
+
+    await expect(repository.publishFinancial({
+      task,
+      reportYear: 2025,
+      evidence: [],
+      metricOutcomes: {
+        revenue: {
+          outcome: "no_data",
+          evidence: 0,
+          sourceAttempt: {
+            sourceKind: "fns_bfo",
+            sourceRecordKey: "bfo-file",
+            observedAt: "2026-08-26T09:00:00.000Z",
+            rawFetchKey: fileChecksum,
+            parserVersion: "fns-bfo/2.0.0",
+          },
+        },
+        income: mixedMetricOutcomes().income,
+        expenses: mixedMetricOutcomes().expenses,
+      },
+      rawObjects: [{
+        id: randomUUID(),
+        sourceKind: "fns-bfo",
+        sourceRecordKey: "bfo-file",
+        mimeType: "application/zip",
+        finalUrl: "https://service.nalog.ru/bfo/file.zip",
+        navigationStatus: 200,
+        capturedAt: "2026-08-26T09:00:00.000Z",
+        parserVersion: "fns-bfo/2.0.0",
+        stored: {
+          kind: "file",
+          runId: publicationRunId,
+          sourceKind: "fns-bfo",
+          sourceRecordKey: "bfo-file",
+          parserVersion: "fns-bfo/2.0.0",
+          checksumSha256: fileChecksum,
+          prefix: filePrefix,
+          manifestKey: `${filePrefix}/manifest.json`,
+          dataKey: `${filePrefix}/data`,
+          mimeType: "application/zip",
+          byteLength: 8,
+        },
+      }, {
+        id: randomUUID(),
+        sourceKind: "list-org-browser",
+        sourceRecordKey: "browser-page",
+        mimeType: "application/json",
+        finalUrl: "https://fixture.invalid/results/page-1",
+        navigationStatus: 200,
+        capturedAt: "2026-08-26T09:00:01.000Z",
+        parserVersion: "list-org-browser/1.0.0",
+        stored: {
+          kind: "browser",
+          runId: publicationRunId,
+          sourceKind: "list-org-browser",
+          sourceRecordKey: "browser-page",
+          parserVersion: "list-org-browser/1.0.0",
+          checksumSha256: browserChecksum,
+          prefix: browserPrefix,
+          manifestKey: `${browserPrefix}/manifest.json`,
+          domKey: `${browserPrefix}/dom.html`,
+          screenshotKey: `${browserPrefix}/screenshot.png`,
+        },
+      }],
+    })).resolves.toBe(true);
+
+    const rows = await database.query<{
+      source_kind: string;
+      source_record_key: string;
+      object_key: string;
+      checksum_sha256: string;
+      mime_type: string;
+      final_url: string;
+      navigation_status: number;
+      captured_at: string;
+      parser_version: string;
+    }>(
+      `SELECT source_kind, source_record_key, object_key, checksum_sha256,
+              mime_type, final_url, navigation_status, captured_at::text, parser_version
+       FROM audience.source_fetches
+       WHERE run_id = $1 AND source_record_key IN ('bfo-file', 'browser-page')
+       ORDER BY source_kind`,
+      [publicationRunId],
+    );
+    expect(rows.rows).toEqual([{
+      source_kind: "fns-bfo",
+      source_record_key: "bfo-file",
+      object_key: `${filePrefix}/manifest.json`,
+      checksum_sha256: fileChecksum,
+      mime_type: "application/zip",
+      final_url: "https://service.nalog.ru/bfo/file.zip",
+      navigation_status: 200,
+      captured_at: "2026-08-26 09:00:00+00",
+      parser_version: "fns-bfo/2.0.0",
+    }, {
+      source_kind: "list-org-browser",
+      source_record_key: "browser-page",
+      object_key: `${browserPrefix}/manifest.json`,
+      checksum_sha256: browserChecksum,
+      mime_type: "application/json",
+      final_url: "https://fixture.invalid/results/page-1",
+      navigation_status: 200,
+      captured_at: "2026-08-26 09:00:01+00",
+      parser_version: "list-org-browser/1.0.0",
+    }]);
+  });
+
   it("keeps a newer source-time projection when older evidence arrives later", async () => {
     const inn = parseLegalEntityInn("7704217370");
     const newer: FinancialMetricEvidence = {

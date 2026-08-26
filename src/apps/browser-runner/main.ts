@@ -243,6 +243,7 @@ function capturedFinancialRaw(
     id,
     sourceKind,
     sourceRecordKey,
+    mimeType: sourceKind === "fns-bfo" ? "application/json" : "application/xml",
     finalUrl: bundle.finalUrl,
     navigationStatus: bundle.navigationStatus,
     capturedAt: bundle.capturedAt,

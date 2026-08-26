@@ -7,6 +7,7 @@ import {
 
 import type {
   RawObjectStorage,
+  StoredBrowserRawObject,
   StoredRawObject,
   VerifiedRawObject,
 } from "../../application/ports/raw-object-storage";
@@ -40,7 +41,7 @@ export class S3RawObjectStorage implements RawObjectStorage {
     this.#ownsClient = client === undefined;
   }
 
-  async put(bundle: ChecksummedBrowserRawBundle): Promise<StoredRawObject> {
+  async put(bundle: ChecksummedBrowserRawBundle): Promise<StoredBrowserRawObject> {
     this.#assertOpen();
     validateBundle(bundle);
     if (bundle.sourceKind !== this.#sourceKind) {
@@ -65,6 +66,7 @@ export class S3RawObjectStorage implements RawObjectStorage {
     await this.#putImmutable(manifestKey, bundle.manifestUtf8, "application/json; charset=utf-8");
 
     return {
+      kind: "browser",
       runId: bundle.identity.runId,
       sourceKind: bundle.sourceKind,
       sourceRecordKey: bundle.identity.sourceRecordKey ?? `page:${bundle.identity.page}`,
@@ -79,6 +81,9 @@ export class S3RawObjectStorage implements RawObjectStorage {
 
   async verify(object: StoredRawObject): Promise<VerifiedRawObject> {
     this.#assertOpen();
+    if (object.kind !== "browser") {
+      throw new Error("raw object artifact kind is invalid");
+    }
     validateStoredObject(object);
     if (object.sourceKind !== this.#sourceKind) {
       throw new Error("raw object identity verification failed");
@@ -321,7 +326,7 @@ function isContactEvidence(value: unknown): value is CandidateContactEvidence {
     && isSha256(value.normalizedValueSha256);
 }
 
-function hasExactlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+function hasExactlyKeys(value: object, keys: readonly string[]): boolean {
   const actual = Object.keys(value).sort();
   const expected = [...keys].sort();
   return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
@@ -404,7 +409,10 @@ function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
   }
 }
 
-function validateStoredObject(object: StoredRawObject): void {
+function validateStoredObject(object: StoredBrowserRawObject): void {
+  if (object.kind !== "browser") {
+    throw new Error("raw object artifact kind is invalid");
+  }
   const expectedPrefix = [
     "raw",
     object.runId,
@@ -412,7 +420,11 @@ function validateStoredObject(object: StoredRawObject): void {
     object.checksumSha256,
   ].join("/");
   if (
-    !/^[A-Za-z0-9._-]+$/.test(object.runId)
+    !hasExactlyKeys(object, [
+      "kind", "runId", "sourceKind", "sourceRecordKey", "parserVersion",
+      "checksumSha256", "prefix", "manifestKey", "domKey", "screenshotKey",
+    ])
+    || !/^[A-Za-z0-9._-]+$/.test(object.runId)
     || !/^[a-z0-9-]+$/.test(object.sourceKind)
     || !isSafeRetainedText(object.sourceRecordKey)
     || !isSafeRetainedText(object.parserVersion)
