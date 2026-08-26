@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>List-Org — расширенный поиск</title></head>
+<body>
+  <main aria-label="Расширенный поиск">
+    <h1>Расширенный поиск</h1>
+    <form action="/search" method="get">
+      <label for="okved">ОКВЭД</label>
+      <input id="okved" name="okved" type="text">
+      <input id="is_ip" name="is_ip" type="checkbox" value="1" checked><label for="is_ip">Включать ИП</label>
+      <input id="work" name="work" type="checkbox" value="1" checked><label for="work">Только действующие</label>
+      {{SCENARIO_INPUT}}
+      <button type="submit">Поиск</button>
+    </form>
+  </main>
+</body>
+</html>

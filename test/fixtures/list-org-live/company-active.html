@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>{{NAME}}</title></head><body>
+<main aria-label="Карточка организации" class="source-card">
+  <h1>{{NAME}}</h1>
+  <dl>
+    <dt>Полное юридическое наименование:</dt><dd>{{NAME}}</dd>
+    <dt>ИНН / КПП:</dt><dd>{{INN}} / 770001001</dd>
+    <dt>Основной (по коду ОКВЭД ред.2):</dt><dd>{{PRIMARY_OKVED}} {{PRIMARY_TEXT}}</dd>
+    <dt>Руководитель:</dt><dd>Иван Петров</dd>
+    <dt>Телефон:</dt><dd>+7 (495) 111-22-33</dd>
+    <dt>Email:</dt><dd>private.person@example.test</dd>
+    <dt>Сайт:</dt><dd>https://private.example.test</dd>
+  </dl>
+  <table class="okved-additional"><caption>Дополнительные виды деятельности</caption>
+    <thead><tr><th>Код</th><th>Наименование</th></tr></thead>
+    <tbody>{{ADDITIONAL_ROWS}}</tbody>
+  </table>
+  <a href="{{BACK_HREF}}">Вернуться к результатам</a>
+</main>
+</body></html>

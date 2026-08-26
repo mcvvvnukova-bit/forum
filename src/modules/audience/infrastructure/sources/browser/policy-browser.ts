@@ -128,6 +128,7 @@ class PolicyBrowserSession implements BrowserSession {
   readonly #renderRequests = new Set<string>();
   readonly #cdpSession: CDPSession | undefined;
   #navigationStatus: number | null = null;
+  #lastSafePageUrl: string | undefined;
   #terminalVersion = 0;
   #acknowledgedTerminalVersion = 0;
   #terminal = false;
@@ -470,6 +471,7 @@ class PolicyBrowserSession implements BrowserSession {
       this.#navigationStatus = response?.status() ?? null;
       await this.#page.waitForTimeout(50);
       this.#assertNoTerminalRequests();
+      this.#rememberCurrentPageUrlIfSafe();
       await this.#actions.finish(actionId, "navigate", target, "completed");
       return this.#navigationStatus;
     } catch (error) {
@@ -491,6 +493,7 @@ class PolicyBrowserSession implements BrowserSession {
     return this.#contractAction("click-button", name, async () => {
       await this.#page.getByRole("button", { name, exact: true }).click();
       await this.#page.waitForLoadState("load");
+      this.#rememberCurrentPageUrlIfSafe();
       return this.#navigationStatus;
     });
   }
@@ -499,6 +502,25 @@ class PolicyBrowserSession implements BrowserSession {
     return this.#contractAction("click-link", name, async () => {
       await this.#page.getByRole("link", { name, exact: true }).click();
       await this.#page.waitForLoadState("load");
+      this.#rememberCurrentPageUrlIfSafe();
+      return this.#navigationStatus;
+    });
+  }
+
+  async clickLinkHref(href: string): Promise<number | null> {
+    await this.#assertAllowedNavigation(href);
+    return this.#contractAction("click-link", href, async () => {
+      const links = await this.#page.getByRole("link").all();
+      const matches = [];
+      for (const link of links) {
+        const raw = await link.getAttribute("href");
+        if (raw === null || !await link.isVisible()) continue;
+        if (new URL(raw, this.#page.url()).href === href) matches.push(link);
+      }
+      if (matches.length !== 1) throw new Error("visible link href is missing or ambiguous");
+      await matches[0]!.click();
+      await this.#page.waitForLoadState("load");
+      this.#rememberCurrentPageUrlIfSafe();
       return this.#navigationStatus;
     });
   }
@@ -543,6 +565,29 @@ class PolicyBrowserSession implements BrowserSession {
       if (values.length === 0) throw new Error("result landmark contains no company links");
       return values;
     });
+  }
+
+  async linkHrefsInLandmark(name: string): Promise<readonly string[]> {
+    return this.#contractAction("read-link-hrefs", name, async () => {
+      const links = await this.#page.getByRole("main", { name, exact: true }).getByRole("link").all();
+      const values: string[] = [];
+      for (const link of links) {
+        const raw = await link.getAttribute("href");
+        if (raw !== null && await link.isVisible()) values.push(new URL(raw, this.#page.url()).href);
+      }
+      if (values.length === 0) throw new Error("landmark contains no visible links");
+      return values;
+    });
+  }
+
+  async currentUrl(): Promise<string> {
+    return this.#contractAction("read-current-url", "visible-page", async () => this.#page.url());
+  }
+
+  async recordCaptchaWaiting(target: string): Promise<void> {
+    this.#assertNoTerminalRequests();
+    await this.#actions.record("captcha_waiting", target);
+    this.#assertNoTerminalRequests();
   }
 
   async fingerprint(): Promise<string> {
@@ -693,7 +738,7 @@ class PolicyBrowserSession implements BrowserSession {
     const bundle: BrowserRawBundle = {
       sourceKind: this.#sourceKind,
       parserVersion,
-      finalUrl: sanitizeBrowserUrl(this.#page.url(), this.#sensitiveQueryParameters),
+      finalUrl: sanitizeBrowserUrl(this.#safeEvidenceUrl(), this.#sensitiveQueryParameters),
       capturedAt: this.#now().toISOString(),
       navigationStatus: this.#navigationStatus,
       sanitizedDomUtf8,
@@ -763,6 +808,31 @@ class PolicyBrowserSession implements BrowserSession {
 
   #rememberSensitiveValues(url: string): void {
     for (const value of sensitiveBrowserUrlValues(url, this.#sensitiveQueryParameters)) this.#sensitiveValues.add(value);
+  }
+
+  #rememberCurrentPageUrlIfSafe(): void {
+    if (this.#terminal) return;
+    const value = this.#page.url();
+    try {
+      const url = new URL(value);
+      if ((url.protocol === "http:" || url.protocol === "https:")
+        && this.#allowedOrigins.has(url.origin)
+        && matchesUrlContract(value, this.#allowedNavigationUrls)) {
+        this.#lastSafePageUrl = value;
+      }
+    } catch { /* current browser URL remains unusable as durable evidence */ }
+  }
+
+  #safeEvidenceUrl(): string {
+    const value = this.#page.url();
+    try {
+      const url = new URL(value);
+      if ((url.protocol === "http:" || url.protocol === "https:")
+        && this.#allowedOrigins.has(url.origin)
+        && matchesUrlContract(value, this.#allowedNavigationUrls)) return value;
+    } catch { /* fall back to the last allowed visible page */ }
+    if (this.#lastSafePageUrl !== undefined) return this.#lastSafePageUrl;
+    throw new BrowserPolicyContractError("terminal blocker has no safe browser URL evidence");
   }
 
   async #prepareInertBlockerPage(): Promise<Page> {

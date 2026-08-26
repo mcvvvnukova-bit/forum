@@ -9,6 +9,7 @@ export interface BrowserSession {
   setCheckbox(label: string, checked: boolean): Promise<void>;
   clickButton(name: string): Promise<number | null>;
   clickLink(name: string): Promise<number | null>;
+  clickLinkHref(href: string): Promise<number | null>;
   waitForLandmark(name: string): Promise<void>;
   hasLandmark(name: string): Promise<boolean>;
   hasVisibleText(text: string): Promise<boolean>;
@@ -16,6 +17,9 @@ export interface BrowserSession {
   readLabeledTexts(label: string): Promise<readonly string[]>;
   readFirstLabeledText(label: string): Promise<string>;
   linkNamesInLandmark(name: string, accessibleNamePrefix: string): Promise<readonly string[]>;
+  linkHrefsInLandmark(name: string): Promise<readonly string[]>;
+  currentUrl(): Promise<string>;
+  recordCaptchaWaiting(target: string): Promise<void>;
   fingerprint(): Promise<string>;
   captureProjection(selectors: readonly string[]): Promise<BrowserCaptureProjection>;
   policyViolations(): Promise<readonly BrowserPolicyViolation[]>;

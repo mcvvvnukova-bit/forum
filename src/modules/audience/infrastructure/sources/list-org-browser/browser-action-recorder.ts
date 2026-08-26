@@ -51,6 +51,20 @@ export class BrowserActionRecorder {
     });
   }
 
+  async record(kind: string, target: string): Promise<void> {
+    if (this.execution.signal?.aborted === true) {
+      throw new Error("browser collection lost its task lease");
+    }
+    await this.#record({
+      id: randomUUID(),
+      at: this.now().toISOString(),
+      kind,
+      target: this.sanitizeTarget(target),
+      outcome: "completed",
+      navigationStatus: this.navigationStatus(),
+    });
+  }
+
   async #record(event: BrowserActionEvent): Promise<void> {
     await this.execution.actionLedger?.record(event);
     this.#events.push(event);

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>{{NAME}}</title></head><body>
+<main aria-label="Карточка организации" class="source-card">
+  <h1>{{NAME}}</h1><p class="company-status">Организация ликвидирована</p>
+  <dl>
+    <dt>Полное юридическое наименование:</dt><dd>{{NAME}}</dd>
+    <dt>ИНН / КПП:</dt><dd>{{INN}} / 770001001</dd>
+    <dt>Основной (по коду ОКВЭД ред.2):</dt><dd>{{PRIMARY_OKVED}} {{PRIMARY_TEXT}}</dd>
+    <dt>Телефон:</dt><dd>+7 (495) 999-88-77</dd>
+  </dl>
+  <table class="okved-additional"><caption>Дополнительные виды деятельности</caption><tbody>{{ADDITIONAL_ROWS}}</tbody></table>
+  <a href="{{BACK_HREF}}">Вернуться к результатам</a>
+</main>
+</body></html>
