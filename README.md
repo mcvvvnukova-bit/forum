@@ -1,8 +1,8 @@
 # OKVED audience parser
 
 Build and verify the first executable audience-ingestion slice entirely on your machine.
-The enabled path uses fixture data, loopback HTTP, PostgreSQL, MinIO, and Chromium.
-Live List-Org and live FNS BFO access are disabled.
+The default path uses fixture data, loopback HTTP, PostgreSQL, MinIO, and Chromium.
+Fixture commands remain fixture-only. Arbitrary live collection is unsupported.
 
 ## Quick start
 
@@ -53,8 +53,16 @@ npm run migrate:down
 The complete manual fixture flow is in the [audience parser canary runbook](docs/runbooks/audience-parser-canary.md).
 Source activation rules are in the [audience ingestion source policy](docs/architecture/audience-ingestion-source-policy.md).
 
+One exceptional, operator-controlled workflow authorizes a single bounded pilot
+for OKVED `43.11`, year 2025, and exactly 10 legal entities. It requires owned
+PostgreSQL on port 5433, owned MinIO, a visible browser, all live feature gates,
+and manual CAPTCHA handling in the same session. Read and follow the
+[bounded live-pilot runbook](docs/runbooks/okved-live-pilot.md) before any live
+access. The command does not authorize other live collection.
+
 ## Current scope
 
-Only fixture mode is enabled. This slice does not authorize a live canary, live List-Org,
-live BFO, full 967-code traversal, proxy or IP rotation, or non-loopback source traffic.
-IP support remains a separate stage-2 plan.
+Fixture mode is the default. The only live exception is the one bounded workflow
+linked above. This slice does not authorize another live run, full 967-code
+traversal, export or hidden API use, proxy or IP rotation, or arbitrary
+non-loopback source traffic. IP support remains a separate stage-2 plan.
