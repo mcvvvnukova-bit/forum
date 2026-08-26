@@ -33,8 +33,19 @@ export interface BrowserSession {
 
 export interface BrowserOriginPolicy {
   readonly allowedOrigins: readonly string[];
+  readonly allowedNavigationUrls: readonly BrowserUrlContract[];
+  readonly allowedDownloadUrls?: readonly BrowserUrlContract[];
+  /** @deprecated An origin alone never authorizes a download; use allowedDownloadUrls. */
   readonly allowedDownloadOrigins?: readonly string[];
   readonly allowInsecureHttpForTesting?: boolean;
+}
+
+export type BrowserUrlContract = string | BrowserUrlPattern;
+
+export interface BrowserUrlPattern {
+  readonly origin: string;
+  /** Exact pathname, or one trailing `*` for an auditable subtree match. */
+  readonly pathname: string;
 }
 
 export interface BrowserCaptureProjection {

@@ -396,9 +396,27 @@ export type PlaywrightBrowserSessionFactoryOptions = PolicyBrowserSessionFactory
 /** Compatibility fixture adapter. Live adapters use PolicyBrowserSessionFactory with HTTPS origins. */
 export class PlaywrightBrowserSessionFactory extends PolicyBrowserSessionFactory {
   constructor(allowedOrigin: string, options: PlaywrightBrowserSessionFactoryOptions = {}) {
-    super({ allowedOrigins: [new URL(allowedOrigin).origin], allowInsecureHttpForTesting: true }, {
+    const origin = new URL(allowedOrigin).origin;
+    super({
+      allowedOrigins: [origin],
+      allowedNavigationUrls: [
+        { origin, pathname: "/search" },
+        { origin, pathname: "/results/*" },
+        { origin, pathname: "/company/*" },
+        `${origin}/captcha`,
+        `${origin}/forbidden`,
+        `${origin}/soft-block`,
+        `${origin}/contract-drift`,
+      ],
+      allowInsecureHttpForTesting: true,
+    }, {
       ...options,
-      launch: options.launch ?? (() => chromium.launch({ headless: true })),
+      launch: options.launch ?? (() => chromium.launch({
+        headless: true,
+        // route.fetch()/fulfill() has no remote-address metadata; keep the local
+        // fixture's same-origin WebSocket usable without weakening live launch.
+        args: ["--disable-features=LocalNetworkAccessChecks"],
+      })),
     });
   }
 }

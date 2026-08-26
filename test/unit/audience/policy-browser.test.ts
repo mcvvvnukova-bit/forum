@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { chromium } from "playwright";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import {
   PolicyBrowserSessionFactory,
@@ -13,17 +14,59 @@ describe("PolicyBrowserSessionFactory", () => {
 
   beforeAll(async () => {
     external = await startServer(() => "external");
-    allowed = await startServer((request) => {
+    allowed = await startServer((request, requestNumber): LocalServerResponse => {
       const url = new URL(request.url ?? "/", "http://fixture.invalid");
       const externalUrl = external!.url;
       const scenario = url.searchParams.get("scenario");
-      if (scenario === "redirect") return { status: 302, headers: { location: externalUrl } };
+      if (url.pathname === "/same-origin-redirect") {
+        return { status: 302, headers: { location: "/forbidden-target" } };
+      }
+      if (url.pathname === "/external-redirect") {
+        return { status: 302, headers: { location: `${externalUrl}/forbidden-target` } };
+      }
+      if (url.pathname === "/transient-5xx") {
+        return requestNumber < 3
+          ? { status: 503, headers: {}, body: "transient" }
+          : "recovered";
+      }
+      if (url.pathname === "/persistent-5xx") {
+        return { status: 503, headers: {}, body: "still unavailable" };
+      }
+      if (url.pathname === "/retry-entry") {
+        return '<main><a href="/click-transient">Retry target</a></main>';
+      }
+      if (url.pathname === "/click-transient") {
+        return requestNumber < 3
+          ? { status: 502, headers: {}, body: "transient click navigation" }
+          : "recovered click navigation";
+      }
+      if (url.pathname === "/transient-network") {
+        return requestNumber < 3 ? { destroySocket: true } : "recovered";
+      }
+      if (url.pathname === "/forbidden-target") {
+        return { status: 403, headers: {}, body: "forbidden" };
+      }
       if (scenario === "script") return `<script src="${externalUrl}/script.js"></script>`;
+      if (scenario === "data-script") {
+        return '<script src="data:text/javascript,document.body.append(`active-data-script-ran`)"></script>';
+      }
+      if (scenario === "data-document") {
+        return '<a id="dataDocument" href="data:text/html,forbidden-document">data document</a><script>dataDocument.click()</script>';
+      }
       if (scenario === "xhr") return `<script>fetch(${JSON.stringify(externalUrl)})</script>`;
       if (scenario === "websocket") return `<script>new WebSocket(${JSON.stringify(externalUrl.replace("http:", "ws:"))})</script>`;
       if (scenario === "service-worker") return `<script>navigator.serviceWorker.register("/worker.js")</script>`;
       if (scenario === "popup") return `<script>window.open(${JSON.stringify(externalUrl)})</script>`;
       if (scenario === "download") return `<a id="download" href="/download" download>download</a><script>download.click()</script>`;
+      if (scenario === "freeze-after-terminal") {
+        return `<script>
+          navigator.serviceWorker.register("/worker.js").catch(() => undefined);
+          setTimeout(() => {
+            document.body.append("post-terminal-script-ran");
+            fetch("/after-terminal").catch(() => undefined);
+          }, 150);
+        </script><main>freeze fixture</main>`;
+      }
       if (scenario === "passive") {
         return [
           `<img src="${externalUrl}/image.png">`,
@@ -42,11 +85,37 @@ describe("PolicyBrowserSessionFactory", () => {
   });
 
   it("requires exact HTTPS origins unless an explicit test-only policy permits local HTTP", () => {
-    expect(() => new PolicyBrowserSessionFactory({ allowedOrigins: ["http://example.test"] }))
+    expect(() => new PolicyBrowserSessionFactory({
+      allowedOrigins: ["http://example.test"],
+      allowedNavigationUrls: ["http://example.test/"],
+    }))
       .toThrow("HTTPS");
-    expect(() => new PolicyBrowserSessionFactory({ allowedOrigins: ["https://example.test/path"] }))
+    expect(() => new PolicyBrowserSessionFactory({
+      allowedOrigins: ["https://example.test/path"],
+      allowedNavigationUrls: ["https://example.test/"],
+    }))
       .toThrow("exact origin");
     expect(() => new PolicyBrowserSessionFactory(testPolicy(allowed.url))).not.toThrow();
+  });
+
+  it("launches the reusable policy browser headed by default", async () => {
+    const launch = vi.spyOn(chromium, "launch").mockRejectedValueOnce(new Error("headed launch probe"));
+    try {
+      await expect(new PolicyBrowserSessionFactory(testPolicy(allowed.url)).open())
+        .rejects.toThrow("headed launch probe");
+      expect(launch).toHaveBeenCalledWith({ headless: false });
+    } finally {
+      launch.mockRestore();
+    }
+  });
+
+  it("rejects navigation contracts that are not canonical URLs on an allowed exact origin", () => {
+    expect(() => new PolicyBrowserSessionFactory(testPolicy(allowed.url, [
+      `${allowed.url}/search#fragment`,
+    ]))).toThrow("canonical navigation URL");
+    expect(() => new PolicyBrowserSessionFactory(testPolicy(allowed.url, [
+      `${external.url}/search`,
+    ]))).toThrow("navigation URL origin");
   });
 
   it.each([
@@ -58,9 +127,10 @@ describe("PolicyBrowserSessionFactory", () => {
     "popup",
     "download",
   ])("terminally rejects a cross-origin %s", async (scenario) => {
-    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url)).open();
+    const allowedTarget = `${allowed.url}/?scenario=${scenario}`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [allowedTarget])).open();
     try {
-      const target = scenario === "document" ? external.url : `${allowed.url}/?scenario=${scenario}`;
+      const target = scenario === "document" ? external.url : allowedTarget;
       await expect(session.navigate(target))
         .rejects.toMatchObject({ origins: expect.any(Array) });
     } finally {
@@ -68,10 +138,212 @@ describe("PolicyBrowserSessionFactory", () => {
     }
   });
 
-  it("logs and aborts passive cross-origin resources without failing navigation", async () => {
+  it("terminally rejects an active data request and records its typed violation", async () => {
+    const target = `${allowed.url}/?scenario=data-script`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
+      expect(await session.policyViolations()).toContainEqual({
+        disposition: "terminal",
+        resourceType: "script",
+        origin: expect.stringContaining("data:text/javascript"),
+      });
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it("prevalidates data document navigation before page.goto", async () => {
     const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url)).open();
     try {
-      await expect(session.navigate(`${allowed.url}/?scenario=passive`)).resolves.toBe(200);
+      await expect(session.navigate("data:text/html,forbidden"))
+        .rejects.toMatchObject({ origins: ["data:text/html,forbidden"] });
+      expect(await session.policyViolations()).toContainEqual({
+        disposition: "terminal",
+        resourceType: "document",
+        origin: "data:text/html,forbidden",
+      });
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it("terminally rejects a page-activated data document before browser navigation", async () => {
+    const target = `${allowed.url}/?scenario=data-document`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
+      expect(await session.policyViolations()).toContainEqual({
+        disposition: "terminal",
+        resourceType: "document",
+        origin: "data:text/html,forbidden-document",
+      });
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it.each([
+    ["same-origin", "/same-origin-redirect", () => allowed.requestCount("/forbidden-target")],
+    ["cross-origin", "/external-redirect", () => external.requestCount("/forbidden-target")],
+  ] as const)("invokes a %s redirect but blocks its forbidden destination before dispatch", async (
+    _case,
+    path,
+    forbiddenRequests,
+  ) => {
+    const target = `${allowed.url}${path}`;
+    const beforeRedirect = allowed.requestCount(path);
+    const beforeForbidden = forbiddenRequests();
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
+      expect(allowed.requestCount(path) - beforeRedirect).toBe(1);
+      expect(forbiddenRequests() - beforeForbidden).toBe(0);
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it("blocks an unauthorized same-origin download before its endpoint receives a request", async () => {
+    const target = `${allowed.url}/?scenario=download`;
+    const before = allowed.requestCount("/download");
+    const session = await new PolicyBrowserSessionFactory({
+      ...testPolicy(allowed.url, [target]),
+      allowedDownloadOrigins: [allowed.url],
+    }).open();
+    try {
+      await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
+      expect(allowed.requestCount("/download") - before).toBe(0);
+      expect(await session.policyViolations()).toContainEqual({
+        disposition: "terminal",
+        resourceType: "download",
+        origin: `${allowed.url}/download`,
+      });
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it("dispatches only a download URL authorized by the separate exact contract", async () => {
+    const target = `${allowed.url}/?scenario=download`;
+    const downloadUrl = `${allowed.url}/download`;
+    const before = allowed.requestCount("/download");
+    const session = await new PolicyBrowserSessionFactory({
+      ...testPolicy(allowed.url, [target]),
+      allowedDownloadUrls: [downloadUrl],
+    }).open();
+    try {
+      await expect(session.navigate(target)).resolves.toBe(200);
+      expect(allowed.requestCount("/download") - before).toBe(1);
+      expect(await session.policyViolations()).not.toContainEqual(expect.objectContaining({
+        resourceType: "download",
+      }));
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("freezes page script and later same-origin network activity after a terminal violation", async () => {
+    const target = `${allowed.url}/?scenario=freeze-after-terminal`;
+    const before = allowed.requestCount("/after-terminal");
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      const blocker = await session.captureBlocker({ runId: "freeze", page: 1 }, "test/1");
+      expect(new TextDecoder().decode(blocker.sanitizedDomUtf8)).not.toContain("post-terminal-script-ran");
+      expect(allowed.requestCount("/after-terminal") - before).toBe(0);
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it.each([
+    ["websocket", "websocket"],
+    ["service-worker", "service-worker"],
+  ] as const)("records a typed %s policy violation", async (scenario, resourceType) => {
+    const target = `${allowed.url}/?scenario=${scenario}`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
+      expect(await session.policyViolations()).toContainEqual(expect.objectContaining({
+        disposition: "terminal",
+        resourceType,
+      }));
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it.each([
+    ["5xx", "/transient-5xx"],
+    ["network error", "/transient-network"],
+  ] as const)("retries a transient %s sequentially at most twice", async (_case, path) => {
+    const target = `${allowed.url}${path}`;
+    const before = allowed.requestCount(path);
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target]), {
+      transportRetryDelayMs: 0,
+    }).open();
+    try {
+      await expect(session.navigate(target)).resolves.toBe(200);
+      expect(allowed.requestCount(path) - before).toBe(3);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("stops after two retries when a 5xx remains transient", async () => {
+    const path = "/persistent-5xx";
+    const target = `${allowed.url}${path}`;
+    const before = allowed.requestCount(path);
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target]), {
+      transportRetryDelayMs: 0,
+    }).open();
+    try {
+      await expect(session.navigate(target)).resolves.toBe(503);
+      expect(allowed.requestCount(path) - before).toBe(3);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("applies the same sequential retry ceiling to visible link navigation", async () => {
+    const entry = `${allowed.url}/retry-entry`;
+    const destinationPath = "/click-transient";
+    const before = allowed.requestCount(destinationPath);
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [
+      entry,
+      `${allowed.url}${destinationPath}`,
+    ]), { transportRetryDelayMs: 0 }).open();
+    try {
+      await session.navigate(entry);
+      await expect(session.clickLink("Retry target")).resolves.toBe(200);
+      expect(allowed.requestCount(destinationPath) - before).toBe(3);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("never retries 403 responses", async () => {
+    const path = "/forbidden-target";
+    const target = `${allowed.url}${path}`;
+    const before = allowed.requestCount(path);
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target]), {
+      transportRetryDelayMs: 0,
+    }).open();
+    try {
+      await expect(session.navigate(target)).resolves.toBe(403);
+      expect(allowed.requestCount(path) - before).toBe(1);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("logs and aborts passive cross-origin resources without failing navigation", async () => {
+    const target = `${allowed.url}/?scenario=passive`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await expect(session.navigate(target)).resolves.toBe(200);
       expect(await session.policyViolations()).toEqual(expect.arrayContaining([
         expect.objectContaining({ disposition: "passive", resourceType: "image", origin: external.url }),
         expect.objectContaining({ disposition: "passive", resourceType: "stylesheet", origin: external.url }),
@@ -84,22 +356,36 @@ describe("PolicyBrowserSessionFactory", () => {
   });
 });
 
-function testPolicy(origin: string): BrowserOriginPolicy {
-  return { allowedOrigins: [origin], allowInsecureHttpForTesting: true };
+function testPolicy(origin: string, allowedNavigationUrls: readonly string[] = [`${origin}/`]): BrowserOriginPolicy {
+  return {
+    allowedOrigins: [origin],
+    allowedNavigationUrls,
+    allowInsecureHttpForTesting: true,
+  };
 }
 
 interface LocalServer {
   url: string;
+  requestCount(pathname: string): number;
   close(): Promise<void>;
 }
 
+type LocalServerResponse = string | {
+  status: number;
+  headers: Record<string, string>;
+  body?: string;
+} | {
+  destroySocket: true;
+};
+
 async function startServer(
-  handler: (request: IncomingMessage) => string | {
-    status: number;
-    headers: Record<string, string>;
-  },
+  handler: (request: IncomingMessage, requestNumber: number) => LocalServerResponse,
 ): Promise<LocalServer> {
+  const requestCounts = new Map<string, number>();
   const server = createServer((request, response) => {
+    const pathname = new URL(request.url ?? "/", "http://fixture.invalid").pathname;
+    const requestNumber = (requestCounts.get(pathname) ?? 0) + 1;
+    requestCounts.set(pathname, requestNumber);
     if (request.url === "/worker.js") {
       response.writeHead(200, { "content-type": "application/javascript" });
       response.end("self.addEventListener('install', () => undefined)");
@@ -113,14 +399,18 @@ async function startServer(
       response.end("download");
       return;
     }
-    const output = handler(request);
+    const output = handler(request, requestNumber);
+    if (typeof output !== "string" && "destroySocket" in output) {
+      request.socket.destroy();
+      return;
+    }
     if (typeof output === "string") {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       response.end(`<!doctype html><html><body>${output}</body></html>`);
       return;
     }
     response.writeHead(output.status, output.headers);
-    response.end();
+    response.end(output.body);
   });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -130,6 +420,7 @@ async function startServer(
   if (address === null || typeof address === "string") throw new Error("test server did not allocate a port");
   return {
     url: `http://127.0.0.1:${address.port}`,
+    requestCount: (pathname) => requestCounts.get(pathname) ?? 0,
     close: () => closeServer(server),
   };
 }

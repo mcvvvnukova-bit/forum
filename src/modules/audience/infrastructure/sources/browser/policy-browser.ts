@@ -1,10 +1,19 @@
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type CDPSession,
+  type Page,
+  type Request,
+  type Route,
+} from "playwright";
 
 import type {
   BrowserCaptureProjection,
   BrowserOriginPolicy,
   BrowserPolicyViolation,
   BrowserSession,
+  BrowserUrlContract,
   PolicyBrowserSessionFactory as PolicyBrowserSessionFactoryPort,
 } from "../../../application/ports/browser-session";
 import type { BrowserRawBundle, DiscoveryExecutionContext } from "../../../domain/discovery";
@@ -34,22 +43,26 @@ export interface PolicyBrowserSessionFactoryOptions {
   sensitiveQueryParameters?: readonly string[];
   launch?: () => Promise<Browser>;
   sourceKind?: string;
+  transportRetryDelayMs?: number;
 }
 
 export class PolicyBrowserSessionFactory implements PolicyBrowserSessionFactoryPort {
   readonly policy: BrowserOriginPolicy;
   readonly #allowedOrigins: ReadonlySet<string>;
-  readonly #allowedDownloadOrigins: ReadonlySet<string>;
+  readonly #allowedNavigationUrls: readonly NormalizedUrlContract[];
+  readonly #allowedDownloadUrls: readonly NormalizedUrlContract[];
   readonly #now: () => Date;
   readonly #sensitiveQueryParameters: readonly string[];
   readonly #launch: () => Promise<Browser>;
   readonly #sourceKind: string;
+  readonly #transportRetryDelayMs: number;
 
   constructor(policy: BrowserOriginPolicy, options: PolicyBrowserSessionFactoryOptions = {}) {
     const normalized = normalizePolicy(policy);
     this.policy = normalized.policy;
     this.#allowedOrigins = normalized.allowedOrigins;
-    this.#allowedDownloadOrigins = normalized.allowedDownloadOrigins;
+    this.#allowedNavigationUrls = normalized.allowedNavigationUrls;
+    this.#allowedDownloadUrls = normalized.allowedDownloadUrls;
     this.#now = options.now ?? (() => new Date());
     this.#sensitiveQueryParameters = [...new Set([
       ...MANDATORY_SENSITIVE_QUERY_PARAMETERS,
@@ -57,6 +70,10 @@ export class PolicyBrowserSessionFactory implements PolicyBrowserSessionFactoryP
     ])];
     this.#launch = options.launch ?? (() => chromium.launch({ headless: false }));
     this.#sourceKind = options.sourceKind ?? "list-org-browser";
+    this.#transportRetryDelayMs = options.transportRetryDelayMs ?? 100;
+    if (!Number.isSafeInteger(this.#transportRetryDelayMs) || this.#transportRetryDelayMs < 0) {
+      throw new Error("browser transport retry delay must be a non-negative safe integer");
+    }
   }
 
   async open(execution: DiscoveryExecutionContext = {}): Promise<BrowserSession> {
@@ -75,11 +92,13 @@ export class PolicyBrowserSessionFactory implements PolicyBrowserSessionFactoryP
         context,
         renderContext,
         allowedOrigins: this.#allowedOrigins,
-        allowedDownloadOrigins: this.#allowedDownloadOrigins,
+        allowedNavigationUrls: this.#allowedNavigationUrls,
+        allowedDownloadUrls: this.#allowedDownloadUrls,
         now: this.#now,
         sensitiveQueryParameters: this.#sensitiveQueryParameters,
         execution,
         sourceKind: this.#sourceKind,
+        transportRetryDelayMs: this.#transportRetryDelayMs,
       });
     } catch (error) {
       if (renderContext !== undefined) await renderContext.close().catch(() => undefined);
@@ -97,7 +116,8 @@ class PolicyBrowserSession implements BrowserSession {
   readonly #page: Page;
   readonly #renderPage: Page;
   readonly #allowedOrigins: ReadonlySet<string>;
-  readonly #allowedDownloadOrigins: ReadonlySet<string>;
+  readonly #allowedNavigationUrls: readonly NormalizedUrlContract[];
+  readonly #allowedDownloadUrls: readonly NormalizedUrlContract[];
   readonly #now: () => Date;
   readonly #sensitiveQueryParameters: readonly string[];
   readonly #sourceKind: string;
@@ -106,8 +126,11 @@ class PolicyBrowserSession implements BrowserSession {
   readonly #violations: BrowserPolicyViolation[] = [];
   readonly #sensitiveValues = new Set<string>();
   readonly #renderRequests = new Set<string>();
+  readonly #cdpSession: CDPSession | undefined;
   #navigationStatus: number | null = null;
   #terminalAcknowledged = false;
+  #terminal = false;
+  #freezePromise: Promise<void> | undefined;
 
   private constructor(options: {
     browser: Browser;
@@ -116,13 +139,15 @@ class PolicyBrowserSession implements BrowserSession {
     page: Page;
     renderPage: Page;
     allowedOrigins: ReadonlySet<string>;
-    allowedDownloadOrigins: ReadonlySet<string>;
+    allowedNavigationUrls: readonly NormalizedUrlContract[];
+    allowedDownloadUrls: readonly NormalizedUrlContract[];
     now: () => Date;
     sensitiveQueryParameters: readonly string[];
     execution: DiscoveryExecutionContext;
     sourceKind: string;
     renderRequests: Set<string>;
     terminalOrigins: Set<string>;
+    cdpSession: CDPSession | undefined;
   }) {
     this.#browser = options.browser;
     this.#context = options.context;
@@ -130,12 +155,14 @@ class PolicyBrowserSession implements BrowserSession {
     this.#page = options.page;
     this.#renderPage = options.renderPage;
     this.#allowedOrigins = options.allowedOrigins;
-    this.#allowedDownloadOrigins = options.allowedDownloadOrigins;
+    this.#allowedNavigationUrls = options.allowedNavigationUrls;
+    this.#allowedDownloadUrls = options.allowedDownloadUrls;
     this.#now = options.now;
     this.#sensitiveQueryParameters = options.sensitiveQueryParameters;
     this.#sourceKind = options.sourceKind;
     this.#renderRequests = options.renderRequests;
     this.#terminalOrigins = options.terminalOrigins;
+    this.#cdpSession = options.cdpSession;
     this.#actions = new BrowserActionRecorder(
       options.execution,
       options.now,
@@ -153,39 +180,62 @@ class PolicyBrowserSession implements BrowserSession {
     context: BrowserContext;
     renderContext: BrowserContext;
     allowedOrigins: ReadonlySet<string>;
-    allowedDownloadOrigins: ReadonlySet<string>;
+    allowedNavigationUrls: readonly NormalizedUrlContract[];
+    allowedDownloadUrls: readonly NormalizedUrlContract[];
     now: () => Date;
     sensitiveQueryParameters: readonly string[];
     execution: DiscoveryExecutionContext;
     sourceKind: string;
+    transportRetryDelayMs: number;
   }): Promise<PolicyBrowserSession> {
     const renderRequests = new Set<string>();
     const terminalOrigins = new Set<string>();
     let session: PolicyBrowserSession | undefined;
     await options.context.routeWebSocket("**/*", async (webSocket) => {
       const requestUrl = webSocket.url();
-      let origin: string;
+      let origins: { policy: string; evidence: string };
       try {
-        origin = browserRequestOrigin(requestUrl).policy;
+        origins = browserRequestOrigin(requestUrl);
       } catch {
-        terminalOrigins.add(requestUrl); if (session !== undefined) session.#recordViolation({ disposition: "terminal", resourceType: "websocket", origin: requestUrl });
+        if (session === undefined) terminalOrigins.add(requestUrl);
+        else await session.#terminate({ disposition: "terminal", resourceType: "websocket", origin: requestUrl });
         await webSocket.close({ code: 1008, reason: "browser origin policy" });
         return;
       }
-      if (options.allowedOrigins.has(origin)) {
+      if (session !== undefined && session.#terminal) {
+        await webSocket.close({ code: 1008, reason: "browser session frozen" });
+        return;
+      }
+      if (options.allowedOrigins.has(origins.policy)) {
         webSocket.connectToServer();
         return;
       }
-      const evidence = browserRequestOrigin(requestUrl).evidence;
-      terminalOrigins.add(evidence); if (session !== undefined) session.#recordViolation({ disposition: "terminal", resourceType: "websocket", origin: evidence });
+      if (session === undefined) terminalOrigins.add(origins.evidence);
+      else await session.#terminate({ disposition: "terminal", resourceType: "websocket", origin: origins.evidence });
       await webSocket.close({ code: 1008, reason: "browser origin policy" });
     });
-    await options.context.exposeBinding("__okvedPolicyViolation", (_source, evidence: unknown) => {
+    await options.context.exposeBinding("__okvedPolicyViolation", async (_source, evidence: unknown) => {
       const origin = evidence === "service-worker-registration"
         ? evidence
         : "browser-policy-violation";
-      terminalOrigins.add(origin);
-      if (session !== undefined) session.#recordViolation({ disposition: "terminal", resourceType: "service-worker", origin });
+      if (session === undefined) terminalOrigins.add(origin);
+      else await session.#terminate({ disposition: "terminal", resourceType: "service-worker", origin });
+    });
+    await options.context.exposeBinding("__okvedDownloadViolation", async (_source, evidence: unknown) => {
+      const url = typeof evidence === "string" ? evidence : "download";
+      if (session === undefined) terminalOrigins.add(url);
+      else await session.#terminate({ disposition: "terminal", resourceType: "download", origin: url });
+    });
+    await options.context.exposeBinding("__okvedActiveUrlViolation", async (_source, evidence: unknown) => {
+      const value = isActiveUrlEvidence(evidence)
+        ? evidence
+        : { resourceType: "document" as const, url: "active-url-policy-violation" };
+      if (session === undefined) terminalOrigins.add(value.url);
+      else await session.#terminate({
+        disposition: "terminal",
+        resourceType: value.resourceType,
+        origin: value.url,
+      });
     });
     await options.context.addInitScript(() => {
       if (navigator.serviceWorker === undefined) return;
@@ -200,6 +250,92 @@ class PolicyBrowserSession implements BrowserSession {
         ),
       });
     });
+    await options.context.addInitScript((downloadContracts) => {
+      const matches = (value: string): boolean => {
+        let url: URL;
+        try { url = new URL(value, location.href); } catch { return false; }
+        if (url.hash !== "" || url.username !== "" || url.password !== "") return false;
+        return downloadContracts.some((contract) => contract.kind === "exact"
+          ? url.href === contract.url
+          : url.origin === contract.origin && (contract.pathname.endsWith("*")
+              ? url.pathname.startsWith(contract.pathname.slice(0, -1))
+              : url.pathname === contract.pathname));
+      };
+      document.addEventListener("click", (event) => {
+        const anchor = event.composedPath().find((candidate) => candidate instanceof HTMLAnchorElement);
+        if (!(anchor instanceof HTMLAnchorElement) || !anchor.hasAttribute("download")) return;
+        const href = anchor.href;
+        if (matches(href)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const report = (window as unknown as Window & {
+          __okvedDownloadViolation: (evidence: string) => Promise<void>;
+        }).__okvedDownloadViolation;
+        void report(href);
+      }, true);
+    }, options.allowedDownloadUrls.map(serializableUrlContract));
+    await options.context.addInitScript(() => {
+      const report = (resourceType: "document" | "script" | "xhr", url: string): void => {
+        const binding = (window as unknown as Window & {
+          __okvedActiveUrlViolation: (evidence: {
+            resourceType: "document" | "script" | "xhr";
+            url: string;
+          }) => Promise<void>;
+        }).__okvedActiveUrlViolation;
+        void binding({ resourceType, url });
+      };
+      const scan = (root: ParentNode): void => {
+        const candidates = root.querySelectorAll("script[src], iframe[src], object[data]");
+        for (const candidate of candidates) {
+          const isScript = candidate instanceof HTMLScriptElement;
+          const raw = candidate.getAttribute(isScript ? "src" : candidate instanceof HTMLObjectElement ? "data" : "src");
+          if (raw === null) continue;
+          let url: URL;
+          try { url = new URL(raw, location.href); } catch { continue; }
+          if (url.protocol !== "data:") continue;
+          report(isScript ? "script" : "document", url.href);
+        }
+      };
+      new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node instanceof Element) {
+              if (node.matches("script[src], iframe[src], object[data]")) scan(node.parentNode ?? document);
+              else scan(node);
+            }
+          }
+        }
+      }).observe(document, { childList: true, subtree: true });
+      document.addEventListener("click", (event) => {
+        const anchor = event.composedPath().find((candidate) => candidate instanceof HTMLAnchorElement);
+        if (!(anchor instanceof HTMLAnchorElement)) return;
+        let url: URL;
+        try { url = new URL(anchor.href, location.href); } catch { return; }
+        if (url.protocol !== "data:") return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        report("document", url.href);
+      }, true);
+      document.addEventListener("submit", (event) => {
+        if (!(event.target instanceof HTMLFormElement)) return;
+        let url: URL;
+        try { url = new URL(event.target.action, location.href); } catch { return; }
+        if (url.protocol !== "data:") return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        report("document", url.href);
+      }, true);
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+        const raw = input instanceof Request ? input.url : String(input);
+        const url = new URL(raw, location.href);
+        if (url.protocol === "data:") {
+          report("xhr", url.href);
+          return Promise.reject(new TypeError("active data URL blocked by browser policy"));
+        }
+        return originalFetch(input, init);
+      }) as typeof window.fetch;
+    });
     await options.renderContext.route("**/*", async (route) => {
       renderRequests.add(route.request().url());
       await route.abort("blockedbyclient");
@@ -208,26 +344,33 @@ class PolicyBrowserSession implements BrowserSession {
     const renderPage = await options.renderContext.newPage();
     page.setDefaultTimeout(2_000);
     renderPage.setDefaultTimeout(2_000);
+    const cdpSession = await maybeCreateCdpSession(options.context, page);
     session = new PolicyBrowserSession({
       ...options,
       page,
       renderPage,
       renderRequests,
       terminalOrigins,
+      cdpSession,
     });
+
+    if (terminalOrigins.size > 0) {
+      await session.#terminate({
+        disposition: "terminal",
+        resourceType: "document",
+        origin: [...terminalOrigins][0]!,
+      });
+    }
 
     options.context.on("page", (secondaryPage) => {
       if (secondaryPage === page) return;
-      session.#recordViolation({ disposition: "terminal", resourceType: "popup", origin: "secondary-page" });
-      session.#terminalOrigins.add("secondary-page");
+      void session.#terminate({ disposition: "terminal", resourceType: "popup", origin: "secondary-page" });
       void secondaryPage.close().catch(() => undefined);
     });
     page.on("download", (download) => {
-      let origin = "download";
-      try { origin = browserRequestOrigin(download.url()).evidence; } catch { /* keep download evidence */ }
-      if (!session.#allowedDownloadOrigins.has(origin)) {
-        session.#recordViolation({ disposition: "terminal", resourceType: "download", origin: "download" });
-        session.#terminalOrigins.add("download");
+      const url = download.url();
+      if (!matchesUrlContract(url, session.#allowedDownloadUrls)) {
+        void session.#terminate({ disposition: "terminal", resourceType: "download", origin: url });
       }
       void download.cancel().catch(() => undefined);
     });
@@ -240,37 +383,85 @@ class PolicyBrowserSession implements BrowserSession {
       const request = route.request();
       const requestUrl = request.url();
       session.#rememberSensitiveValues(requestUrl);
+      if (session.#terminal) {
+        await route.abort("blockedbyclient");
+        return;
+      }
       let origins: { policy: string; evidence: string };
       try {
         origins = browserRequestOrigin(requestUrl);
       } catch {
-        session.#recordTerminalRequest(request.resourceType(), requestUrl);
+        const violation = classifyRequest(
+          request.resourceType(),
+          request.isNavigationRequest(),
+          isSubframeRequest(request, page),
+          requestUrl,
+        );
+        if (violation.disposition === "terminal") await session.#terminate(violation);
+        else session.#recordViolation(violation);
         await route.abort("blockedbyclient");
         return;
       }
-      if (session.#allowedOrigins.has(origins.policy)) {
-        await route.continue();
+      const isNavigation = request.isNavigationRequest();
+      const isSubframe = isSubframeRequest(request, page);
+      const originAllowed = session.#allowedOrigins.has(origins.policy);
+      const documentAllowed = !isNavigation
+        || matchesUrlContract(requestUrl, session.#allowedNavigationUrls)
+        || matchesUrlContract(requestUrl, session.#allowedDownloadUrls);
+      if (originAllowed && documentAllowed) {
+        if (!isNavigation) {
+          await route.continue();
+          return;
+        }
+        try {
+          const response = await fetchDocumentWithBoundedRetry(
+            route,
+            options.transportRetryDelayMs,
+          );
+          const headers = response.headers();
+          if (isRedirectStatus(response.status())) {
+            const redirectUrl = resolveRedirectUrl(requestUrl, headers.location);
+            let redirectOrigins: { policy: string; evidence: string } | undefined;
+            try { redirectOrigins = browserRequestOrigin(redirectUrl); } catch { /* terminal below */ }
+            const redirectAllowed = redirectOrigins !== undefined
+              && session.#allowedOrigins.has(redirectOrigins.policy)
+              && (matchesUrlContract(redirectUrl, session.#allowedNavigationUrls)
+                || matchesUrlContract(redirectUrl, session.#allowedDownloadUrls));
+            if (!redirectAllowed) {
+              await session.#terminate({
+                disposition: "terminal",
+                resourceType: "document",
+                origin: redirectOrigins === undefined || session.#allowedOrigins.has(redirectOrigins.policy)
+                  ? redirectUrl
+                  : redirectOrigins.evidence,
+              });
+              await route.abort("blockedbyclient").catch(() => undefined);
+              return;
+            }
+          }
+          if (isHtmlResponse(headers)) {
+            const existing = headers["content-security-policy"];
+            headers["content-security-policy"] = existing === undefined
+              ? ACTIVE_URL_CONTENT_SECURITY_POLICY
+              : `${existing}, ${ACTIVE_URL_CONTENT_SECURITY_POLICY}`;
+          }
+          await route.fulfill({ response, headers });
+        } catch {
+          await route.abort("failed").catch(() => undefined);
+        }
         return;
       }
-      let isSubframe = false;
-      if (request.isNavigationRequest()) {
-        try {
-          isSubframe = request.frame() !== page.mainFrame();
-        } catch {
-          // Requests issued before a popup frame exists are terminal documents.
-          isSubframe = false;
-        }
-      }
-      const violation = classifyRequest(request.resourceType(), request.isNavigationRequest(), isSubframe, origins.evidence);
-      session.#recordViolation(violation);
-      if (violation.disposition === "terminal") session.#terminalOrigins.add(origins.evidence);
+      const evidence = originAllowed ? requestUrl : origins.evidence;
+      const violation = classifyRequest(request.resourceType(), isNavigation, isSubframe, evidence);
+      if (violation.disposition === "terminal") await session.#terminate(violation);
+      else session.#recordViolation(violation);
       await route.abort("blockedbyclient");
     });
     return session;
   }
 
   async navigate(url: string): Promise<number | null> {
-    this.#assertAllowedNavigation(url);
+    await this.#assertAllowedNavigation(url);
     this.#rememberSensitiveValues(url);
     const target = sanitizeBrowserUrl(url, this.#sensitiveQueryParameters);
     const actionId = await this.#actions.begin("navigate", target);
@@ -355,6 +546,7 @@ class PolicyBrowserSession implements BrowserSession {
   }
 
   async fingerprint(): Promise<string> {
+    this.#assertNoTerminalRequests();
     const dom = await sanitizePageDom(this.#page, this.#sensitiveQueryParameters, [], [...this.#sensitiveValues]);
     this.#assertNoTerminalRequests();
     return sha256(dom);
@@ -412,7 +604,7 @@ class PolicyBrowserSession implements BrowserSession {
 
   async captureBlocker(identity: BrowserRawBundle["identity"], parserVersion: string): Promise<BrowserRawBundle> {
     this.#terminalAcknowledged = true;
-    return this.#capture(identity, parserVersion, ["Телефон", "Email"], false);
+    return this.#capture(identity, parserVersion, ["Телефон", "Email"], false, true);
   }
 
   async close(): Promise<void> {
@@ -424,19 +616,31 @@ class PolicyBrowserSession implements BrowserSession {
     if (!this.#terminalAcknowledged) this.#assertNoTerminalRequests();
   }
 
-  async #capture(identity: BrowserRawBundle["identity"], parserVersion: string, redactLabeledValues: readonly string[], requireEveryLabel: boolean): Promise<BrowserRawBundle> {
+  async #capture(
+    identity: BrowserRawBundle["identity"],
+    parserVersion: string,
+    redactLabeledValues: readonly string[],
+    requireEveryLabel: boolean,
+    allowTerminal = false,
+  ): Promise<BrowserRawBundle> {
     const target = identity.sourceRecordKey ?? `page/${identity.page}`;
-    const actionId = await this.#beginAction("capture", target);
+    const actionId = await this.#beginAction("capture", target, allowTerminal);
     let visualSafetyActionId: string | undefined;
     let visualSafetyTarget: string | undefined;
     let sanitizedDomUtf8: Uint8Array;
     let redactedScreenshotPng: Uint8Array;
     let redactionValues: readonly string[];
     try {
-      const labeledValues = (await Promise.all(redactLabeledValues.map((label) => this.#exactLabeledValues(label)))).flat();
-      const pageUrlValues = await collectPageSensitiveUrlValues(this.#page, this.#sensitiveQueryParameters);
+      if (allowTerminal && this.#freezePromise !== undefined) await this.#freezePromise;
+      const capturePage = allowTerminal && this.#terminal
+        ? await this.#prepareInertBlockerPage()
+        : this.#page;
+      const labeledValues = (await Promise.all(redactLabeledValues.map((label) => this.#exactLabeledValues(label, capturePage)))).flat();
+      const pageUrlValues = this.#terminal
+        ? sensitiveBrowserUrlValues(this.#page.url(), this.#sensitiveQueryParameters)
+        : await collectPageSensitiveUrlValues(capturePage, this.#sensitiveQueryParameters);
       redactionValues = [...new Set([...this.#sensitiveValues, ...labeledValues, ...pageUrlValues])];
-      const prepared = await preparePageCapture(this.#page, this.#sensitiveQueryParameters, redactLabeledValues, redactionValues);
+      const prepared = await preparePageCapture(capturePage, this.#sensitiveQueryParameters, redactLabeledValues, redactionValues);
       sanitizedDomUtf8 = prepared.sanitizedDomUtf8;
       if (requireEveryLabel && redactLabeledValues.some((label) => (prepared.overlayCounts[label] ?? 0) === 0)) {
         throw new Error("a sensitive contact label had no value to redact");
@@ -507,14 +711,17 @@ class PolicyBrowserSession implements BrowserSession {
     }
   }
 
-  async #beginAction(kind: string, target: string): Promise<string> {
-    for (const value of await collectPageSensitiveUrlValues(this.#page, this.#sensitiveQueryParameters)) this.#sensitiveValues.add(value);
+  async #beginAction(kind: string, target: string, allowTerminal = false): Promise<string> {
+    if (!allowTerminal) this.#assertNoTerminalRequests();
+    if (!this.#terminal) {
+      for (const value of await collectPageSensitiveUrlValues(this.#page, this.#sensitiveQueryParameters)) this.#sensitiveValues.add(value);
+    }
     return this.#actions.begin(kind, target);
   }
 
-  async #exactLabeledValues(label: string): Promise<string[]> {
+  async #exactLabeledValues(label: string, page: Page = this.#page): Promise<string[]> {
     const values: string[] = [];
-    for (const candidate of await this.#page.locator("dt").all()) {
+    for (const candidate of await page.locator("dt").all()) {
       if ((await candidate.innerText()).trim() !== label) continue;
       const value = await candidate.evaluate((element) => element.nextElementSibling?.textContent ?? "");
       if (value.trim() === "") throw new Error(`labeled value ${label} is empty`);
@@ -527,10 +734,25 @@ class PolicyBrowserSession implements BrowserSession {
     for (const value of sensitiveBrowserUrlValues(url, this.#sensitiveQueryParameters)) this.#sensitiveValues.add(value);
   }
 
-  #recordTerminalRequest(resourceType: string, evidence: string): void {
-    const violation = classifyRequest(resourceType, resourceType === "document", false, evidence);
-    this.#recordViolation({ ...violation, disposition: "terminal" });
-    this.#terminalOrigins.add(evidence);
+  async #prepareInertBlockerPage(): Promise<Page> {
+    const html = await this.#page.content().catch(() => "<!doctype html><html><body></body></html>");
+    this.#renderRequests.clear();
+    await this.#renderPage.setContent(html, { waitUntil: "load" });
+    return this.#renderPage;
+  }
+
+  async #terminate(violation: BrowserPolicyViolation): Promise<void> {
+    this.#recordViolation(violation);
+    this.#terminalOrigins.add(violation.origin);
+    if (!this.#terminal) {
+      this.#terminal = true;
+      this.#freezePromise = this.#cdpSession === undefined
+        ? Promise.resolve()
+        : this.#cdpSession.send("Emulation.setScriptExecutionDisabled", { value: true })
+            .then(() => undefined)
+            .catch(() => undefined);
+    }
+    await this.#freezePromise;
   }
 
   #recordViolation(violation: BrowserPolicyViolation): void {
@@ -544,39 +766,193 @@ class PolicyBrowserSession implements BrowserSession {
     if (this.#terminalOrigins.size > 0) throw new ExternalBrowserRequestError([...this.#terminalOrigins].sort());
   }
 
-  #assertAllowedNavigation(value: string): void {
-    let origin: string;
-    try { origin = browserRequestOrigin(value).policy; } catch {
-      this.#recordTerminalRequest("document", value);
-      throw new ExternalBrowserRequestError([...this.#terminalOrigins].sort());
+  async #assertAllowedNavigation(value: string): Promise<void> {
+    this.#assertNoTerminalRequests();
+    let origins: { policy: string; evidence: string };
+    try { origins = browserRequestOrigin(value); } catch {
+      await this.#terminate({ disposition: "terminal", resourceType: "document", origin: value });
+      this.#assertNoTerminalRequests();
+      return;
     }
-    if (!this.#allowedOrigins.has(origin)) {
-      this.#recordTerminalRequest("document", new URL(value).origin);
-      throw new ExternalBrowserRequestError([...this.#terminalOrigins].sort());
+    if (!this.#allowedOrigins.has(origins.policy)) {
+      await this.#terminate({ disposition: "terminal", resourceType: "document", origin: origins.evidence });
+      this.#assertNoTerminalRequests();
+      return;
+    }
+    if (!matchesUrlContract(value, this.#allowedNavigationUrls)) {
+      await this.#terminate({ disposition: "terminal", resourceType: "document", origin: value });
+      this.#assertNoTerminalRequests();
     }
   }
 }
 
+const MAX_TRANSPORT_RETRIES = 2;
+const ACTIVE_URL_CONTENT_SECURITY_POLICY = [
+  "script-src 'unsafe-inline' http: https:",
+  "frame-src http: https:",
+  "worker-src http: https:",
+  "connect-src http: https: ws: wss:",
+  "object-src 'none'",
+].join("; ");
+
+type NormalizedUrlContract = {
+  kind: "exact";
+  url: string;
+  origin: string;
+} | {
+  kind: "pattern";
+  origin: string;
+  pathname: string;
+};
+
 function normalizePolicy(policy: BrowserOriginPolicy): {
   policy: BrowserOriginPolicy;
   allowedOrigins: ReadonlySet<string>;
-  allowedDownloadOrigins: ReadonlySet<string>;
+  allowedNavigationUrls: readonly NormalizedUrlContract[];
+  allowedDownloadUrls: readonly NormalizedUrlContract[];
 } {
-  const allowedOrigins = normalizeOrigins(policy.allowedOrigins, policy.allowInsecureHttpForTesting === true);
+  const allowInsecureHttpForTesting = policy.allowInsecureHttpForTesting === true;
+  const allowedOrigins = normalizeOrigins(policy.allowedOrigins, allowInsecureHttpForTesting);
   const allowedDownloadOrigins = normalizeOrigins(
     policy.allowedDownloadOrigins ?? [],
-    policy.allowInsecureHttpForTesting === true,
+    allowInsecureHttpForTesting,
+    true,
+  );
+  const allowedNavigationUrls = normalizeUrlContracts(
+    policy.allowedNavigationUrls ?? [],
+    "navigation",
+    allowedOrigins,
+    allowInsecureHttpForTesting,
+    false,
+  );
+  const allowedDownloadUrls = normalizeUrlContracts(
+    policy.allowedDownloadUrls ?? [],
+    "download",
+    allowedOrigins,
+    allowInsecureHttpForTesting,
     true,
   );
   return {
     policy: {
       allowedOrigins: [...allowedOrigins],
+      allowedNavigationUrls: allowedNavigationUrls.map(publicUrlContract),
+      ...(allowedDownloadUrls.length === 0 ? {} : {
+        allowedDownloadUrls: allowedDownloadUrls.map(publicUrlContract),
+      }),
       ...(allowedDownloadOrigins.size === 0 ? {} : { allowedDownloadOrigins: [...allowedDownloadOrigins] }),
-      ...(policy.allowInsecureHttpForTesting === true ? { allowInsecureHttpForTesting: true } : {}),
+      ...(allowInsecureHttpForTesting ? { allowInsecureHttpForTesting: true } : {}),
     },
     allowedOrigins,
-    allowedDownloadOrigins,
+    allowedNavigationUrls,
+    allowedDownloadUrls,
   };
+}
+
+function normalizeUrlContracts(
+  values: readonly BrowserUrlContract[],
+  label: "navigation" | "download",
+  allowedOrigins: ReadonlySet<string>,
+  allowInsecureHttpForTesting: boolean,
+  allowEmpty: boolean,
+): readonly NormalizedUrlContract[] {
+  if (values.length === 0 && !allowEmpty) {
+    throw new Error("browser origin policy requires at least one navigation URL contract");
+  }
+  const normalized: NormalizedUrlContract[] = [];
+  for (const value of values) {
+    if (typeof value === "string") {
+      const url = new URL(value);
+      assertCanonicalContractUrl(url, value, label);
+      assertContractOriginAllowed(url.origin, label, allowedOrigins);
+      normalized.push({ kind: "exact", url: url.href, origin: url.origin });
+      continue;
+    }
+    const origin = [...normalizeOrigins([value.origin], allowInsecureHttpForTesting)][0]!;
+    assertContractOriginAllowed(origin, label, allowedOrigins);
+    if (!isCanonicalPathnamePattern(value.pathname)) {
+      throw new Error(`browser origin policy requires a canonical ${label} pathname pattern`);
+    }
+    normalized.push({ kind: "pattern", origin, pathname: value.pathname });
+  }
+  return normalized;
+}
+
+function assertCanonicalContractUrl(url: URL, value: string, label: "navigation" | "download"): void {
+  if ((url.protocol !== "http:" && url.protocol !== "https:")
+    || url.username !== "" || url.password !== "" || url.hash !== "" || url.href !== value) {
+    throw new Error(`browser origin policy requires a canonical ${label} URL`);
+  }
+}
+
+function assertContractOriginAllowed(
+  origin: string,
+  label: "navigation" | "download",
+  allowedOrigins: ReadonlySet<string>,
+): void {
+  if (!allowedOrigins.has(origin)) {
+    throw new Error(`browser ${label} URL origin must be in allowedOrigins`);
+  }
+}
+
+function isCanonicalPathnamePattern(value: string): boolean {
+  if (!value.startsWith("/") || value.includes("?") || value.includes("#")) return false;
+  const firstWildcard = value.indexOf("*");
+  if (firstWildcard >= 0 && (firstWildcard !== value.length - 1 || value.lastIndexOf("*") !== firstWildcard)) {
+    return false;
+  }
+  const literal = firstWildcard < 0 ? value : value.slice(0, -1);
+  try {
+    return new URL(literal, "https://contract.invalid").pathname === literal;
+  } catch {
+    return false;
+  }
+}
+
+function publicUrlContract(contract: NormalizedUrlContract): BrowserUrlContract {
+  return contract.kind === "exact"
+    ? contract.url
+    : { origin: contract.origin, pathname: contract.pathname };
+}
+
+function serializableUrlContract(contract: NormalizedUrlContract): NormalizedUrlContract {
+  return { ...contract };
+}
+
+function matchesUrlContract(value: string, contracts: readonly NormalizedUrlContract[]): boolean {
+  let url: URL;
+  try { url = new URL(value); } catch { return false; }
+  if ((url.protocol !== "http:" && url.protocol !== "https:")
+    || url.username !== "" || url.password !== "") return false;
+  return contracts.some((contract) => contract.kind === "exact"
+    ? url.href === contract.url
+    : url.origin === contract.origin && (contract.pathname.endsWith("*")
+        ? url.pathname.startsWith(contract.pathname.slice(0, -1))
+        : url.pathname === contract.pathname));
+}
+
+function isActiveUrlEvidence(value: unknown): value is {
+  resourceType: "document" | "script" | "xhr";
+  url: string;
+} {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as { resourceType?: unknown; url?: unknown };
+  return (candidate.resourceType === "document"
+      || candidate.resourceType === "script"
+      || candidate.resourceType === "xhr")
+    && typeof candidate.url === "string";
+}
+
+function isHtmlResponse(headers: Record<string, string>): boolean {
+  return /^text\/html(?:;|$)/iu.test(headers["content-type"] ?? "");
+}
+
+function isRedirectStatus(status: number): boolean {
+  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+}
+
+function resolveRedirectUrl(requestUrl: string, location: string | undefined): string {
+  if (location === undefined) return "invalid-redirect-location";
+  try { return new URL(location, requestUrl).href; } catch { return "invalid-redirect-location"; }
 }
 
 function normalizeOrigins(
@@ -607,8 +983,61 @@ function isLocalHost(hostname: string): boolean {
 
 function browserRequestOrigin(value: string): { policy: string; evidence: string } {
   const url = new URL(value);
+  if (url.protocol !== "http:" && url.protocol !== "https:"
+    && url.protocol !== "ws:" && url.protocol !== "wss:") {
+    throw new Error("browser request URL must use HTTP(S) or WebSocket transport");
+  }
   const policyProtocol = url.protocol === "ws:" ? "http:" : url.protocol === "wss:" ? "https:" : url.protocol;
   return { policy: `${policyProtocol}//${url.host}`, evidence: url.origin };
+}
+
+function isSubframeRequest(request: Request, page: Page): boolean {
+  if (!request.isNavigationRequest()) return false;
+  try {
+    return request.frame() !== page.mainFrame();
+  } catch {
+    // Requests issued before a popup frame exists are terminal documents.
+    return false;
+  }
+}
+
+async function maybeCreateCdpSession(context: BrowserContext, page: Page): Promise<CDPSession | undefined> {
+  const candidate = context as BrowserContext & {
+    newCDPSession?: (target: Page) => Promise<CDPSession>;
+  };
+  if (typeof candidate.newCDPSession !== "function") return undefined;
+  return candidate.newCDPSession(page).catch(() => undefined);
+}
+
+async function fetchDocumentWithBoundedRetry(
+  route: Route,
+  retryDelayMs: number,
+): Promise<Awaited<ReturnType<Route["fetch"]>>> {
+  for (let attempt = 0; attempt <= MAX_TRANSPORT_RETRIES; attempt += 1) {
+    try {
+      const response = await route.fetch({ maxRedirects: 0 });
+      if (!isTransientServerStatus(response.status()) || attempt === MAX_TRANSPORT_RETRIES) {
+        return response;
+      }
+      await response.dispose();
+    } catch (error) {
+      if (attempt === MAX_TRANSPORT_RETRIES || !isTransientTransportError(error)) throw error;
+    }
+    if (retryDelayMs > 0) {
+      await new Promise<void>((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+  }
+  throw new Error("browser transport retry loop exhausted unexpectedly");
+}
+
+function isTransientServerStatus(status: number): boolean {
+  return status >= 500 && status <= 599;
+}
+
+function isTransientTransportError(error: unknown): boolean {
+  const message = messageOf(error);
+  return /net::(?:ERR_(?:CONNECTION_(?:ABORTED|CLOSED|RESET|REFUSED|TIMED_OUT)|EMPTY_RESPONSE|FAILED|NETWORK_CHANGED|TIMED_OUT)|NAME_NOT_RESOLVED)|NS_ERROR_NET_|ECONNRESET|ETIMEDOUT|socket hang up|fetch failed/iu
+    .test(message);
 }
 
 function classifyRequest(resourceType: string, isNavigation: boolean, isSubframe: boolean, origin: string): BrowserPolicyViolation {
