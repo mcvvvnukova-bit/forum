@@ -49,7 +49,7 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
   try {
     switch (command.kind) {
       case "live-pilot":
-        return executeLivePilot({ env, repository, discoveryRawStorage: rawStorage });
+        return await executeLivePilot({ env, repository, discoveryRawStorage: rawStorage });
       case "fixture-discover": {
         const okved = await new PostgresOkvedRepository(database).find(command.okved);
         if (okved === null) {
@@ -106,7 +106,7 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
         return { runId: command.runId, publishedEvidence: staged.evidence.length };
       }
       case "reconcile":
-        return reconcileRun(command.runId, repository);
+        return await reconcileRun(command.runId, repository);
       case "resume": {
         const state = await repository.runStatus(command.runId);
         if (state?.status === "blocked") {
