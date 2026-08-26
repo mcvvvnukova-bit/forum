@@ -159,7 +159,7 @@ describe("fixture discovery and replay publication", () => {
     });
   });
 
-  it("completes an external-resource fixture run as a fenced policy block", async () => {
+  it("completes an external-resource fixture run after fencing passive external resources", async () => {
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";
     const rawStorage = new S3RawObjectStorage(env, "list-org-browser", client);
@@ -183,14 +183,14 @@ describe("fixture discovery and replay publication", () => {
       parserVersion,
     }, { repository, source, rawStorage })).resolves.toMatchObject({
       runId,
-      status: "blocked",
-      reason: "policy_block",
-      discoveredCompanies: 0,
+      status: "succeeded",
+      reason: "terminal_marker",
+      discoveredCompanies: 3,
       publishedCompanies: 0,
     });
     await expect(repository.runStatus(runId)).resolves.toEqual({
-      status: "blocked",
-      terminalReason: "policy_block",
+      status: "succeeded",
+      terminalReason: "terminal_marker",
     });
     const task = await database.query<{ status: string; reason: string | null }>(
       `SELECT status, result_json->>'reason' AS reason
@@ -198,7 +198,7 @@ describe("fixture discovery and replay publication", () => {
        WHERE run_id = $1 AND task_kind = 'fixture_discovery'`,
       [runId],
     );
-    expect(task.rows).toEqual([{ status: "blocked", reason: "policy_block" }]);
+    expect(task.rows).toEqual([{ status: "succeeded", reason: "terminal_marker" }]);
   });
 
   it("durably records a caught service-worker registration as a policy block", async () => {
