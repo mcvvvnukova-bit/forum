@@ -9,6 +9,20 @@ import { parseOkvedCode } from "../../../domain/okved";
 
 export class BrowserContractError extends Error {}
 
+/** Minimal field-level evidence for a future live company-card adapter. */
+export const LIST_ORG_COMPANY_PROJECTION_SELECTORS = [
+  'main[aria-label="Карточка организации"] > dl > dt:nth-of-type(1)',
+  'main[aria-label="Карточка организации"] > dl > dd:nth-of-type(1)',
+  'main[aria-label="Карточка организации"] > dl > dt:nth-of-type(2)',
+  'main[aria-label="Карточка организации"] > dl > dd:nth-of-type(2)',
+  'main[aria-label="Карточка организации"] > dl > dt:nth-of-type(3)',
+  'main[aria-label="Карточка организации"] > dl > dd:nth-of-type(3)',
+  'main[aria-label="Карточка организации"] > dl > dt:nth-of-type(9)',
+  'main[aria-label="Карточка организации"] > dl > dd:nth-of-type(9)',
+  'main[aria-label="Карточка организации"] > dl > dt:nth-of-type(10)',
+  'main[aria-label="Карточка организации"] > dl > dd:nth-of-type(10)',
+] as const;
+
 export type BrowserRecordResult =
   | {
     kind: "accepted";

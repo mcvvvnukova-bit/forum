@@ -17,6 +17,8 @@ export interface BrowserSession {
   readFirstLabeledText(label: string): Promise<string>;
   linkNamesInLandmark(name: string, accessibleNamePrefix: string): Promise<readonly string[]>;
   fingerprint(): Promise<string>;
+  captureProjection(selectors: readonly string[]): Promise<BrowserCaptureProjection>;
+  policyViolations(): Promise<readonly BrowserPolicyViolation[]>;
   capture(
     identity: BrowserRawBundle["identity"],
     parserVersion: string,
@@ -29,6 +31,39 @@ export interface BrowserSession {
   close(): Promise<void>;
 }
 
+export interface BrowserOriginPolicy {
+  readonly allowedOrigins: readonly string[];
+  readonly allowedDownloadOrigins?: readonly string[];
+  readonly allowInsecureHttpForTesting?: boolean;
+}
+
+export interface BrowserCaptureProjection {
+  readonly selectors: readonly string[];
+  readonly sanitizedDomUtf8: Uint8Array;
+  readonly sensitiveFormFieldNames: readonly string[];
+}
+
+export interface BrowserPolicyViolation {
+  readonly disposition: "terminal" | "passive";
+  readonly resourceType:
+    | "document"
+    | "script"
+    | "xhr"
+    | "websocket"
+    | "service-worker"
+    | "popup"
+    | "download"
+    | "image"
+    | "font"
+    | "stylesheet"
+    | "subframe";
+  readonly origin: string;
+}
+
 export interface BrowserSessionFactory {
   open(execution?: DiscoveryExecutionContext): Promise<BrowserSession>;
+}
+
+export interface PolicyBrowserSessionFactory extends BrowserSessionFactory {
+  readonly policy: BrowserOriginPolicy;
 }

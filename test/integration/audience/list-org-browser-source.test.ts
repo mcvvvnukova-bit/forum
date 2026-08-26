@@ -9,6 +9,7 @@ import {
   ListOrgBrowserSource,
   PlaywrightBrowserSessionFactory,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source";
+import { assertSanitizedPageDomSafe } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import {
   startListOrgFixtureServer,
   type ListOrgFixtureServer,
@@ -76,6 +77,33 @@ describe("ListOrgBrowserSource", () => {
       expect(new Set(proof.map((action) => action.target))).toEqual(new Set([
         `sanitized-inert-render-policy/1;page-fingerprint-sha256=${raw.pageFingerprintSha256}`,
       ]));
+    }
+  });
+
+  it("captures only an allowlisted company-card projection and rejects a sensitive retained value", async () => {
+    const session = await new PlaywrightBrowserSessionFactory(fixture.origin).open();
+    try {
+      await session.navigate(`${fixture.origin}/company/1001?from=1&scenario=projection-card`);
+      const projection = await session.captureProjection([
+        'main[aria-label="Карточка организации"] > dl > dt:nth-of-type(2)',
+        'main[aria-label="Карточка организации"] > dl > dd:nth-of-type(2)',
+        'main[aria-label="Карточка организации"] > dl > dt:nth-of-type(9)',
+        'main[aria-label="Карточка организации"] > dl > dd:nth-of-type(9)',
+      ]);
+      const dom = new TextDecoder().decode(projection.sanitizedDomUtf8);
+
+      expect(dom).toContain("ИНН");
+      expect(dom).toContain("7707083893");
+      expect(dom).toContain("ОКВЭД");
+      expect(dom).toContain("43.11");
+      expect(dom).not.toMatch(/Телефон|Email|Иван Петров|Страница компании|111-22-33/);
+      expect(() => assertSanitizedPageDomSafe(
+        new TextEncoder().encode(dom.replace("7707083893", "sensitive@example.test")),
+        projection.sensitiveFormFieldNames,
+        [],
+      )).toThrow("raw redaction scan failed");
+    } finally {
+      await session.close();
     }
   });
 
@@ -372,14 +400,13 @@ describe("ListOrgBrowserSource", () => {
     })).rejects.toThrow("discovery limits must be positive safe integers");
   });
 
-  it("blocks an external request and preserves its sanitized origin in blocker evidence", async () => {
+  it("continues after a blocked passive external image without persisting it", async () => {
     const result = await collect("/search?scenario=external");
 
-    expect(result.status).toBe("blocked");
-    expect(result.reason).toBe("policy_block");
-    expect(result.blockers).toHaveLength(1);
-    expect(result.blockers[0]).toMatchObject({ detail: "https://external.invalid" });
-    expect(result.blockers[0]?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(result.status, result.reason).toBe("succeeded");
+    expect(result.blockers).toEqual([]);
+    expect(new TextDecoder().decode(result.rawBundles[0]!.sanitizedDomUtf8))
+      .not.toContain("external.invalid");
   });
 
   it("blocks service workers before navigation and proves their external fetch made no connection", async () => {

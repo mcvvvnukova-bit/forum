@@ -1,6 +1,10 @@
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 
-import type { BrowserSession, BrowserSessionFactory } from "../../../application/ports/browser-session";
+import type {
+  BrowserCaptureProjection,
+  BrowserSession,
+  BrowserSessionFactory,
+} from "../../../application/ports/browser-session";
 import { createCandidateEvidence } from "../../../domain/candidate-evidence";
 import {
   ExternalBrowserRequestError,
@@ -30,6 +34,11 @@ import {
   sensitiveBrowserUrlValues,
 } from "./browser-raw-sanitizer";
 import { BrowserActionRecorder } from "./browser-action-recorder";
+import {
+  BrowserPolicyContractError,
+  PolicyBrowserSessionFactory,
+  type PolicyBrowserSessionFactoryOptions,
+} from "../browser/policy-browser";
 import {
   BrowserContractError,
   readCompany,
@@ -303,7 +312,7 @@ export class ListOrgBrowserSource implements OrganizationSource {
 
       return result("limited", "max_pages", companies, pages, rawBundles, rejects, blockers);
     } catch (error) {
-      if (error instanceof BrowserContractError) {
+      if (error instanceof BrowserContractError || error instanceof BrowserPolicyContractError) {
         return await block("contract_drift");
       }
       if (error instanceof ExternalBrowserRequestError) {
@@ -395,19 +404,19 @@ function result(
   return { status, reason, companies, pages, rawBundles, rejects, blockers };
 }
 
-export interface PlaywrightBrowserSessionFactoryOptions {
+interface LegacyPlaywrightBrowserSessionFactoryOptions {
   now?: () => Date;
   sensitiveQueryParameters?: readonly string[];
   launch?: () => Promise<Browser>;
 }
 
-export class PlaywrightBrowserSessionFactory implements BrowserSessionFactory {
+class LegacyPlaywrightBrowserSessionFactory implements BrowserSessionFactory {
   readonly #allowedOrigin: string;
   readonly #now: () => Date;
   readonly #sensitiveQueryParameters: readonly string[];
   readonly #launch: () => Promise<Browser>;
 
-  constructor(allowedOrigin: string, options: PlaywrightBrowserSessionFactoryOptions = {}) {
+  constructor(allowedOrigin: string, options: LegacyPlaywrightBrowserSessionFactoryOptions = {}) {
     this.#allowedOrigin = new URL(allowedOrigin).origin;
     this.#now = options.now ?? (() => new Date());
     this.#sensitiveQueryParameters = [...new Set([
@@ -765,6 +774,14 @@ class PlaywrightBrowserSession implements BrowserSession {
     return sha256(dom);
   }
 
+  async captureProjection(_selectors: readonly string[]): Promise<BrowserCaptureProjection> {
+    throw new Error("legacy browser session does not support projections");
+  }
+
+  async policyViolations() {
+    return [] as const;
+  }
+
   async capture(
     identity: BrowserRawBundle["identity"],
     parserVersion: string,
@@ -957,4 +974,13 @@ function browserRequestOrigins(value: string): { policy: string; evidence: strin
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+export type PlaywrightBrowserSessionFactoryOptions = PolicyBrowserSessionFactoryOptions;
+
+/** Compatibility fixture adapter. Live adapters use PolicyBrowserSessionFactory with HTTPS origins. */
+export class PlaywrightBrowserSessionFactory extends PolicyBrowserSessionFactory {
+  constructor(allowedOrigin: string, options: PlaywrightBrowserSessionFactoryOptions = {}) {
+    super({ allowedOrigins: [new URL(allowedOrigin).origin], allowInsecureHttpForTesting: true }, options);
+  }
 }

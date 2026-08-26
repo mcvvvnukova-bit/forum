@@ -343,6 +343,12 @@ export async function startListOrgFixtureServer(
         if (scenario === "unsafe-candidate-website" && companyKey === "1001") {
           body = body.replace("https://alpha.example", "javascript:alert(1)");
         }
+        if (scenario === "projection-card" && companyKey === "1001") {
+          body = body.replace(
+            "</main>",
+            "<aside>Страница компании <strong>Иван Петров</strong> +7 (495) 999-88-77</aside></main>",
+          );
+        }
       }
     }
 
