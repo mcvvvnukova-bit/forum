@@ -643,9 +643,17 @@ class PolicyBrowserSession implements BrowserSession {
         }
         fragments.push(await visible[0]!.evaluate((element) => element.outerHTML));
       }
+      const currentPageUrl = this.#page.url();
+      if (this.#safeEvidenceUrl() !== currentPageUrl) {
+        throw new Error("projection base URL is not the current policy-valid page");
+      }
+      const projectionBaseUrl = sanitizeBrowserUrl(
+        currentPageUrl,
+        this.#sensitiveQueryParameters,
+      );
       this.#renderRequests.clear();
       await this.#renderPage.setContent(
-        `<!doctype html><html><body><main>${fragments.join("\n")}</main></body></html>`,
+        `<!doctype html><html><head><base href="${escapeHtmlAttribute(projectionBaseUrl)}"></head><body><main>${fragments.join("\n")}</main></body></html>`,
         { waitUntil: "load" },
       );
       if (this.#renderRequests.size > 0) throw new Error("projection renderer attempted network access");
@@ -1246,6 +1254,10 @@ function classifyRequest(resourceType: string, isNavigation: boolean, isSubframe
   if (resourceType === "script") return { disposition: "terminal", resourceType: "script", origin };
   if (resourceType === "xhr" || resourceType === "fetch") return { disposition: "terminal", resourceType: "xhr", origin };
   return { disposition: "terminal", resourceType: isNavigation ? "document" : "document", origin };
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
 }
 
 function messageOf(error: unknown): string {

@@ -107,6 +107,9 @@ describe("PolicyBrowserSessionFactory", () => {
       if (scenario === "projection-visible-duplicate") {
         return '<main><p class="projected-value">first</p><p class="projected-value">second</p></main>';
       }
+      if (scenario === "projection-relative-anchor") {
+        return '<main><a class="projected-value" href="/company/1001">Company 1001</a></main>';
+      }
       if (scenario === "passive") {
         return [
           `<img src="${externalUrl}/image.png">`,
@@ -493,6 +496,20 @@ describe("PolicyBrowserSessionFactory", () => {
       await session.navigate(target);
       await expect(session.captureProjection([".projected-value"]))
         .rejects.toThrow("projection selector must match exactly one visible element");
+    } finally {
+      await session.close();
+    }
+  });
+
+  it("canonicalizes a projected relative anchor against the policy-valid visible page", async () => {
+    const target = `${allowed.url}/?scenario=projection-relative-anchor`;
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
+    try {
+      await session.navigate(target);
+      const projection = await session.captureProjection([".projected-value"]);
+      const dom = new TextDecoder().decode(projection.sanitizedDomUtf8);
+      expect(dom).toContain(`href="${allowed.url}/company/1001"`);
+      expect(dom).not.toContain("<base");
     } finally {
       await session.close();
     }

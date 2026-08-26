@@ -94,6 +94,15 @@ describe("ListOrgLiveSource", () => {
 
     expect(result.rawBundles.length).toBeGreaterThan(0);
     expectEveryRawBundleMinimized(result.rawBundles);
+    for (const page of result.pages) {
+      const dom = new TextDecoder().decode(page.raw.sanitizedDomUtf8);
+      expect([...dom.matchAll(/\shref="([^"]+)"/gu)].map((match) => match[1])).toEqual(
+        page.orderedSourceRecordKeys.map((sourceRecordKey) =>
+          `${fixture.origin}/company/${sourceRecordKey}`
+        ),
+      );
+      expect(dom).not.toMatch(/Следующая страница|Последняя страница|\/search\?/u);
+    }
   });
 
   it("uses the shared two-retry document boundary and never retries the terminal fifth response", async () => {
@@ -160,10 +169,26 @@ describe("ListOrgLiveSource", () => {
       .toBe(201);
   });
 
-  it("records captcha_waiting durably before the real gate and revalidates the existing visible session", async () => {
+  it("does not enter the human gate until the durable captcha_waiting write resolves", async () => {
     const input = new PassThrough();
-    const observedKindsAtGate: string[][] = [];
     const events: BrowserActionEvent[] = [];
+    const ordering: string[] = [];
+    let releaseCaptchaWrite!: () => void;
+    const captchaWriteRelease = new Promise<void>((resolve) => { releaseCaptchaWrite = resolve; });
+    let signalCaptchaWriteAttempt!: () => void;
+    const captchaWriteAttempted = new Promise<void>((resolve) => { signalCaptchaWriteAttempt = resolve; });
+    let gateEntered = false;
+    const ledger: BrowserActionLedger = {
+      record: async (event) => {
+        if (event.kind === "captcha_waiting") {
+          ordering.push("captcha-write-attempted");
+          signalCaptchaWriteAttempt();
+          await captchaWriteRelease;
+          ordering.push("captcha-write-durable");
+        }
+        events.push(event);
+      },
+    };
     const realGate = new HumanVerificationGate({ input, output: new PassThrough() });
     const gate: HumanVerificationGatePort = {
       wait: async <TSource>(request: {
@@ -171,20 +196,41 @@ describe("ListOrgLiveSource", () => {
         revalidate: (source: TSource) => Promise<void> | void;
         signal?: AbortSignal;
       }) => {
+        gateEntered = true;
+        ordering.push("gate-entered");
         expect(events.at(-1)?.kind).toBe("captcha_waiting");
-        observedKindsAtGate.push(events.map((event) => event.kind));
         const browser = request.source as BrowserSession;
         await browser.navigate(await browser.currentUrl());
-        return realGate.wait(request);
+        return realGate.wait({
+          ...request,
+          revalidate: async (sameSession) => {
+            expect(sameSession).toBe(request.source);
+            ordering.push("same-session-revalidated");
+            await request.revalidate(sameSession);
+          },
+        });
       },
     };
     input.end("continue\n");
-    const { result } = await collect("captcha", gate, events);
+    const collection = collect("captcha", gate, events, {}, ledger);
+
+    await captchaWriteAttempted;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(gateEntered).toBe(false);
+    expect(events.some((event) => event.kind === "captcha_waiting")).toBe(false);
+
+    releaseCaptchaWrite();
+    const { result } = await collection;
 
     expect(result.companies).toHaveLength(10);
-    expect(observedKindsAtGate[0]).toContain("captcha_waiting");
     expect(events.filter((event) => event.kind === "captcha_waiting")).toEqual([
       expect.objectContaining({ outcome: "completed", target: "/search:results-page-1" }),
+    ]);
+    expect(ordering).toEqual([
+      "captcha-write-attempted",
+      "captcha-write-durable",
+      "gate-entered",
+      "same-session-revalidated",
     ]);
   });
 
