@@ -64,6 +64,12 @@ describe("S3FileRawObjectStorage", () => {
     const storage = new S3FileRawObjectStorage(env, "fns-bfo", client);
     const evidence = checksumFileRawEvidence(sampleEvidence("file-idempotent"));
 
+    const plan = storage.plan(evidence);
+    expect(plan.objects).toEqual([
+      { key: plan.stored.kind === "file" ? plan.stored.dataKey : "", checksumSha256: evidence.dataChecksumSha256 },
+      { key: plan.stored.manifestKey, checksumSha256: evidence.checksumSha256 },
+    ]);
+
     const first = await storage.put(evidence);
     const second = await storage.put(evidence);
 
@@ -120,6 +126,23 @@ describe("S3FileRawObjectStorage", () => {
       parserVersion: "fns-bfo/1.0.0",
       candidateEvidence: null,
     });
+  });
+
+  it("exposes a precise failure phase after the manifest write", async () => {
+    const evidence = checksumFileRawEvidence(sampleEvidence("file-after-manifest"));
+    const storage = new S3FileRawObjectStorage(env, "fns-bfo", client, {
+      afterManifestWrite: () => { throw new Error("injected after manifest"); },
+    });
+
+    await expect(storage.put(evidence)).rejects.toMatchObject({
+      name: "RawUploadStorageError",
+      phase: "after_manifest_write",
+    });
+    const plan = storage.plan(evidence);
+    const listed = await client.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: `${plan.stored.prefix}/` }));
+    expect(listed.Contents?.map((item) => item.Key).sort()).toEqual(
+      plan.objects.map((object) => object.key).sort(),
+    );
   });
 
   it("rejects immutable-key collisions when existing bytes differ", async () => {

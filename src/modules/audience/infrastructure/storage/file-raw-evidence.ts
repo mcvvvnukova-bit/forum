@@ -1,7 +1,7 @@
 import { sha256 } from "./raw-bundle";
 
 export const FILE_RAW_MANIFEST_VERSION = 1;
-export const REVEXP_FILE_RAW_MANIFEST_VERSION = 2;
+export const REVEXP_FILE_RAW_MANIFEST_VERSION = 3;
 
 export interface FileRawEvidence {
   sourceKind: string;
@@ -24,12 +24,17 @@ export interface ChecksummedFileRawEvidence extends FileRawEvidence {
 }
 
 export interface FileRawCaptureProvenance {
+  method: "GET" | "HEAD";
   finalUrl: string;
   status: number;
   capturedAt: string;
-  contentType: string;
-  contentLength: number;
   redirectChain: readonly string[];
+  headers: {
+    contentType: string;
+    contentLength: number;
+    etag: string | null;
+    lastModified: string | null;
+  };
 }
 
 export interface RevexpRawProvenance {
@@ -40,10 +45,8 @@ export interface RevexpRawProvenance {
   structureVersion: string;
   xsdUrl: string;
   metadata: FileRawCaptureProvenance;
-  archive: FileRawCaptureProvenance & {
-    etag: string | null;
-    lastModified: string | null;
-  };
+  archiveResolution: FileRawCaptureProvenance & { method: "HEAD" };
+  archiveDownload: FileRawCaptureProvenance & { method: "GET" };
 }
 
 export interface FilePathRawEvidence extends Omit<FileRawEvidence, "data"> {
@@ -178,11 +181,11 @@ function validateFilePathRawEvidence(evidence: FilePathRawEvidence): void {
     || !/^[0-9a-f]{64}$/u.test(evidence.dataChecksumSha256)
     || !isRevexpRawProvenance(evidence.provenance)
     || evidence.parserVersion !== `fns-revexp/structure-${evidence.provenance.structureVersion}`
-    || evidence.finalUrl !== evidence.provenance.archive.finalUrl
-    || evidence.capturedAt !== evidence.provenance.archive.capturedAt
-    || evidence.navigationStatus !== evidence.provenance.archive.status
-    || evidence.mimeType !== evidence.provenance.archive.contentType
-    || evidence.byteLength !== evidence.provenance.archive.contentLength) {
+    || evidence.finalUrl !== evidence.provenance.archiveDownload.finalUrl
+    || evidence.capturedAt !== evidence.provenance.archiveDownload.capturedAt
+    || evidence.navigationStatus !== evidence.provenance.archiveDownload.status
+    || evidence.mimeType !== evidence.provenance.archiveDownload.headers.contentType
+    || evidence.byteLength !== evidence.provenance.archiveDownload.headers.contentLength) {
     throw new Error("file raw evidence is invalid");
   }
 }
@@ -211,7 +214,7 @@ export function isRevexpRawProvenance(value: unknown): value is RevexpRawProvena
   if (typeof value !== "object" || value === null || Array.isArray(value)
     || !hasExactlyKeys(value, [
       "datasetId", "reportYear", "publishedAt", "updatedAt", "structureVersion",
-      "xsdUrl", "metadata", "archive",
+      "xsdUrl", "metadata", "archiveResolution", "archiveDownload",
     ])) return false;
   const record = value as Record<string, unknown>;
   return record.datasetId === "7707329152-revexp"
@@ -221,34 +224,55 @@ export function isRevexpRawProvenance(value: unknown): value is RevexpRawProvena
     && typeof record.structureVersion === "string"
     && /^[1-9][0-9]*(?:\.[0-9]+)+$/u.test(record.structureVersion)
     && isSafeHttpOriginPath(record.xsdUrl)
-    && isCaptureProvenance(record.metadata, false)
-    && isCaptureProvenance(record.archive, true);
+    && isCaptureProvenance(record.metadata, "GET")
+    && isCaptureProvenance(record.archiveResolution, "HEAD")
+    && isCaptureProvenance(record.archiveDownload, "GET")
+    && sameArchiveIdentity(record.archiveResolution, record.archiveDownload);
 }
 
-function isCaptureProvenance(value: unknown, archive: boolean): boolean {
+function isCaptureProvenance(value: unknown, method: "GET" | "HEAD"): boolean {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
-  const keys = archive
-    ? ["archive", "capturedAt", "contentLength", "contentType", "etag", "finalUrl", "lastModified", "redirectChain", "status"]
-    : ["capturedAt", "contentLength", "contentType", "finalUrl", "redirectChain", "status"];
-  // The archive marker above is not a persisted field; keep the exact-key list
-  // explicit here to make accidental header retention fail closed.
-  const exactKeys = archive ? keys.filter((key) => key !== "archive") : keys;
-  return hasExactlyKeys(record, exactKeys)
+  return hasExactlyKeys(record, [
+    "method", "finalUrl", "status", "capturedAt", "redirectChain", "headers",
+  ])
+    && record.method === method
     && isSafeHttpOriginPath(record.finalUrl)
     && Number.isSafeInteger(record.status)
     && Number(record.status) >= 100 && Number(record.status) <= 599
     && isCanonicalFileCaptureTime(record.capturedAt)
-    && isCanonicalFileMimeType(record.contentType)
-    && Number.isSafeInteger(record.contentLength)
-    && Number(record.contentLength) > 0
     && Array.isArray(record.redirectChain)
     && record.redirectChain.length > 0
     && record.redirectChain.every(isSafeHttpOriginPath)
     && record.redirectChain.at(-1) === record.finalUrl
-    && (!archive || ((record.etag === null
-      || (typeof record.etag === "string" && /^[\x21-\x7e]{1,256}$/u.test(record.etag)))
-      && (record.lastModified === null || isCanonicalFileCaptureTime(record.lastModified))));
+    && isCaptureHeaders(record.headers);
+}
+
+function isCaptureHeaders(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)
+    || !hasExactlyKeys(value, ["contentType", "contentLength", "etag", "lastModified"])) {
+    return false;
+  }
+  const headers = value as Record<string, unknown>;
+  return isCanonicalFileMimeType(headers.contentType)
+    && Number.isSafeInteger(headers.contentLength)
+    && Number(headers.contentLength) > 0
+    && (headers.etag === null
+      || (typeof headers.etag === "string" && /^[\x21-\x7e]{1,256}$/u.test(headers.etag)))
+    && (headers.lastModified === null || isCanonicalFileCaptureTime(headers.lastModified));
+}
+
+function sameArchiveIdentity(resolution: unknown, download: unknown): boolean {
+  if (typeof resolution !== "object" || resolution === null
+    || typeof download !== "object" || download === null) return false;
+  const resolutionHeaders = (resolution as Record<string, unknown>).headers;
+  const downloadHeaders = (download as Record<string, unknown>).headers;
+  if (typeof resolutionHeaders !== "object" || resolutionHeaders === null
+    || typeof downloadHeaders !== "object" || downloadHeaders === null) return false;
+  const left = resolutionHeaders as Record<string, unknown>;
+  const right = downloadHeaders as Record<string, unknown>;
+  return left.contentLength === right.contentLength
+    && (left.etag === null || left.etag === right.etag);
 }
 
 function isSafeHttpOriginPath(value: unknown): value is string {

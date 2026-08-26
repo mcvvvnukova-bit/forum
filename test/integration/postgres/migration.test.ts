@@ -29,7 +29,7 @@ describe("audience core migration", () => {
     expect(await tableNames(client, "audience")).toEqual([
       "companies", "company_okveds", "crawl_runs", "crawl_tasks", "dataset_releases",
       "financial_evidence", "financial_observations", "live_pilot_attempts", "okveds",
-      "organization_evidence", "run_company_matches", "source_fetches",
+      "organization_evidence", "raw_upload_intents", "run_company_matches", "source_fetches",
     ]);
     expect(await keyedConstraints(client, "p")).toEqual([
       "companies(inn)",
@@ -42,6 +42,7 @@ describe("audience core migration", () => {
       "live_pilot_attempts(scope_key)",
       "okveds(code)",
       "organization_evidence(id)",
+      "raw_upload_intents(id)",
       "run_company_matches(run_id,company_inn,matched_okved_code)",
       "source_fetches(id)",
     ]);
@@ -50,6 +51,10 @@ describe("audience core migration", () => {
       "dataset_releases(source_kind,source_version)",
       "financial_evidence(company_inn,report_year,metric,source_fetch_id,source_record_key)",
       "financial_evidence(id,company_inn,report_year,metric,amount)",
+      "raw_upload_intents(manifest_key)",
+      "raw_upload_intents(run_id,source_kind,source_record_key,parser_version,plan_checksum_sha256)",
+      "raw_upload_intents(source_fetch_id)",
+      "source_fetches(raw_upload_intent_id)",
       "source_fetches(run_id,source_kind,source_record_key,checksum_sha256)",
     ]);
     expect(await foreignKeys(client)).toEqual([
@@ -70,20 +75,26 @@ describe("audience core migration", () => {
       "okveds(dataset_release_id,source_version)->dataset_releases(id,source_version):RESTRICT:false:false",
       "organization_evidence(company_inn)->companies(inn):RESTRICT:false:false",
       "organization_evidence(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "raw_upload_intents(run_id)->crawl_runs(id):RESTRICT:false:false",
+      "raw_upload_intents(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "raw_upload_intents(task_id)->crawl_tasks(id):RESTRICT:false:false",
       "run_company_matches(company_inn)->companies(inn):RESTRICT:false:false",
       "run_company_matches(matched_okved_code)->okveds(code):RESTRICT:false:false",
       "run_company_matches(run_id)->crawl_runs(id):RESTRICT:false:false",
       "run_company_matches(source_fetch_id)->source_fetches(id):RESTRICT:false:false",
+      "source_fetches(raw_upload_intent_id)->raw_upload_intents(id):RESTRICT:false:false",
       "source_fetches(run_id)->crawl_runs(id):RESTRICT:false:false",
     ]);
     expect(await namedIndexColumns(client, [
       "crawl_tasks_run_id_status_idx",
       "financial_evidence_company_inn_report_year_idx",
+      "raw_upload_intents_task_state_idx",
       "run_company_matches_run_id_idx",
       "source_fetches_run_id_idx",
     ])).toEqual([
       "crawl_tasks_run_id_status_idx(run_id,status)",
       "financial_evidence_company_inn_report_year_idx(company_inn,report_year)",
+      "raw_upload_intents_task_state_idx(task_id,fencing_token,state)",
       "run_company_matches_run_id_idx(run_id)",
       "source_fetches_run_id_idx(run_id)",
     ]);
@@ -101,6 +112,7 @@ describe("audience core migration", () => {
       ["revenue", 18, 2],
     ]);
 
+    await migrate("down");
     await migrate("down");
     await migrate("down");
     expect(await tableNames(client, "audience")).toEqual([]);

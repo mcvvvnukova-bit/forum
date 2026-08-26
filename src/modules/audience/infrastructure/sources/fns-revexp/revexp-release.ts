@@ -36,13 +36,20 @@ export interface RevexpTransport {
   request(input: RevexpTransportRequest): Promise<RevexpTransportResponse>;
 }
 
-export interface RevexpCaptureMetadata {
+export interface RevexpCaptureHeaders {
+  contentType: string;
+  contentLength: number;
+  etag: string | null;
+  lastModified: string | null;
+}
+
+export interface RevexpCaptureMetadata<Method extends "GET" | "HEAD" = "GET" | "HEAD"> {
+  method: Method;
   finalUrl: string;
   status: number;
   capturedAt: string;
-  contentType: string;
-  contentLength: number;
   redirectChain: readonly string[];
+  headers: RevexpCaptureHeaders;
 }
 
 export interface RevexpRelease {
@@ -59,8 +66,8 @@ export interface RevexpRelease {
   etag: string | null;
   lastModified: string | null;
   capture: {
-    metadata: RevexpCaptureMetadata;
-    archive: RevexpCaptureMetadata;
+    metadata: RevexpCaptureMetadata<"GET">;
+    archiveResolution: RevexpCaptureMetadata<"HEAD">;
   };
 }
 
@@ -70,13 +77,7 @@ export interface DownloadedRevexpArchive {
   dataChecksumSha256: string;
   openStream(): AsyncIterable<Uint8Array>;
   cleanup(): Promise<void>;
-  finalUrl: string;
-  status: number;
-  capturedAt: string;
-  contentType: string;
-  contentLength: number;
-  etag: string | null;
-  lastModified: string | null;
+  archiveDownload: RevexpCaptureMetadata<"GET">;
 }
 
 export async function resolveRevexpRelease(
@@ -114,6 +115,7 @@ export async function resolveRevexpRelease(
     throw new Error("revexp archive exceeds the 256 MiB compressed-byte ceiling");
   }
   const lastModified = optionalHttpDate(archiveHeaders["last-modified"], "archive last-modified");
+  const etag = optionalEntityTag(archiveHeaders.etag, "archive ETag");
 
   return {
     datasetId: DATASET_ID,
@@ -126,15 +128,23 @@ export async function resolveRevexpRelease(
     finalArchiveUrl: archiveResult.response.url,
     contentType,
     contentLength,
-    etag: archiveHeaders.etag ?? null,
+    etag,
     lastModified,
     capture: {
       metadata: captureMetadata(
+        "GET",
         metadataResult,
+        metadataHeaders,
         metadataContentType,
         metadataBytes.byteLength,
       ),
-      archive: captureMetadata(archiveResult, contentType, contentLength),
+      archiveResolution: captureMetadata(
+        "HEAD",
+        archiveResult,
+        archiveHeaders,
+        contentType,
+        contentLength,
+      ),
     },
   };
 }
@@ -155,8 +165,9 @@ export async function downloadRevexpArchive(
   }
   assertZipContentType(release.contentType);
   const result = await followRedirects(expectedUrl, "GET", transport, policy);
-  if (result.response.url !== expectedUrl || result.redirectChain.length !== 1) {
-    throw new Error("revexp archive URL changed after validated resolution");
+  assertDatasetUrl(result.response.url, policy, "archive");
+  if (policy.kind === "official" && new URL(result.response.url).hostname !== "file.nalog.ru") {
+    throw new Error("revexp final archive host must be file.nalog.ru");
   }
   const headers = normalizeHeaders(result.response.headers);
   const contentType = requiredHeader(headers, "content-type", "archive content type");
@@ -173,7 +184,6 @@ export async function downloadRevexpArchive(
   }
   const temporaryDirectory = await mkdtemp(join(tmpdir(), "okved-revexp-"));
   const filePath = join(temporaryDirectory, "archive.zip");
-  const handle = await open(filePath, "wx", 0o600);
   let cleaned = false;
   const cleanup = async (): Promise<void> => {
     if (cleaned) return;
@@ -185,7 +195,9 @@ export async function downloadRevexpArchive(
     });
     cleaned = true;
   };
+  let handle: Awaited<ReturnType<typeof open>> | undefined;
   try {
+    handle = await open(filePath, "wx", 0o600);
     const body = result.response.body;
     if (body === undefined) throw new Error("revexp archive response body is missing");
     const digest = createHash("sha256");
@@ -224,16 +236,10 @@ export async function downloadRevexpArchive(
       dataChecksumSha256: digest.digest("hex"),
       openStream: () => createReadStream(filePath, { highWaterMark: 64 }),
       cleanup,
-      finalUrl: result.response.url,
-      status: result.response.status,
-      capturedAt: canonicalTimestamp(result.response.capturedAt, "archive capture timestamp"),
-      contentType,
-      contentLength,
-      etag: headers.etag ?? null,
-      lastModified: optionalHttpDate(headers["last-modified"], "archive last-modified"),
+      archiveDownload: captureMetadata("GET", result, headers, contentType, contentLength),
     };
   } catch (error) {
-    await handle.close().catch(() => undefined);
+    await handle?.close().catch(() => undefined);
     await cleanup();
     throw error;
   }
@@ -454,14 +460,25 @@ function decodeHtml(value: string): string {
   });
 }
 
-function captureMetadata(result: FollowResult, contentType: string, contentLength: number): RevexpCaptureMetadata {
+function captureMetadata<Method extends "GET" | "HEAD">(
+  method: Method,
+  result: FollowResult,
+  responseHeaders: Record<string, string>,
+  contentType: string,
+  contentLength: number,
+): RevexpCaptureMetadata<Method> {
   return {
+    method,
     finalUrl: result.response.url,
     status: result.response.status,
     capturedAt: canonicalTimestamp(result.response.capturedAt, "capture timestamp"),
-    contentType,
-    contentLength,
     redirectChain: result.redirectChain,
+    headers: {
+      contentType,
+      contentLength,
+      etag: optionalEntityTag(responseHeaders.etag, "capture ETag"),
+      lastModified: optionalHttpDate(responseHeaders["last-modified"], "capture last-modified"),
+    },
   };
 }
 
@@ -515,6 +532,14 @@ function requiredLength(value: string | undefined, label: string): number {
 function optionalLength(value: string | undefined, label: string): number | null {
   if (value === undefined) return null;
   return requiredLength(value, label);
+}
+
+function optionalEntityTag(value: string | undefined, label: string): string | null {
+  if (value === undefined) return null;
+  if (!/^[\x21-\x7e]{1,256}$/u.test(value)) {
+    throw new Error(`revexp ${label} is invalid`);
+  }
+  return value;
 }
 
 function assertZipContentType(contentType: string): void {

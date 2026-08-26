@@ -21,6 +21,12 @@ import type {
   TaskState,
 } from "../../application/ports/audience-repository";
 import type { BrowserActionEvent, DiscoveredCompany } from "../../domain/discovery";
+import {
+  createRawUploadPlan,
+  type RawUploadFailurePhase,
+  type RawUploadPlan,
+  type VerifiedRawObject,
+} from "../../application/ports/raw-object-storage";
 import type { FinancialMetric } from "../../domain/financial";
 import {
   isTerminalBlockReason,
@@ -78,7 +84,12 @@ interface TaskStateRow extends QueryResultRow {
 }
 
 export class PostgresAudienceRepository implements AudienceRepository {
-  constructor(private readonly database: Database) {}
+  constructor(
+    private readonly database: Database,
+    private readonly faults: {
+      readonly beforeRawUploadCommit?: () => void | Promise<void>;
+    } = {},
+  ) {}
 
   async acquireLivePilotAttempt(input: {
     scopeKey: string;
@@ -110,6 +121,116 @@ export class PostgresAudienceRepository implements AudienceRepository {
         [input.scopeKey, JSON.stringify(input.commandContract), input.policyChecksumSha256],
       );
       return inserted.rowCount === 1;
+    });
+  }
+
+  async reserveRawUpload(task: FencedTask, plan: RawUploadPlan): Promise<string | null> {
+    assertRawUploadPlan(task, plan);
+    const intentId = randomUUID();
+    const objectChecksums = Object.fromEntries(
+      plan.objects.map((object) => [object.key, object.checksumSha256]),
+    );
+    return this.database.transaction(async (transaction) => {
+      if (!await lockFence(transaction, task)) return null;
+      const inserted = await transaction.query<{ id: string } & QueryResultRow>(
+        `INSERT INTO audience.raw_upload_intents (
+           id, run_id, task_id, fencing_token, source_kind, source_record_key,
+           parser_version, artifact_kind, manifest_key, manifest_checksum_sha256,
+           plan_checksum_sha256, object_keys_json, object_checksums_json,
+           stored_identity_json
+         ) VALUES (
+           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+           $12::jsonb, $13::jsonb, $14::jsonb
+         )
+         ON CONFLICT DO NOTHING
+         RETURNING id`,
+        [intentId, task.runId, task.id, task.fencingToken,
+          plan.stored.sourceKind, plan.stored.sourceRecordKey, plan.stored.parserVersion,
+          plan.stored.kind, plan.stored.manifestKey, plan.stored.checksumSha256,
+          plan.planChecksumSha256,
+          JSON.stringify(plan.objects.map((object) => object.key)),
+          JSON.stringify(objectChecksums), JSON.stringify(plan.stored)],
+      );
+      return inserted.rows[0]?.id ?? null;
+    });
+  }
+
+  async markRawUploadVerified(
+    task: FencedTask,
+    intentId: string,
+    plan: RawUploadPlan,
+    verified: VerifiedRawObject,
+  ): Promise<boolean> {
+    assertRawUploadPlan(task, plan);
+    if (verified.runId !== plan.stored.runId
+      || verified.sourceKind !== plan.stored.sourceKind
+      || verified.sourceRecordKey !== plan.stored.sourceRecordKey
+      || verified.parserVersion !== plan.stored.parserVersion
+      || verified.checksumSha256 !== plan.stored.checksumSha256) {
+      throw new Error("raw upload verification identity mismatch");
+    }
+    return this.database.transaction(async (transaction) => {
+      if (!await lockFence(transaction, task)) return false;
+      const updated = await transaction.query(
+        `UPDATE audience.raw_upload_intents
+         SET state = 'verified', verified_at = now()
+         WHERE id = $1 AND run_id = $2 AND task_id = $3 AND fencing_token = $4
+           AND state = 'reserved' AND plan_checksum_sha256 = $5
+           AND stored_identity_json = $6::jsonb`,
+        [intentId, task.runId, task.id, task.fencingToken,
+          plan.planChecksumSha256, JSON.stringify(plan.stored)],
+      );
+      return updated.rowCount === 1;
+    });
+  }
+
+  async failRawUploads(
+    task: FencedTask,
+    phase: RawUploadFailurePhase,
+    errorCode: string,
+    failRun: boolean,
+  ): Promise<boolean> {
+    if (!isRawUploadFailurePhase(phase) || !/^[a-z0-9_]{1,100}$/u.test(errorCode)) {
+      throw new Error("raw upload failure identity is invalid");
+    }
+    return this.database.transaction(async (transaction) => {
+      if (!await lockFence(transaction, task)) return false;
+      const failedIntents = await transaction.query(
+        `UPDATE audience.raw_upload_intents
+         SET state = 'failed', failure_phase = $4, failure_code = $5, failed_at = now()
+         WHERE run_id = $2 AND task_id = $1 AND fencing_token = $3
+           AND state IN ('reserved', 'verified')`,
+        [task.id, task.runId, task.fencingToken, phase, errorCode],
+      );
+      if ((failedIntents.rowCount ?? 0) === 0) return false;
+      const taskUpdate = await transaction.query(
+        `UPDATE audience.crawl_tasks
+         SET status = 'failed', error_json = $4::jsonb, lease_expires_at = NULL,
+             completed_at = now(), updated_at = now()
+         WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'`,
+        [task.id, task.runId, task.fencingToken, JSON.stringify({
+          code: errorCode,
+          rawUpload: { phase, intents: failedIntents.rowCount ?? 0 },
+        })],
+      );
+      if (taskUpdate.rowCount !== 1) {
+        throw new Error("stale task worker stopped during raw upload failure recording");
+      }
+      if (!failRun) return true;
+      const runUpdate = await transaction.query(
+        `UPDATE audience.crawl_runs
+         SET status = 'failed', terminal_reason = $4, completed_at = now()
+         WHERE id = $2
+           AND EXISTS (
+             SELECT 1 FROM audience.crawl_tasks
+             WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'failed'
+           )`,
+        [task.id, task.runId, task.fencingToken, errorCode],
+      );
+      if (runUpdate.rowCount !== 1) {
+        throw new Error("stale task worker stopped during raw upload run failure recording");
+      }
+      return true;
     });
   }
 
@@ -348,7 +469,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
   async recordFinancialRaw(task: FencedTask, raw: CapturedRawObject): Promise<boolean> {
     return this.database.transaction(async (transaction) => {
       if (!await lockFence(transaction, task)) return false;
-      return (await insertRawFetch(transaction, task, "running", raw)) === 1;
+      return (await this.#insertRawFetch(transaction, task, "running", raw)) === 1;
     });
   }
 
@@ -360,9 +481,10 @@ export class PostgresAudienceRepository implements AudienceRepository {
     }
     return this.database.transaction(async (transaction) => {
       if (!await lockFence(transaction, task)) return false;
-      if ((await insertRawFetch(transaction, task, "running", raw)) !== 1) {
+      if ((await this.#insertRawFetch(transaction, task, "running", raw)) !== 1) {
         throw new Error("stale task worker stopped during revexp raw registration");
       }
+      await assertNoUncommittedRawUploads(transaction, task);
       const updated = await transaction.query(
         `UPDATE audience.crawl_tasks
          SET status = 'succeeded', result_json = $4::jsonb,
@@ -416,10 +538,11 @@ export class PostgresAudienceRepository implements AudienceRepository {
     return this.database.transaction(async (transaction) => {
       if (!await lockFence(transaction, task)) return false;
       for (const raw of rawObjects) {
-        if (await insertRawFetch(transaction, task, "running", raw) !== 1) {
+        if (await this.#insertRawFetch(transaction, task, "running", raw) !== 1) {
           throw new Error("stale task worker stopped during blocker raw audit");
         }
       }
+      await assertNoUncommittedRawUploads(transaction, task);
       const taskUpdate = await transaction.query(
         `UPDATE audience.crawl_tasks
          SET status = 'blocked', error_json = $4::jsonb, lease_expires_at = NULL,
@@ -494,9 +617,10 @@ export class PostgresAudienceRepository implements AudienceRepository {
       if (taskUpdate.rowCount !== 1) return false;
 
       for (const rawObject of input.rawObjects) {
-        const insert = await insertRawFetch(transaction, input.task, input.status, rawObject);
+        const insert = await this.#insertRawFetch(transaction, input.task, input.status, rawObject);
         if (insert === 0) throw new Error("stale task worker stopped during raw audit publication");
       }
+      await assertNoUncommittedRawUploads(transaction, input.task);
 
       const runUpdate = await transaction.query(
         `UPDATE audience.crawl_runs
@@ -666,9 +790,10 @@ export class PostgresAudienceRepository implements AudienceRepository {
       await transaction.query("SET CONSTRAINTS ALL DEFERRED");
 
       for (const rawObject of input.rawObjects ?? []) {
-        const inserted = await insertRawFetch(transaction, input.task, "running", rawObject);
+        const inserted = await this.#insertRawFetch(transaction, input.task, "running", rawObject);
         if (inserted === 0) throw new Error("stale task worker stopped during financial raw audit");
       }
+      await assertNoUncommittedRawUploads(transaction, input.task);
 
       for (const metric of contract.requiredMetrics) {
         const outcome = input.metricOutcomes[metric]!;
@@ -1375,6 +1500,51 @@ export class PostgresAudienceRepository implements AudienceRepository {
     );
     const row = result.rows[0];
     return row === undefined ? null : { status: row.status, terminalReason: row.terminal_reason };
+  }
+
+  async #insertRawFetch(
+    database: Database,
+    task: FencedTask,
+    status: CrawlStatus,
+    raw: CapturedRawObject,
+  ): Promise<number> {
+    const inserted = await insertRawFetch(database, task, status, raw);
+    if (inserted === 1 && raw.uploadIntentId !== undefined) {
+      await this.faults.beforeRawUploadCommit?.();
+    }
+    return inserted;
+  }
+}
+
+function assertRawUploadPlan(task: FencedTask, plan: RawUploadPlan): void {
+  const recreated = createRawUploadPlan(plan.stored, plan.objects);
+  if (task.runId !== plan.stored.runId
+    || recreated.planChecksumSha256 !== plan.planChecksumSha256
+    || JSON.stringify(recreated.stored) !== JSON.stringify(plan.stored)
+    || JSON.stringify(recreated.objects) !== JSON.stringify(plan.objects)) {
+    throw new Error("raw upload plan identity is invalid");
+  }
+}
+
+function isRawUploadFailurePhase(value: string): value is RawUploadFailurePhase {
+  return value === "storage_write"
+    || value === "after_data_write"
+    || value === "after_manifest_write"
+    || value === "verify"
+    || value === "verification_record"
+    || value === "before_db_commit";
+}
+
+async function assertNoUncommittedRawUploads(database: Database, task: FencedTask): Promise<void> {
+  const pending = await database.query(
+    `SELECT 1 FROM audience.raw_upload_intents
+     WHERE run_id = $1 AND task_id = $2 AND fencing_token = $3
+       AND state IN ('reserved', 'verified')
+     LIMIT 1`,
+    [task.runId, task.id, task.fencingToken],
+  );
+  if (pending.rowCount !== 0) {
+    throw new Error("terminal task has an uncommitted raw upload intent");
   }
 }
 

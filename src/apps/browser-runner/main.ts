@@ -7,12 +7,15 @@ import {
 } from "../../modules/audience/application/publish-financial-evidence";
 import { reconcileRun } from "../../modules/audience/application/reconcile-run";
 import { runFixtureDiscovery } from "../../modules/audience/application/run-fixture-discovery";
+import { stageRawUpload } from "../../modules/audience/application/raw-upload-coordinator";
 import type {
   CapturedRawObject,
+  FencedTask,
   FinancialMetricOutcome,
   FinancialMetricOutcomes,
   FinancialSourceAttempt,
 } from "../../modules/audience/application/ports/audience-repository";
+import type { StoredBrowserRawObject } from "../../modules/audience/application/ports/raw-object-storage";
 import type { FinancialMetric, FinancialMetricEvidence } from "../../modules/audience/domain/financial";
 import { parseLegalEntityInn } from "../../modules/audience/domain/inn";
 import { PostgresAudienceRepository } from "../../modules/audience/infrastructure/postgres/audience-repository";
@@ -95,13 +98,21 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
       }
       case "fixture-finance": {
         await assertFinancialRunScopeYear(command.runId, command.year, repository);
-        const staged = await stageFinancialFixtures(command.runId, command.year, env);
+        const task = await repository.createTask(command.runId, "fixture_finance", 300);
+        const staged = await stageFinancialFixtures(
+          command.runId,
+          command.year,
+          env,
+          repository,
+          task,
+        );
         await publishFinancialEvidence({
           runId: command.runId,
           reportYear: command.year,
           evidence: staged.evidence,
           metricOutcomes: staged.metricOutcomes,
           rawObjects: staged.rawObjects,
+          task,
         }, { repository });
         return { runId: command.runId, publishedEvidence: staged.evidence.length };
       }
@@ -125,7 +136,13 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
   }
 }
 
-async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) {
+async function stageFinancialFixtures(
+  runId: string,
+  year: number,
+  env: AppEnv,
+  repository: PostgresAudienceRepository,
+  task: FencedTask,
+) {
   const inn = parseLegalEntityInn("7707083893");
   const bfoBytes = await readFile(new URL("../../../test/fixtures/fns-bfo/report-0710002.json", import.meta.url));
   const revexpBytes = await readFile(new URL("../../../test/fixtures/fns-revexp/revexp.xml", import.meta.url));
@@ -152,19 +169,29 @@ async function stageFinancialFixtures(runId: string, year: number, env: AppEnv) 
   });
   const bfoStorage = new S3RawObjectStorage(env, "fns-bfo");
   const revexpStorage = new S3RawObjectStorage(env, "fns-revexp");
-  let bfoStored: Awaited<ReturnType<S3RawObjectStorage["put"]>>;
-  let revexpStored: Awaited<ReturnType<S3RawObjectStorage["put"]>>;
+  let bfoStaged: { intentId: string; stored: StoredBrowserRawObject };
+  let revexpStaged: { intentId: string; stored: StoredBrowserRawObject };
   try {
-    [bfoStored, revexpStored] = await Promise.all([
-      bfoStorage.put(bfoBundle),
-      revexpStorage.put(revexpBundle),
-    ]);
+    bfoStaged = await stageRawUpload<ReturnType<typeof fixtureRawBundle>, StoredBrowserRawObject>({
+      task, input: bfoBundle, storage: bfoStorage, repository,
+    });
+    revexpStaged = await stageRawUpload<ReturnType<typeof fixtureRawBundle>, StoredBrowserRawObject>({
+      task, input: revexpBundle, storage: revexpStorage, repository,
+    });
   } finally {
     bfoStorage.close();
     revexpStorage.close();
   }
-  const bfoRaw = capturedFinancialRaw(randomUUID(), "fns-bfo", bfoBundle, bfoStored);
-  const revexpRaw = capturedFinancialRaw(randomUUID(), "fns-revexp", revexpBundle, revexpStored);
+  const bfoStored = bfoStaged.stored;
+  const revexpStored = revexpStaged.stored;
+  const bfoRaw = {
+    ...capturedFinancialRaw(randomUUID(), "fns-bfo", bfoBundle, bfoStored),
+    uploadIntentId: bfoStaged.intentId,
+  };
+  const revexpRaw = {
+    ...capturedFinancialRaw(randomUUID(), "fns-revexp", revexpBundle, revexpStored),
+    uploadIntentId: revexpStaged.intentId,
+  };
   const rawObjects: CapturedRawObject[] = [bfoRaw, revexpRaw];
   const bfoEvidence = parseBfo(bfoBytes, {
     inn,

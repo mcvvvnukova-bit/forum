@@ -115,6 +115,16 @@ describe("S3RawObjectStorage", () => {
       sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
     });
 
+    const plan = storage.plan(projection);
+    expect(plan.stored).toMatchObject({
+      kind: "projection",
+      manifestKey: `raw/projection-artifact/list-org-live/${projection.checksumSha256}/manifest.json`,
+      projectionKey: `raw/projection-artifact/list-org-live/${projection.checksumSha256}/projection.html`,
+    });
+    expect(plan.objects).toEqual([
+      { key: plan.stored.kind === "projection" ? plan.stored.projectionKey : "", checksumSha256: projection.artifacts.sanitizedProjectionSha256 },
+      { key: plan.stored.manifestKey, checksumSha256: projection.checksumSha256 },
+    ]);
     const stored = await storage.put(projection);
     expect(stored).toMatchObject({ kind: "projection" });
     expect(stored).not.toHaveProperty("screenshotKey");
@@ -138,6 +148,36 @@ describe("S3RawObjectStorage", () => {
       sourceRecordKey: "1001",
       candidateEvidence: null,
     });
+  });
+
+  it("exposes a precise failure phase after data is durable but before the manifest", async () => {
+    const bytes = new TextEncoder().encode("<!doctype html><main>safe</main>");
+    const projection = checksumProjectionRawBundle({
+      artifactKind: "projection",
+      sourceKind: "list-org-live",
+      parserVersion: "list-org-live/1.0.0",
+      finalUrl: "https://www.list-org.com/company/1002",
+      capturedAt: "2026-08-26T12:01:00.000Z",
+      navigationStatus: 200,
+      sanitizedDomUtf8: bytes,
+      pageFingerprintSha256: fixtureSha256(bytes),
+      identity: { runId: "projection-after-data", page: 1, sourceRecordKey: "1002" },
+      candidateEvidence: null,
+      sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
+    });
+    const storage = new S3RawObjectStorage(env, "list-org-live", client, {
+      afterDataWrite: () => { throw new Error("injected after data"); },
+    });
+
+    await expect(storage.put(projection)).rejects.toMatchObject({
+      name: "RawUploadStorageError",
+      phase: "after_data_write",
+    });
+    const plan = storage.plan(projection);
+    const listed = await client.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: `${plan.stored.prefix}/` }));
+    expect(listed.Contents?.map((item) => item.Key)).toEqual([
+      plan.stored.kind === "projection" ? plan.stored.projectionKey : "",
+    ]);
   });
 
   it("destroys an owned S3 client exactly once on close", () => {

@@ -28,7 +28,7 @@ import {
   browserVisualSafetyTarget,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
-import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
+import { checksumBrowserRawBundle, sha256 } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import {
   ExternalBrowserRequestError,
   type BrowserRawBundle,
@@ -879,19 +879,20 @@ describe("fixture discovery and replay publication", () => {
   it("does not conceal an unexplained occurrence as a blocker or conflict", async () => {
     const runId = randomUUID();
     const parserVersion = "list-org-browser/1.0.0";
+    const sanitizedDomUtf8 = new TextEncoder().encode("<!doctype html><main>safe</main>");
     const raw = checksumBrowserRawBundle({
       sourceKind: "list-org-browser",
       parserVersion,
       finalUrl: "http://127.0.0.1/fixtures/results/page-1",
       capturedAt: "2026-08-24T09:00:00.000Z",
       navigationStatus: 200,
-      sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>safe</main>"),
+      sanitizedDomUtf8,
       redactedScreenshotPng: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
-      pageFingerprintSha256: "a".repeat(64),
+      pageFingerprintSha256: sha256(sanitizedDomUtf8),
       identity: { runId, page: 1 },
       sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
       candidateEvidence: null,
-      actions: visualSafetyProof(),
+      actions: visualSafetyProof(sha256(sanitizedDomUtf8)),
     });
     const source: OrganizationSource = {
       collect: async () => ({
@@ -1205,13 +1206,15 @@ describe("fixture discovery and replay publication", () => {
   });
 });
 
-function visualSafetyProof(): BrowserRawBundle["actions"] {
+function visualSafetyProof(
+  pageFingerprintSha256 = "a".repeat(64),
+): BrowserRawBundle["actions"] {
   const id = "123e4567-e89b-42d3-a456-426614174009";
   const event = {
     id,
     at: "2026-08-24T09:00:00.000Z",
     kind: "verify-visual-safety",
-    target: browserVisualSafetyTarget("a".repeat(64)),
+    target: browserVisualSafetyTarget(pageFingerprintSha256),
     navigationStatus: 200,
   } as const;
   return [

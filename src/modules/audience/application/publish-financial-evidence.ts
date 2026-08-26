@@ -11,6 +11,7 @@ import {
   isExactLiveFinancialAttemptIdentity,
   isExactLiveFinancialEvidenceIdentity,
 } from "../domain/live-financial-provenance";
+import { finalizeRawUploads } from "./raw-upload-coordinator";
 
 const FINANCIAL_LEASE_SECONDS = 300;
 
@@ -81,14 +82,15 @@ export async function publishFinancialEvidence(
     throw new Error("financial task identity does not match command");
   }
   try {
-    const published = await dependencies.repository.publishFinancial({
-      task,
-      reportYear: command.reportYear,
-      evidence: command.evidence,
-      metricOutcomes: command.metricOutcomes,
-      rawObjects: command.rawObjects,
-      ...(command.companyInn === undefined ? {} : { companyInn: command.companyInn }),
-    });
+    const published = await finalizeRawUploads(task, dependencies.repository, () =>
+      dependencies.repository.publishFinancial({
+        task,
+        reportYear: command.reportYear,
+        evidence: command.evidence,
+        metricOutcomes: command.metricOutcomes,
+        rawObjects: command.rawObjects,
+        ...(command.companyInn === undefined ? {} : { companyInn: command.companyInn }),
+      }));
     if (!published) throw new StaleTaskError(task.id);
   } catch (error) {
     if (!(error instanceof StaleTaskError)) {

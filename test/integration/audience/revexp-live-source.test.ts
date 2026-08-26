@@ -32,21 +32,51 @@ describe("official revexp live source contract", () => {
     server = await startRevexpContractServer();
     const release = await resolveRevexpRelease(server.metadataUrl, server.transport);
     const downloaded = await downloadRevexpArchive(release, server.transport);
+    const { archiveDownload } = downloaded;
     const fakeS3 = new MemoryS3Client();
     const storage = new S3FileRawObjectStorage(fileEnv, "fns-revexp", fakeS3.client);
     const parserVersion = `fns-revexp/structure-${release.structureVersion}`;
     expect(downloaded).not.toHaveProperty("data");
+    expect(release.capture.archiveResolution).toEqual({
+      method: "HEAD",
+      finalUrl: server.archiveResolutionUrl,
+      status: 200,
+      capturedAt: "2026-08-26T08:00:02.000Z",
+      redirectChain: [
+        new URL("/download/revexp-2025.zip", server.metadataUrl).href,
+        server.archiveResolutionUrl,
+      ],
+      headers: {
+        contentType: "application/zip",
+        contentLength: downloaded.byteLength,
+        etag: '"fixture-revexp-2025"',
+        lastModified: "2026-03-15T00:00:00.000Z",
+      },
+    });
+    expect(archiveDownload).toEqual({
+      method: "GET",
+      finalUrl: server.archiveDownloadUrl,
+      status: 200,
+      capturedAt: "2026-08-26T09:00:02.000Z",
+      redirectChain: [server.archiveResolutionUrl, server.archiveDownloadUrl],
+      headers: {
+        contentType: "application/zip; profile=download",
+        contentLength: downloaded.byteLength,
+        etag: '"fixture-revexp-2025"',
+        lastModified: "2026-03-16T00:00:00.000Z",
+      },
+    });
     const raw = checksumFileRawEvidenceFromPath({
       sourceKind: "fns-revexp",
       parserVersion,
-      finalUrl: downloaded.finalUrl,
-      capturedAt: downloaded.capturedAt,
-      navigationStatus: downloaded.status,
+      finalUrl: archiveDownload.finalUrl,
+      capturedAt: archiveDownload.capturedAt,
+      navigationStatus: archiveDownload.status,
       identity: {
         runId: "revexp-live-contract",
         sourceRecordKey: `${release.datasetId}:${release.reportYear}`,
       },
-      mimeType: downloaded.contentType,
+      mimeType: archiveDownload.headers.contentType,
       filePath: downloaded.filePath,
       byteLength: downloaded.byteLength,
       dataChecksumSha256: downloaded.dataChecksumSha256,
@@ -58,16 +88,8 @@ describe("official revexp live source contract", () => {
         structureVersion: release.structureVersion,
         xsdUrl: release.xsdUrl,
         metadata: release.capture.metadata,
-        archive: {
-          ...release.capture.archive,
-          finalUrl: downloaded.finalUrl,
-          status: downloaded.status,
-          capturedAt: downloaded.capturedAt,
-          contentType: downloaded.contentType,
-          contentLength: downloaded.contentLength,
-          etag: downloaded.etag,
-          lastModified: downloaded.lastModified,
-        },
+        archiveResolution: release.capture.archiveResolution,
+        archiveDownload,
       },
     });
     try {
@@ -106,22 +128,19 @@ describe("official revexp live source contract", () => {
         fakeS3.objects.get(stored.manifestKey),
       )) as Record<string, unknown>;
       expect(manifest).toMatchObject({
-        version: 2,
+        version: 3,
         parserVersion: `fns-revexp/structure-${release.structureVersion}`,
-        provenance: {
-          datasetId: "7707329152-revexp",
-          reportYear: 2025,
-          publishedAt: release.publishedAt,
-          updatedAt: release.updatedAt,
-          structureVersion: release.structureVersion,
-          xsdUrl: release.xsdUrl,
-          metadata: release.capture.metadata,
-          archive: expect.objectContaining({
-            finalUrl: downloaded.finalUrl,
-            etag: downloaded.etag,
-            lastModified: downloaded.lastModified,
-          }),
-        },
+      });
+      expect(manifest.provenance).toEqual({
+        datasetId: "7707329152-revexp",
+        reportYear: 2025,
+        publishedAt: release.publishedAt,
+        updatedAt: release.updatedAt,
+        structureVersion: release.structureVersion,
+        xsdUrl: release.xsdUrl,
+        metadata: release.capture.metadata,
+        archiveResolution: release.capture.archiveResolution,
+        archiveDownload,
       });
     } finally {
       await downloaded.cleanup();

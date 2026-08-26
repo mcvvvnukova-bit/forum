@@ -5,8 +5,14 @@ import {
   type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 
+import {
+  createRawUploadPlan,
+  RawUploadStorageError,
+} from "../../application/ports/raw-object-storage";
 import type {
   RawObjectStorage,
+  RawUploadPlan,
+  RawUploadStorageFaults,
   StoredBrowserRawObject,
   StoredProjectionRawObject,
   StoredRawObject,
@@ -38,9 +44,15 @@ export class S3RawObjectStorage implements RawObjectStorage {
   readonly #bucket: string;
   readonly #sourceKind: string;
   readonly #ownsClient: boolean;
+  readonly #faults: RawUploadStorageFaults;
   #closed = false;
 
-  constructor(env: AppEnv, sourceKind: string, client?: S3Client) {
+  constructor(
+    env: AppEnv,
+    sourceKind: string,
+    client?: S3Client,
+    faults: RawUploadStorageFaults = {},
+  ) {
     if (!/^[a-z0-9-]+$/.test(sourceKind)) {
       throw new Error("source kind must be safe for an object key");
     }
@@ -48,6 +60,58 @@ export class S3RawObjectStorage implements RawObjectStorage {
     this.#sourceKind = sourceKind;
     this.#client = client ?? new S3Client(clientConfig(env));
     this.#ownsClient = client === undefined;
+    this.#faults = faults;
+  }
+
+  plan(bundle: ChecksummedBrowserRawBundle): RawUploadPlan<StoredBrowserRawObject>;
+  plan(bundle: ChecksummedProjectionRawBundle): RawUploadPlan<StoredProjectionRawObject>;
+  plan(
+    bundle: ChecksummedBrowserRawBundle | ChecksummedProjectionRawBundle,
+  ): RawUploadPlan<StoredBrowserRawObject | StoredProjectionRawObject>;
+  plan(
+    bundle: ChecksummedBrowserRawBundle | ChecksummedProjectionRawBundle,
+  ): RawUploadPlan<StoredBrowserRawObject | StoredProjectionRawObject> {
+    this.#assertOpen();
+    validateBundle(bundle);
+    if (bundle.sourceKind !== this.#sourceKind) {
+      throw new Error("raw bundle source identity does not match storage");
+    }
+    if (!/^[A-Za-z0-9._-]+$/u.test(bundle.identity.runId)) {
+      throw new Error("run id must be safe for an object key");
+    }
+    const prefix = ["raw", bundle.identity.runId, this.#sourceKind, bundle.checksumSha256].join("/");
+    const manifestKey = `${prefix}/manifest.json`;
+    const identity = {
+      runId: bundle.identity.runId,
+      sourceKind: bundle.sourceKind,
+      sourceRecordKey: bundle.identity.sourceRecordKey ?? `page:${bundle.identity.page}`,
+      parserVersion: bundle.parserVersion,
+      checksumSha256: bundle.checksumSha256,
+      prefix,
+      manifestKey,
+    };
+    if (isProjectionBundle(bundle)) {
+      const stored: StoredProjectionRawObject = {
+        kind: "projection",
+        ...identity,
+        projectionKey: `${prefix}/projection.html`,
+      };
+      return createRawUploadPlan(stored, [
+        { key: stored.projectionKey, checksumSha256: bundle.artifacts.sanitizedProjectionSha256 },
+        { key: stored.manifestKey, checksumSha256: bundle.artifacts.manifestSha256 },
+      ]);
+    }
+    const stored: StoredBrowserRawObject = {
+      kind: "browser",
+      ...identity,
+      domKey: `${prefix}/dom.html`,
+      screenshotKey: `${prefix}/screenshot.png`,
+    };
+    return createRawUploadPlan(stored, [
+      { key: stored.domKey, checksumSha256: bundle.artifacts.sanitizedDomSha256 },
+      { key: stored.screenshotKey, checksumSha256: bundle.artifacts.redactedScreenshotSha256 },
+      { key: stored.manifestKey, checksumSha256: bundle.artifacts.manifestSha256 },
+    ]);
   }
 
   put(bundle: ChecksummedBrowserRawBundle): Promise<StoredBrowserRawObject>;
@@ -58,60 +122,34 @@ export class S3RawObjectStorage implements RawObjectStorage {
   async put(
     bundle: ChecksummedBrowserRawBundle | ChecksummedProjectionRawBundle,
   ): Promise<StoredBrowserRawObject | StoredProjectionRawObject> {
-    this.#assertOpen();
-    validateBundle(bundle);
-    if (bundle.sourceKind !== this.#sourceKind) {
-      throw new Error("raw bundle source identity does not match storage");
-    }
-    if (!/^[A-Za-z0-9._-]+$/.test(bundle.identity.runId)) {
-      throw new Error("run id must be safe for an object key");
-    }
-
-    const prefix = [
-      "raw",
-      bundle.identity.runId,
-      this.#sourceKind,
-      bundle.checksumSha256,
-    ].join("/");
-    const manifestKey = `${prefix}/manifest.json`;
+    const plan = this.plan(bundle);
     if (isProjectionBundle(bundle)) {
-      const projectionKey = `${prefix}/projection.html`;
+      if (plan.stored.kind !== "projection") throw new Error("raw upload plan kind mismatch");
       await this.#putImmutable(
-        projectionKey,
+        plan.stored.projectionKey,
         bundle.sanitizedDomUtf8,
         "text/html; charset=utf-8",
       );
-      await this.#putImmutable(manifestKey, bundle.manifestUtf8, "application/json; charset=utf-8");
-      return {
-        kind: "projection",
-        runId: bundle.identity.runId,
-        sourceKind: bundle.sourceKind,
-        sourceRecordKey: bundle.identity.sourceRecordKey ?? `page:${bundle.identity.page}`,
-        parserVersion: bundle.parserVersion,
-        checksumSha256: bundle.checksumSha256,
-        prefix,
-        manifestKey,
-        projectionKey,
-      };
+      await this.#inject("after_data_write");
+      await this.#putImmutable(
+        plan.stored.manifestKey,
+        bundle.manifestUtf8,
+        "application/json; charset=utf-8",
+      );
+      await this.#inject("after_manifest_write");
+      return plan.stored;
     }
-    const domKey = `${prefix}/dom.html`;
-    const screenshotKey = `${prefix}/screenshot.png`;
-    await this.#putImmutable(domKey, bundle.sanitizedDomUtf8, "text/html; charset=utf-8");
-    await this.#putImmutable(screenshotKey, bundle.redactedScreenshotPng, "image/png");
-    await this.#putImmutable(manifestKey, bundle.manifestUtf8, "application/json; charset=utf-8");
-
-    return {
-      kind: "browser",
-      runId: bundle.identity.runId,
-      sourceKind: bundle.sourceKind,
-      sourceRecordKey: bundle.identity.sourceRecordKey ?? `page:${bundle.identity.page}`,
-      parserVersion: bundle.parserVersion,
-      checksumSha256: bundle.checksumSha256,
-      prefix,
-      manifestKey,
-      domKey,
-      screenshotKey,
-    };
+    if (plan.stored.kind !== "browser") throw new Error("raw upload plan kind mismatch");
+    await this.#putImmutable(plan.stored.domKey, bundle.sanitizedDomUtf8, "text/html; charset=utf-8");
+    await this.#putImmutable(plan.stored.screenshotKey, bundle.redactedScreenshotPng, "image/png");
+    await this.#inject("after_data_write");
+    await this.#putImmutable(
+      plan.stored.manifestKey,
+      bundle.manifestUtf8,
+      "application/json; charset=utf-8",
+    );
+    await this.#inject("after_manifest_write");
+    return plan.stored;
   }
 
   async verify(object: StoredRawObject): Promise<VerifiedRawObject> {
@@ -251,6 +289,17 @@ export class S3RawObjectStorage implements RawObjectStorage {
       if (existingBytes === undefined || !bytesEqual(existingBytes, bytes)) {
         throw new Error(`immutable object collision at ${key}`);
       }
+    }
+  }
+
+  async #inject(phase: "after_data_write" | "after_manifest_write"): Promise<void> {
+    const callback = phase === "after_data_write"
+      ? this.#faults.afterDataWrite
+      : this.#faults.afterManifestWrite;
+    try {
+      await callback?.();
+    } catch (cause) {
+      throw new RawUploadStorageError(phase, { cause });
     }
   }
 

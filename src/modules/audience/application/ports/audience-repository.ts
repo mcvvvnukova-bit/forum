@@ -1,4 +1,9 @@
-import type { StoredRawObject } from "./raw-object-storage";
+import type {
+  RawUploadFailurePhase,
+  RawUploadPlan,
+  StoredRawObject,
+  VerifiedRawObject,
+} from "./raw-object-storage";
 import type { DiscoveredCompany } from "../../domain/discovery";
 import type { BrowserActionEvent } from "../../domain/discovery";
 import type { FinancialMetric, FinancialMetricEvidence } from "../../domain/financial";
@@ -59,6 +64,7 @@ export interface CapturedRawObject {
   capturedAt: string;
   parserVersion: string;
   stored: StoredRawObject;
+  uploadIntentId?: string;
 }
 
 export interface CompleteDiscoveryInput {
@@ -180,6 +186,19 @@ export interface AudienceRepository {
     commandContract: Readonly<Record<string, unknown>>;
     policyChecksumSha256: string;
   }): Promise<boolean>;
+  reserveRawUpload(task: FencedTask, plan: RawUploadPlan): Promise<string | null>;
+  markRawUploadVerified(
+    task: FencedTask,
+    intentId: string,
+    plan: RawUploadPlan,
+    verified: VerifiedRawObject,
+  ): Promise<boolean>;
+  failRawUploads(
+    task: FencedTask,
+    phase: RawUploadFailurePhase,
+    errorCode: string,
+    failRun: boolean,
+  ): Promise<boolean>;
   loadRunScopeYear(runId: string): Promise<number>;
   startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart>;
   createDiscoveryRun(input: DiscoveryRunInput): Promise<FencedTask>;

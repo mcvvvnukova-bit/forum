@@ -13,6 +13,8 @@ const fixtureDirectory = join(dirname(fileURLToPath(import.meta.url)), "../fixtu
 
 export interface RevexpContractServer {
   readonly metadataUrl: string;
+  readonly archiveResolutionUrl: string;
+  readonly archiveDownloadUrl: string;
   readonly transport: RevexpTransport;
   metadataDispatchCount(): number;
   archiveHeadCount(): number;
@@ -91,12 +93,17 @@ export async function startRevexpContractServer(): Promise<RevexpContractServer>
         response.end();
         return;
       }
+      response.writeHead(302, { location: `${origin}/downloads/revexp-2025.zip` });
+      response.end();
+      return;
+    }
+    if (request.method === "GET" && url.pathname === "/downloads/revexp-2025.zip") {
       successfulArchiveDownloads += 1;
       response.writeHead(200, {
-        "content-type": "application/zip",
+        "content-type": "application/zip; profile=download",
         "content-length": String(archive.byteLength),
         etag: '"fixture-revexp-2025"',
-        "last-modified": "Sun, 15 Mar 2026 00:00:00 GMT",
+        "last-modified": "Mon, 16 Mar 2026 00:00:00 GMT",
       });
       for (let offset = 0; offset < archive.byteLength; offset += 37) {
         response.write(archive.subarray(offset, Math.min(offset + 37, archive.byteLength)));
@@ -114,6 +121,8 @@ export async function startRevexpContractServer(): Promise<RevexpContractServer>
 
   return {
     metadataUrl: `${origin}/opendata/7707329152-revexp/`,
+    archiveResolutionUrl: `${origin}/files/revexp-2025.zip`,
+    archiveDownloadUrl: `${origin}/downloads/revexp-2025.zip`,
     transport,
     metadataDispatchCount: () => metadataDispatches,
     archiveHeadCount: () => archiveHeads,
@@ -134,11 +143,17 @@ class LocalRevexpTransport implements RevexpTransport {
   async request(input: RevexpTransportRequest): Promise<RevexpTransportResponse> {
     const response = await fetch(input.url, { method: input.method, redirect: "manual" });
     const headers = Object.fromEntries(response.headers.entries());
+    const pathname = new URL(input.url).pathname;
+    const capturedAt = input.method === "HEAD" && pathname === "/files/revexp-2025.zip"
+      ? "2026-08-26T08:00:02.000Z"
+      : input.method === "GET" && pathname === "/downloads/revexp-2025.zip"
+        ? "2026-08-26T09:00:02.000Z"
+        : "2026-08-26T07:00:00.000Z";
     return {
       url: response.url,
       status: response.status,
       headers,
-      capturedAt: "2026-08-26T09:00:00.000Z",
+      capturedAt,
       ...(response.body === null ? {} : { body: webBody(response.body) }),
     };
   }

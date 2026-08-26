@@ -5,6 +5,7 @@ import { publishFinancialEvidence } from "../../modules/audience/application/pub
 import { reconcileLivePilotRun } from "../../modules/audience/application/reconcile-run";
 import { replayRun } from "../../modules/audience/application/replay-run";
 import { runFixtureDiscovery } from "../../modules/audience/application/run-fixture-discovery";
+import { finalizeRawUploads, stageRawUpload } from "../../modules/audience/application/raw-upload-coordinator";
 import { withRenewingTaskLease } from "../../modules/audience/application/task-lease";
 import type {
   AudienceRepository,
@@ -38,8 +39,8 @@ const LIST_ORG_URL = "https://www.list-org.com/search";
 const BFO_URL = "https://bo.nalog.gov.ru/";
 const REVEXP_METADATA_URL = "https://www.nalog.gov.ru/opendata/7707329152-revexp/";
 
-type LivePilotBfoRawStorage = Pick<S3RawObjectStorage, "put" | "close">;
-type LivePilotRevexpRawStorage = Pick<S3FileRawObjectStorage, "put" | "close">;
+type LivePilotBfoRawStorage = Pick<S3RawObjectStorage, "plan" | "put" | "verify" | "close">;
+type LivePilotRevexpRawStorage = Pick<S3FileRawObjectStorage, "plan" | "put" | "verify" | "close">;
 
 /** Typed construction seam shared by the public runner and loopback contract tests. */
 export interface LivePilotFactories {
@@ -144,8 +145,15 @@ export async function executeLivePilot(input: {
           failRun: boolean,
         ): Promise<boolean> => {
           const existingFence = acquiredFinanceTasks.get(financeTask.task.id);
-          if (existingFence !== undefined
-            && await input.repository.failTask(existingFence, errorCode, failRun)) return true;
+          if (existingFence !== undefined) {
+            if (await input.repository.failRawUploads(
+              existingFence,
+              "before_db_commit",
+              "raw_upload_before_db_commit",
+              failRun,
+            )) return true;
+            if (await input.repository.failTask(existingFence, errorCode, failRun)) return true;
+          }
           const acquired = await input.repository.acquireTask(
             financeTask.task.id,
             financeTaskLease.leaseSeconds,
@@ -166,6 +174,7 @@ export async function executeLivePilot(input: {
           const release = await resolveRevexpRelease(factories.endpoints.revexpMetadataUrl, transport);
           const parserVersion = `fns-revexp/structure-${release.structureVersion}`;
           const archive = await downloadRevexpArchive(release, transport);
+          const archiveDownload = archive.archiveDownload;
           let revexpRaw: CapturedRawObject;
           let parsedRevexp: Awaited<ReturnType<typeof selectRevexpMetrics>>;
           try {
@@ -176,10 +185,10 @@ export async function executeLivePilot(input: {
             );
             try {
               const revexpEvidence = checksumFileRawEvidenceFromPath({
-                sourceKind: "fns-revexp", parserVersion, finalUrl: archive.finalUrl,
-                capturedAt: archive.capturedAt, navigationStatus: archive.status,
+                sourceKind: "fns-revexp", parserVersion, finalUrl: archiveDownload.finalUrl,
+                capturedAt: archiveDownload.capturedAt, navigationStatus: archiveDownload.status,
                 identity: { runId, sourceRecordKey: "7707329152-revexp:2025" },
-                mimeType: archive.contentType,
+                mimeType: archiveDownload.headers.contentType,
                 filePath: archive.filePath,
                 byteLength: archive.byteLength,
                 dataChecksumSha256: archive.dataChecksumSha256,
@@ -191,25 +200,26 @@ export async function executeLivePilot(input: {
                   structureVersion: release.structureVersion,
                   xsdUrl: release.xsdUrl,
                   metadata: release.capture.metadata,
-                  archive: {
-                    ...release.capture.archive,
-                    finalUrl: archive.finalUrl,
-                    status: archive.status,
-                    capturedAt: archive.capturedAt,
-                    contentType: archive.contentType,
-                    contentLength: archive.contentLength,
-                    etag: archive.etag,
-                    lastModified: archive.lastModified,
-                  },
+                  archiveResolution: release.capture.archiveResolution,
+                  archiveDownload,
                 },
               });
-              const revexpStored = await activeRevexpRawStorage.put(revexpEvidence);
+              const revexpStaged = await stageRawUpload({
+                task: captureTask,
+                input: revexpEvidence,
+                storage: activeRevexpRawStorage,
+                repository: input.repository,
+              });
+              const revexpStored = revexpStaged.stored;
               revexpRaw = {
                 id: randomUUID(), sourceKind: "fns-revexp", sourceRecordKey: "7707329152-revexp:2025",
-                mimeType: archive.contentType, finalUrl: archive.finalUrl, navigationStatus: archive.status,
-                capturedAt: archive.capturedAt, parserVersion, stored: revexpStored,
+                mimeType: archiveDownload.headers.contentType, finalUrl: archiveDownload.finalUrl,
+                navigationStatus: archiveDownload.status, capturedAt: archiveDownload.capturedAt,
+                parserVersion, stored: revexpStored,
+                uploadIntentId: revexpStaged.intentId,
               };
-              if (!await input.repository.completeRawCapture(captureTask, revexpRaw)) {
+              if (!await finalizeRawUploads(captureTask, input.repository, () =>
+                input.repository.completeRawCapture(captureTask, revexpRaw))) {
                 throw new Error("stale revexp capture task before registration");
               }
               parsedRevexp = await selectRevexpMetrics(archive.openStream(), selected.map((item) => item.inn), {
@@ -259,11 +269,18 @@ export async function executeLivePilot(input: {
                     }
                   } },
                 });
-                const bfoStored = await activeBfoRawStorage.put(bfo.raw);
+                const bfoStaged = await stageRawUpload({
+                  task,
+                  input: bfo.raw,
+                  storage: activeBfoRawStorage,
+                  repository: input.repository,
+                });
+                const bfoStored = bfoStaged.stored;
                 const bfoRaw: CapturedRawObject = {
                   id: randomUUID(), sourceKind: "fns-bfo-live", sourceRecordKey: bfo.raw.identity.sourceRecordKey!,
                   mimeType: "application/json", finalUrl: bfo.raw.finalUrl, navigationStatus: bfo.raw.navigationStatus,
                   capturedAt: bfo.raw.capturedAt, parserVersion: bfo.raw.parserVersion, stored: bfoStored,
+                  uploadIntentId: bfoStaged.intentId,
                 };
                 return { bfo, bfoRaw };
               },
@@ -272,7 +289,8 @@ export async function executeLivePilot(input: {
               throw new Error("stale live finance task before publication");
             }
             if (bfo.outcome === "blocked") {
-              if (!await input.repository.blockRun(task, bfo.reason, [bfoRaw])) {
+              if (!await finalizeRawUploads(task, input.repository, () =>
+                input.repository.blockRun(task, bfo.reason, [bfoRaw]))) {
                 throw new Error("stale live finance task blocker");
               }
               runFailureRecorded = true;

@@ -5,7 +5,13 @@ import {
   type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 
+import {
+  createRawUploadPlan,
+  RawUploadStorageError,
+} from "../../application/ports/raw-object-storage";
 import type {
+  RawUploadPlan,
+  RawUploadStorageFaults,
   StoredFileRawObject,
   StoredRawObject,
   VerifiedRawObject,
@@ -30,9 +36,15 @@ export class S3FileRawObjectStorage {
   readonly #bucket: string;
   readonly #sourceKind: string;
   readonly #ownsClient: boolean;
+  readonly #faults: RawUploadStorageFaults;
   #closed = false;
 
-  constructor(env: AppEnv, sourceKind: string, client?: S3Client) {
+  constructor(
+    env: AppEnv,
+    sourceKind: string,
+    client?: S3Client,
+    faults: RawUploadStorageFaults = {},
+  ) {
     if (!/^[a-z0-9-]+$/.test(sourceKind)) {
       throw new Error("source kind must be safe for an object key");
     }
@@ -40,41 +52,17 @@ export class S3FileRawObjectStorage {
     this.#sourceKind = sourceKind;
     this.#client = client ?? new S3Client(clientConfig(env));
     this.#ownsClient = client === undefined;
+    this.#faults = faults;
   }
 
-  async put(evidence: ChecksummedFileEvidence): Promise<StoredFileRawObject> {
+  plan(evidence: ChecksummedFileEvidence): RawUploadPlan<StoredFileRawObject> {
     this.#assertOpen();
     validateChecksummedEvidence(evidence);
     if (evidence.sourceKind !== this.#sourceKind) {
       throw new Error("raw bundle source identity does not match storage");
     }
-    const prefix = [
-      "raw",
-      evidence.identity.runId,
-      evidence.sourceKind,
-      evidence.checksumSha256,
-    ].join("/");
-    const dataKey = `${prefix}/data`;
-    const manifestKey = `${prefix}/manifest.json`;
-
-    if ("filePath" in evidence) {
-      await this.#putImmutableFile(
-        dataKey,
-        evidence.filePath,
-        evidence.byteLength,
-        evidence.dataChecksumSha256,
-        evidence.mimeType,
-      );
-    } else {
-      await this.#putImmutable(dataKey, evidence.data, evidence.mimeType);
-    }
-    await this.#putImmutable(
-      manifestKey,
-      evidence.manifestUtf8,
-      "application/json; charset=utf-8",
-    );
-
-    return {
+    const prefix = ["raw", evidence.identity.runId, evidence.sourceKind, evidence.checksumSha256].join("/");
+    const stored: StoredFileRawObject = {
       kind: "file",
       runId: evidence.identity.runId,
       sourceKind: evidence.sourceKind,
@@ -82,11 +70,39 @@ export class S3FileRawObjectStorage {
       parserVersion: evidence.parserVersion,
       checksumSha256: evidence.checksumSha256,
       prefix,
-      manifestKey,
-      dataKey,
+      manifestKey: `${prefix}/manifest.json`,
+      dataKey: `${prefix}/data`,
       mimeType: evidence.mimeType,
       byteLength: "filePath" in evidence ? evidence.byteLength : evidence.data.byteLength,
     };
+    return createRawUploadPlan(stored, [
+      { key: stored.dataKey, checksumSha256: evidence.dataChecksumSha256 },
+      { key: stored.manifestKey, checksumSha256: evidence.checksumSha256 },
+    ]);
+  }
+
+  async put(evidence: ChecksummedFileEvidence): Promise<StoredFileRawObject> {
+    const plan = this.plan(evidence);
+
+    if ("filePath" in evidence) {
+      await this.#putImmutableFile(
+        plan.stored.dataKey,
+        evidence.filePath,
+        evidence.byteLength,
+        evidence.dataChecksumSha256,
+        evidence.mimeType,
+      );
+    } else {
+      await this.#putImmutable(plan.stored.dataKey, evidence.data, evidence.mimeType);
+    }
+    await this.#inject("after_data_write");
+    await this.#putImmutable(
+      plan.stored.manifestKey,
+      evidence.manifestUtf8,
+      "application/json; charset=utf-8",
+    );
+    await this.#inject("after_manifest_write");
+    return plan.stored;
   }
 
   async verify(object: StoredRawObject): Promise<VerifiedRawObject> {
@@ -126,6 +142,17 @@ export class S3FileRawObjectStorage {
       parserVersion: manifest.parserVersion,
       candidateEvidence: null,
     };
+  }
+
+  async #inject(phase: "after_data_write" | "after_manifest_write"): Promise<void> {
+    const callback = phase === "after_data_write"
+      ? this.#faults.afterDataWrite
+      : this.#faults.afterManifestWrite;
+    try {
+      await callback?.();
+    } catch (cause) {
+      throw new RawUploadStorageError(phase, { cause });
+    }
   }
 
   close(): void {
@@ -254,11 +281,11 @@ function parseFileManifest(bytes: Uint8Array): FileManifest | null {
     || (isRevexp && (!isRevexpRawProvenance(value.provenance)
       || value.sourceKind !== "fns-revexp"
       || value.parserVersion !== `fns-revexp/structure-${value.provenance.structureVersion}`
-      || value.finalUrl !== value.provenance.archive.finalUrl
-      || value.capturedAt !== value.provenance.archive.capturedAt
-      || value.navigationStatus !== value.provenance.archive.status
-      || value.artifact.mimeType !== value.provenance.archive.contentType
-      || value.artifact.byteLength !== value.provenance.archive.contentLength))) {
+      || value.finalUrl !== value.provenance.archiveDownload.finalUrl
+      || value.capturedAt !== value.provenance.archiveDownload.capturedAt
+      || value.navigationStatus !== value.provenance.archiveDownload.status
+      || value.artifact.mimeType !== value.provenance.archiveDownload.headers.contentType
+      || value.artifact.byteLength !== value.provenance.archiveDownload.headers.contentLength))) {
     return null;
   }
   return {

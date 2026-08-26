@@ -75,7 +75,28 @@ export async function insertRawFetch(
     || (raw.stored.kind === "file" && raw.stored.mimeType !== raw.mimeType)) {
     throw new Error("stored raw identity does not match source audit");
   }
-  const result = await database.query(
+  const requiresIntent = requiresVerifiedRawUploadIntent(task, raw);
+  if (requiresIntent && raw.uploadIntentId === undefined) {
+    throw new Error("verified raw upload intent is required");
+  }
+  if (raw.uploadIntentId !== undefined) {
+    const intent = await database.query(
+      `SELECT 1 FROM audience.raw_upload_intents
+       WHERE id = $1 AND run_id = $2 AND task_id = $3 AND fencing_token = $4
+         AND state = 'verified' AND source_kind = $5 AND source_record_key = $6
+         AND parser_version = $7 AND manifest_key = $8
+         AND manifest_checksum_sha256 = $9
+         AND stored_identity_json = $10::jsonb
+       FOR UPDATE`,
+      [raw.uploadIntentId, task.runId, task.id, task.fencingToken,
+        raw.sourceKind, raw.sourceRecordKey, raw.parserVersion,
+        raw.stored.manifestKey, raw.stored.checksumSha256, JSON.stringify(raw.stored)],
+    );
+    if (intent.rowCount !== 1) {
+      throw new Error("matching verified raw upload intent is required");
+    }
+  }
+  const result = await database.query<{ id: string } & QueryResultRow>(
     `WITH fence AS (
        SELECT 1 FROM audience.crawl_tasks
        WHERE id = $1 AND run_id = $2 AND fencing_token = $3
@@ -83,17 +104,42 @@ export async function insertRawFetch(
      )
      INSERT INTO audience.source_fetches (
        id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
-       mime_type, final_url, navigation_status, captured_at, parser_version
+       mime_type, final_url, navigation_status, captured_at, parser_version,
+       raw_upload_intent_id
      )
-     SELECT $5, $2, $6, $7, $8, $9, $10, $11, $12, $13, $14
+     SELECT $5, $2, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
      FROM fence
      ON CONFLICT (run_id, source_kind, source_record_key, checksum_sha256)
-     DO UPDATE SET object_key = EXCLUDED.object_key`,
+     DO UPDATE SET object_key = EXCLUDED.object_key,
+                   raw_upload_intent_id = EXCLUDED.raw_upload_intent_id
+     RETURNING id`,
     [task.id, task.runId, task.fencingToken, status, raw.id, raw.sourceKind,
       raw.sourceRecordKey, raw.stored.manifestKey, raw.stored.checksumSha256,
-      raw.mimeType, raw.finalUrl, raw.navigationStatus, raw.capturedAt, raw.parserVersion],
+      raw.mimeType, raw.finalUrl, raw.navigationStatus, raw.capturedAt, raw.parserVersion,
+      raw.uploadIntentId ?? null],
   );
-  return result.rowCount ?? 0;
+  const sourceFetchId = result.rows[0]?.id;
+  if (sourceFetchId === undefined) return 0;
+  if (raw.uploadIntentId !== undefined) {
+    const committed = await database.query(
+      `UPDATE audience.raw_upload_intents
+       SET state = 'committed', source_fetch_id = $2, committed_at = now()
+       WHERE id = $1 AND state = 'verified'`,
+      [raw.uploadIntentId, sourceFetchId],
+    );
+    if (committed.rowCount !== 1) {
+      throw new Error("raw upload intent could not be committed with source fetch");
+    }
+  }
+  return 1;
+}
+
+function requiresVerifiedRawUploadIntent(task: FencedTask, raw: CapturedRawObject): boolean {
+  return (task.taskKind === "live_discovery" && raw.sourceKind === "list-org-live")
+    || (task.taskKind === "live_finance" && raw.sourceKind === "fns-bfo-live")
+    || (task.taskKind === "live_revexp_capture"
+      && raw.sourceKind === "fns-revexp"
+      && raw.stored.kind === "file");
 }
 
 export function storedRawObject(row: RawFetchRow): StoredBrowserRawObject | StoredProjectionRawObject {

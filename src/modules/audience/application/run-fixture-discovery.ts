@@ -6,6 +6,7 @@ import type { AudienceRepository } from "./ports/audience-repository";
 import type { RawObjectStorage } from "./ports/raw-object-storage";
 import { StaleTaskError } from "./stale-task-error";
 import { withRenewingTaskLease } from "./task-lease";
+import { finalizeRawUploads, stageRawUpload } from "./raw-upload-coordinator";
 
 const DISCOVERY_LEASE_SECONDS = 300;
 
@@ -102,7 +103,12 @@ export async function runFixtureDiscovery(
         for (const raw of result.rawBundles) {
           if (signal.aborted) throw new StaleTaskError(task.id);
           assertDiscoveryRawIdentity(raw, command.runId, command.parserVersion, sourceKind);
-          const stored = await dependencies.rawStorage.put(raw);
+          const staged = await stageRawUpload({
+            task,
+            input: raw,
+            storage: dependencies.rawStorage,
+            repository: dependencies.repository,
+          });
           rawObjects.push({
             id: randomUUID(),
             sourceKind,
@@ -112,7 +118,8 @@ export async function runFixtureDiscovery(
             navigationStatus: raw.navigationStatus,
             capturedAt: raw.capturedAt,
             parserVersion: raw.parserVersion,
-            stored,
+            stored: staged.stored,
+            uploadIntentId: staged.intentId,
           });
         }
         return { result, rawObjects };
@@ -138,62 +145,63 @@ export async function runFixtureDiscovery(
         ? [blocker.sourceRecordKey]
         : []
     )).size;
-    const completed = await dependencies.repository.completeDiscovery({
-      task,
-      status,
-      reason: result.reason,
-      dryRun: command.dryRun,
-      candidates: result.companies,
-      rejects: result.rejects.map((reject) => ({
-        sourceRecordKey: reject.sourceRecordKey,
-        reason: reject.reason,
-        rawFetchKey: reject.raw.checksumSha256,
-      })),
-      blockers: result.blockers.map((blocker) => ({
-        sourceRecordKey: blocker.sourceRecordKey
-          ?? `page:${blocker.raw.identity.page}`,
-        reason: blocker.reason,
-        rawFetchKey: blocker.raw.checksumSha256,
-        ...(blocker.detail === undefined ? {} : { detail: blocker.detail }),
-      })),
-      skips: skips.map((skip) => ({
-        sourceRecordKey: skip.sourceRecordKey,
-        reason: skip.reason,
-        rawFetchKey: skip.raw.checksumSha256,
-        ...(skip.duplicateOfSourceRecordKey === undefined ? {} : {
-          duplicateOfSourceRecordKey: skip.duplicateOfSourceRecordKey,
-        }),
-      })),
-      rawObjects,
-      discovery: {
-        occurrences: occurrenceKeys.length,
-        uniqueSourceRecords,
-        acceptedCompanies: result.companies.length,
-        duplicates: occurrenceKeys.length - uniqueSourceRecords,
-        rejected: result.rejects.length,
-        blockedOrConflicted,
-        ...(taskKind !== "live_discovery" ? {} : {
-          individualEntrepreneurs: skips.filter((skip) =>
-            skip.reason === "individual_entrepreneur"
-          ).length,
-          duplicateInns: skips.filter((skip) => skip.reason === "duplicate_inn").length,
-          skips: skips.map((skip) => ({
-            sourceRecordKey: skip.sourceRecordKey,
-            reason: skip.reason,
-            rawFetchKey: skip.raw.checksumSha256,
-            ...(skip.duplicateOfSourceRecordKey === undefined ? {} : {
-              duplicateOfSourceRecordKey: skip.duplicateOfSourceRecordKey,
-            }),
-          })),
-        }),
-        acceptedSourceRecordKeys: result.companies.map((company) => company.sourceRecordKey),
-        pageIdentities: result.pages.map((page) => ({
-          page: page.page,
-          orderedSourceRecordKeys: [...page.orderedSourceRecordKeys],
-          resultFingerprintSha256: page.resultFingerprintSha256,
+    const completed = await finalizeRawUploads(task, dependencies.repository, () =>
+      dependencies.repository.completeDiscovery({
+        task,
+        status,
+        reason: result.reason,
+        dryRun: command.dryRun,
+        candidates: result.companies,
+        rejects: result.rejects.map((reject) => ({
+          sourceRecordKey: reject.sourceRecordKey,
+          reason: reject.reason,
+          rawFetchKey: reject.raw.checksumSha256,
         })),
-      },
-    });
+        blockers: result.blockers.map((blocker) => ({
+          sourceRecordKey: blocker.sourceRecordKey
+            ?? `page:${blocker.raw.identity.page}`,
+          reason: blocker.reason,
+          rawFetchKey: blocker.raw.checksumSha256,
+          ...(blocker.detail === undefined ? {} : { detail: blocker.detail }),
+        })),
+        skips: skips.map((skip) => ({
+          sourceRecordKey: skip.sourceRecordKey,
+          reason: skip.reason,
+          rawFetchKey: skip.raw.checksumSha256,
+          ...(skip.duplicateOfSourceRecordKey === undefined ? {} : {
+            duplicateOfSourceRecordKey: skip.duplicateOfSourceRecordKey,
+          }),
+        })),
+        rawObjects,
+        discovery: {
+          occurrences: occurrenceKeys.length,
+          uniqueSourceRecords,
+          acceptedCompanies: result.companies.length,
+          duplicates: occurrenceKeys.length - uniqueSourceRecords,
+          rejected: result.rejects.length,
+          blockedOrConflicted,
+          ...(taskKind !== "live_discovery" ? {} : {
+            individualEntrepreneurs: skips.filter((skip) =>
+              skip.reason === "individual_entrepreneur"
+            ).length,
+            duplicateInns: skips.filter((skip) => skip.reason === "duplicate_inn").length,
+            skips: skips.map((skip) => ({
+              sourceRecordKey: skip.sourceRecordKey,
+              reason: skip.reason,
+              rawFetchKey: skip.raw.checksumSha256,
+              ...(skip.duplicateOfSourceRecordKey === undefined ? {} : {
+                duplicateOfSourceRecordKey: skip.duplicateOfSourceRecordKey,
+              }),
+            })),
+          }),
+          acceptedSourceRecordKeys: result.companies.map((company) => company.sourceRecordKey),
+          pageIdentities: result.pages.map((page) => ({
+            page: page.page,
+            orderedSourceRecordKeys: [...page.orderedSourceRecordKeys],
+            resultFingerprintSha256: page.resultFingerprintSha256,
+          })),
+        },
+      }));
     if (!completed) throw new StaleTaskError(task.id);
 
     return {

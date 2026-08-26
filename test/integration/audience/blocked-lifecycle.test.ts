@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { runner } from "node-pg-migrate";
 
-import type { CapturedRawObject } from "../../../src/modules/audience/application/ports/audience-repository";
+import type {
+  CapturedRawObject,
+  FencedTask,
+} from "../../../src/modules/audience/application/ports/audience-repository";
+import { createRawUploadPlan } from "../../../src/modules/audience/application/ports/raw-object-storage";
 import { PostgresAudienceRepository } from "../../../src/modules/audience/infrastructure/postgres/audience-repository";
 import { PostgresDatabase } from "../../../src/shared/postgres/database";
 import { createTemporaryDatabase, type TemporaryDatabase } from "../../support/postgres";
@@ -48,7 +52,7 @@ describe("transactional blocked lifecycle", () => {
       taskKind: "live_discovery",
       leaseSeconds: 300,
     });
-    const raw = capturedRaw(runId);
+    const raw = await verifiedRaw(repository, task, capturedRaw(runId));
 
     await expect(repository.blockRun(
       task,
@@ -128,7 +132,7 @@ describe("transactional blocked lifecycle", () => {
       },
     });
     const captureTask = await repository.createTask(runId, "live_revexp_capture", 300);
-    const raw = capturedFileRaw(runId);
+    const raw = await verifiedRaw(repository, captureTask, capturedFileRaw(runId));
 
     await expect(repository.completeRawCapture(captureTask, raw)).resolves.toBe(true);
     const downstreamFailure = async () => { throw new Error("parser failed after capture"); };
@@ -198,4 +202,35 @@ function capturedFileRaw(runId: string): CapturedRawObject {
       byteLength: 512,
     },
   };
+}
+
+async function verifiedRaw(
+  repository: PostgresAudienceRepository,
+  task: FencedTask,
+  raw: CapturedRawObject,
+): Promise<CapturedRawObject> {
+  const dataObjects = raw.stored.kind === "browser"
+    ? [
+        { key: raw.stored.domKey, checksumSha256: "c".repeat(64) },
+        { key: raw.stored.screenshotKey, checksumSha256: "d".repeat(64) },
+      ]
+    : raw.stored.kind === "projection"
+      ? [{ key: raw.stored.projectionKey, checksumSha256: "c".repeat(64) }]
+      : [{ key: raw.stored.dataKey, checksumSha256: "c".repeat(64) }];
+  const plan = createRawUploadPlan(raw.stored, [
+    ...dataObjects,
+    { key: raw.stored.manifestKey, checksumSha256: raw.stored.checksumSha256 },
+  ]);
+  const intentId = await repository.reserveRawUpload(task, plan);
+  if (intentId === null) throw new Error("test raw upload intent was not reserved");
+  const verified = await repository.markRawUploadVerified(task, intentId, plan, {
+    runId: raw.stored.runId,
+    sourceKind: raw.stored.sourceKind,
+    sourceRecordKey: raw.stored.sourceRecordKey,
+    checksumSha256: raw.stored.checksumSha256,
+    parserVersion: raw.stored.parserVersion,
+    candidateEvidence: null,
+  });
+  if (!verified) throw new Error("test raw upload intent was not verified");
+  return { ...raw, uploadIntentId: intentId };
 }

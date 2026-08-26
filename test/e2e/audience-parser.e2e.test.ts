@@ -972,11 +972,17 @@ async function replaceLiveRevenueWithInvalidNoData(
     parser_version: string;
     metadata_json: unknown;
     created_at: string;
+    raw_upload_intent_id: string;
+    raw_upload_committed_at: string;
   }>(
-    `SELECT id, source_kind, source_record_key, object_key, checksum_sha256,
-            mime_type, final_url, navigation_status, captured_at::text,
-            parser_version, metadata_json, created_at::text
-     FROM audience.source_fetches WHERE id = $1`,
+    `SELECT raw.id, raw.source_kind, raw.source_record_key, raw.object_key,
+            raw.checksum_sha256, raw.mime_type, raw.final_url,
+            raw.navigation_status, raw.captured_at::text, raw.parser_version,
+            raw.metadata_json, raw.created_at::text, raw.raw_upload_intent_id,
+            intent.committed_at::text AS raw_upload_committed_at
+     FROM audience.source_fetches raw
+     JOIN audience.raw_upload_intents intent ON intent.id = raw.raw_upload_intent_id
+     WHERE raw.id = $1`,
     [evidence.source_fetch_id],
   )).rows[0];
   if (originalRaw === undefined) throw new Error("live revenue raw is missing");
@@ -1049,6 +1055,18 @@ async function replaceLiveRevenueWithInvalidNoData(
       );
     }
     await transaction.query("DELETE FROM audience.financial_evidence WHERE id = $1", [evidence.id]);
+    await transaction.query(
+      "UPDATE audience.source_fetches SET raw_upload_intent_id = NULL WHERE id = $1",
+      [originalRaw.id],
+    );
+    await transaction.query(
+      `UPDATE audience.raw_upload_intents
+       SET state = 'failed', source_fetch_id = NULL, committed_at = NULL,
+           failure_phase = 'before_db_commit',
+           failure_code = 'test_reconciliation_mutation', failed_at = now()
+       WHERE id = $1`,
+      [originalRaw.raw_upload_intent_id],
+    );
     await transaction.query("DELETE FROM audience.source_fetches WHERE id = $1", [originalRaw.id]);
     await transaction.query(
       `UPDATE audience.crawl_tasks
@@ -1070,14 +1088,22 @@ async function replaceLiveRevenueWithInvalidNoData(
         `INSERT INTO audience.source_fetches (
            id, run_id, source_kind, source_record_key, object_key, checksum_sha256,
            mime_type, final_url, navigation_status, captured_at, parser_version,
-           metadata_json, created_at
+           metadata_json, created_at, raw_upload_intent_id
          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-           $10::timestamptz, $11, $12::jsonb, $13::timestamptz)`,
+           $10::timestamptz, $11, $12::jsonb, $13::timestamptz, $14)`,
         [originalRaw.id, runId, originalRaw.source_kind, originalRaw.source_record_key,
           originalRaw.object_key, originalRaw.checksum_sha256, originalRaw.mime_type,
           originalRaw.final_url, originalRaw.navigation_status, originalRaw.captured_at,
           originalRaw.parser_version, JSON.stringify(originalRaw.metadata_json),
-          originalRaw.created_at],
+          originalRaw.created_at, originalRaw.raw_upload_intent_id],
+      );
+      await transaction.query(
+        `UPDATE audience.raw_upload_intents
+         SET state = 'committed', source_fetch_id = $2,
+             committed_at = $3::timestamptz, failure_phase = NULL,
+             failure_code = NULL, failed_at = NULL
+         WHERE id = $1`,
+        [originalRaw.raw_upload_intent_id, originalRaw.id, originalRaw.raw_upload_committed_at],
       );
       await transaction.query(
         `INSERT INTO audience.financial_evidence (
@@ -1273,7 +1299,9 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
         createBfoRawStorage: (factoryEnv) => {
           const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", client);
           return {
+            plan: storage.plan.bind(storage),
             put: storage.put.bind(storage),
+            verify: storage.verify.bind(storage),
             close: () => {
               storageClosures += 1;
               storage.close();
@@ -1283,7 +1311,9 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
         createRevexpRawStorage: (factoryEnv) => {
           const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", client);
           return {
+            plan: storage.plan.bind(storage),
             put: storage.put.bind(storage),
+            verify: storage.verify.bind(storage),
             close: () => {
               storageClosures += 1;
               storage.close();
@@ -1486,7 +1516,9 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
         createBfoRawStorage: (factoryEnv) => {
           const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", activeClient);
           return {
+            plan: storage.plan.bind(storage),
             put: storage.put.bind(storage),
+            verify: storage.verify.bind(storage),
             close: () => {
               shortStorageClosures += 1;
               storage.close();
@@ -1496,7 +1528,9 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
         createRevexpRawStorage: (factoryEnv) => {
           const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", activeClient);
           return {
+            plan: storage.plan.bind(storage),
             put: storage.put.bind(storage),
+            verify: storage.verify.bind(storage),
             close: () => {
               shortStorageClosures += 1;
               storage.close();
@@ -1630,7 +1664,9 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
           createBfoRawStorage: (factoryEnv) => {
             const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", activeClient);
             return {
+              plan: storage.plan.bind(storage),
               put: storage.put.bind(storage),
+              verify: storage.verify.bind(storage),
               close: () => {
                 storageClosures += 1;
                 storage.close();
@@ -1640,7 +1676,9 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
           createRevexpRawStorage: (factoryEnv) => {
             const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", activeClient);
             return {
+              plan: storage.plan.bind(storage),
               put: storage.put.bind(storage),
+              verify: storage.verify.bind(storage),
               close: () => {
                 storageClosures += 1;
                 storage.close();
@@ -1770,14 +1808,18 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
       createBfoRawStorage: (factoryEnv: AppEnv) => {
         const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", activeClient);
         return {
+          plan: storage.plan.bind(storage),
           put: storage.put.bind(storage),
+          verify: storage.verify.bind(storage),
           close: () => { storageClosures += 1; storage.close(); },
         };
       },
       createRevexpRawStorage: (factoryEnv: AppEnv) => {
         const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", activeClient);
         return {
+          plan: storage.plan.bind(storage),
           put: storage.put.bind(storage),
+          verify: storage.verify.bind(storage),
           close: () => { storageClosures += 1; storage.close(); },
         };
       },
@@ -1910,7 +1952,9 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
       createBfoRawStorage: (factoryEnv) => {
         const storage = new S3RawObjectStorage(factoryEnv, "fns-bfo-live", activeClient);
         return {
+          plan: storage.plan.bind(storage),
           put: storage.put.bind(storage),
+          verify: storage.verify.bind(storage),
           close: () => {
             storageClosures += 1;
             storage.close();
@@ -1920,7 +1964,9 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
       createRevexpRawStorage: (factoryEnv) => {
         const storage = new S3FileRawObjectStorage(factoryEnv, "fns-revexp", activeClient);
         return {
+          plan: storage.plan.bind(storage),
           put: storage.put.bind(storage),
+          verify: storage.verify.bind(storage),
           close: () => {
             storageClosures += 1;
             storage.close();

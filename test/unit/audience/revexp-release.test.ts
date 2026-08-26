@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 import {
+  downloadRevexpArchive,
   resolveRevexpRelease,
   type RevexpTransport,
   type RevexpTransportRequest,
@@ -12,6 +13,7 @@ import {
 const metadataUrl = "https://www.nalog.gov.ru/opendata/7707329152-revexp/";
 const discoveredArchiveUrl = "https://www.nalog.gov.ru/opendata/7707329152-revexp/data-2025.zip";
 const finalArchiveUrl = "https://file.nalog.ru/opendata/7707329152-revexp/data-2025.zip";
+const downloadedArchiveUrl = "https://file.nalog.ru/opendata/7707329152-revexp/data-2025-download.zip";
 const xsdUrl = "https://www.nalog.gov.ru/opendata/7707329152-revexp/structure-5.10.xsd";
 
 describe("resolveRevexpRelease", () => {
@@ -27,7 +29,7 @@ describe("resolveRevexpRelease", () => {
     }
   });
 
-  it("resolves the official 2025 release and retains exact metadata/HEAD capture provenance", async () => {
+  it("resolves the official 2025 release with exact metadata and archive-resolution captures", async () => {
     const html = await officialMetadata();
     const transport = new FixtureTransport([
       response(metadataUrl, 200, {
@@ -58,20 +60,30 @@ describe("resolveRevexpRelease", () => {
       lastModified: "2026-03-15T00:00:00.000Z",
       capture: {
         metadata: {
+          method: "GET",
           finalUrl: metadataUrl,
           status: 200,
           capturedAt: "2026-08-26T09:00:00.000Z",
-          contentType: "text/html; charset=utf-8",
-          contentLength: html.byteLength,
           redirectChain: [metadataUrl],
+          headers: {
+            contentType: "text/html; charset=utf-8",
+            contentLength: html.byteLength,
+            etag: null,
+            lastModified: null,
+          },
         },
-        archive: {
+        archiveResolution: {
+          method: "HEAD",
           finalUrl: finalArchiveUrl,
           status: 200,
           capturedAt: "2026-08-26T09:00:02.000Z",
-          contentType: "application/zip",
-          contentLength: 1_048_576,
           redirectChain: [discoveredArchiveUrl, finalArchiveUrl],
+          headers: {
+            contentType: "application/zip",
+            contentLength: 1_048_576,
+            etag: '"archive-etag"',
+            lastModified: "2026-03-15T00:00:00.000Z",
+          },
         },
       },
     });
@@ -126,6 +138,7 @@ describe("resolveRevexpRelease", () => {
     ["wrong content type", { "content-type": "text/html", "content-length": "100" }, "content type"],
     ["missing content length", { "content-type": "application/zip" }, "content length"],
     ["oversized content length", { "content-type": "application/zip", "content-length": String(256 * 1024 * 1024 + 1) }, "256 MiB"],
+    ["unsafe ETag", { "content-type": "application/zip", "content-length": "100", etag: '"bad\u0001etag"' }, "ETag"],
   ])("rejects archive HEAD metadata with %s", async (_case, headers, expected) => {
     const html = await officialMetadata();
     const transport = new FixtureTransport([
@@ -182,6 +195,77 @@ describe("resolveRevexpRelease", () => {
     expect([release.publishedAt, release.updatedAt]).toEqual([
       "2026-03-01T00:00:00.000Z",
       "2026-03-15T00:00:00.000Z",
+    ]);
+  });
+
+  it("retains the GET archive download separately from the earlier HEAD resolution", async () => {
+    const html = await officialMetadata();
+    const archive = new Uint8Array([0x50, 0x4b, 0x03, 0x04]);
+    const transport = new FixtureTransport([
+      response(metadataUrl, 200, {
+        "content-type": "text/html; charset=utf-8",
+        "content-length": String(html.byteLength),
+      }, html, "2026-08-26T08:00:00.000Z"),
+      response(discoveredArchiveUrl, 302, {
+        location: finalArchiveUrl,
+      }, undefined, "2026-08-26T08:00:01.000Z"),
+      response(finalArchiveUrl, 200, {
+        "content-type": "application/zip",
+        "content-length": String(archive.byteLength),
+        etag: '"same-object"',
+        "last-modified": "Sun, 15 Mar 2026 00:00:00 GMT",
+      }, undefined, "2026-08-26T08:00:02.000Z"),
+      response(finalArchiveUrl, 302, {
+        location: downloadedArchiveUrl,
+      }, undefined, "2026-08-26T09:00:01.000Z"),
+      response(downloadedArchiveUrl, 200, {
+        "content-type": "application/zip; profile=download",
+        "content-length": String(archive.byteLength),
+        etag: '"same-object"',
+        "last-modified": "Mon, 16 Mar 2026 00:00:00 GMT",
+      }, archive, "2026-08-26T09:00:02.000Z"),
+    ]);
+
+    const release = await resolveRevexpRelease(metadataUrl, transport);
+    const downloaded = await downloadRevexpArchive(release, transport);
+    try {
+      expect(release.capture.archiveResolution).toEqual({
+        method: "HEAD",
+        finalUrl: finalArchiveUrl,
+        status: 200,
+        capturedAt: "2026-08-26T08:00:02.000Z",
+        redirectChain: [discoveredArchiveUrl, finalArchiveUrl],
+        headers: {
+          contentType: "application/zip",
+          contentLength: archive.byteLength,
+          etag: '"same-object"',
+          lastModified: "2026-03-15T00:00:00.000Z",
+        },
+      });
+      expect(downloaded.archiveDownload).toEqual({
+        method: "GET",
+        finalUrl: downloadedArchiveUrl,
+        status: 200,
+        capturedAt: "2026-08-26T09:00:02.000Z",
+        redirectChain: [finalArchiveUrl, downloadedArchiveUrl],
+        headers: {
+          contentType: "application/zip; profile=download",
+          contentLength: archive.byteLength,
+          etag: '"same-object"',
+          lastModified: "2026-03-16T00:00:00.000Z",
+        },
+      });
+      expect(downloaded).not.toHaveProperty("finalUrl");
+      expect(downloaded).not.toHaveProperty("capturedAt");
+    } finally {
+      await downloaded.cleanup();
+    }
+    expect(transport.requests).toEqual([
+      `GET ${metadataUrl}`,
+      `HEAD ${discoveredArchiveUrl}`,
+      `HEAD ${finalArchiveUrl}`,
+      `GET ${finalArchiveUrl}`,
+      `GET ${downloadedArchiveUrl}`,
     ]);
   });
 });
