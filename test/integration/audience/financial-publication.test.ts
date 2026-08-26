@@ -113,6 +113,39 @@ describe("financial evidence publication", () => {
     ]);
   });
 
+  it("binds a live finance task and all three outcomes to exactly one company INN", async () => {
+    const publicationRunId = randomUUID();
+    const companyInn = parseLegalEntityInn("7707083893");
+    await seedFinancialProvenance(database, publicationRunId);
+    const bfoAttempt = financialSourceAttempt(
+      "fns_bfo", "bfo-old", "raw/fns-bfo/old.json", "fns-bfo/1.0.0",
+    );
+    const revexpAttempt = financialSourceAttempt(
+      "fns_revexp", "revexp", "raw/fns-revexp/report.xml", "fns-revexp/1.0.0",
+    );
+
+    await publishFinancialEvidence({
+      runId: publicationRunId,
+      reportYear: 2025,
+      taskKind: "live_finance",
+      companyInn,
+      evidence: [],
+      metricOutcomes: {
+        revenue: { outcome: "no_data", evidence: 0, sourceAttempt: bfoAttempt },
+        income: { outcome: "no_data", evidence: 0, sourceAttempt: revexpAttempt },
+        expenses: { outcome: "no_data", evidence: 0, sourceAttempt: revexpAttempt },
+      },
+    }, { repository });
+
+    const task = await database.query<{ task_kind: string; company_inn: string | null }>(
+      `SELECT task_kind, result_json->>'companyInn' AS company_inn
+       FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'live_finance'`,
+      [publicationRunId],
+    );
+    expect(task.rows).toEqual([{ task_kind: "live_finance", company_inn: companyInn }]);
+  });
+
   it("publishes BFO live revenue against the exact fns-bfo-live raw identity", async () => {
     const publicationRunId = randomUUID();
     await seedFinancialProvenance(database, publicationRunId);

@@ -20,6 +20,7 @@ import type {
 } from "../../application/ports/audience-repository";
 import type { BrowserActionEvent, DiscoveredCompany } from "../../domain/discovery";
 import type { FinancialMetric } from "../../domain/financial";
+import { parseLegalEntityInn } from "../../domain/inn";
 import type { Database } from "../../../../shared/postgres/database";
 import {
   acquire,
@@ -40,6 +41,7 @@ interface RunRow extends QueryResultRow {
 }
 
 interface ResultRow extends QueryResultRow {
+  task_kind?: string;
   result_json: unknown;
 }
 
@@ -84,8 +86,14 @@ export class PostgresAudienceRepository implements AudienceRepository {
   }
 
   async startDiscoveryRun(input: DiscoveryRunInput): Promise<DiscoveryTaskStart> {
+    const taskKind = input.taskKind ?? "fixture_discovery";
+    const onlyActive = input.scope.onlyActive ?? taskKind === "fixture_discovery";
+    if ((taskKind === "fixture_discovery" && onlyActive !== true)
+      || (taskKind === "live_discovery" && onlyActive !== false)) {
+      throw new Error("discovery task kind does not match immutable active-scope policy");
+    }
     return this.database.transaction(async (transaction) => {
-      const scopeJson = JSON.stringify(input.scope);
+      const scopeJson = JSON.stringify({ ...input.scope, onlyActive });
       let run = await transaction.query<DiscoveryRunRow>(
         `SELECT status, terminal_reason, fixture_version, parser_version,
                 scope_json = $2::jsonb AS scope_matches
@@ -118,7 +126,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
       const existingTasks = await transaction.query<TaskStateRow>(
         `SELECT id, run_id, task_kind, status, result_json
          FROM audience.crawl_tasks
-         WHERE run_id = $1 AND task_kind = 'fixture_discovery'
+         WHERE run_id = $1 AND task_kind IN ('fixture_discovery', 'live_discovery')
          ORDER BY created_at, id
          FOR UPDATE`,
         [input.runId],
@@ -127,12 +135,15 @@ export class PostgresAudienceRepository implements AudienceRepository {
         throw new Error("discovery run has multiple business tasks");
       }
       let taskRow = existingTasks.rows[0];
+      if (taskRow !== undefined && taskRow.task_kind !== taskKind) {
+        throw new Error("discovery retry does not match immutable task kind");
+      }
       if (taskRow === undefined) {
         const inserted = await transaction.query<TaskStateRow>(
           `INSERT INTO audience.crawl_tasks (id, run_id, task_kind, status)
-           VALUES ($1, $2, 'fixture_discovery', 'pending')
+           VALUES ($1, $2, $3, 'pending')
            RETURNING id, run_id, task_kind, status, result_json`,
-          [randomUUID(), input.runId],
+          [randomUUID(), input.runId, taskKind],
         );
         taskRow = inserted.rows[0]!;
       }
@@ -156,7 +167,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
            )`,
         [input.runId, task.id, task.fencingToken],
       );
-      if (runUpdate.rowCount !== 1) throw new Error("fixture discovery run could not start");
+      if (runUpdate.rowCount !== 1) throw new Error("discovery run could not start");
       return { state: "acquired", task };
     });
   }
@@ -165,8 +176,8 @@ export class PostgresAudienceRepository implements AudienceRepository {
     const started = await this.startDiscoveryRun(input);
     if (started.state !== "acquired") {
       throw new Error(started.state === "busy"
-        ? "fixture discovery task lease has not expired"
-        : "fixture discovery task is already terminal");
+        ? "discovery task lease has not expired"
+        : "discovery task is already terminal");
     }
     return started.task;
   }
@@ -354,22 +365,24 @@ export class PostgresAudienceRepository implements AudienceRepository {
     if (run === undefined) throw new Error("crawl run does not exist");
 
     const taskResult = await this.database.query<ResultRow>(
-      `SELECT result_json
+      `SELECT task_kind, result_json
        FROM audience.crawl_tasks
-       WHERE run_id = $1 AND task_kind = 'fixture_discovery'
+       WHERE run_id = $1 AND task_kind IN ('fixture_discovery', 'live_discovery')
          AND status IN ('succeeded', 'blocked')
        ORDER BY created_at DESC
        LIMIT 1`,
       [runId],
     );
-    const candidates = parseStagedCandidates(taskResult.rows[0]?.result_json);
+    const task = taskResult.rows[0];
+    const candidates = parseStagedCandidates(task?.result_json);
+    const sourceKind = task?.task_kind === "live_discovery" ? "list-org-live" : "list-org-browser";
     const rawResult = await this.database.query<RawFetchRow>(
       `SELECT run_id, source_kind, source_record_key, parser_version,
               object_key, checksum_sha256
        FROM audience.source_fetches
-       WHERE run_id = $1 AND source_kind = 'list-org-browser'
+       WHERE run_id = $1 AND source_kind = $2
        ORDER BY created_at, id`,
-      [runId],
+      [runId, sourceKind],
     );
 
     return {
@@ -422,6 +435,15 @@ export class PostgresAudienceRepository implements AudienceRepository {
       if (input.reportYear !== contract.reportYear
         || input.evidence.some((evidence) => evidence.reportYear !== contract.reportYear)) {
         throw new Error("financial evidence report year does not match immutable run scope");
+      }
+      if (input.task.taskKind === "live_finance") {
+        if (input.companyInn === undefined) throw new Error("live finance task requires a company INN");
+        parseLegalEntityInn(input.companyInn);
+        if (input.evidence.some((evidence) => evidence.inn !== input.companyInn)) {
+          throw new Error("live finance evidence belongs to another company");
+        }
+      } else if (input.companyInn !== undefined) {
+        throw new Error("only live finance tasks may own a company INN");
       }
       assertFinancialMetricOutcomes(
         input.metricOutcomes,
@@ -485,6 +507,7 @@ export class PostgresAudienceRepository implements AudienceRepository {
           JSON.stringify({
             evidence: input.evidence.length,
             metricOutcomes: input.metricOutcomes,
+            ...(input.companyInn === undefined ? {} : { companyInn: input.companyInn }),
           })],
       );
       if (update.rowCount !== 1) {
@@ -495,6 +518,14 @@ export class PostgresAudienceRepository implements AudienceRepository {
   }
 
   async reconcile(runId: string): Promise<ReconciliationReport> {
+    const liveDiscovery = await this.database.query<{ present: boolean } & QueryResultRow>(
+      `SELECT EXISTS (
+         SELECT 1 FROM audience.crawl_tasks
+         WHERE run_id = $1 AND task_kind = 'live_discovery'
+       ) AS present`,
+      [runId],
+    );
+    if (liveDiscovery.rows[0]?.present === true) return this.reconcileLivePilot(runId);
     const result = await this.database.query<{
       status: CrawlStatus;
       terminal_reason: string | null;
@@ -846,6 +877,151 @@ export class PostgresAudienceRepository implements AudienceRepository {
     return { ...report, consistent: true };
   }
 
+  private async reconcileLivePilot(runId: string): Promise<ReconciliationReport> {
+    const run = await this.database.query<{
+      status: CrawlStatus;
+      terminal_reason: string | null;
+      published_at: string | null;
+      scope_json: { year?: unknown; okved?: unknown };
+      result_json: unknown;
+    } & QueryResultRow>(
+      `SELECT run.status, run.terminal_reason, run.published_at, run.scope_json,
+              task.result_json
+       FROM audience.crawl_runs run
+       JOIN audience.crawl_tasks task
+         ON task.run_id = run.id AND task.task_kind = 'live_discovery'
+       WHERE run.id = $1`,
+      [runId],
+    );
+    const row = run.rows[0];
+    if (row === undefined) throw new Error("crawl run does not exist");
+    const discovery = parseLiveDiscoveryAudit(row.result_json);
+    const scopeYear = parseRunScopeYear(row.scope_json.year);
+    if (scopeYear !== 2025 || row.scope_json.okved !== "43.11") {
+      throw new Error("reconciliation failed: live pilot scope is invalid");
+    }
+    const counts = await this.database.query<{
+      tasks: string; non_terminal: string; source_fetches: string; companies: string;
+      relations: string; matches: string; out_of_scope_evidence: string;
+    } & QueryResultRow>(
+      `SELECT
+         (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = $1)::text AS tasks,
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = $1 AND status IN ('pending', 'running'))::text AS non_terminal,
+         (SELECT count(*) FROM audience.source_fetches WHERE run_id = $1)::text AS source_fetches,
+         (SELECT count(DISTINCT company_inn) FROM audience.run_company_matches
+          WHERE run_id = $1)::text AS companies,
+         (SELECT count(*) FROM audience.company_okveds relation
+          JOIN audience.run_company_matches match
+            ON match.run_id = $1 AND match.company_inn = relation.company_inn
+               AND relation.okved_code = '43.11' AND match.matched_okved_code = '43.11')::text AS relations,
+         (SELECT count(*) FROM audience.run_company_matches WHERE run_id = $1)::text AS matches,
+         (SELECT count(*) FROM audience.financial_evidence evidence
+          JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+          WHERE raw.run_id = $1 AND evidence.report_year <> 2025)::text AS out_of_scope_evidence`,
+      [runId],
+    );
+    const count = counts.rows[0]!;
+    const financeTasks = await this.database.query<{
+      status: CrawlStatus; result_json: unknown;
+    } & QueryResultRow>(
+      `SELECT status, result_json FROM audience.crawl_tasks
+       WHERE run_id = $1 AND task_kind = 'live_finance' ORDER BY created_at, id`,
+      [runId],
+    );
+    const evidence = await this.database.query<{
+      company_inn: string; metric: FinancialMetric; count: string;
+    } & QueryResultRow>(
+      `SELECT evidence.company_inn, evidence.metric, count(*)::text AS count
+       FROM audience.financial_evidence evidence
+       JOIN audience.source_fetches raw ON raw.id = evidence.source_fetch_id
+       WHERE raw.run_id = $1 AND evidence.report_year = 2025
+       GROUP BY evidence.company_inn, evidence.metric`,
+      [runId],
+    );
+    const evidenceCounts = new Map(evidence.rows.map((item) => [
+      `${item.company_inn}:${item.metric}`, Number(item.count),
+    ]));
+    const companies = await this.database.query<{ company_inn: string } & QueryResultRow>(
+      "SELECT company_inn FROM audience.run_company_matches WHERE run_id = $1",
+      [runId],
+    );
+    const scopedInns = new Set(companies.rows.map((item) => item.company_inn));
+    const violations: string[] = [];
+    const outcomeCounts: Record<FinancialMetric, number> = { revenue: 0, income: 0, expenses: 0 };
+    const ownedInns = new Set<string>();
+    if (row.status !== "succeeded") violations.push("live discovery did not succeed");
+    if (discovery.acceptedCompanies !== 10 || discovery.candidates.length !== 10) {
+      violations.push("live discovery does not contain exactly 10 accepted companies");
+    }
+    if (new Set(discovery.candidates.map((candidate) => candidate.inn)).size !== 10) {
+      violations.push("live discovery contains duplicate company INNs");
+    }
+    if (Number(count.companies) !== 10 || Number(count.matches) !== 10 || Number(count.relations) !== 10) {
+      violations.push("live publication does not contain exactly 10 scoped OKVED relations");
+    }
+    if (Number(count.non_terminal) !== 0) violations.push(`non-terminal tasks: ${count.non_terminal}`);
+    if (Number(count.out_of_scope_evidence) !== 0) violations.push("financial evidence outside run scope year");
+    if (financeTasks.rows.length !== 10) violations.push("live finance task count is not 10");
+    for (const task of financeTasks.rows) {
+      if (task.status !== "succeeded") {
+        violations.push(`live finance task did not succeed: ${task.status}`);
+        continue;
+      }
+      const financial = parseLiveFinancialTask(task.result_json);
+      if (financial === undefined || !scopedInns.has(financial.companyInn) || ownedInns.has(financial.companyInn)) {
+        violations.push("live finance task ownership is foreign or duplicate");
+        continue;
+      }
+      ownedInns.add(financial.companyInn);
+      for (const metric of ["revenue", "income", "expenses"] as const) {
+        const outcome = financial.outcomes[metric];
+        if (outcome === undefined) {
+          violations.push(`required financial metric outcome is absent: ${metric}`);
+          continue;
+        }
+        outcomeCounts[metric] += 1;
+        const persisted = evidenceCounts.get(`${financial.companyInn}:${metric}`) ?? 0;
+        if (outcome.outcome === "published") {
+          if (persisted !== outcome.evidence) {
+            violations.push(`required financial metric evidence differs from outcome: ${metric}`);
+          }
+        } else if (persisted !== 0 || !await financialSourceAttemptExists(
+          this.database, runId, metric, outcome.sourceAttempt,
+        )) {
+          violations.push(`required financial no-data source attempt is missing: ${metric}`);
+        }
+      }
+    }
+    if (ownedInns.size !== 10 || [...scopedInns].some((inn) => !ownedInns.has(inn))) {
+      violations.push("live finance tasks do not cover every scoped company");
+    }
+    if (Object.values(outcomeCounts).some((value) => value !== 10)) {
+      violations.push("live pilot does not contain 30 terminal company metric outcomes");
+    }
+    const unexplained = await unexplainedLiveRawFetches(
+      this.database, runId, discovery.candidates.map((candidate) => candidate.sourceRecordKey),
+    );
+    if (unexplained !== 0) violations.push(`unexplained source fetches: ${unexplained}`);
+    if (violations.length > 0) throw new Error(`reconciliation failed: ${violations.join("; ")}`);
+    return {
+      runId,
+      status: row.status,
+      terminalReason: row.terminal_reason,
+      discovery: discovery.audit,
+      tasks: { total: Number(count.tasks), nonTerminal: Number(count.non_terminal) },
+      financial: outcomeCounts,
+      unexplainedSourceFetches: unexplained,
+      sourceFetches: Number(count.source_fetches),
+      stagedCompanies: discovery.candidates.length,
+      companies: Number(count.companies),
+      companyOkveds: Number(count.relations),
+      runCompanyMatches: Number(count.matches),
+      published: row.published_at !== null,
+      consistent: true,
+    };
+  }
+
   async runStatus(runId: string): Promise<{ status: CrawlStatus; terminalReason: string | null } | null> {
     const result = await this.database.query<RunRow>(
       "SELECT status, terminal_reason FROM audience.crawl_runs WHERE id = $1",
@@ -1064,6 +1240,107 @@ function parseFinancialSourceAttempt(value: unknown): FinancialSourceAttempt | u
     rawFetchKey: candidate.rawFetchKey,
     parserVersion: candidate.parserVersion,
   };
+}
+
+function parseLiveDiscoveryAudit(value: unknown): {
+  candidates: readonly DiscoveredCompany[];
+  acceptedCompanies: number;
+  audit: ReconciliationReport["discovery"];
+} {
+  const candidates = parseStagedCandidates(value);
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("live discovery result is invalid");
+  }
+  const discovery = (value as Record<string, unknown>).discovery;
+  if (discovery === null || typeof discovery !== "object" || Array.isArray(discovery)) {
+    throw new Error("live discovery audit is invalid");
+  }
+  const record = discovery as Record<string, unknown>;
+  const fields = ["occurrences", "uniqueSourceRecords", "acceptedCompanies", "duplicates", "rejected", "blockedOrConflicted"] as const;
+  if (fields.some((field) => !Number.isSafeInteger(record[field]) || Number(record[field]) < 0)) {
+    throw new Error("live discovery audit is invalid");
+  }
+  return {
+    candidates,
+    acceptedCompanies: Number(record.acceptedCompanies),
+    audit: {
+      occurrences: Number(record.occurrences),
+      uniqueSourceRecords: Number(record.uniqueSourceRecords),
+      acceptedCompanies: Number(record.acceptedCompanies),
+      duplicates: Number(record.duplicates),
+      rejected: Number(record.rejected),
+      blockedOrConflicted: Number(record.blockedOrConflicted),
+    },
+  };
+}
+
+function parseLiveFinancialTask(value: unknown): {
+  companyInn: string;
+  outcomes: FinancialMetricOutcomes;
+} | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const companyInn = (value as Record<string, unknown>).companyInn;
+  if (typeof companyInn !== "string") return undefined;
+  try { parseLegalEntityInn(companyInn); } catch { return undefined; }
+  const outcomes = parseFinancialMetricOutcomes(value);
+  if (Object.keys(outcomes).length !== 3) return undefined;
+  return { companyInn, outcomes };
+}
+
+async function unexplainedLiveRawFetches(
+  database: Database,
+  runId: string,
+  discoverySourceRecordKeys: readonly string[],
+): Promise<number> {
+  const raw = await database.query<{
+    id: string; source_kind: string; source_record_key: string; object_key: string;
+    checksum_sha256: string; parser_version: string;
+  } & QueryResultRow>(
+    `SELECT id, source_kind, source_record_key, object_key, checksum_sha256, parser_version
+     FROM audience.source_fetches WHERE run_id = $1`,
+    [runId],
+  );
+  const referenced = await database.query<{ source_fetch_id: string } & QueryResultRow>(
+    `SELECT source_fetch_id FROM audience.organization_evidence
+     WHERE source_fetch_id IN (SELECT id FROM audience.source_fetches WHERE run_id = $1)
+     UNION
+     SELECT source_fetch_id FROM audience.financial_evidence
+     WHERE source_fetch_id IN (SELECT id FROM audience.source_fetches WHERE run_id = $1)`,
+    [runId],
+  );
+  const references = new Set(referenced.rows.map((item) => item.source_fetch_id));
+  const noData = await database.query<{ result_json: unknown } & QueryResultRow>(
+    `SELECT result_json FROM audience.crawl_tasks
+     WHERE run_id = $1 AND task_kind = 'live_finance' AND status = 'succeeded'`,
+    [runId],
+  );
+  const attempts = new Set<string>();
+  for (const task of noData.rows) {
+    const parsed = parseLiveFinancialTask(task.result_json);
+    if (parsed === undefined) continue;
+    for (const outcome of Object.values(parsed.outcomes)) {
+      if (outcome.outcome === "no_data") {
+        attempts.add([
+          outcome.sourceAttempt.rawSourceKind,
+          outcome.sourceAttempt.sourceRecordKey,
+          outcome.sourceAttempt.rawFetchKey,
+          outcome.sourceAttempt.parserVersion,
+        ].join("\u0000"));
+      }
+    }
+  }
+  return raw.rows.filter((item) => {
+    if (references.has(item.id)) return false;
+    if (item.source_kind === "list-org-live"
+      && (/^page:[1-9][0-9]*$/u.test(item.source_record_key)
+        || discoverySourceRecordKeys.includes(item.source_record_key))) return false;
+    return !attempts.has([
+      item.source_kind, item.source_record_key, item.object_key, item.parser_version,
+    ].join("\u0000"))
+      && !attempts.has([
+        item.source_kind, item.source_record_key, item.checksum_sha256, item.parser_version,
+      ].join("\u0000"));
+  }).length;
 }
 
 function taskState(row: TaskStateRow): TaskState {

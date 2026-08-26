@@ -33,10 +33,12 @@ export interface DiscoveryRunInput {
     dryRun: boolean;
     maxPages: number;
     maxCompanies: number;
+    onlyActive?: boolean;
     requiredFinancialMetrics?: readonly FinancialMetric[];
   };
   fixtureVersion: string;
   parserVersion: string;
+  taskKind?: "fixture_discovery" | "live_discovery";
   leaseSeconds: number;
 }
 
@@ -128,6 +130,7 @@ export interface ReconciliationReport {
 export interface FinancialPublicationInput {
   task: FencedTask;
   reportYear: number;
+  companyInn?: string;
   evidence: readonly FinancialMetricEvidence[];
   metricOutcomes: FinancialMetricOutcomes;
   rawObjects?: readonly CapturedRawObject[];

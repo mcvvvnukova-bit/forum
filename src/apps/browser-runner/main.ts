@@ -31,6 +31,7 @@ import { PostgresDatabase } from "../../shared/postgres/database";
 import { CliInputError, parseAudienceCli } from "./cli";
 import { enqueueReplayWrite } from "./enqueue-replay-write";
 import { startListOrgFixtureServer } from "./list-org-fixture-server";
+import { executeLivePilot } from "./run-live-pilot";
 
 const LIST_ORG_PARSER_VERSION = "list-org-browser/1.0.0";
 
@@ -38,15 +39,17 @@ async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Pr
   const command = parseAudienceCli(argv);
   const env = parseEnv(inputEnv);
   assertAudienceCommandActivation(command, env);
-  if (command.kind === "live-pilot") {
-    throw new PublicOperationError("live pilot orchestration is unavailable");
-  }
   const database = new PostgresDatabase(env.databaseUrl);
   const repository = new PostgresAudienceRepository(database);
-  const rawStorage = new S3RawObjectStorage(env, "list-org-browser");
+  const rawStorage = new S3RawObjectStorage(
+    env,
+    command.kind === "live-pilot" ? "list-org-live" : "list-org-browser",
+  );
 
   try {
     switch (command.kind) {
+      case "live-pilot":
+        return executeLivePilot({ env, repository, discoveryRawStorage: rawStorage });
       case "fixture-discover": {
         const okved = await new PostgresOkvedRepository(database).find(command.okved);
         if (okved === null) {

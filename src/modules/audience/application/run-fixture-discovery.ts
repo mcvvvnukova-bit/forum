@@ -18,6 +18,9 @@ export interface RunFixtureDiscoveryCommand {
   maxCompanies: number;
   fixtureVersion: string;
   parserVersion: string;
+  taskKind?: "fixture_discovery" | "live_discovery";
+  onlyActive?: boolean;
+  sourceKind?: "list-org-browser" | "list-org-live";
 }
 
 export interface RunFixtureDiscoveryDependencies {
@@ -41,6 +44,9 @@ export async function runFixtureDiscovery(
   command: RunFixtureDiscoveryCommand,
   dependencies: RunFixtureDiscoveryDependencies,
 ): Promise<RunSummary> {
+  const taskKind = command.taskKind ?? "fixture_discovery";
+  const onlyActive = command.onlyActive ?? true;
+  const sourceKind = command.sourceKind ?? "list-org-browser";
   const okved = parseOkvedCode(command.okved);
   validateCommand(command);
   const leaseSeconds = dependencies.leaseSeconds ?? DISCOVERY_LEASE_SECONDS;
@@ -52,10 +58,12 @@ export async function runFixtureDiscovery(
       dryRun: command.dryRun,
       maxPages: command.maxPages,
       maxCompanies: command.maxCompanies,
+      onlyActive,
       requiredFinancialMetrics: ["revenue", "income", "expenses"],
     },
     fixtureVersion: command.fixtureVersion,
     parserVersion: command.parserVersion,
+    taskKind,
     leaseSeconds,
   });
   if (started.state === "busy") {
@@ -77,7 +85,7 @@ export async function runFixtureDiscovery(
       async (signal) => {
         const result = await dependencies.source.collect({
           okved,
-          onlyActive: true,
+          onlyActive,
           maxPages: command.maxPages,
           maxCompanies: command.maxCompanies,
         }, {
@@ -93,11 +101,11 @@ export async function runFixtureDiscovery(
         const rawObjects = [];
         for (const raw of result.rawBundles) {
           if (signal.aborted) throw new StaleTaskError(task.id);
-          assertDiscoveryRawIdentity(raw, command.runId, command.parserVersion);
+          assertDiscoveryRawIdentity(raw, command.runId, command.parserVersion, sourceKind);
           const stored = await dependencies.rawStorage.put(raw);
           rawObjects.push({
             id: randomUUID(),
-            sourceKind: "list-org-browser",
+            sourceKind,
             sourceRecordKey: raw.identity.sourceRecordKey ?? `page:${raw.identity.page}`,
             mimeType: "application/json",
             finalUrl: raw.finalUrl,
@@ -174,7 +182,11 @@ export async function runFixtureDiscovery(
     };
   } catch (error) {
     if (!(error instanceof StaleTaskError)) {
-      await dependencies.repository.failTask(task, "fixture_discovery_failed", true);
+      await dependencies.repository.failTask(
+        task,
+        taskKind === "live_discovery" ? "live_discovery_failed" : "fixture_discovery_failed",
+        true,
+      );
     }
     throw error;
   }
@@ -184,10 +196,11 @@ function assertDiscoveryRawIdentity(
   raw: Awaited<ReturnType<OrganizationSource["collect"]>>["rawBundles"][number],
   runId: string,
   parserVersion: string,
+  sourceKind: "list-org-browser" | "list-org-live",
 ): void {
   const sourceRecordKey = raw.identity.sourceRecordKey ?? `page:${raw.identity.page}`;
   if (raw.identity.runId !== runId
-    || raw.sourceKind !== "list-org-browser"
+    || raw.sourceKind !== sourceKind
     || raw.parserVersion !== parserVersion
     || !Number.isSafeInteger(raw.identity.page)
     || raw.identity.page <= 0

@@ -5,6 +5,7 @@ import type {
   FinancialMetricOutcomes,
 } from "./ports/audience-repository";
 import { StaleTaskError } from "./stale-task-error";
+import { parseLegalEntityInn } from "../domain/inn";
 
 const FINANCIAL_LEASE_SECONDS = 300;
 
@@ -14,6 +15,8 @@ export interface PublishFinancialEvidenceCommand {
   evidence: readonly FinancialMetricEvidence[];
   metricOutcomes: FinancialMetricOutcomes;
   rawObjects?: readonly CapturedRawObject[];
+  taskKind?: "fixture_finance" | "live_finance";
+  companyInn?: string;
 }
 
 export interface PublishFinancialEvidenceDependencies {
@@ -38,6 +41,16 @@ export async function publishFinancialEvidence(
   command: PublishFinancialEvidenceCommand,
   dependencies: PublishFinancialEvidenceDependencies,
 ): Promise<void> {
+  const taskKind = command.taskKind ?? "fixture_finance";
+  if (taskKind === "live_finance") {
+    if (command.companyInn === undefined) throw new Error("live finance task requires a company INN");
+    parseLegalEntityInn(command.companyInn);
+    if (command.evidence.some((evidence) => evidence.inn !== command.companyInn)) {
+      throw new Error("live finance evidence belongs to another company");
+    }
+  } else if (command.companyInn !== undefined) {
+    throw new Error("fixture finance task cannot own a company INN");
+  }
   if (command.evidence.some((evidence) => evidence.reportYear !== command.reportYear)) {
     throw new Error("financial evidence report year does not match immutable run scope");
   }
@@ -48,7 +61,7 @@ export async function publishFinancialEvidence(
   );
   const task = await dependencies.repository.createTask(
     command.runId,
-    "fixture_finance",
+    taskKind,
     FINANCIAL_LEASE_SECONDS,
   );
   try {
@@ -58,11 +71,16 @@ export async function publishFinancialEvidence(
       evidence: command.evidence,
       metricOutcomes: command.metricOutcomes,
       rawObjects: command.rawObjects,
+      ...(command.companyInn === undefined ? {} : { companyInn: command.companyInn }),
     });
     if (!published) throw new StaleTaskError(task.id);
   } catch (error) {
     if (!(error instanceof StaleTaskError)) {
-      await dependencies.repository.failTask(task, "fixture_finance_failed", true);
+      await dependencies.repository.failTask(
+        task,
+        taskKind === "live_finance" ? "live_finance_failed" : "fixture_finance_failed",
+        true,
+      );
     }
     throw error;
   }

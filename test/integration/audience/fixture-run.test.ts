@@ -109,6 +109,35 @@ describe("fixture discovery and replay publication", () => {
     await temporaryDatabase?.drop();
   });
 
+  it("keeps discovery task kind and active-scope policy immutable across a live retry", async () => {
+    const runId = randomUUID();
+    const input = {
+      runId,
+      scope: {
+        okved: "43.11",
+        year: 2025,
+        dryRun: true,
+        maxPages: 2,
+        maxCompanies: 10,
+        onlyActive: false,
+        requiredFinancialMetrics: ["revenue", "income", "expenses"] as const,
+      },
+      fixtureVersion: "list-org-live/1.0.0",
+      parserVersion: "list-org-live/1.0.0",
+      taskKind: "live_discovery" as const,
+      leaseSeconds: 300,
+    };
+
+    const started = await repository.startDiscoveryRun(input);
+    expect(started).toMatchObject({ state: "acquired", task: { taskKind: "live_discovery" } });
+    if (started.state !== "acquired") throw new Error("expected acquired live discovery");
+    await expect(repository.failTask(started.task, "test_terminal", true)).resolves.toBe(true);
+    await expect(repository.startDiscoveryRun({
+      ...input,
+      scope: { ...input.scope, onlyActive: true },
+    })).rejects.toThrow("active-scope policy");
+  });
+
   it.each([
     ["non-contact name", "name", "Tampered Organization Name"],
     ["contact phone", "phone", "+7 (999) 000-00-00"],
