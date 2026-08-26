@@ -28,7 +28,11 @@ import { HumanVerificationGate } from "./human-verification";
 import { parseAudienceCli } from "./cli";
 import type { RunLivePilotDependencies } from "../../modules/audience/application/run-live-pilot";
 import { buildLivePilotReport } from "./live-pilot-report";
-import { LIVE_PILOT_POLICY } from "../../modules/audience/domain/live-pilot-policy";
+import {
+  assertLivePilotPolicyChecksum,
+  LIVE_PILOT_POLICY,
+  type LivePilotPolicy,
+} from "../../modules/audience/domain/live-pilot-policy";
 
 const LIST_ORG_URL = "https://www.list-org.com/search";
 const BFO_URL = "https://bo.nalog.gov.ru/";
@@ -62,11 +66,21 @@ export async function executeLivePilot(input: {
   repository: AudienceRepository;
   discoveryRawStorage: RawObjectStorage;
   factories?: LivePilotFactories;
+  /** Test-only seam. Runtime live mode can use only the reviewed in-code policy. */
+  testOnlyActivePolicy?: LivePilotPolicy;
 }): Promise<object> {
+  const policy = input.testOnlyActivePolicy ?? LIVE_PILOT_POLICY;
+  assertLivePilotPolicyChecksum(policy);
+  if (policy.authorization.status !== "active") {
+    throw new Error("LIVE_PILOT_AUTHORIZATION_CONSUMED");
+  }
+  if (input.testOnlyActivePolicy !== undefined) {
+    assertTestOnlyPolicyInjection(input.env, input.factories, policy);
+  }
   const attemptAcquired = await input.repository.acquireLivePilotAttempt({
-    scopeKey: LIVE_PILOT_POLICY.scopeKey,
-    commandContract: LIVE_PILOT_POLICY.command,
-    policyChecksumSha256: LIVE_PILOT_POLICY.checksumSha256,
+    scopeKey: policy.scopeKey,
+    commandContract: policy.command,
+    policyChecksumSha256: policy.checksumSha256,
   });
   if (!attemptAcquired) {
     throw new Error("LIVE_PILOT_ATTEMPT_ALREADY_CONSUMED");
@@ -331,6 +345,24 @@ export async function executeLivePilot(input: {
     } finally {
       revexpRawStorage?.close();
     }
+  }
+}
+
+function assertTestOnlyPolicyInjection(
+  env: AppEnv,
+  factories: LivePilotFactories | undefined,
+  policy: LivePilotPolicy,
+): void {
+  if (env.appMode !== "fixture" || env.listOrgLiveEnabled || env.fnsLiveEnabled
+    || !policy.scopeKey.startsWith("test-only/") || factories === undefined) {
+    throw new Error("LIVE_PILOT_TEST_POLICY_FORBIDDEN");
+  }
+  const endpoints = Object.values(factories.endpoints);
+  if (endpoints.some((value) => {
+    const hostname = new URL(value).hostname;
+    return hostname !== "127.0.0.1" && hostname !== "::1" && hostname !== "localhost";
+  })) {
+    throw new Error("LIVE_PILOT_TEST_POLICY_REQUIRES_LOOPBACK");
   }
 }
 

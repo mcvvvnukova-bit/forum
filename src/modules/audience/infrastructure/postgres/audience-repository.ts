@@ -102,26 +102,6 @@ export class PostgresAudienceRepository implements AudienceRepository {
       );
       if (priorGuard.rowCount !== 0) return false;
 
-      const exactScope = JSON.stringify({
-        okved: "43.11",
-        year: 2025,
-        dryRun: true,
-        maxPages: 2,
-        maxCompanies: 10,
-        onlyActive: false,
-        requiredFinancialMetrics: ["revenue", "income", "expenses"],
-      });
-      const priorRun = await transaction.query(
-        `SELECT 1
-         FROM audience.crawl_runs
-         WHERE scope_json = $1::jsonb
-           AND fixture_version = 'list-org-live/1.0.0'
-           AND parser_version = 'list-org-live/1.0.0'
-         LIMIT 1`,
-        [exactScope],
-      );
-      if (priorRun.rowCount !== 0) return false;
-
       const inserted = await transaction.query(
         `INSERT INTO audience.live_pilot_attempts (
            scope_key, command_contract, policy_checksum_sha256

@@ -26,6 +26,10 @@ import { reconcileRun } from "../../src/modules/audience/application/reconcile-r
 import { replayRun } from "../../src/modules/audience/application/replay-run";
 import { runFixtureDiscovery } from "../../src/modules/audience/application/run-fixture-discovery";
 import { parseLegalEntityInn } from "../../src/modules/audience/domain/inn";
+import {
+  checksumLivePilotPolicy,
+  LIVE_PILOT_POLICY,
+} from "../../src/modules/audience/domain/live-pilot-policy";
 import { PostgresAudienceRepository } from "../../src/modules/audience/infrastructure/postgres/audience-repository";
 import { PostgresOkvedRepository } from "../../src/modules/audience/infrastructure/postgres/okved-repository";
 import { PolicyBrowserSessionFactory } from "../../src/modules/audience/infrastructure/sources/browser/policy-browser";
@@ -1187,49 +1191,19 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
   async function executeIndependentLivePilot(
     input: Parameters<typeof executeLivePilot>[0],
   ): Promise<object> {
-    if (database === undefined) throw new Error("live pilot acceptance database is unavailable");
-    const activeDatabase = database;
-    const priorAttempts = await activeDatabase.query<{ id: string; scope_json: unknown }>(
-      `SELECT id, scope_json
-       FROM audience.crawl_runs
-       WHERE scope_json = $1::jsonb
-         AND fixture_version = 'list-org-live/1.0.0'
-         AND parser_version = 'list-org-live/1.0.0'`,
-      [JSON.stringify({
-        okved: "43.11",
-        year: 2025,
-        dryRun: true,
-        maxPages: 2,
-        maxCompanies: 10,
-        onlyActive: false,
-        requiredFinancialMetrics: ["revenue", "income", "expenses"],
-      })],
-    );
-    await activeDatabase.transaction(async (transaction) => {
-      for (const prior of priorAttempts.rows) {
-        await transaction.query(
-          `UPDATE audience.crawl_runs
-           SET scope_json = scope_json || jsonb_build_object('__independent_acceptance__', id::text)
-           WHERE id = $1`,
-          [prior.id],
-        );
-      }
-      // Each case models a fresh owned deployment. The durable/concurrent
-      // one-shot behavior itself is covered against a separate fresh database.
-      await transaction.query("TRUNCATE audience.live_pilot_attempts");
+    const { checksumSha256: _checksumSha256, ...reviewed } = LIVE_PILOT_POLICY;
+    const policy = {
+      ...reviewed,
+      scopeKey: `test-only/live-pilot/e2e/${randomUUID()}`,
+      authorization: { reviewedAt: "2026-08-27", status: "active" },
+    } as const;
+    return executeLivePilot({
+      ...input,
+      testOnlyActivePolicy: {
+        ...policy,
+        checksumSha256: checksumLivePilotPolicy(policy),
+      },
     });
-    try {
-      return await executeLivePilot(input);
-    } finally {
-      await activeDatabase.transaction(async (transaction) => {
-        for (const prior of priorAttempts.rows) {
-          await transaction.query(
-            "UPDATE audience.crawl_runs SET scope_json = $2::jsonb WHERE id = $1",
-            [prior.id, JSON.stringify(prior.scope_json)],
-          );
-        }
-      });
-    }
   }
 
   it("runs the real production orchestration through source-shaped loopback adapters", async () => {

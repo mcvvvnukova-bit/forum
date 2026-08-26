@@ -1,5 +1,40 @@
 import { createHash } from "node:crypto";
 
+export interface LivePilotPolicyDocument {
+  readonly version: number;
+  readonly scopeKey: string;
+  readonly owner: string;
+  readonly authorization: {
+    readonly reviewedAt: string;
+    readonly consumedAt?: string;
+    readonly status: "active" | "consumed";
+  };
+  readonly command: {
+    readonly kind: "live-pilot";
+    readonly okved: string;
+    readonly year: number;
+    readonly maxCompanies: number;
+  };
+  readonly runScope: {
+    readonly okved: string;
+    readonly year: number;
+    readonly dryRun: boolean;
+    readonly maxPages: number;
+    readonly maxCompanies: number;
+    readonly onlyActive: boolean;
+    readonly requiredFinancialMetrics: readonly ("revenue" | "income" | "expenses")[];
+  };
+  readonly origins: readonly string[];
+  readonly routes: readonly string[];
+  readonly actions: readonly string[];
+  readonly limits: Readonly<Record<string, number>>;
+  readonly retention: string;
+}
+
+export interface LivePilotPolicy extends LivePilotPolicyDocument {
+  readonly checksumSha256: string;
+}
+
 const reviewedPolicy = {
   version: 1,
   scopeKey: "okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-26",
@@ -54,13 +89,23 @@ const reviewedPolicy = {
     expandedArchiveBytes: 1_073_741_824,
   },
   retention: "immutable minimized raw evidence; no screenshots, action traces, CAPTCHA, cookies, or session material",
-} as const;
+} as const satisfies LivePilotPolicyDocument;
 
-const canonicalPolicy = JSON.stringify(reviewedPolicy);
-
-export const LIVE_PILOT_POLICY = Object.freeze({
+export const LIVE_PILOT_POLICY: LivePilotPolicy = Object.freeze({
   ...reviewedPolicy,
-  checksumSha256: createHash("sha256").update(canonicalPolicy).digest("hex"),
+  checksumSha256: checksumLivePilotPolicy(reviewedPolicy),
 });
 
 export type LivePilotCommandContract = typeof LIVE_PILOT_POLICY.command;
+
+export function checksumLivePilotPolicy(policy: LivePilotPolicyDocument): string {
+  return createHash("sha256").update(JSON.stringify(policy)).digest("hex");
+}
+
+export function assertLivePilotPolicyChecksum(policy: LivePilotPolicy): void {
+  const { checksumSha256, ...document } = policy;
+  if (!/^[0-9a-f]{64}$/u.test(checksumSha256)
+    || checksumLivePilotPolicy(document) !== checksumSha256) {
+    throw new Error("LIVE_PILOT_POLICY_CHECKSUM_MISMATCH");
+  }
+}
