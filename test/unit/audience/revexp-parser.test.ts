@@ -187,6 +187,89 @@ describe("selectRevexpMetrics", () => {
       testLimits: { compressedBytes: 1024 * 1024, expandedBytes: 1_024 },
     })).rejects.toThrow("expanded");
   });
+
+  it("bounds decoder output when one caller chunk is a high-ratio data-descriptor ZIP", async () => {
+    const archive = streamingArchiveWith("revexp.xml", new TextEncoder().encode(
+      `<?xml version="1.0"?><Файл>${" ".repeat(8 * 1024 * 1024)}</Файл>`,
+    ));
+    let maximumDecoderOutputBytes = 0;
+    expect(archive.byteLength).toBeLessThan(10_000);
+    expect(archive[6]! & 0x08).toBe(0x08);
+
+    await expect(selectRevexpMetrics(chunked(archive, archive.byteLength), targetInns, {
+      ...archiveContext,
+      testLimits: { compressedBytes: 1024 * 1024, expandedBytes: 6 * 1024 * 1024 },
+      instrumentation: {
+        onRecordComplete() {},
+        onExpandedChunk(snapshot) {
+          maximumDecoderOutputBytes = Math.max(maximumDecoderOutputBytes, snapshot.byteLength);
+        },
+      },
+    })).rejects.toThrow("expanded");
+    expect(maximumDecoderOutputBytes).toBeGreaterThan(0);
+    expect(maximumDecoderOutputBytes).toBeLessThanOrEqual(5 * 1024 * 1024);
+  });
+
+  it.each([
+    ["a zeroed central-directory record", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset, centralSize) => {
+      bytes.fill(0, centralOffset, centralOffset + centralSize);
+    }), "central-directory record"],
+    ["a missing central-directory record", withoutCentralRecord, "central-directory record"],
+    ["a forged expanded-size claim", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      writeUint32(bytes, centralOffset + 24, 0x7fff_ffff);
+    }), "expanded-byte"],
+    ["an unsafe central compressed-size claim", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      writeUint32(bytes, centralOffset + 20, 0x7fff_ffff);
+    }), "compressed-byte"],
+    ["an unsafe local expanded-size claim", (archive: Uint8Array) => mutateCentral(archive, (bytes) => {
+      writeUint32(bytes, 22, 0x7fff_ffff);
+    }), "expanded"],
+    ["a forged compressed-size claim", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      writeUint32(bytes, centralOffset + 20, readUint32(bytes, centralOffset + 20) + 1);
+    }), "compressed size"],
+    ["a forged CRC", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      writeUint32(bytes, centralOffset + 16, readUint32(bytes, centralOffset + 16) ^ 0xffff_ffff);
+    }), "CRC"],
+    ["a forged safe member name", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      bytes.set(new TextEncoder().encode("sevexp.xml"), centralOffset + 46);
+    }), "name"],
+    ["an unsafe central member name", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      bytes.set(new TextEncoder().encode("../bad.xml"), centralOffset + 46);
+    }), "traversal"],
+    ["an unsafe local member name", (archive: Uint8Array) => mutateCentral(archive, (bytes) => {
+      bytes.set(new TextEncoder().encode("../bad.xml"), 30);
+    }), "traversal"],
+    ["a forged local-header offset", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      writeUint32(bytes, centralOffset + 42, 1);
+    }), "local-header offset"],
+    ["forged central flags", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      writeUint16(bytes, centralOffset + 8, readUint16(bytes, centralOffset + 8) ^ 0x0001);
+    }), "flags"],
+    ["a forged compression method", (archive: Uint8Array) => mutateCentral(archive, (bytes, centralOffset) => {
+      writeUint16(bytes, centralOffset + 10, 99);
+    }), "compression method"],
+    ["a duplicate central-directory record", duplicateCentralRecord, "exactly one"],
+    ["trailing data before the central directory", withTrailingByteBeforeCentral, "trailing data"],
+  ])("rejects %s", async (_case, mutate, expected) => {
+    const archive = mutate(archiveWith({ "revexp.xml": validXml() }));
+
+    await expect(selectRevexpMetrics(chunked(archive, archive.byteLength), targetInns, archiveContext))
+      .rejects.toThrow(expected);
+  });
+
+  it.each([
+    ["CRC", 4],
+    ["compressed size", 8],
+    ["expanded size", 12],
+  ])("rejects a forged data-descriptor %s", async (field, fieldOffset) => {
+    const archive = mutateDataDescriptor(
+      streamingArchiveWith("revexp.xml", validXml()),
+      fieldOffset,
+    );
+
+    await expect(selectRevexpMetrics(chunked(archive, archive.byteLength), targetInns, archiveContext))
+      .rejects.toThrow(`data-descriptor ${field}`);
+  });
 });
 
 describe("parseMoneyText", () => {
@@ -235,4 +318,100 @@ async function* chunked(bytes: Uint8Array, size: number): AsyncIterable<Uint8Arr
   for (let offset = 0; offset < bytes.byteLength; offset += size) {
     yield bytes.subarray(offset, Math.min(offset + size, bytes.byteLength));
   }
+}
+
+function mutateCentral(
+  archive: Uint8Array,
+  mutate: (bytes: Uint8Array, centralOffset: number, centralSize: number, eocdOffset: number) => void,
+): Uint8Array {
+  const bytes = archive.slice();
+  const eocdOffset = findEocd(bytes);
+  const centralOffset = readUint32(bytes, eocdOffset + 16);
+  const centralSize = readUint32(bytes, eocdOffset + 12);
+  mutate(bytes, centralOffset, centralSize, eocdOffset);
+  return bytes;
+}
+
+function withoutCentralRecord(archive: Uint8Array): Uint8Array {
+  const eocdOffset = findEocd(archive);
+  const centralOffset = readUint32(archive, eocdOffset + 16);
+  const centralSize = readUint32(archive, eocdOffset + 12);
+  const bytes = new Uint8Array(archive.byteLength - centralSize);
+  bytes.set(archive.subarray(0, centralOffset));
+  bytes.set(archive.subarray(eocdOffset), centralOffset);
+  writeUint32(bytes, centralOffset + 12, 0);
+  return bytes;
+}
+
+function duplicateCentralRecord(archive: Uint8Array): Uint8Array {
+  const eocdOffset = findEocd(archive);
+  const centralOffset = readUint32(archive, eocdOffset + 16);
+  const centralSize = readUint32(archive, eocdOffset + 12);
+  const bytes = new Uint8Array(archive.byteLength + centralSize);
+  bytes.set(archive.subarray(0, eocdOffset), 0);
+  bytes.set(archive.subarray(centralOffset, eocdOffset), eocdOffset);
+  const newEocdOffset = eocdOffset + centralSize;
+  bytes.set(archive.subarray(eocdOffset), newEocdOffset);
+  writeUint16(bytes, newEocdOffset + 8, 2);
+  writeUint16(bytes, newEocdOffset + 10, 2);
+  writeUint32(bytes, newEocdOffset + 12, centralSize * 2);
+  return bytes;
+}
+
+function withTrailingByteBeforeCentral(archive: Uint8Array): Uint8Array {
+  const eocdOffset = findEocd(archive);
+  const centralOffset = readUint32(archive, eocdOffset + 16);
+  const bytes = new Uint8Array(archive.byteLength + 1);
+  bytes.set(archive.subarray(0, centralOffset));
+  bytes[centralOffset] = 0;
+  bytes.set(archive.subarray(centralOffset), centralOffset + 1);
+  writeUint32(bytes, eocdOffset + 1 + 16, centralOffset + 1);
+  return bytes;
+}
+
+function mutateDataDescriptor(archive: Uint8Array, fieldOffset: number): Uint8Array {
+  const bytes = archive.slice();
+  const eocdOffset = findEocd(bytes);
+  const centralOffset = readUint32(bytes, eocdOffset + 16);
+  const descriptorOffset = centralOffset - 16;
+  if (readUint32(bytes, descriptorOffset) !== 0x08074b50) {
+    throw new Error("test ZIP has no signed data descriptor");
+  }
+  writeUint32(
+    bytes,
+    descriptorOffset + fieldOffset,
+    readUint32(bytes, descriptorOffset + fieldOffset) ^ 0xffff_ffff,
+  );
+  return bytes;
+}
+
+function findEocd(bytes: Uint8Array): number {
+  for (let offset = bytes.byteLength - 22; offset >= 0; offset -= 1) {
+    if (readUint32(bytes, offset) === 0x06054b50
+      && offset + 22 + readUint16(bytes, offset + 20) === bytes.byteLength) return offset;
+  }
+  throw new Error("test ZIP has no EOCD");
+}
+
+function readUint16(bytes: Uint8Array, offset: number): number {
+  return bytes[offset]! | (bytes[offset + 1]! << 8);
+}
+
+function readUint32(bytes: Uint8Array, offset: number): number {
+  return (bytes[offset]!
+    | (bytes[offset + 1]! << 8)
+    | (bytes[offset + 2]! << 16)
+    | (bytes[offset + 3]! << 24)) >>> 0;
+}
+
+function writeUint16(bytes: Uint8Array, offset: number, value: number): void {
+  bytes[offset] = value & 0xff;
+  bytes[offset + 1] = (value >>> 8) & 0xff;
+}
+
+function writeUint32(bytes: Uint8Array, offset: number, value: number): void {
+  bytes[offset] = value & 0xff;
+  bytes[offset + 1] = (value >>> 8) & 0xff;
+  bytes[offset + 2] = (value >>> 16) & 0xff;
+  bytes[offset + 3] = (value >>> 24) & 0xff;
 }
