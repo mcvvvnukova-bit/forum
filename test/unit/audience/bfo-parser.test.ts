@@ -98,8 +98,7 @@ describe("parseBfo", () => {
 describe("parseBfoVisibleReport", () => {
   const visibleContext = {
     ...context,
-    sourceRecordKey: "7707083893:2025:0710002:visible",
-    observedAt: "2026-08-26T12:00:00.000Z",
+    capturedAt: "2026-08-26T12:00:00.000Z",
   };
 
   it("converts the exact localized thousand-ruble line 2110 with BigInt precision", () => {
@@ -113,14 +112,19 @@ describe("parseBfoVisibleReport", () => {
       inn: "7707083893",
       reportYear: 2025,
       revenue: "1654023000.00",
+      officialReportIdentity: {
+        sourceRecordKey: "7707083893:2025:0710002:2",
+        observedAt: "2026-04-01T00:00:00.000Z",
+        correctionIdentity: "2",
+      },
       evidence: [{
         inn: "7707083893",
         reportYear: 2025,
         metric: "revenue",
         value: "1654023000.00",
         sourceKind: "fns_bfo",
-        sourceRecordKey: "7707083893:2025:0710002:visible",
-        observedAt: "2026-08-26T12:00:00.000Z",
+        sourceRecordKey: "7707083893:2025:0710002:2",
+        observedAt: "2026-04-01T00:00:00.000Z",
         rawFetchKey: "raw/fns-bfo/7707083893-2025.json",
         parserVersion: "fns-bfo/1.0.0",
       }],
@@ -135,7 +139,41 @@ describe("parseBfoVisibleReport", () => {
       reportYear: 2025,
       revenue: null,
       evidence: [],
+      officialReportIdentity: {
+        sourceRecordKey: "7707083893:2025:0710002:2",
+        observedAt: "2026-04-01T00:00:00.000Z",
+        correctionIdentity: "2",
+      },
     });
+  });
+
+  it("rejects a truncated projection without complete visible report-table proof", () => {
+    expect(() => parseBfoVisibleReport(visibleReport({
+      rows: [],
+      omitCompleteTable: true,
+    }), visibleContext)).toThrow(/complete|table/u);
+  });
+
+  it("rejects an unscoped generic complete-table marker", () => {
+    expect(() => parseBfoVisibleReport(visibleReport({
+      completeTableMarker: "visible-table-projection/1:complete",
+    }), visibleContext)).toThrow(/complete|scope|table/u);
+  });
+
+  it.each([
+    ["unredacted unrelated cells", {
+      rows: [
+        ["Прочие доходы", "2340", "999 999"],
+        ["Выручка", "2110", "1 654 023"],
+      ],
+      preserveUnrelatedCells: true,
+    }],
+    ["a malformed row code", {
+      rows: [["Себестоимость продаж", "21A0", "999 999"]],
+    }],
+  ] as const)("rejects %s in the durable minimized table projection", (_case, options) => {
+    expect(() => parseBfoVisibleReport(visibleReport(options), visibleContext))
+      .toThrow(/code|row|minimized|redacted/u);
   });
 
   it("accepts only exact positive restricted or unavailable report markers as absence", () => {
@@ -176,6 +214,18 @@ describe("parseBfoVisibleReport", () => {
   });
 
   it.each([
+    ["a 2024 value column", [["Наименование", "Код", "За 2024 год"]]],
+    ["a malformed value column", [["Наименование", "За 2025 год", "Код"]]],
+    ["ambiguous header rows", [
+      ["Наименование", "Код", "За 2025 год"],
+      ["Наименование", "Код", "За 2024 год"],
+    ]],
+  ] as const)("rejects %s instead of reading the third cell blindly", (_case, headerRows) => {
+    expect(() => parseBfoVisibleReport(visibleReport({ headerRows }), visibleContext))
+      .toThrow(/header|column|2025/u);
+  });
+
+  it.each([
     ["decimal comma", "1 654 023,5"],
     ["decimal dot", "1 654 023.5"],
     ["narrow no-break spaces", "1\u202f654\u202f023"],
@@ -196,12 +246,28 @@ describe("parseBfoVisibleReport", () => {
     }), visibleContext).revenue).toBe("9999999999999000.00");
   });
 
-  it("rejects malformed UTF-8 and an invalid observation timestamp", () => {
+  it("rejects malformed UTF-8", () => {
     expect(() => parseBfoVisibleReport(new Uint8Array([0xff]), visibleContext)).toThrow("UTF-8");
-    expect(() => parseBfoVisibleReport(visibleReport({}), {
-      ...visibleContext,
-      observedAt: "not-a-timestamp",
-    })).toThrow("timestamp");
+  });
+
+  it.each([
+    ["a leading-zero correction", { correctionIdentity: "02" }, "correction"],
+    ["a non-ASCII correction", { correctionIdentity: "２" }, "correction"],
+    ["an impossible source date", { sourceDate: "31.02.2026" }, "date"],
+    ["a non-display source date", { sourceDate: "2026-04-01" }, "date"],
+  ] as const)("rejects %s", (_case, overrides, expectedMessage) => {
+    expect(() => parseBfoVisibleReport(visibleReport(overrides), visibleContext))
+      .toThrow(expectedMessage);
+  });
+
+  it("requires exact official correction and source-date fields", () => {
+    expect(() => parseBfoVisibleReport(visibleReport({ omitOfficialMetadata: true }), visibleContext))
+      .toThrow(/Номер корректировки|date|official/u);
+  });
+
+  it("rejects an official source date after the browser capture time", () => {
+    expect(() => parseBfoVisibleReport(visibleReport({ sourceDate: "27.08.2026" }), visibleContext))
+      .toThrow(/capture|future|timestamp/u);
   });
 
   it("rejects a forged legal-entity INN brand with an invalid checksum", () => {
@@ -244,12 +310,27 @@ function visibleReport(options: {
   restricted?: boolean;
   unavailable?: boolean;
   omitForm?: boolean;
+  omitCompleteTable?: boolean;
+  completeTableMarker?: string;
+  headerRows?: readonly (readonly string[])[];
+  correctionIdentity?: string;
+  sourceDate?: string;
+  omitOfficialMetadata?: boolean;
+  preserveUnrelatedCells?: boolean;
 }): Uint8Array {
   const inn = options.inn ?? "7707083893";
   const reportYear = options.reportYear ?? 2025;
   const form = options.form ?? "0710002";
   const unit = options.unit ?? "Ед. измерения: тыс. ₽";
   const rows = options.rows ?? [["Выручка", "2110", "1 654 023"]];
+  const headerRows = options.headerRows ?? [["Наименование", "Код", "За 2025 год"]];
+  const projectedRows = rows.map(([label, code, amount]) => code === "2110"
+    || options.preserveUnrelatedCells === true
+    ? [label, code, amount]
+    : ["projection-redacted", code, "projection-redacted"]);
+  const officialMetadata = options.omitOfficialMetadata === true
+    ? ""
+    : `<dt>Номер корректировки</dt><dd>${options.correctionIdentity ?? "2"}</dd><dt>Дата представления отчетности</dt><dd>${options.sourceDate ?? "01.04.2026"}</dd>`;
   const body = options.restricted === true
     ? `<p>Доступ к отчетности ограничен</p>${options.unavailable === true
       ? `<p>Отчетность за ${reportYear} год отсутствует</p>`
@@ -258,10 +339,14 @@ function visibleReport(options: {
       ? `<p>Отчетность за ${reportYear} год отсутствует</p>`
     : options.omitForm === true
       ? "<p>Нет данных</p>"
-      : `<h2>Форма по ОКУД ${form}</h2><p>${unit}</p><table><tbody>${rows.map(([label, code, amount]) =>
-        `<tr><td>${label}</td><td>${code}</td><td>${amount}</td></tr>`
-      ).join("")}</tbody></table>`;
+      : `<h2>Форма по ОКУД ${form}</h2><p>${unit}</p>${options.omitCompleteTable === true
+        ? ""
+        : `<p>${options.completeTableMarker ?? "visible-table-projection/1:complete:fns-bfo:0710002"}</p><table><thead>${headerRows.map((header) =>
+          `<tr>${header.map((cell) => `<th>${cell}</th>`).join("")}</tr>`
+        ).join("")}</thead><tbody>${projectedRows.map(([label, code, amount]) =>
+          `<tr><td>${label}</td><td>${code}</td><td>${amount}</td></tr>`
+        ).join("")}</tbody></table>`}`;
   return new TextEncoder().encode(
-    `<!doctype html><html><body><main><h1>Отчетность за ${reportYear} год</h1><dl><dt>ИНН</dt><dd>${inn}</dd></dl>${body}</main></body></html>`,
+    `<!doctype html><html><body><main><h1>Отчетность за ${reportYear} год</h1><dl><dt>ИНН</dt><dd>${inn}</dd>${officialMetadata}</dl>${body}</main></body></html>`,
   );
 }

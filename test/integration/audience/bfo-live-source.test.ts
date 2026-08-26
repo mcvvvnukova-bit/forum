@@ -51,14 +51,14 @@ describe("BfoLiveSource", () => {
         metric: "revenue",
         value: "1654023000.00",
         sourceKind: "fns_bfo",
-        sourceRecordKey: "7707083893:2025:0710002:visible",
-        observedAt: "2026-08-26T12:00:00.000Z",
+        sourceRecordKey: "7707083893:2025:0710002:2",
+        observedAt: "2026-04-01T00:00:00.000Z",
         parserVersion: "fns-bfo-live/1.0.0",
       },
       sourceAttempt: {
         sourceKind: "fns_bfo",
-        sourceRecordKey: "7707083893:2025:0710002:visible",
-        observedAt: "2026-08-26T12:00:00.000Z",
+        sourceRecordKey: "7707083893:2025:0710002:2",
+        observedAt: "2026-04-01T00:00:00.000Z",
         parserVersion: "fns-bfo-live/1.0.0",
       },
       raw: {
@@ -68,13 +68,14 @@ describe("BfoLiveSource", () => {
         identity: {
           runId: "bfo-default",
           page: 1,
-          sourceRecordKey: "7707083893:2025:0710002:visible",
+          sourceRecordKey: "7707083893:2025:0710002:2",
         },
         candidateEvidence: null,
         actions: [],
       },
     });
     if (result.outcome !== "published") throw new Error("expected published result");
+    expect(result.raw.capturedAt).toBe("2026-08-26T12:00:00.000Z");
     expect(result.evidence.rawFetchKey).toBe(result.raw.checksumSha256);
     expect(result.sourceAttempt.rawFetchKey).toBe(result.raw.checksumSha256);
     expect(fixture.requests()).toEqual([
@@ -101,6 +102,8 @@ describe("BfoLiveSource", () => {
       ["click-button", "Отчетность за 2025 год"],
       ["wait-landmark", "Отчетность за 2025 год"],
       ["read-labeled-text", "ИНН"],
+      ["read-labeled-text", "Номер корректировки"],
+      ["read-labeled-text", "Дата представления отчетности"],
       ["capture-projection", expect.stringContaining("2110")],
     ]);
     expect(actions.some((action) => /request|fetch|xhr|download/iu.test(action.kind))).toBe(false);
@@ -115,9 +118,15 @@ describe("BfoLiveSource", () => {
     expect(dom).toContain("7707083893");
     expect(dom).toContain("Форма по ОКУД 0710002");
     expect(dom).toContain("Ед. измерения: тыс. ₽");
+    expect(dom).toContain("Номер корректировки");
+    expect(dom).toContain("Дата представления отчетности");
+    expect(dom).toContain("01.04.2026");
     expect(dom).toContain("Выручка");
     expect(dom).toContain("2110");
-    expect(dom).not.toMatch(/2340|2120|987 654|unrelated|person|example|API|Скачать/u);
+    expect(dom).toContain("2340");
+    expect(dom).toContain("2120");
+    expect(dom).toContain("projection-redacted");
+    expect(dom).not.toMatch(/987 654|Прочие доходы|Себестоимость продаж|unrelated|person|example|API|Скачать/u);
     expectRawProjectionSafe(raw);
   });
 
@@ -146,8 +155,16 @@ describe("BfoLiveSource", () => {
       },
     });
     const dom = new TextDecoder().decode(result.raw.sanitizedDomUtf8);
+    if (scenario === "no-line-2110") {
+      if (result.outcome !== "no_data") throw new Error("expected audited no_data");
+      expect(result.sourceAttempt).toMatchObject({
+        sourceRecordKey: "7707083893:2025:0710002:2",
+        observedAt: "2026-04-01T00:00:00.000Z",
+      });
+      expect(dom).toContain("2120");
+    }
     expect(dom).toContain("7707083893");
-    expect(dom).not.toMatch(/challenge-secret|no-line-unrelated-secret|2120/u);
+    expect(dom).not.toMatch(/challenge-secret|no-line-unrelated-secret|Себестоимость продаж/u);
     expectRawProjectionSafe(result.raw);
   });
 
@@ -158,7 +175,12 @@ describe("BfoLiveSource", () => {
     ["wrong-year", "contract_drift"],
     ["wrong-unit", "contract_drift"],
     ["wrong-form", "contract_drift"],
+    ["wrong-column-year", "contract_drift"],
+    ["invalid-correction", "contract_drift"],
+    ["invalid-source-date", "contract_drift"],
+    ["missing-official-metadata", "contract_drift"],
     ["conflicting-status", "contract_drift"],
+    ["truncated-table", "contract_drift"],
     ["duplicate-line", "contract_drift"],
     ["decimal-number", "contract_drift"],
     ["unsafe-separator", "contract_drift"],

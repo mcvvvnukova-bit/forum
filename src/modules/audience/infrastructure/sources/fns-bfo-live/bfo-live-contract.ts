@@ -1,4 +1,7 @@
-import type { BrowserCaptureProjection } from "../../../application/ports/browser-session";
+import type {
+  BrowserCaptureProjection,
+  BrowserVisibleTableProjection,
+} from "../../../application/ports/browser-session";
 import type { LegalEntityInn } from "../../../domain/inn";
 import { BrowserContractError } from "../list-org-browser/browser-record-policy";
 import {
@@ -20,6 +23,16 @@ export const BFO_UNAVAILABLE_TEXT = "Отчетность за 2025 год от�
 const REPORT_ROOT = `main[aria-label="${BFO_REPORT_LANDMARK}"]`;
 const FORM_ROOT = 'section[aria-label="Форма по ОКУД 0710002"]';
 
+export const BFO_REPORT_TABLE_PROJECTION: BrowserVisibleTableProjection = {
+  scopeIdentity: "fns-bfo:0710002",
+  selector: `${FORM_ROOT} > table`,
+  expectedColumnCount: 3,
+  matchColumnIndex: 1,
+  matchText: "2110",
+  retainedMatchColumnIndexes: [0, 1, 2],
+  retainedOtherColumnIndexes: [1],
+};
+
 export const BFO_REPORT_IDENTITY_PROJECTION_SELECTORS = [
   `${REPORT_ROOT} > h1:text-is("${BFO_REPORT_LANDMARK}")`,
   `${REPORT_ROOT} dt:text-is("ИНН")`,
@@ -28,13 +41,16 @@ export const BFO_REPORT_IDENTITY_PROJECTION_SELECTORS = [
 
 export const BFO_REPORT_FORM_PROJECTION_SELECTORS = [
   ...BFO_REPORT_IDENTITY_PROJECTION_SELECTORS,
+  `${REPORT_ROOT} dt:text-is("Номер корректировки")`,
+  `${REPORT_ROOT} dt:text-is("Номер корректировки") + dd`,
+  `${REPORT_ROOT} dt:text-is("Дата представления отчетности")`,
+  `${REPORT_ROOT} dt:text-is("Дата представления отчетности") + dd`,
   `${FORM_ROOT} > h2:text-is("Форма по ОКУД 0710002")`,
   `${FORM_ROOT} > p:text-is("Ед. измерения: тыс. ₽")`,
 ] as const;
 
 export const BFO_REVENUE_PROJECTION_SELECTORS = [
   ...BFO_REPORT_FORM_PROJECTION_SELECTORS,
-  `${FORM_ROOT} tr:has(td:nth-child(2):text-is("2110"))`,
 ] as const;
 
 export function bfoNoDataProjectionSelectors(

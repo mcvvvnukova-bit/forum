@@ -3,17 +3,23 @@ import {
   type Browser,
   type BrowserContext,
   type CDPSession,
+  type Locator,
   type Page,
   type Request,
   type Route,
 } from "playwright";
 
+import {
+  COMPLETE_VISIBLE_TABLE_PROJECTION_MARKER,
+  REDACTED_VISIBLE_TABLE_CELL,
+} from "../../../application/ports/browser-session";
 import type {
   BrowserCaptureProjection,
   BrowserOriginPolicy,
   BrowserPolicyBlockState,
   BrowserPolicyViolation,
   BrowserSession,
+  BrowserVisibleTableProjection,
   BrowserUrlContract,
   PolicyBrowserSessionFactory as PolicyBrowserSessionFactoryPort,
 } from "../../../application/ports/browser-session";
@@ -628,11 +634,19 @@ class PolicyBrowserSession implements BrowserSession {
     return sha256(dom);
   }
 
-  async captureProjection(selectors: readonly string[]): Promise<BrowserCaptureProjection> {
+  async captureProjection(
+    selectors: readonly string[],
+    table?: BrowserVisibleTableProjection,
+  ): Promise<BrowserCaptureProjection> {
     if (selectors.length === 0 || selectors.some((selector) => selector.trim() === "")) {
       throw new Error("capture projection requires at least one selector");
     }
-    const target = selectors.join(";");
+    const target = [
+      ...selectors,
+      ...(table === undefined ? [] : [
+        `complete-table:${table.selector}:match-column=${table.matchColumnIndex}:match-text=${table.matchText}`,
+      ]),
+    ].join(";");
     const actionId = await this.#beginAction("capture-projection", target);
     try {
       const fragments: string[] = [];
@@ -650,6 +664,9 @@ class PolicyBrowserSession implements BrowserSession {
           if (element.tagName.toLowerCase() === "tr") return `<table><tbody>${html}</tbody></table>`;
           return html;
         }));
+      }
+      if (table !== undefined) {
+        fragments.push(await this.#captureVisibleTableProjection(table));
       }
       const currentPageUrl = this.#page.url();
       if (this.#safeEvidenceUrl() !== currentPageUrl) {
@@ -675,7 +692,7 @@ class PolicyBrowserSession implements BrowserSession {
       this.#assertNoTerminalRequests();
       await this.#actions.finish(actionId, "capture-projection", target, "completed");
       return {
-        selectors: [...selectors],
+        selectors: [...selectors, ...(table === undefined ? [] : [table.selector])],
         sanitizedDomUtf8,
         sensitiveFormFieldNames: [...this.#sensitiveQueryParameters],
       };
@@ -684,6 +701,38 @@ class PolicyBrowserSession implements BrowserSession {
       if (error instanceof ExternalBrowserRequestError) throw error;
       throw new BrowserPolicyContractError(messageOf(error));
     }
+  }
+
+  async #captureVisibleTableProjection(
+    projection: BrowserVisibleTableProjection,
+  ): Promise<string> {
+    assertVisibleTableProjectionValid(projection);
+    const visibleTables = await visibleLocators(this.#page.locator(projection.selector));
+    if (visibleTables.length !== 1) {
+      throw new Error("complete table projection must match exactly one visible table");
+    }
+    const table = visibleTables[0]!;
+    const headerRows = await visibleLocators(table.locator(":scope > thead > tr"));
+    if (headerRows.length !== 1) {
+      throw new Error("complete table projection requires exactly one visible header row");
+    }
+    const header = await exactRowCells(headerRows[0]!, "TH", projection.expectedColumnCount);
+    const bodyRows = await visibleLocators(table.locator(":scope > tbody > tr"));
+    const rows: string[][] = [];
+    for (const row of bodyRows) {
+      rows.push(await exactRowCells(row, "TD", projection.expectedColumnCount));
+    }
+    const projectedRows = rows.map((row) => {
+      const retained = new Set(row[projection.matchColumnIndex] === projection.matchText
+        ? projection.retainedMatchColumnIndexes
+        : projection.retainedOtherColumnIndexes);
+      return `<tr>${row.map((cell, index) =>
+        `<td>${escapeHtmlText(retained.has(index) ? cell : REDACTED_VISIBLE_TABLE_CELL)}</td>`
+      ).join("")}</tr>`;
+    }).join("");
+    return `<p>${COMPLETE_VISIBLE_TABLE_PROJECTION_MARKER}:${escapeHtmlText(projection.scopeIdentity)}</p><table><thead><tr>${header.map((cell) =>
+      `<th>${escapeHtmlText(cell)}</th>`
+    ).join("")}</tr></thead><tbody>${projectedRows}</tbody></table>`;
   }
 
   async policyViolations(): Promise<readonly BrowserPolicyViolation[]> {
@@ -1266,6 +1315,57 @@ function classifyRequest(resourceType: string, isNavigation: boolean, isSubframe
 
 function escapeHtmlAttribute(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
+}
+
+function escapeHtmlText(value: string): string {
+  return escapeHtmlAttribute(value).replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+async function visibleLocators(locator: Locator): Promise<Locator[]> {
+  const visible: Locator[] = [];
+  for (const candidate of await locator.all()) {
+    if (await candidate.isVisible()) visible.push(candidate);
+  }
+  return visible;
+}
+
+async function exactRowCells(
+  row: Locator,
+  expectedTag: "TH" | "TD",
+  expectedCount: number,
+): Promise<string[]> {
+  const cells = await visibleLocators(row.locator(":scope > th, :scope > td"));
+  if (cells.length !== expectedCount) {
+    throw new Error("complete table projection row has an unexpected visible column count");
+  }
+  const values: string[] = [];
+  for (const cell of cells) {
+    if (await cell.evaluate((element) => element.tagName) !== expectedTag) {
+      throw new Error("complete table projection row has an unexpected cell type");
+    }
+    values.push((await cell.innerText()).trim());
+  }
+  return values;
+}
+
+function assertVisibleTableProjectionValid(projection: BrowserVisibleTableProjection): void {
+  if (projection.selector.trim() === "" || projection.matchText === ""
+    || !/^[a-z0-9][a-z0-9:._/-]*$/u.test(projection.scopeIdentity)) {
+    throw new Error("complete table projection contract is incomplete");
+  }
+  if (!Number.isSafeInteger(projection.expectedColumnCount) || projection.expectedColumnCount <= 0) {
+    throw new Error("complete table projection column count is invalid");
+  }
+  const indexes = [
+    projection.matchColumnIndex,
+    ...projection.retainedMatchColumnIndexes,
+    ...projection.retainedOtherColumnIndexes,
+  ];
+  if (indexes.some((index) => !Number.isSafeInteger(index)
+    || index < 0
+    || index >= projection.expectedColumnCount)) {
+    throw new Error("complete table projection column index is invalid");
+  }
 }
 
 function messageOf(error: unknown): string {

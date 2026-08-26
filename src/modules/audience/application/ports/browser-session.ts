@@ -22,7 +22,10 @@ export interface BrowserSession {
   currentNavigationStatus(): Promise<number | null>;
   recordCaptchaWaiting(target: string): Promise<void>;
   fingerprint(): Promise<string>;
-  captureProjection(selectors: readonly string[]): Promise<BrowserCaptureProjection>;
+  captureProjection(
+    selectors: readonly string[],
+    table?: BrowserVisibleTableProjection,
+  ): Promise<BrowserCaptureProjection>;
   policyViolations(): Promise<readonly BrowserPolicyViolation[]>;
   capture(
     identity: BrowserRawBundle["identity"],
@@ -66,6 +69,20 @@ export interface BrowserCaptureProjection {
   readonly selectors: readonly string[];
   readonly sanitizedDomUtf8: Uint8Array;
   readonly sensitiveFormFieldNames: readonly string[];
+}
+
+export const COMPLETE_VISIBLE_TABLE_PROJECTION_MARKER =
+  "visible-table-projection/1:complete";
+export const REDACTED_VISIBLE_TABLE_CELL = "projection-redacted";
+
+export interface BrowserVisibleTableProjection {
+  readonly scopeIdentity: string;
+  readonly selector: string;
+  readonly expectedColumnCount: number;
+  readonly matchColumnIndex: number;
+  readonly matchText: string;
+  readonly retainedMatchColumnIndexes: readonly number[];
+  readonly retainedOtherColumnIndexes: readonly number[];
 }
 
 export interface BrowserPolicyViolation {

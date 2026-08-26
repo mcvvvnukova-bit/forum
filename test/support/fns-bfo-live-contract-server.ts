@@ -188,6 +188,16 @@ export async function startFnsBfoLiveContractServer(): Promise<FnsBfoLiveContrac
       if (activeScenario === "wrong-year") html = html.replaceAll("2025", "2024");
       if (activeScenario === "wrong-unit") html = html.replace("Ед. измерения: тыс. ₽", "Ед. измерения: ₽");
       if (activeScenario === "wrong-form") html = html.replaceAll("0710002", "0710001");
+      if (activeScenario === "wrong-column-year") html = html.replace("За 2025 год", "За 2024 год");
+      if (activeScenario === "invalid-correction") html = html.replace(
+        "<dt>Номер корректировки</dt><dd>2</dd>",
+        "<dt>Номер корректировки</dt><dd>02</dd>",
+      );
+      if (activeScenario === "invalid-source-date") html = html.replace("01.04.2026", "31.02.2026");
+      if (activeScenario === "missing-official-metadata") html = html
+        .replace("<dt>Номер корректировки</dt><dd>2</dd>", "")
+        .replace("<dt>Дата представления отчетности</dt><dd>01.04.2026</dd>", "");
+      if (activeScenario === "truncated-table") html = html.replace(/<table>[\s\S]*?<\/table>/u, "");
       if (activeScenario === "slow-report") {
         setTimeout(() => responseHtml(response, html), 75);
         return;

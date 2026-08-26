@@ -19,10 +19,12 @@ import {
   sanitizeBrowserUrl,
 } from "../list-org-browser/browser-raw-sanitizer";
 import { BrowserContractError } from "../list-org-browser/browser-record-policy";
+import { parseBfoOfficialReportIdentity } from "../fns-bfo/bfo-parser";
 import {
   BFO_CAPTCHA_LANDMARK,
   BFO_ORGANIZATION_LANDMARK,
   BFO_REPORT_LANDMARK,
+  BFO_REPORT_TABLE_PROJECTION,
   BFO_RESTRICTED_TEXT,
   BFO_RESULTS_LANDMARK,
   BFO_REVENUE_PROJECTION_SELECTORS,
@@ -141,7 +143,8 @@ export class BfoLiveSource {
     execution: DiscoveryExecutionContext,
   ): Promise<BfoLiveRevenueResult> {
     const session = await this.#sessions.open(execution);
-    const sourceRecordKey = `${scope.inn}:${scope.reportYear}:${REPORT_FORM}:visible`;
+    let sourceRecordKey = `${scope.inn}:${scope.reportYear}:${REPORT_FORM}:attempt`;
+    let sourceObservedAt: string | undefined;
     let navigationStatus: number | null = null;
 
     const block = async (
@@ -224,8 +227,10 @@ export class BfoLiveSource {
       }
       if (reportRestricted) {
         noDataReason = "report_restricted";
+        sourceRecordKey = `${scope.inn}:${scope.reportYear}:${REPORT_FORM}:restricted`;
       } else if (reportUnavailable) {
         noDataReason = "report_unavailable";
+        sourceRecordKey = `${scope.inn}:${scope.reportYear}:${REPORT_FORM}:unavailable`;
       } else {
         if (!await session.hasVisibleText("Форма по ОКУД 0710002")) {
           throw new BrowserContractError("BFO visible report form must be 0710002");
@@ -233,12 +238,28 @@ export class BfoLiveSource {
         if (!await session.hasVisibleText("Ед. измерения: тыс. ₽")) {
           throw new BrowserContractError("BFO visible report unit must be thousands of rubles");
         }
+        try {
+          const officialIdentity = parseBfoOfficialReportIdentity({
+            inn: scope.inn,
+            reportYear: scope.reportYear,
+            correctionIdentity: await session.readLabeledText("Номер корректировки"),
+            sourceDate: await session.readLabeledText("Дата представления отчетности"),
+          });
+          sourceRecordKey = officialIdentity.sourceRecordKey;
+          sourceObservedAt = officialIdentity.observedAt;
+        } catch (error) {
+          if (error instanceof BrowserPolicyContractError) throw error;
+          throw new BrowserContractError(error instanceof Error ? error.message : String(error));
+        }
         if (!await session.hasVisibleText("2110")) noDataReason = "line_2110_absent";
       }
 
       const projection = await session.captureProjection(noDataReason === undefined
         ? BFO_REVENUE_PROJECTION_SELECTORS
-        : bfoNoDataProjectionSelectors(noDataReason));
+        : bfoNoDataProjectionSelectors(noDataReason),
+      noDataReason === "report_restricted" || noDataReason === "report_unavailable"
+        ? undefined
+        : BFO_REPORT_TABLE_PROJECTION);
       const raw = this.#projectedRaw(
         projection,
         landing.url,
@@ -248,15 +269,22 @@ export class BfoLiveSource {
       const parsed = parseBfoReportProjection(projection, {
         inn: scope.inn,
         reportYear: scope.reportYear,
-        sourceRecordKey,
-        observedAt: raw.capturedAt,
+        capturedAt: raw.capturedAt,
         rawFetchKey: raw.checksumSha256,
         parserVersion: this.#parserVersion,
       });
+      if (noDataReason !== "report_restricted" && noDataReason !== "report_unavailable") {
+        const projectedIdentity = parsed.officialReportIdentity;
+        if (projectedIdentity === undefined
+          || projectedIdentity.sourceRecordKey !== sourceRecordKey
+          || projectedIdentity.observedAt !== sourceObservedAt) {
+          throw new BrowserContractError("BFO official report provenance changed during projection");
+        }
+      }
       const sourceAttempt: FinancialSourceAttempt = {
         sourceKind: "fns_bfo",
         sourceRecordKey,
-        observedAt: raw.capturedAt,
+        observedAt: sourceObservedAt ?? raw.capturedAt,
         rawFetchKey: raw.checksumSha256,
         parserVersion: this.#parserVersion,
       };

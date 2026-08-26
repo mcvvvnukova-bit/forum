@@ -696,7 +696,7 @@ describe("S3RawObjectStorage", () => {
 
     await expect(storage.verify(stored)).resolves.toMatchObject({
       sourceKind: "fns-bfo-live",
-      sourceRecordKey: "7707083893:2025:0710002:visible",
+      sourceRecordKey: "7707083893:2025:0710002:2",
     });
   });
 
@@ -748,7 +748,7 @@ describe("S3RawObjectStorage", () => {
     const stored = await putManifestBytes(
       bundle,
       new TextEncoder().encode(JSON.stringify(manifest)),
-      { sourceRecordKey: "7707083893:2025:0710002:visible" },
+      { sourceRecordKey: "7707083893:2025:0710002:2" },
       dom,
       screenshot,
     );
@@ -971,7 +971,7 @@ function sampleLiveBundle(runId: string) {
 
 function sampleBfoLiveBundle(runId: string) {
   const sanitizedDomUtf8 = new TextEncoder().encode(
-    "<!doctype html><html><body><main><h1>Отчетность за 2025 год</h1><dt>ИНН</dt><dd>7707083893</dd><h2>Форма по ОКУД 0710002</h2><p>Ед. измерения: тыс. ₽</p><table><tbody><tr><td>Выручка</td><td>2110</td><td>1 654 023</td></tr></tbody></table></main></body></html>",
+    "<!doctype html><html><body><main><h1>Отчетность за 2025 год</h1><dt>ИНН</dt><dd>7707083893</dd><dt>Номер корректировки</dt><dd>2</dd><dt>Дата представления отчетности</dt><dd>01.04.2026</dd><h2>Форма по ОКУД 0710002</h2><p>Ед. измерения: тыс. ₽</p><p>visible-table-projection/1:complete:fns-bfo:0710002</p><table><thead><tr><th>Наименование</th><th>Код</th><th>За 2025 год</th></tr></thead><tbody><tr><td>Выручка</td><td>2110</td><td>1 654 023</td></tr></tbody></table></main></body></html>",
   );
   return checksumBrowserRawBundle({
     sourceKind: "fns-bfo-live",
@@ -985,7 +985,7 @@ function sampleBfoLiveBundle(runId: string) {
     identity: {
       runId,
       page: 1,
-      sourceRecordKey: "7707083893:2025:0710002:visible",
+      sourceRecordKey: "7707083893:2025:0710002:2",
     },
     sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
     candidateEvidence: null,
