@@ -22,6 +22,11 @@ import type {
 } from "../../application/ports/audience-repository";
 import type { BrowserActionEvent, DiscoveredCompany } from "../../domain/discovery";
 import type { FinancialMetric } from "../../domain/financial";
+import {
+  isTerminalBlockReason,
+  sanitizePolicyViolationIdentifier,
+  type TerminalBlockReason,
+} from "../../domain/terminal-block-reason";
 import { parseLegalEntityInn } from "../../domain/inn";
 import {
   expectedLiveFinancialRawSourceRecordKey,
@@ -71,15 +76,6 @@ interface TaskStateRow extends QueryResultRow {
   status: CrawlStatus;
   result_json: unknown;
 }
-
-const BLOCK_REASONS = new Set([
-  "captcha",
-  "http_403",
-  "soft_block",
-  "policy_block",
-  "contract_drift",
-  "duplicate_conflict",
-]);
 
 export class PostgresAudienceRepository implements AudienceRepository {
   constructor(private readonly database: Database) {}
@@ -376,11 +372,108 @@ export class PostgresAudienceRepository implements AudienceRepository {
     });
   }
 
+  async completeRawCapture(task: FencedTask, raw: CapturedRawObject): Promise<boolean> {
+    if (task.taskKind !== "live_revexp_capture"
+      || raw.sourceKind !== "fns-revexp"
+      || raw.stored.kind !== "file") {
+      throw new Error("revexp raw capture identity is invalid");
+    }
+    return this.database.transaction(async (transaction) => {
+      if (!await lockFence(transaction, task)) return false;
+      if ((await insertRawFetch(transaction, task, "running", raw)) !== 1) {
+        throw new Error("stale task worker stopped during revexp raw registration");
+      }
+      const updated = await transaction.query(
+        `UPDATE audience.crawl_tasks
+         SET status = 'succeeded', result_json = $4::jsonb,
+             lease_expires_at = NULL, completed_at = now(), updated_at = now()
+         WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'`,
+        [task.id, task.runId, task.fencingToken, JSON.stringify({
+          rawCapture: {
+            sourceKind: raw.sourceKind,
+            sourceRecordKey: raw.sourceRecordKey,
+            checksumSha256: raw.stored.checksumSha256,
+            parserVersion: raw.parserVersion,
+          },
+        })],
+      );
+      if (updated.rowCount !== 1) {
+        throw new Error("stale task worker stopped during revexp raw registration");
+      }
+      return true;
+    });
+  }
+
+  blockTask(
+    task: FencedTask,
+    reason: TerminalBlockReason,
+    rawObjects: readonly CapturedRawObject[] = [],
+    detail?: string,
+  ): Promise<boolean> {
+    return this.#block(task, reason, rawObjects, detail, false);
+  }
+
+  blockRun(
+    task: FencedTask,
+    reason: TerminalBlockReason,
+    rawObjects: readonly CapturedRawObject[] = [],
+    detail?: string,
+  ): Promise<boolean> {
+    return this.#block(task, reason, rawObjects, detail, true);
+  }
+
+  async #block(
+    task: FencedTask,
+    reason: TerminalBlockReason,
+    rawObjects: readonly CapturedRawObject[],
+    detail: string | undefined,
+    blockRun: boolean,
+  ): Promise<boolean> {
+    if (!isTerminalBlockReason(reason)) throw new Error("terminal block reason is invalid");
+    const safeDetail = detail === undefined
+      ? undefined
+      : sanitizePolicyViolationIdentifier(detail);
+    return this.database.transaction(async (transaction) => {
+      if (!await lockFence(transaction, task)) return false;
+      for (const raw of rawObjects) {
+        if (await insertRawFetch(transaction, task, "running", raw) !== 1) {
+          throw new Error("stale task worker stopped during blocker raw audit");
+        }
+      }
+      const taskUpdate = await transaction.query(
+        `UPDATE audience.crawl_tasks
+         SET status = 'blocked', error_json = $4::jsonb, lease_expires_at = NULL,
+             completed_at = now(), updated_at = now()
+         WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'running'`,
+        [task.id, task.runId, task.fencingToken, JSON.stringify({
+          code: reason,
+          ...(safeDetail === undefined ? {} : { detail: safeDetail }),
+        })],
+      );
+      if (taskUpdate.rowCount !== 1) return false;
+      if (!blockRun) return true;
+      const runUpdate = await transaction.query(
+        `UPDATE audience.crawl_runs
+         SET status = 'blocked', terminal_reason = $4, completed_at = now()
+         WHERE id = $2
+           AND EXISTS (
+             SELECT 1 FROM audience.crawl_tasks
+             WHERE id = $1 AND run_id = $2 AND fencing_token = $3 AND status = 'blocked'
+           )`,
+        [task.id, task.runId, task.fencingToken, reason],
+      );
+      if (runUpdate.rowCount !== 1) {
+        throw new Error("stale task worker stopped during run blocking");
+      }
+      return true;
+    });
+  }
+
   async completeDiscovery(input: CompleteDiscoveryInput): Promise<boolean> {
-    if (input.status === "blocked" && !BLOCK_REASONS.has(input.reason)) {
+    if (input.status === "blocked" && !isTerminalBlockReason(input.reason)) {
       throw new Error("discovery block reason is not terminal");
     }
-    if (input.status === "succeeded" && BLOCK_REASONS.has(input.reason)) {
+    if (input.status === "succeeded" && isTerminalBlockReason(input.reason)) {
       throw new Error("terminal block reason requires blocked status");
     }
     return this.database.transaction(async (transaction) => {
@@ -391,7 +484,13 @@ export class PostgresAudienceRepository implements AudienceRepository {
         reason: input.reason,
         candidates: input.candidates,
         rejects: input.rejects ?? [],
-        blockers: input.blockers ?? [],
+        blockers: (input.blockers ?? []).map((blocker) => ({
+          ...blocker,
+          ...(blocker.detail === undefined ? {} : {
+            detail: sanitizePolicyViolationIdentifier(blocker.detail),
+          }),
+        })),
+        skips: input.skips ?? [],
         discovery: input.discovery,
         summary: {
           runId: input.task.runId,
@@ -1064,12 +1163,32 @@ export class PostgresAudienceRepository implements AudienceRepository {
       tasks: string; non_terminal: string; source_fetches: string; companies: string;
       relations: string; matches: string; out_of_scope_evidence: string;
       invalid_financial_provenance: string;
+      revexp_capture_tasks: string; succeeded_revexp_capture_tasks: string;
+      revexp_raw_fetches: string; linked_revexp_raw_fetches: string;
     } & QueryResultRow>(
       `SELECT
          (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = $1)::text AS tasks,
          (SELECT count(*) FROM audience.crawl_tasks
           WHERE run_id = $1 AND status IN ('pending', 'running'))::text AS non_terminal,
          (SELECT count(*) FROM audience.source_fetches WHERE run_id = $1)::text AS source_fetches,
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = $1 AND task_kind = 'live_revexp_capture')::text AS revexp_capture_tasks,
+         (SELECT count(*) FROM audience.crawl_tasks
+          WHERE run_id = $1 AND task_kind = 'live_revexp_capture'
+            AND status = 'succeeded')::text AS succeeded_revexp_capture_tasks,
+         (SELECT count(*) FROM audience.source_fetches
+          WHERE run_id = $1 AND source_kind = 'fns-revexp')::text AS revexp_raw_fetches,
+         (SELECT count(*) FROM audience.source_fetches raw
+          WHERE raw.run_id = $1 AND raw.source_kind = 'fns-revexp'
+            AND EXISTS (
+              SELECT 1 FROM audience.crawl_tasks task
+              WHERE task.run_id = raw.run_id AND task.task_kind = 'live_revexp_capture'
+                AND task.status = 'succeeded'
+                AND task.result_json->'rawCapture'->>'sourceKind' = raw.source_kind
+                AND task.result_json->'rawCapture'->>'sourceRecordKey' = raw.source_record_key
+                AND task.result_json->'rawCapture'->>'checksumSha256' = raw.checksum_sha256
+                AND task.result_json->'rawCapture'->>'parserVersion' = raw.parser_version
+            ))::text AS linked_revexp_raw_fetches,
          (SELECT count(DISTINCT company_inn) FROM audience.run_company_matches
           WHERE run_id = $1)::text AS companies,
          (SELECT count(*) FROM audience.company_okveds relation
@@ -1135,6 +1254,46 @@ export class PostgresAudienceRepository implements AudienceRepository {
     if (new Set(discovery.candidates.map((candidate) => candidate.inn)).size !== 10) {
       violations.push("live discovery contains duplicate company INNs");
     }
+    const acceptedKeys = discovery.audit.acceptedSourceRecordKeys ?? [];
+    const pageIdentities = discovery.audit.pageIdentities ?? [];
+    const occurrenceKeys = pageIdentities.flatMap((page) => page.orderedSourceRecordKeys);
+    const skips = discovery.audit.skips ?? [];
+    if (discovery.audit.occurrences !== 12
+      || discovery.audit.uniqueSourceRecords !== 12
+      || occurrenceKeys.length !== 12
+      || new Set(occurrenceKeys).size !== 12
+      || pageIdentities.length !== 2
+      || pageIdentities[0]?.page !== 1
+      || pageIdentities[1]?.page !== 2) {
+      violations.push("live discovery occurrence/page identity contract is not exact");
+    }
+    if (discovery.audit.individualEntrepreneurs !== 1
+      || discovery.audit.duplicateInns !== 1
+      || skips.filter((skip) => skip.reason === "individual_entrepreneur").length !== 1
+      || skips.filter((skip) => skip.reason === "duplicate_inn").length !== 1) {
+      violations.push("live discovery skip accounting is not exact");
+    }
+    const skippedKeys = new Set(skips.map((skip) => skip.sourceRecordKey));
+    const expectedAcceptedKeys = occurrenceKeys.filter((key) => !skippedKeys.has(key));
+    if (acceptedKeys.length !== 10
+      || new Set(acceptedKeys).size !== 10
+      || expectedAcceptedKeys.some((key, index) => key !== acceptedKeys[index])
+      || discovery.candidates.some((candidate, index) =>
+        candidate.sourceRecordKey !== acceptedKeys[index])) {
+      violations.push("live discovery accepted source order disagrees with page identity");
+    }
+    for (const skip of skips) {
+      if (!await liveDiscoverySkipExists(this.database, runId, skip)) {
+        violations.push(`live discovery skip evidence is missing: ${skip.reason}`);
+      }
+      if (skip.reason === "duplicate_inn"
+        && (skip.duplicateOfSourceRecordKey === undefined
+          || !acceptedKeys.includes(skip.duplicateOfSourceRecordKey)
+          || occurrenceKeys.indexOf(skip.duplicateOfSourceRecordKey)
+            >= occurrenceKeys.indexOf(skip.sourceRecordKey))) {
+        violations.push("live discovery duplicate INN predecessor is invalid");
+      }
+    }
     if (Number(count.companies) !== 10 || Number(count.matches) !== 10 || Number(count.relations) !== 10) {
       violations.push("live publication does not contain exactly 10 scoped OKVED relations");
     }
@@ -1147,6 +1306,12 @@ export class PostgresAudienceRepository implements AudienceRepository {
     if (Number(count.out_of_scope_evidence) !== 0) violations.push("financial evidence outside run scope year");
     if (Number(count.invalid_financial_provenance) !== 0) {
       violations.push("published financial evidence provenance is invalid");
+    }
+    if (Number(count.revexp_capture_tasks) !== 1
+      || Number(count.succeeded_revexp_capture_tasks) !== 1
+      || Number(count.revexp_raw_fetches) !== 1
+      || Number(count.linked_revexp_raw_fetches) !== 1) {
+      violations.push("shared revexp capture is absent, duplicated, or unlinked");
     }
     if (financeTasks.rows.length !== 10) violations.push("live finance task count is not 10");
     for (const task of financeTasks.rows) {
@@ -1498,6 +1663,9 @@ function parseLiveDiscoveryAudit(value: unknown): {
   const acceptedSourceRecordKeys = parseLiveAcceptedSourceRecordKeys(
     record.acceptedSourceRecordKeys,
   );
+  const individualEntrepreneurs = optionalAuditCount(record.individualEntrepreneurs);
+  const duplicateInns = optionalAuditCount(record.duplicateInns);
+  const skips = parseLiveDiscoverySkips(record.skips);
   return {
     candidates,
     acceptedCompanies: Number(record.acceptedCompanies),
@@ -1508,10 +1676,70 @@ function parseLiveDiscoveryAudit(value: unknown): {
       duplicates: Number(record.duplicates),
       rejected: Number(record.rejected),
       blockedOrConflicted: Number(record.blockedOrConflicted),
+      individualEntrepreneurs,
+      duplicateInns,
+      skips,
       ...(acceptedSourceRecordKeys === undefined ? {} : { acceptedSourceRecordKeys }),
       ...(pageIdentities === undefined ? {} : { pageIdentities }),
     },
   };
+}
+
+function optionalAuditCount(value: unknown): number {
+  if (value === undefined) return 0;
+  if (!Number.isSafeInteger(value) || Number(value) < 0) {
+    throw new Error("live discovery audit is invalid");
+  }
+  return Number(value);
+}
+
+function parseLiveDiscoverySkips(
+  value: unknown,
+): NonNullable<ReconciliationReport["discovery"]["skips"]> {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error("live discovery audit is invalid");
+  return value.map((item) => {
+    if (item === null || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error("live discovery audit is invalid");
+    }
+    const skip = item as Record<string, unknown>;
+    const reason = skip.reason;
+    const expectedKeys = reason === "duplicate_inn"
+      ? ["duplicateOfSourceRecordKey", "rawFetchKey", "reason", "sourceRecordKey"]
+      : ["rawFetchKey", "reason", "sourceRecordKey"];
+    if ((reason !== "individual_entrepreneur" && reason !== "duplicate_inn")
+      || !hasExactKeys(skip, expectedKeys)
+      || typeof skip.sourceRecordKey !== "string" || skip.sourceRecordKey.trim() === ""
+      || typeof skip.rawFetchKey !== "string" || !/^[0-9a-f]{64}$/u.test(skip.rawFetchKey)
+      || (reason === "duplicate_inn"
+        && (typeof skip.duplicateOfSourceRecordKey !== "string"
+          || skip.duplicateOfSourceRecordKey.trim() === ""))) {
+      throw new Error("live discovery audit is invalid");
+    }
+    return {
+      sourceRecordKey: skip.sourceRecordKey,
+      reason,
+      rawFetchKey: skip.rawFetchKey,
+      ...(reason === "duplicate_inn" ? {
+        duplicateOfSourceRecordKey: skip.duplicateOfSourceRecordKey as string,
+      } : {}),
+    };
+  });
+}
+
+async function liveDiscoverySkipExists(
+  database: Database,
+  runId: string,
+  skip: NonNullable<ReconciliationReport["discovery"]["skips"]>[number],
+): Promise<boolean> {
+  const result = await database.query(
+    `SELECT 1 FROM audience.source_fetches
+     WHERE run_id = $1 AND source_kind = 'list-org-live'
+       AND source_record_key = $2 AND checksum_sha256 = $3
+     LIMIT 1`,
+    [runId, skip.sourceRecordKey, skip.rawFetchKey],
+  );
+  return result.rowCount === 1;
 }
 
 function parseLiveAcceptedSourceRecordKeys(value: unknown): readonly string[] | undefined {
@@ -1604,11 +1832,35 @@ async function unexplainedLiveRawFetches(
       }
     }
   }
+  const captures = await database.query<{ result_json: unknown } & QueryResultRow>(
+    `SELECT result_json FROM audience.crawl_tasks
+     WHERE run_id = $1 AND task_kind = 'live_revexp_capture' AND status = 'succeeded'`,
+    [runId],
+  );
+  const registeredCaptures = new Set<string>();
+  for (const task of captures.rows) {
+    if (!isRecord(task.result_json)) continue;
+    const capture = task.result_json.rawCapture;
+    if (!isRecord(capture)
+      || typeof capture.sourceKind !== "string"
+      || typeof capture.sourceRecordKey !== "string"
+      || typeof capture.checksumSha256 !== "string"
+      || typeof capture.parserVersion !== "string") continue;
+    registeredCaptures.add([
+      capture.sourceKind,
+      capture.sourceRecordKey,
+      capture.checksumSha256,
+      capture.parserVersion,
+    ].join("\u0000"));
+  }
   return raw.rows.filter((item) => {
     if (references.has(item.id)) return false;
     if (item.source_kind === "list-org-live"
       && (/^page:[1-9][0-9]*$/u.test(item.source_record_key)
         || discoverySourceRecordKeys.includes(item.source_record_key))) return false;
+    if (registeredCaptures.has([
+      item.source_kind, item.source_record_key, item.checksum_sha256, item.parser_version,
+    ].join("\u0000"))) return false;
     return !attempts.has([
       item.source_kind, item.source_record_key, item.object_key, item.parser_version,
     ].join("\u0000"))
@@ -1626,4 +1878,8 @@ function taskState(row: TaskStateRow): TaskState {
     status: row.status,
     resultJson: row.result_json,
   };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -1,3 +1,9 @@
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { mkdtemp, open, rmdir, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 const DATASET_ID = "7707329152-revexp";
 const REPORT_YEAR = 2025;
 const MAX_REDIRECTS = 5;
@@ -59,7 +65,11 @@ export interface RevexpRelease {
 }
 
 export interface DownloadedRevexpArchive {
-  data: Uint8Array;
+  filePath: string;
+  byteLength: number;
+  dataChecksumSha256: string;
+  openStream(): AsyncIterable<Uint8Array>;
+  cleanup(): Promise<void>;
   finalUrl: string;
   status: number;
   capturedAt: string;
@@ -161,27 +171,72 @@ export async function downloadRevexpArchive(
   if (release.etag !== null && headers.etag !== release.etag) {
     throw new Error("revexp archive ETag changed after validated resolution");
   }
-  const data = await readBoundedBody(
-    result.response.body,
-    REVEXP_MAX_COMPRESSED_BYTES,
-    "revexp archive compressed bytes",
-  );
-  if (data.byteLength !== contentLength) {
-    throw new Error("revexp archive content length does not match received bytes");
-  }
-  if (data[0] !== 0x50 || data[1] !== 0x4b) {
-    throw new Error("revexp archive is not a ZIP file");
-  }
-  return {
-    data,
-    finalUrl: result.response.url,
-    status: result.response.status,
-    capturedAt: canonicalTimestamp(result.response.capturedAt, "archive capture timestamp"),
-    contentType,
-    contentLength,
-    etag: headers.etag ?? null,
-    lastModified: optionalHttpDate(headers["last-modified"], "archive last-modified"),
+  const temporaryDirectory = await mkdtemp(join(tmpdir(), "okved-revexp-"));
+  const filePath = join(temporaryDirectory, "archive.zip");
+  const handle = await open(filePath, "wx", 0o600);
+  let cleaned = false;
+  const cleanup = async (): Promise<void> => {
+    if (cleaned) return;
+    await unlink(filePath).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") throw error;
+    });
+    await rmdir(temporaryDirectory).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") throw error;
+    });
+    cleaned = true;
   };
+  try {
+    const body = result.response.body;
+    if (body === undefined) throw new Error("revexp archive response body is missing");
+    const digest = createHash("sha256");
+    const signature: number[] = [];
+    let byteLength = 0;
+    for await (const chunk of body) {
+      if (!(chunk instanceof Uint8Array)) {
+        throw new Error("revexp archive response body is invalid");
+      }
+      byteLength += chunk.byteLength;
+      if (byteLength > REVEXP_MAX_COMPRESSED_BYTES || byteLength > contentLength) {
+        throw new Error("revexp archive exceeds its compressed-byte ceiling");
+      }
+      for (let index = 0; index < chunk.byteLength && signature.length < 2; index += 1) {
+        signature.push(chunk[index]!);
+      }
+      digest.update(chunk);
+      let written = 0;
+      while (written < chunk.byteLength) {
+        const result = await handle.write(chunk, written, chunk.byteLength - written);
+        if (result.bytesWritten <= 0) throw new Error("revexp archive temporary write stalled");
+        written += result.bytesWritten;
+      }
+    }
+    await handle.sync();
+    await handle.close();
+    if (byteLength !== contentLength) {
+      throw new Error("revexp archive content length does not match received bytes");
+    }
+    if (signature[0] !== 0x50 || signature[1] !== 0x4b) {
+      throw new Error("revexp archive is not a ZIP file");
+    }
+    return {
+      filePath,
+      byteLength,
+      dataChecksumSha256: digest.digest("hex"),
+      openStream: () => createReadStream(filePath, { highWaterMark: 64 }),
+      cleanup,
+      finalUrl: result.response.url,
+      status: result.response.status,
+      capturedAt: canonicalTimestamp(result.response.capturedAt, "archive capture timestamp"),
+      contentType,
+      contentLength,
+      etag: headers.etag ?? null,
+      lastModified: optionalHttpDate(headers["last-modified"], "archive last-modified"),
+    };
+  } catch (error) {
+    await handle.close().catch(() => undefined);
+    await cleanup();
+    throw error;
+  }
 }
 
 type TransportPolicy =
@@ -218,8 +273,8 @@ function assertDatasetUrl(input: string, policy: TransportPolicy, role: "metadat
   try { url = new URL(input); } catch {
     throw new Error(`revexp ${role} URL is invalid`);
   }
-  if (url.username !== "" || url.password !== "" || url.hash !== "") {
-    throw new Error(`revexp ${role} URL contains forbidden credentials or fragment`);
+  if (url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== "") {
+    throw new Error(`revexp ${role} URL contains forbidden credentials, query, or fragment`);
   }
   if (!url.pathname.includes(`/opendata/${DATASET_ID}/`) && role !== "archive") {
     throw new Error(`revexp ${role} URL has the wrong dataset identity`);
@@ -232,6 +287,9 @@ function assertDatasetUrl(input: string, policy: TransportPolicy, role: "metadat
 }
 
 function assertAllowedUrl(url: URL, policy: TransportPolicy): void {
+  if (url.username !== "" || url.password !== "" || url.search !== "" || url.hash !== "") {
+    throw new Error("revexp URL contains forbidden credentials, query, or fragment");
+  }
   if (policy.kind === "test") {
     if (!policy.allowedOrigins.has(url.origin)) {
       throw new Error("revexp URL host is outside the injected test origin policy");

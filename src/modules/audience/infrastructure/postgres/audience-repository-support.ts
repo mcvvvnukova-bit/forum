@@ -6,7 +6,10 @@ import type {
   FencedTask,
   PublicationCounts,
 } from "../../application/ports/audience-repository";
-import type { StoredBrowserRawObject } from "../../application/ports/raw-object-storage";
+import type {
+  StoredBrowserRawObject,
+  StoredProjectionRawObject,
+} from "../../application/ports/raw-object-storage";
 import type { DiscoveredCompany } from "../../domain/discovery";
 import type { FinancialMetricEvidence } from "../../domain/financial";
 import { parseLegalEntityInn } from "../../domain/inn";
@@ -93,10 +96,23 @@ export async function insertRawFetch(
   return result.rowCount ?? 0;
 }
 
-export function storedRawObject(row: RawFetchRow): StoredBrowserRawObject {
+export function storedRawObject(row: RawFetchRow): StoredBrowserRawObject | StoredProjectionRawObject {
   const suffix = "/manifest.json";
   if (!row.object_key.endsWith(suffix)) throw new Error("stored raw manifest key is invalid");
   const prefix = row.object_key.slice(0, -suffix.length);
+  if (row.source_kind === "list-org-live" || row.source_kind === "fns-bfo-live") {
+    return {
+      kind: "projection",
+      runId: row.run_id,
+      sourceKind: row.source_kind,
+      sourceRecordKey: row.source_record_key,
+      parserVersion: row.parser_version,
+      checksumSha256: row.checksum_sha256,
+      prefix,
+      manifestKey: row.object_key,
+      projectionKey: `${prefix}/projection.html`,
+    };
+  }
   return {
     kind: "browser",
     runId: row.run_id,

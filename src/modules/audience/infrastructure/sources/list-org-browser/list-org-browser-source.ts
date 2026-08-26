@@ -5,6 +5,7 @@ import type {
 import { createCandidateEvidence } from "../../../domain/candidate-evidence";
 import {
   ExternalBrowserRequestError,
+  type BrowserDiscoveryResult,
   type DiscoveryExecutionContext,
   type DiscoveryBlocker,
   type DiscoveryOccurrence,
@@ -15,6 +16,7 @@ import {
   type DiscoveredCompany,
   type OrganizationSource,
 } from "../../../domain/discovery";
+import type { TerminalBlockReason } from "../../../domain/terminal-block-reason";
 import { checksumBrowserRawBundle } from "../../storage/raw-bundle";
 import { sanitizeBrowserUrl as sanitizeUrl } from "./browser-raw-sanitizer";
 import {
@@ -31,6 +33,10 @@ import {
 } from "./browser-record-policy";
 
 export { ExternalBrowserRequestError } from "../../../domain/discovery";
+
+type BrowserDiscoveryPage = BrowserDiscoveryResult["pages"][number];
+type BrowserDiscoveryReject = BrowserDiscoveryResult["rejects"][number];
+type BrowserDiscoveryBlocker = BrowserDiscoveryResult["blockers"][number];
 
 const RESULTS_LANDMARK = "Результаты поиска";
 const CARD_LANDMARK = "Карточка организации";
@@ -58,17 +64,17 @@ export class ListOrgBrowserSource implements OrganizationSource {
   async collect(
     scope: DiscoveryScope,
     execution: DiscoveryExecutionContext = {},
-  ): Promise<DiscoveryResult> {
+  ): Promise<BrowserDiscoveryResult> {
     if (!isPositiveSafeInteger(scope.maxPages) || !isPositiveSafeInteger(scope.maxCompanies)) {
       throw new Error("discovery limits must be positive safe integers");
     }
 
     const session = await this.#sessions.open(execution);
     const companies: DiscoveredCompany[] = [];
-    const pages: DiscoveryPage[] = [];
+    const pages: BrowserDiscoveryPage[] = [];
     const rawBundles: ReturnType<typeof checksumBrowserRawBundle>[] = [];
-    const rejects: DiscoveryReject[] = [];
-    const blockers: DiscoveryBlocker[] = [];
+    const rejects: BrowserDiscoveryReject[] = [];
+    const blockers: BrowserDiscoveryBlocker[] = [];
     const firstSeen = new Map<string, BrowserRecordResult>();
     let currentPage = 1;
     let currentOccurrences: DiscoveryOccurrence[] = [];
@@ -81,14 +87,14 @@ export class ListOrgBrowserSource implements OrganizationSource {
     const seenPageSourceRecordKeys = new Set<string>();
 
     const block = async (
-      reason: string,
+      reason: TerminalBlockReason,
       options: {
         sourceRecordKey?: string;
         detail?: string;
         raw?: ReturnType<typeof checksumBrowserRawBundle>;
         policyViolationOrigins?: readonly string[];
       } = {},
-    ): Promise<DiscoveryResult> => {
+    ): Promise<BrowserDiscoveryResult> => {
       const raw = options.raw ?? checksumBrowserRawBundle(await session.captureBlocker({
         runId: this.#runId,
         page: currentPage,
@@ -375,7 +381,7 @@ function messageOf(error: unknown): string {
 function removeMaterializedRecord(
   sourceRecordKey: string,
   companies: DiscoveredCompany[],
-  rejects: DiscoveryReject[],
+  rejects: BrowserDiscoveryReject[],
 ): void {
   const companyIndex = companies.findIndex((company) => company.sourceRecordKey === sourceRecordKey);
   if (companyIndex >= 0) companies.splice(companyIndex, 1);
@@ -384,14 +390,14 @@ function removeMaterializedRecord(
 }
 
 function result(
-  status: DiscoveryResult["status"],
+  status: BrowserDiscoveryResult["status"],
   reason: string,
   companies: readonly DiscoveredCompany[],
-  pages: readonly DiscoveryPage[],
+  pages: readonly BrowserDiscoveryPage[],
   rawBundles: readonly ReturnType<typeof checksumBrowserRawBundle>[],
-  rejects: readonly DiscoveryReject[],
-  blockers: readonly DiscoveryBlocker[],
-): DiscoveryResult {
+  rejects: readonly BrowserDiscoveryReject[],
+  blockers: readonly BrowserDiscoveryBlocker[],
+): BrowserDiscoveryResult {
   return { status, reason, companies, pages, rawBundles, rejects, blockers };
 }
 

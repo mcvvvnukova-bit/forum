@@ -2,6 +2,7 @@ import type { StoredRawObject } from "./raw-object-storage";
 import type { DiscoveredCompany } from "../../domain/discovery";
 import type { BrowserActionEvent } from "../../domain/discovery";
 import type { FinancialMetric, FinancialMetricEvidence } from "../../domain/financial";
+import type { TerminalBlockReason } from "../../domain/terminal-block-reason";
 
 export type CrawlStatus = "pending" | "running" | "succeeded" | "failed" | "blocked";
 
@@ -68,6 +69,7 @@ export interface CompleteDiscoveryInput {
   candidates: readonly DiscoveredCompany[];
   rejects?: readonly DiscoveryEvidenceReference[];
   blockers?: readonly DiscoveryEvidenceReference[];
+  skips?: readonly DiscoverySkipReference[];
   rawObjects: readonly CapturedRawObject[];
   discovery: DiscoveryAudit;
 }
@@ -79,6 +81,13 @@ export interface DiscoveryEvidenceReference {
   detail?: string;
 }
 
+export interface DiscoverySkipReference {
+  sourceRecordKey: string;
+  reason: "individual_entrepreneur" | "duplicate_inn";
+  rawFetchKey: string;
+  duplicateOfSourceRecordKey?: string;
+}
+
 export interface DiscoveryAudit {
   occurrences: number;
   uniqueSourceRecords: number;
@@ -86,6 +95,9 @@ export interface DiscoveryAudit {
   duplicates: number;
   rejected: number;
   blockedOrConflicted: number;
+  individualEntrepreneurs?: number;
+  duplicateInns?: number;
+  skips?: readonly DiscoverySkipReference[];
   acceptedSourceRecordKeys?: readonly string[];
   pageIdentities?: readonly DiscoveryPageIdentityAudit[];
 }
@@ -180,6 +192,19 @@ export interface AudienceRepository {
   recordBrowserAction(task: FencedTask, event: BrowserActionEvent): Promise<boolean>;
   bindTaskCompany(task: FencedTask, companyInn: string): Promise<boolean>;
   recordFinancialRaw(task: FencedTask, raw: CapturedRawObject): Promise<boolean>;
+  completeRawCapture(task: FencedTask, raw: CapturedRawObject): Promise<boolean>;
+  blockTask(
+    task: FencedTask,
+    reason: TerminalBlockReason,
+    rawObjects?: readonly CapturedRawObject[],
+    detail?: string,
+  ): Promise<boolean>;
+  blockRun(
+    task: FencedTask,
+    reason: TerminalBlockReason,
+    rawObjects?: readonly CapturedRawObject[],
+    detail?: string,
+  ): Promise<boolean>;
   completeDiscovery(input: CompleteDiscoveryInput): Promise<boolean>;
   failTask(task: FencedTask, errorCode: string, failRun: boolean): Promise<boolean>;
   loadReplayInput(runId: string): Promise<ReplayInput>;

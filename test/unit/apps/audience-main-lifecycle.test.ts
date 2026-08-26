@@ -174,9 +174,11 @@ async function startProductionMain(command: CommandCase): Promise<void> {
     APP_MODE: command.appMode,
     LIST_ORG_LIVE_ENABLED: command.appMode === "live" ? "true" : "false",
     FNS_LIVE_ENABLED: command.appMode === "live" ? "true" : "false",
-    DATABASE_URL: "postgresql://fixture.invalid/okved",
+    DATABASE_URL: command.appMode === "live"
+      ? "postgresql://app:password@127.0.0.1:5433/okved"
+      : "postgresql://fixture.invalid/okved",
     S3_ENDPOINT: "http://127.0.0.1:9000",
-    S3_BUCKET: "okved-raw-test",
+    S3_BUCKET: command.appMode === "live" ? "okved-raw" : "okved-raw-test",
     S3_ACCESS_KEY_ID: "local-test-access-key",
     S3_SECRET_ACCESS_KEY: "local-test-secret-key",
   });

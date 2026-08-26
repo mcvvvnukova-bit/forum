@@ -9,11 +9,13 @@ import {
   type DiscoveryPage,
   type DiscoveryReject,
   type DiscoveryResult,
+  type ProjectionDiscoveryResult,
   type DiscoveryScope,
   type DiscoveredCompany,
   type OrganizationSource,
 } from "../../../domain/discovery";
-import { checksumBrowserRawBundle, sha256 } from "../../storage/raw-bundle";
+import type { TerminalBlockReason } from "../../../domain/terminal-block-reason";
+import { checksumProjectionRawBundle, sha256 } from "../../storage/raw-bundle";
 import {
   BrowserPolicyContractError,
   BrowserTransportError,
@@ -81,7 +83,7 @@ export class ListOrgLiveSource implements OrganizationSource {
     this.#now = options.now ?? (() => new Date());
   }
 
-  async collect(scope: DiscoveryScope, execution: DiscoveryExecutionContext = {}): Promise<DiscoveryResult> {
+  async collect(scope: DiscoveryScope, execution: DiscoveryExecutionContext = {}): Promise<ProjectionDiscoveryResult> {
     if (scope.okved !== LIVE_OKVED
       || scope.onlyActive !== false
       || scope.maxPages !== LIVE_MAX_PAGES
@@ -91,11 +93,12 @@ export class ListOrgLiveSource implements OrganizationSource {
 
     const session = await this.#sessions.open(execution);
     const companies: DiscoveredCompany[] = [];
-    const pages: DiscoveryPage[] = [];
-    const rawBundles: ReturnType<typeof checksumBrowserRawBundle>[] = [];
-    const rejects: DiscoveryReject[] = [];
-    const blockers: DiscoveryBlocker[] = [];
-    const seenInns = new Set<string>();
+    const pages: ProjectionDiscoveryResult["pages"][number][] = [];
+    const rawBundles: ReturnType<typeof checksumProjectionRawBundle>[] = [];
+    const rejects: ProjectionDiscoveryResult["rejects"][number][] = [];
+    const blockers: ProjectionDiscoveryResult["blockers"][number][] = [];
+    const skips: ProjectionDiscoveryResult["skips"][number][] = [];
+    const seenInns = new Map<string, string>();
     let currentPage = 1;
     let currentSourceRecordKey: string | undefined;
     let currentOccurrences: DiscoveryOccurrence[] = [];
@@ -104,10 +107,10 @@ export class ListOrgLiveSource implements OrganizationSource {
     let currentNavigationStatus: number | null = null;
 
     const block = async (
-      reason: string,
+      reason: TerminalBlockReason,
       policyOrigins: readonly string[] = [],
-    ): Promise<DiscoveryResult> => {
-      let raw: ReturnType<typeof checksumBrowserRawBundle>;
+    ): Promise<ProjectionDiscoveryResult> => {
+      let raw: ReturnType<typeof checksumProjectionRawBundle>;
       const identity = {
         runId: this.#runId,
         page: currentPage,
@@ -138,7 +141,7 @@ export class ListOrgLiveSource implements OrganizationSource {
         ...(policyOrigins.length === 0 ? {} : { detail: policyOrigins.join(", ") }),
         raw,
       });
-      return makeResult("blocked", reason, companies, pages, rawBundles, rejects, blockers);
+      return makeResult("blocked", reason, companies, pages, rawBundles, rejects, blockers, skips);
     };
 
     try {
@@ -174,10 +177,6 @@ export class ListOrgLiveSource implements OrganizationSource {
         if (companyLinks.length === 0) throw new BrowserContractError("result page contains no /company/<id> links");
         currentOrderedKeys = companyLinks.map((link) => link.sourceRecordKey);
         currentResultFingerprint = await session.fingerprint();
-        const resultProjection = await session.captureProjection(
-          listOrgLiveResultsProjectionSelectors(currentOrderedKeys),
-        );
-
         for (const link of companyLinks) {
           currentSourceRecordKey = link.sourceRecordKey;
           currentNavigationStatus = null;
@@ -222,14 +221,35 @@ export class ListOrgLiveSource implements OrganizationSource {
             resultFingerprintAfter: after,
           });
 
-          if (parsed.kind === "ip" || seenInns.has(parsed.company.inn)) continue;
-          seenInns.add(parsed.company.inn);
+          if (parsed.kind === "ip") {
+            skips.push({
+              sourceRecordKey: link.sourceRecordKey,
+              reason: "individual_entrepreneur",
+              raw: cardRaw,
+            });
+            continue;
+          }
+          const firstSourceRecordKey = seenInns.get(parsed.company.inn);
+          if (firstSourceRecordKey !== undefined) {
+            skips.push({
+              sourceRecordKey: link.sourceRecordKey,
+              reason: "duplicate_inn",
+              duplicateOfSourceRecordKey: firstSourceRecordKey,
+              raw: cardRaw,
+            });
+            continue;
+          }
+          seenInns.set(parsed.company.inn, link.sourceRecordKey);
           companies.push({
             ...parsed.company,
             rawFetchKey: cardRaw.checksumSha256,
             parserVersion: this.#parserVersion,
           });
           if (companies.length === LIVE_MAX_COMPANIES) {
+            const observedKeys = currentOccurrences.map((occurrence) => occurrence.sourceRecordKey);
+            const resultProjection = await session.captureProjection(
+              listOrgLiveResultsProjectionSelectors(observedKeys),
+            );
             const pageRaw = this.#projectedRaw(
               resultProjection,
               resultUrl,
@@ -238,12 +258,15 @@ export class ListOrgLiveSource implements OrganizationSource {
               resultLanding.status,
             );
             rawBundles.push(pageRaw);
-            pages.push(makePage(pageNumber, pageRaw, currentOccurrences, currentOrderedKeys, currentResultFingerprint));
-            return makeResult("limited", "max_companies", companies, pages, rawBundles, rejects, blockers);
+            pages.push(makePage(pageNumber, pageRaw, currentOccurrences, observedKeys, currentResultFingerprint));
+            return makeResult("limited", "max_companies", companies, pages, rawBundles, rejects, blockers, skips);
           }
         }
 
         currentSourceRecordKey = undefined;
+        const resultProjection = await session.captureProjection(
+          listOrgLiveResultsProjectionSelectors(currentOrderedKeys),
+        );
         const pageRaw = this.#projectedRaw(
           resultProjection,
           resultUrl,
@@ -254,10 +277,10 @@ export class ListOrgLiveSource implements OrganizationSource {
         rawBundles.push(pageRaw);
         pages.push(makePage(pageNumber, pageRaw, currentOccurrences, currentOrderedKeys, currentResultFingerprint));
         if (await session.hasVisibleText("Последняя страница")) {
-          return makeResult("succeeded", "terminal_marker", companies, pages, rawBundles, rejects, blockers);
+          return makeResult("succeeded", "terminal_marker", companies, pages, rawBundles, rejects, blockers, skips);
         }
         if (pageNumber === LIVE_MAX_PAGES) {
-          return makeResult("limited", "max_pages", companies, pages, rawBundles, rejects, blockers);
+          return makeResult("limited", "max_pages", companies, pages, rawBundles, rejects, blockers, skips);
         }
         currentSourceRecordKey = undefined;
         currentNavigationStatus = null;
@@ -265,7 +288,7 @@ export class ListOrgLiveSource implements OrganizationSource {
         currentNavigationStatus = status;
         assertNonTerminalStatus(status);
       }
-      return makeResult("limited", "max_pages", companies, pages, rawBundles, rejects, blockers);
+      return makeResult("limited", "max_pages", companies, pages, rawBundles, rejects, blockers, skips);
     } catch (error) {
       if (error instanceof LiveBlockedError) return await block(error.reason);
       if (error instanceof OperatorAbortedError) return await block("captcha_aborted");
@@ -308,26 +331,25 @@ export class ListOrgLiveSource implements OrganizationSource {
     candidateEvidence: ReturnType<typeof createCandidateEvidence> | null,
     identity: { runId: string; page: number; sourceRecordKey?: string },
     navigationStatus: number | null,
-  ): ReturnType<typeof checksumBrowserRawBundle> {
-    return checksumBrowserRawBundle({
+  ): ReturnType<typeof checksumProjectionRawBundle> {
+    return checksumProjectionRawBundle({
+      artifactKind: "projection",
       sourceKind: SOURCE_KIND,
       parserVersion: this.#parserVersion,
       finalUrl: sanitizeBrowserUrl(finalUrl, projection.sensitiveFormFieldNames),
       capturedAt: this.#now().toISOString(),
       navigationStatus,
       sanitizedDomUtf8: projection.sanitizedDomUtf8,
-      redactedScreenshotPng: new Uint8Array(),
       pageFingerprintSha256: sha256(projection.sanitizedDomUtf8),
       identity,
       candidateEvidence,
-      actions: [],
       sensitiveFormFieldNames: projection.sensitiveFormFieldNames,
     });
   }
 }
 
 class LiveBlockedError extends Error {
-  constructor(readonly reason: string) { super(reason); }
+  constructor(readonly reason: TerminalBlockReason) { super(reason); }
 }
 
 function assertNonTerminalStatus(status: number | null): void {
@@ -375,24 +397,25 @@ function isPresent<T>(value: T | undefined): value is T {
 
 function makePage(
   page: number,
-  raw: ReturnType<typeof checksumBrowserRawBundle>,
+  raw: ReturnType<typeof checksumProjectionRawBundle>,
   occurrences: readonly DiscoveryOccurrence[],
   orderedSourceRecordKeys: readonly string[],
   resultFingerprintSha256: string,
-): DiscoveryPage {
+): ProjectionDiscoveryResult["pages"][number] {
   return { page, raw, occurrences: [...occurrences], orderedSourceRecordKeys: [...orderedSourceRecordKeys], resultFingerprintSha256 };
 }
 
 function makeResult(
-  status: DiscoveryResult["status"],
+  status: ProjectionDiscoveryResult["status"],
   reason: string,
   companies: readonly DiscoveredCompany[],
-  pages: readonly DiscoveryPage[],
-  rawBundles: readonly ReturnType<typeof checksumBrowserRawBundle>[],
-  rejects: readonly DiscoveryReject[],
-  blockers: readonly DiscoveryBlocker[],
-): DiscoveryResult {
-  return { status, reason, companies, pages, rawBundles, rejects, blockers };
+  pages: ProjectionDiscoveryResult["pages"],
+  rawBundles: readonly ReturnType<typeof checksumProjectionRawBundle>[],
+  rejects: ProjectionDiscoveryResult["rejects"],
+  blockers: ProjectionDiscoveryResult["blockers"],
+  skips: ProjectionDiscoveryResult["skips"],
+): ProjectionDiscoveryResult {
+  return { status, reason, companies, pages, rawBundles, rejects, blockers, skips };
 }
 
 async function safeCurrentUrl(session: BrowserSession, fallback: string): Promise<string> {

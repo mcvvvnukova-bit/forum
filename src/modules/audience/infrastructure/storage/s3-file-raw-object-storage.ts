@@ -13,11 +13,15 @@ import type {
 import type { AppEnv } from "../../../../shared/config/env";
 import {
   checksumFileRawEvidence,
+  checksumFileRawEvidenceFromPath,
   FILE_RAW_MANIFEST_VERSION,
+  REVEXP_FILE_RAW_MANIFEST_VERSION,
   isCanonicalFileCaptureTime,
   isCanonicalFileMimeType,
+  isRevexpRawProvenance,
   isSafeFileRetainedText,
-  type ChecksummedFileRawEvidence,
+  type ChecksummedFileEvidence,
+  type RevexpRawProvenance,
 } from "./file-raw-evidence";
 import { sha256 } from "./raw-bundle";
 
@@ -38,7 +42,7 @@ export class S3FileRawObjectStorage {
     this.#ownsClient = client === undefined;
   }
 
-  async put(evidence: ChecksummedFileRawEvidence): Promise<StoredFileRawObject> {
+  async put(evidence: ChecksummedFileEvidence): Promise<StoredFileRawObject> {
     this.#assertOpen();
     validateChecksummedEvidence(evidence);
     if (evidence.sourceKind !== this.#sourceKind) {
@@ -53,7 +57,17 @@ export class S3FileRawObjectStorage {
     const dataKey = `${prefix}/data`;
     const manifestKey = `${prefix}/manifest.json`;
 
-    await this.#putImmutable(dataKey, evidence.data, evidence.mimeType);
+    if ("filePath" in evidence) {
+      await this.#putImmutableFile(
+        dataKey,
+        evidence.filePath,
+        evidence.byteLength,
+        evidence.dataChecksumSha256,
+        evidence.mimeType,
+      );
+    } else {
+      await this.#putImmutable(dataKey, evidence.data, evidence.mimeType);
+    }
     await this.#putImmutable(
       manifestKey,
       evidence.manifestUtf8,
@@ -71,7 +85,7 @@ export class S3FileRawObjectStorage {
       manifestKey,
       dataKey,
       mimeType: evidence.mimeType,
-      byteLength: evidence.data.byteLength,
+      byteLength: "filePath" in evidence ? evidence.byteLength : evidence.data.byteLength,
     };
   }
 
@@ -84,16 +98,16 @@ export class S3FileRawObjectStorage {
     if (object.sourceKind !== this.#sourceKind) {
       throw new Error("raw object identity verification failed");
     }
-    const [manifestBytes, dataBytes] = await Promise.all([
+    const [manifestBytes, dataDigest] = await Promise.all([
       this.#get(object.manifestKey),
-      this.#get(object.dataKey),
+      this.#getDigest(object.dataKey),
     ]);
     const manifest = parseFileManifest(manifestBytes);
     if (manifest === null
       || sha256(manifestBytes) !== object.checksumSha256
       || manifest.artifact.file !== "data"
-      || manifest.artifact.byteLength !== dataBytes.byteLength
-      || manifest.artifact.checksumSha256 !== sha256(dataBytes)) {
+      || manifest.artifact.byteLength !== dataDigest.byteLength
+      || manifest.artifact.checksumSha256 !== dataDigest.checksumSha256) {
       throw new Error("raw object checksum verification failed");
     }
     if (manifest.identity.runId !== object.runId
@@ -129,6 +143,15 @@ export class S3FileRawObjectStorage {
     return bytes;
   }
 
+  async #getDigest(key: string): Promise<{ byteLength: number; checksumSha256: string }> {
+    const response = await this.#client.send(new GetObjectCommand({
+      Bucket: this.#bucket,
+      Key: key,
+    }));
+    if (response.Body === undefined) throw new Error("raw object checksum verification failed");
+    return digestBody(response.Body);
+  }
+
   async #putImmutable(key: string, bytes: Uint8Array, contentType: string): Promise<void> {
     try {
       await this.#client.send(new PutObjectCommand({
@@ -152,6 +175,37 @@ export class S3FileRawObjectStorage {
     }
   }
 
+  async #putImmutableFile(
+    key: string,
+    filePath: string,
+    byteLength: number,
+    expectedChecksumSha256: string,
+    contentType: string,
+  ): Promise<void> {
+    const local = await digestBody(createReadStream(filePath, { highWaterMark: 64 * 1024 }));
+    if (local.byteLength !== byteLength || local.checksumSha256 !== expectedChecksumSha256) {
+      throw new Error("raw bundle checksum validation failed");
+    }
+    try {
+      await this.#client.send(new PutObjectCommand({
+        Bucket: this.#bucket,
+        Key: key,
+        Body: createReadStream(filePath, { highWaterMark: 64 * 1024 }),
+        ContentLength: byteLength,
+        ContentType: contentType,
+        IfNoneMatch: "*",
+        Metadata: { "checksum-sha256": expectedChecksumSha256 },
+      }));
+    } catch (error) {
+      if (!isPreconditionFailure(error)) throw error;
+      const existing = await this.#getDigest(key);
+      if (existing.byteLength !== byteLength
+        || existing.checksumSha256 !== expectedChecksumSha256) {
+        throw new Error(`immutable object collision at ${key}`);
+      }
+    }
+  }
+
   #assertOpen(): void {
     if (this.#closed) throw new Error("raw object storage is closed");
   }
@@ -165,6 +219,7 @@ interface FileManifest {
   capturedAt: string;
   navigationStatus: number | null;
   identity: { runId: string; sourceRecordKey: string };
+  provenance?: RevexpRawProvenance;
   artifact: {
     file: string;
     mimeType: string;
@@ -180,12 +235,14 @@ function parseFileManifest(bytes: Uint8Array): FileManifest | null {
   } catch {
     return null;
   }
-  if (!isRecord(value)
+  if (!isRecord(value)) return null;
+  const isLegacy = value.version === FILE_RAW_MANIFEST_VERSION;
+  const isRevexp = value.version === REVEXP_FILE_RAW_MANIFEST_VERSION;
+  if ((!isLegacy && !isRevexp)
     || !hasExactlyKeys(value, [
       "version", "sourceKind", "parserVersion", "finalUrl", "capturedAt",
-      "navigationStatus", "identity", "artifact",
+      "navigationStatus", "identity", "artifact", ...(isRevexp ? ["provenance"] : []),
     ])
-    || value.version !== FILE_RAW_MANIFEST_VERSION
     || typeof value.sourceKind !== "string"
     || !/^[a-z0-9-]+$/.test(value.sourceKind)
     || !isSafeFileRetainedText(value.parserVersion)
@@ -193,37 +250,91 @@ function parseFileManifest(bytes: Uint8Array): FileManifest | null {
     || !isCanonicalFileCaptureTime(value.capturedAt)
     || !isNavigationStatus(value.navigationStatus)
     || !isFileIdentity(value.identity)
-    || !isFileArtifact(value.artifact)) {
+    || !isFileArtifact(value.artifact)
+    || (isRevexp && (!isRevexpRawProvenance(value.provenance)
+      || value.sourceKind !== "fns-revexp"
+      || value.parserVersion !== `fns-revexp/structure-${value.provenance.structureVersion}`
+      || value.finalUrl !== value.provenance.archive.finalUrl
+      || value.capturedAt !== value.provenance.archive.capturedAt
+      || value.navigationStatus !== value.provenance.archive.status
+      || value.artifact.mimeType !== value.provenance.archive.contentType
+      || value.artifact.byteLength !== value.provenance.archive.contentLength))) {
     return null;
   }
   return {
-    version: value.version,
+    version: isLegacy ? FILE_RAW_MANIFEST_VERSION : REVEXP_FILE_RAW_MANIFEST_VERSION,
     sourceKind: value.sourceKind,
     parserVersion: value.parserVersion,
     finalUrl: value.finalUrl,
     capturedAt: value.capturedAt,
     navigationStatus: value.navigationStatus,
     identity: value.identity,
+    ...(isRevexp ? { provenance: value.provenance as RevexpRawProvenance } : {}),
     artifact: value.artifact,
   };
 }
 
-function validateChecksummedEvidence(evidence: ChecksummedFileRawEvidence): void {
-  const recalculated = checksumFileRawEvidence({
-    sourceKind: evidence.sourceKind,
-    parserVersion: evidence.parserVersion,
-    finalUrl: evidence.finalUrl,
-    capturedAt: evidence.capturedAt,
-    navigationStatus: evidence.navigationStatus,
-    identity: evidence.identity,
-    mimeType: evidence.mimeType,
-    data: evidence.data,
-  });
+function validateChecksummedEvidence(evidence: ChecksummedFileEvidence): void {
+  const recalculated = "filePath" in evidence
+    ? checksumFileRawEvidenceFromPath({
+        sourceKind: evidence.sourceKind,
+        parserVersion: evidence.parserVersion,
+        finalUrl: evidence.finalUrl,
+        capturedAt: evidence.capturedAt,
+        navigationStatus: evidence.navigationStatus,
+        identity: evidence.identity,
+        mimeType: evidence.mimeType,
+        filePath: evidence.filePath,
+        byteLength: evidence.byteLength,
+        dataChecksumSha256: evidence.dataChecksumSha256,
+        provenance: evidence.provenance,
+      })
+    : checksumFileRawEvidence({
+        sourceKind: evidence.sourceKind,
+        parserVersion: evidence.parserVersion,
+        finalUrl: evidence.finalUrl,
+        capturedAt: evidence.capturedAt,
+        navigationStatus: evidence.navigationStatus,
+        identity: evidence.identity,
+        mimeType: evidence.mimeType,
+        data: evidence.data,
+      });
   if (evidence.dataChecksumSha256 !== recalculated.dataChecksumSha256
     || evidence.checksumSha256 !== recalculated.checksumSha256
     || !bytesEqual(evidence.manifestUtf8, recalculated.manifestUtf8)) {
     throw new Error("raw bundle checksum validation failed");
   }
+}
+
+async function digestBody(body: unknown): Promise<{ byteLength: number; checksumSha256: string }> {
+  const digest = createHash("sha256");
+  let byteLength = 0;
+  if (isAsyncIterable(body)) {
+    for await (const chunk of body) {
+      if (!(chunk instanceof Uint8Array)) throw new Error("raw object checksum verification failed");
+      byteLength += chunk.byteLength;
+      digest.update(chunk);
+    }
+  } else if (hasTransformToByteArray(body)) {
+    const bytes = await body.transformToByteArray();
+    byteLength = bytes.byteLength;
+    digest.update(bytes);
+  } else {
+    throw new Error("raw object checksum verification failed");
+  }
+  return { byteLength, checksumSha256: digest.digest("hex") };
+}
+
+function isAsyncIterable(value: unknown): value is AsyncIterable<Uint8Array> {
+  return typeof value === "object" && value !== null
+    && Symbol.asyncIterator in value
+    && typeof (value as { [Symbol.asyncIterator]?: unknown })[Symbol.asyncIterator] === "function";
+}
+
+function hasTransformToByteArray(value: unknown): value is { transformToByteArray(): Promise<Uint8Array> } {
+  return typeof value === "object" && value !== null
+    && "transformToByteArray" in value
+    && typeof (value as { transformToByteArray?: unknown }).transformToByteArray === "function";
 }
 
 function validateStoredFileObject(object: StoredFileRawObject): void {
@@ -312,3 +423,5 @@ function clientConfig(env: AppEnv): S3ClientConfig {
     },
   };
 }
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";

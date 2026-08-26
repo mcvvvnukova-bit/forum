@@ -36,6 +36,7 @@ import {
 } from "../../../src/modules/audience/domain/discovery";
 import { parseMoneyText } from "../../../src/modules/audience/domain/financial";
 import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
+import { sanitizePolicyViolationIdentifier } from "../../../src/modules/audience/domain/terminal-block-reason";
 import type { AppEnv } from "../../../src/shared/config/env";
 import { PostgresDatabase } from "../../../src/shared/postgres/database";
 import {
@@ -264,7 +265,7 @@ describe("fixture discovery and replay publication", () => {
     expect(task.rows[0]?.blockers).toEqual([
       expect.objectContaining({
         reason: "policy_block",
-        detail: "service-worker-registration",
+        detail: sanitizePolicyViolationIdentifier("service-worker-registration"),
         rawFetchKey: expect.stringMatching(/^[0-9a-f]{64}$/u),
       }),
     ]);

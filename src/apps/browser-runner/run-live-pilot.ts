@@ -20,7 +20,7 @@ import { BfoLiveSource, type BfoLiveSourceOptions } from "../../modules/audience
 import { downloadRevexpArchive, resolveRevexpRelease, type RevexpTransport, type RevexpTransportRequest, type RevexpTransportResponse } from "../../modules/audience/infrastructure/sources/fns-revexp/revexp-release";
 import { selectRevexpMetrics } from "../../modules/audience/infrastructure/sources/fns-revexp/revexp-archive-parser";
 import { ListOrgLiveSource, type ListOrgLiveSourceOptions } from "../../modules/audience/infrastructure/sources/list-org-live/list-org-live-source";
-import { checksumFileRawEvidence } from "../../modules/audience/infrastructure/storage/file-raw-evidence";
+import { checksumFileRawEvidenceFromPath } from "../../modules/audience/infrastructure/storage/file-raw-evidence";
 import { S3FileRawObjectStorage } from "../../modules/audience/infrastructure/storage/s3-file-raw-object-storage";
 import { S3RawObjectStorage } from "../../modules/audience/infrastructure/storage/s3-raw-object-storage";
 import type { AppEnv } from "../../shared/config/env";
@@ -105,6 +105,13 @@ export async function executeLivePilot(input: {
           ...summary,
           acceptedCompanies: replayInput.discoveryAudit.acceptedCompanies,
           acceptedSourceRecordKeys: replayInput.discoveryAudit.acceptedSourceRecordKeys ?? [],
+          occurrences: replayInput.discoveryAudit.occurrences,
+          uniqueSourceRecords: replayInput.discoveryAudit.uniqueSourceRecords,
+          skips: replayInput.discoveryAudit.skips ?? [],
+          pageIdentities: (replayInput.discoveryAudit.pageIdentities ?? []).map((page) => ({
+            page: page.page,
+            orderedSourceRecordKeys: page.orderedSourceRecordKeys,
+          })),
           candidates: selected.map((candidate) => ({
             inn: candidate.inn,
             sourceRecordKey: candidate.sourceRecordKey,
@@ -143,24 +150,70 @@ export async function executeLivePilot(input: {
 
           const transport = factories.createRevexpTransport();
           const release = await resolveRevexpRelease(factories.endpoints.revexpMetadataUrl, transport);
+          const parserVersion = `fns-revexp/structure-${release.structureVersion}`;
           const archive = await downloadRevexpArchive(release, transport);
-          const revexpEvidence = checksumFileRawEvidence({
-            sourceKind: "fns-revexp", parserVersion: "fns-revexp/1.0.0", finalUrl: archive.finalUrl,
-            capturedAt: archive.capturedAt, navigationStatus: archive.status,
-            identity: { runId, sourceRecordKey: "7707329152-revexp:2025" },
-            mimeType: archive.contentType, data: archive.data,
-          });
-          const revexpStored = await activeRevexpRawStorage.put(revexpEvidence);
-          const revexpRaw: CapturedRawObject = {
-            id: randomUUID(), sourceKind: "fns-revexp", sourceRecordKey: "7707329152-revexp:2025",
-            mimeType: archive.contentType, finalUrl: archive.finalUrl, navigationStatus: archive.status,
-            capturedAt: archive.capturedAt, parserVersion: "fns-revexp/1.0.0", stored: revexpStored,
-          };
-          const parsedRevexp = await selectRevexpMetrics(singleChunk(archive.data), selected.map((item) => item.inn), {
-            reportYear: 2025, sourceRecordKey: (inn) => `${inn}:2025:revexp`,
-            observedAt: release.updatedAt, rawFetchKey: revexpStored.checksumSha256,
-            parserVersion: "fns-revexp/1.0.0",
-          });
+          let revexpRaw: CapturedRawObject;
+          let parsedRevexp: Awaited<ReturnType<typeof selectRevexpMetrics>>;
+          try {
+            const captureTask = await input.repository.createTask(
+              runId,
+              "live_revexp_capture",
+              financeTaskLease.leaseSeconds,
+            );
+            try {
+              const revexpEvidence = checksumFileRawEvidenceFromPath({
+                sourceKind: "fns-revexp", parserVersion, finalUrl: archive.finalUrl,
+                capturedAt: archive.capturedAt, navigationStatus: archive.status,
+                identity: { runId, sourceRecordKey: "7707329152-revexp:2025" },
+                mimeType: archive.contentType,
+                filePath: archive.filePath,
+                byteLength: archive.byteLength,
+                dataChecksumSha256: archive.dataChecksumSha256,
+                provenance: {
+                  datasetId: release.datasetId,
+                  reportYear: release.reportYear,
+                  publishedAt: release.publishedAt,
+                  updatedAt: release.updatedAt,
+                  structureVersion: release.structureVersion,
+                  xsdUrl: release.xsdUrl,
+                  metadata: release.capture.metadata,
+                  archive: {
+                    ...release.capture.archive,
+                    finalUrl: archive.finalUrl,
+                    status: archive.status,
+                    capturedAt: archive.capturedAt,
+                    contentType: archive.contentType,
+                    contentLength: archive.contentLength,
+                    etag: archive.etag,
+                    lastModified: archive.lastModified,
+                  },
+                },
+              });
+              const revexpStored = await activeRevexpRawStorage.put(revexpEvidence);
+              revexpRaw = {
+                id: randomUUID(), sourceKind: "fns-revexp", sourceRecordKey: "7707329152-revexp:2025",
+                mimeType: archive.contentType, finalUrl: archive.finalUrl, navigationStatus: archive.status,
+                capturedAt: archive.capturedAt, parserVersion, stored: revexpStored,
+              };
+              if (!await input.repository.completeRawCapture(captureTask, revexpRaw)) {
+                throw new Error("stale revexp capture task before registration");
+              }
+              parsedRevexp = await selectRevexpMetrics(archive.openStream(), selected.map((item) => item.inn), {
+                reportYear: 2025, sourceRecordKey: (inn) => `${inn}:2025:revexp`,
+                observedAt: release.updatedAt, rawFetchKey: revexpStored.checksumSha256,
+                parserVersion,
+              });
+            } catch (error) {
+              if (await input.repository.failTask(
+                captureTask,
+                "live_revexp_capture_failed",
+                true,
+              )) runFailureRecorded = true;
+              throw error;
+            }
+          } finally {
+            await archive.cleanup();
+          }
           const bfoOrigin = new URL(factories.endpoints.bfoSearchUrl).origin;
           const bfoSource = factories.createBfoSource({
             searchUrl: factories.endpoints.bfoSearchUrl,
@@ -205,10 +258,7 @@ export async function executeLivePilot(input: {
               throw new Error("stale live finance task before publication");
             }
             if (bfo.outcome === "blocked") {
-              if (!await input.repository.recordFinancialRaw(task, bfoRaw)) {
-                throw new Error("stale live finance task raw audit");
-              }
-              if (!await input.repository.failTask(task, "live_finance_blocked", true)) {
+              if (!await input.repository.blockRun(task, bfo.reason, [bfoRaw])) {
                 throw new Error("stale live finance task blocker");
               }
               runFailureRecorded = true;
@@ -236,7 +286,7 @@ export async function executeLivePilot(input: {
             reportMetric("expenses", revexpForCompany.find((item) => item.metric === "expenses")?.value);
             await publishFinancialEvidence({ runId, reportYear: 2025, taskKind: "live_finance", companyInn: inn, task,
               evidence: [...(bfo.outcome === "published" ? [bfo.evidence] : []), ...revexpForCompany],
-              metricOutcomes: outcomes, rawObjects: index === 0 ? [bfoRaw, revexpRaw] : [bfoRaw],
+              metricOutcomes: outcomes, rawObjects: [bfoRaw],
             }, { repository: input.repository });
           }
         } catch (error) {
@@ -300,7 +350,7 @@ function productionLivePilotFactories(): LivePilotFactories {
     }, { sourceKind: "list-org-live" }),
     createBfoBrowserSessions: (origin) => new PolicyBrowserSessionFactory({
       allowedOrigins: [origin],
-      allowedNavigationUrls: [{ origin, pathname: "/*" }],
+      allowedNavigationUrls: [`${origin}/`],
     }, { sourceKind: "fns-bfo-live" }),
     createListSource: (options) => new ListOrgLiveSource(options),
     createBfoSource: (options) => new BfoLiveSource(options),
@@ -332,8 +382,6 @@ function revexpAttempt(raw: CapturedRawObject, observedAt: string) {
     sourceRecordKey: raw.sourceRecordKey, observedAt, capturedAt: raw.capturedAt,
     rawFetchKey: raw.stored.checksumSha256, parserVersion: raw.parserVersion };
 }
-async function* singleChunk(data: Uint8Array): AsyncIterable<Uint8Array> { yield data; }
-
 class FetchRevexpTransport implements RevexpTransport {
   async request(input: RevexpTransportRequest): Promise<RevexpTransportResponse> {
     const response = await fetch(input.url, { method: input.method, redirect: "manual" });

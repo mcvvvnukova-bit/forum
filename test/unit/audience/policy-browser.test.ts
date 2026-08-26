@@ -7,6 +7,9 @@ import {
   PolicyBrowserSessionFactory,
   type BrowserOriginPolicy,
 } from "../../../src/modules/audience/infrastructure/sources/browser/policy-browser";
+import { sanitizePolicyViolationIdentifier } from "../../../src/modules/audience/domain/terminal-block-reason";
+
+const serviceWorkerEvidence = sanitizePolicyViolationIdentifier("service-worker-registration");
 
 describe("PolicyBrowserSessionFactory", () => {
   let allowed: LocalServer;
@@ -35,6 +38,10 @@ describe("PolicyBrowserSessionFactory", () => {
       if (url.pathname === "/retry-entry") {
         return '<main><a href="/click-transient">Retry target</a></main>';
       }
+      if (url.pathname === "/one-shot-entry") {
+        return '<main><a href="/one-shot-target">Visible target</a></main>';
+      }
+      if (url.pathname === "/one-shot-target") return "exact visible destination";
       if (url.pathname === "/click-transient") {
         return requestNumber < 3
           ? { status: 502, headers: {}, body: "transient click navigation" }
@@ -53,7 +60,7 @@ describe("PolicyBrowserSessionFactory", () => {
         return { status: 403, headers: {}, body: "forbidden" };
       }
       if (url.pathname === "/download-only-entry") {
-        return '<main><a href="/download-only-html">Ordinary navigation</a></main>';
+        return '<main><a href="/download-only-html#not-a-route">Ordinary navigation</a></main>';
       }
       if (url.pathname === "/download-only-redirect") {
         return { status: 302, headers: { location: "/download-only-html" } };
@@ -189,7 +196,7 @@ describe("PolicyBrowserSessionFactory", () => {
       expect(await session.policyViolations()).toContainEqual({
         disposition: "terminal",
         resourceType: "script",
-        origin: expect.stringContaining("data:text/javascript"),
+        origin: expect.stringMatching(/^sha256:[0-9a-f]{64}$/u),
       });
     } finally {
       await session.close().catch(() => undefined);
@@ -200,11 +207,13 @@ describe("PolicyBrowserSessionFactory", () => {
     const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url)).open();
     try {
       await expect(session.navigate("data:text/html,forbidden"))
-        .rejects.toMatchObject({ origins: ["data:text/html,forbidden"] });
+        .rejects.toMatchObject({
+          origins: [sanitizePolicyViolationIdentifier("data:text/html,forbidden")],
+        });
       expect(await session.policyViolations()).toContainEqual({
         disposition: "terminal",
         resourceType: "document",
-        origin: "data:text/html,forbidden",
+        origin: sanitizePolicyViolationIdentifier("data:text/html,forbidden"),
       });
     } finally {
       await session.close().catch(() => undefined);
@@ -219,7 +228,7 @@ describe("PolicyBrowserSessionFactory", () => {
       expect(await session.policyViolations()).toContainEqual({
         disposition: "terminal",
         resourceType: "document",
-        origin: "data:text/html,forbidden-document",
+        origin: sanitizePolicyViolationIdentifier("data:text/html,forbidden-document"),
       });
     } finally {
       await session.close().catch(() => undefined);
@@ -242,6 +251,27 @@ describe("PolicyBrowserSessionFactory", () => {
       await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
       expect(allowed.requestCount(path) - beforeRedirect).toBe(1);
       expect(forbiddenRequests() - beforeForbidden).toBe(0);
+    } finally {
+      await session.close().catch(() => undefined);
+    }
+  });
+
+  it("authorizes only one exact visible same-origin href and never dispatches an arbitrary path", async () => {
+    const entry = `${allowed.url}/one-shot-entry`;
+    const target = `${allowed.url}/one-shot-target`;
+    const arbitrary = `${allowed.url}/forbidden-target`;
+    const beforeTarget = allowed.requestCount("/one-shot-target");
+    const beforeArbitrary = allowed.requestCount("/forbidden-target");
+    const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [entry])).open();
+    try {
+      await expect(session.navigate(entry)).resolves.toBe(200);
+      await expect(session.clickLinkHref(arbitrary)).rejects.toThrow("visible link href");
+      expect(allowed.requestCount("/forbidden-target") - beforeArbitrary).toBe(0);
+      await expect(session.clickLinkHref(target)).resolves.toBe(200);
+      expect(await session.currentUrl()).toBe(target);
+      expect(allowed.requestCount("/one-shot-target") - beforeTarget).toBe(1);
+      await expect(session.navigate(target)).rejects.toMatchObject({ origins: expect.any(Array) });
+      expect(allowed.requestCount("/one-shot-target") - beforeTarget).toBe(1);
     } finally {
       await session.close().catch(() => undefined);
     }
@@ -322,9 +352,9 @@ describe("PolicyBrowserSessionFactory", () => {
     const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
     try {
       await expect(session.navigate(target))
-        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+        .rejects.toMatchObject({ origins: [serviceWorkerEvidence] });
       await expect(session.captureBlocker({ runId: "ordinary", page: 1 }, "test/1"))
-        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+        .rejects.toMatchObject({ origins: [serviceWorkerEvidence] });
     } finally {
       await session.close().catch(() => undefined);
     }
@@ -335,11 +365,11 @@ describe("PolicyBrowserSessionFactory", () => {
     const session = await new PolicyBrowserSessionFactory(testPolicy(allowed.url, [target])).open();
     try {
       await expect(session.navigate(target))
-        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+        .rejects.toMatchObject({ origins: [serviceWorkerEvidence] });
       await expect(session.captureBlocker(
         { runId: "policy", page: 1 },
         "test/1",
-        ["service-worker-registration"],
+        [serviceWorkerEvidence],
       )).resolves.toMatchObject({ identity: { runId: "policy", page: 1 } });
     } finally {
       await session.close();
@@ -353,10 +383,10 @@ describe("PolicyBrowserSessionFactory", () => {
     }).open();
     try {
       await expect(session.navigate(target))
-        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+        .rejects.toMatchObject({ origins: [serviceWorkerEvidence] });
       await expect(session.acknowledgePolicyBlock(["wrong-origin"]))
-        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
-      await expect(session.acknowledgePolicyBlock(["service-worker-registration"]))
+        .rejects.toMatchObject({ origins: [serviceWorkerEvidence] });
+      await expect(session.acknowledgePolicyBlock([serviceWorkerEvidence]))
         .resolves.toEqual({ finalUrl: target, navigationStatus: 200 });
     } finally {
       await session.close();
@@ -369,7 +399,7 @@ describe("PolicyBrowserSessionFactory", () => {
     try {
       await expect(session.navigate(target)).resolves.toBe(403);
       await expect(session.captureBlocker({ runId: "race", page: 1 }, "test/1"))
-        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+        .rejects.toMatchObject({ origins: [serviceWorkerEvidence] });
     } finally {
       await session.close().catch(() => undefined);
     }
@@ -385,12 +415,12 @@ describe("PolicyBrowserSessionFactory", () => {
       const blocker = await session.captureBlocker(
         { runId: "freeze", page: 1 },
         "test/1",
-        ["service-worker-registration"],
+        [serviceWorkerEvidence],
       );
       expect(new TextDecoder().decode(blocker.sanitizedDomUtf8)).not.toContain("post-terminal-script-ran");
       expect(allowed.requestCount("/after-terminal") - before).toBe(0);
       await expect(session.hasVisibleText("freeze fixture"))
-        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+        .rejects.toMatchObject({ origins: [serviceWorkerEvidence] });
     } finally {
       await session.close().catch(() => undefined);
     }
@@ -543,7 +573,7 @@ describe("PolicyBrowserSessionFactory", () => {
     try {
       await session.navigate(entry);
       await expect(session.clickLink("Retry after terminal"))
-        .rejects.toMatchObject({ origins: ["service-worker-registration"] });
+        .rejects.toMatchObject({ origins: [serviceWorkerEvidence] });
       expect(allowed.requestCount(retryPath) - before).toBe(1);
     } finally {
       await session.close().catch(() => undefined);

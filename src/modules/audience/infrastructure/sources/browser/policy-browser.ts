@@ -25,6 +25,7 @@ import type {
 } from "../../../application/ports/browser-session";
 import type { BrowserRawBundle, DiscoveryExecutionContext } from "../../../domain/discovery";
 import { ExternalBrowserRequestError } from "../../../domain/discovery";
+import { sanitizePolicyViolationIdentifier } from "../../../domain/terminal-block-reason";
 import { sha256 } from "../../storage/raw-bundle";
 import { BrowserActionRecorder } from "../list-org-browser/browser-action-recorder";
 import {
@@ -140,6 +141,7 @@ class PolicyBrowserSession implements BrowserSession {
   readonly #violations: BrowserPolicyViolation[] = [];
   readonly #sensitiveValues = new Set<string>();
   readonly #renderRequests = new Set<string>();
+  readonly #visitedOneShotNavigationUrls = new Set<string>();
   readonly #cdpSession: CDPSession | undefined;
   #navigationStatus: number | null = null;
   #lastSafePageUrl: string | undefined;
@@ -148,6 +150,10 @@ class PolicyBrowserSession implements BrowserSession {
   #terminal = false;
   #freezePromise: Promise<void> | undefined;
   #pendingTransportFailure: BrowserTransportError | undefined;
+  #pendingOneShotNavigation: {
+    requestUrl: string;
+    destinationUrl: string;
+  } | undefined;
 
   private constructor(options: {
     browser: Browser;
@@ -423,7 +429,8 @@ class PolicyBrowserSession implements BrowserSession {
       const isSubframe = isSubframeRequest(request, page);
       const originAllowed = session.#allowedOrigins.has(origins.policy);
       const documentAllowed = !isNavigation
-        || matchesUrlContract(requestUrl, session.#allowedNavigationUrls);
+        || matchesUrlContract(requestUrl, session.#allowedNavigationUrls)
+        || (!isSubframe && session.#consumeOneShotNavigation(requestUrl));
       if (originAllowed && documentAllowed) {
         if (!isNavigation) {
           await route.continue();
@@ -515,42 +522,67 @@ class PolicyBrowserSession implements BrowserSession {
   }
 
   async clickButton(name: string): Promise<number | null> {
+    const buttons = await visibleLocators(this.#page.getByRole("button", { name, exact: true }));
+    if (buttons.length !== 1) throw new BrowserPolicyContractError("visible button is missing or ambiguous");
+    const targetUrl = await exactGetFormTarget(buttons[0]!);
+    await this.#authorizeOneShotNavigation(targetUrl);
     this.#prepareNavigation();
-    return this.#contractAction("click-button", name, async () => {
-      await this.#page.getByRole("button", { name, exact: true }).click();
-      await this.#page.waitForLoadState("load");
-      this.#rememberCurrentPageUrlIfSafe();
-      return this.#navigationStatus;
-    });
+    try {
+      return await this.#contractAction("click-button", name, async () => {
+        await buttons[0]!.click();
+        await this.#page.waitForLoadState("load");
+        this.#assertExactNavigationDestination(targetUrl);
+        this.#rememberCurrentPageUrlIfSafe();
+        return this.#navigationStatus;
+      });
+    } finally {
+      this.#pendingOneShotNavigation = undefined;
+    }
   }
 
   async clickLink(name: string): Promise<number | null> {
+    const links = await visibleLocators(this.#page.getByRole("link", { name, exact: true }));
+    if (links.length !== 1) throw new BrowserPolicyContractError("visible link is missing or ambiguous");
+    const targetUrl = await exactVisibleLinkTarget(links[0]!, this.#page.url());
+    await this.#authorizeOneShotNavigation(targetUrl);
     this.#prepareNavigation();
-    return this.#contractAction("click-link", name, async () => {
-      await this.#page.getByRole("link", { name, exact: true }).click();
-      await this.#page.waitForLoadState("load");
-      this.#rememberCurrentPageUrlIfSafe();
-      return this.#navigationStatus;
-    });
+    try {
+      return await this.#contractAction("click-link", name, async () => {
+        await links[0]!.click();
+        await this.#page.waitForLoadState("load");
+        this.#assertExactNavigationDestination(targetUrl);
+        this.#rememberCurrentPageUrlIfSafe();
+        return this.#navigationStatus;
+      });
+    } finally {
+      this.#pendingOneShotNavigation = undefined;
+    }
   }
 
   async clickLinkHref(href: string): Promise<number | null> {
-    await this.#assertAllowedNavigation(href);
+    const links = await this.#page.getByRole("link").all();
+    const matches: Locator[] = [];
+    for (const link of links) {
+      if (!await link.isVisible()) continue;
+      const target = await exactVisibleLinkTarget(link, this.#page.url());
+      if (target === href) matches.push(link);
+    }
+    if (matches.length !== 1) {
+      throw new BrowserPolicyContractError("visible link href is missing or ambiguous");
+    }
+    await this.#authorizeOneShotNavigation(href);
     this.#prepareNavigation();
-    return this.#contractAction("click-link", href, async () => {
-      const links = await this.#page.getByRole("link").all();
-      const matches = [];
-      for (const link of links) {
-        const raw = await link.getAttribute("href");
-        if (raw === null || !await link.isVisible()) continue;
-        if (new URL(raw, this.#page.url()).href === href) matches.push(link);
-      }
-      if (matches.length !== 1) throw new Error("visible link href is missing or ambiguous");
-      await matches[0]!.click();
-      await this.#page.waitForLoadState("load");
-      this.#rememberCurrentPageUrlIfSafe();
-      return this.#navigationStatus;
-    });
+    try {
+      return await this.#contractAction("click-link", href, async () => {
+        await matches[0]!.click();
+        await this.#page.waitForLoadState("load");
+        this.#assertExactNavigationDestination(href);
+        this.#rememberCurrentPageUrlIfSafe();
+        return this.#navigationStatus;
+      });
+    } finally {
+      this.#pendingOneShotNavigation = undefined;
+    }
   }
 
   async waitForLandmark(name: string): Promise<void> {
@@ -951,7 +983,8 @@ class PolicyBrowserSession implements BrowserSession {
       const url = new URL(value);
       if ((url.protocol === "http:" || url.protocol === "https:")
         && this.#allowedOrigins.has(url.origin)
-        && matchesUrlContract(value, this.#allowedNavigationUrls)) {
+        && (matchesUrlContract(value, this.#allowedNavigationUrls)
+          || this.#visitedOneShotNavigationUrls.has(value))) {
         this.#lastSafePageUrl = value;
       }
     } catch { /* current browser URL remains unusable as durable evidence */ }
@@ -963,7 +996,8 @@ class PolicyBrowserSession implements BrowserSession {
       const url = new URL(value);
       if ((url.protocol === "http:" || url.protocol === "https:")
         && this.#allowedOrigins.has(url.origin)
-        && matchesUrlContract(value, this.#allowedNavigationUrls)) return value;
+        && (matchesUrlContract(value, this.#allowedNavigationUrls)
+          || this.#visitedOneShotNavigationUrls.has(value))) return value;
     } catch { /* fall back to the last allowed visible page */ }
     if (this.#lastSafePageUrl !== undefined) return this.#lastSafePageUrl;
     throw new BrowserPolicyContractError("terminal blocker has no safe browser URL evidence");
@@ -977,8 +1011,12 @@ class PolicyBrowserSession implements BrowserSession {
   }
 
   async #terminate(violation: BrowserPolicyViolation): Promise<void> {
-    this.#recordViolation(violation);
-    this.#terminalOrigins.add(violation.origin);
+    const sanitizedViolation = {
+      ...violation,
+      origin: sanitizePolicyViolationIdentifier(violation.origin),
+    };
+    this.#recordViolation(sanitizedViolation);
+    this.#terminalOrigins.add(sanitizedViolation.origin);
     this.#terminalVersion += 1;
     if (!this.#terminal) {
       this.#terminal = true;
@@ -1047,6 +1085,46 @@ class PolicyBrowserSession implements BrowserSession {
     if (!matchesUrlContract(value, this.#allowedNavigationUrls)) {
       await this.#terminate({ disposition: "terminal", resourceType: "document", origin: value });
       this.#assertNoTerminalRequests();
+    }
+  }
+
+  async #authorizeOneShotNavigation(value: string): Promise<void> {
+    this.#assertNoTerminalRequests();
+    let url: URL;
+    try { url = new URL(value); } catch {
+      await this.#terminate({ disposition: "terminal", resourceType: "document", origin: value });
+      this.#assertNoTerminalRequests();
+      return;
+    }
+    const destinationUrl = url.href;
+    url.hash = "";
+    const requestUrl = url.href;
+    if ((url.protocol !== "http:" && url.protocol !== "https:")
+      || url.username !== "" || url.password !== ""
+      || !this.#allowedOrigins.has(url.origin)
+      || matchesUrlContract(requestUrl, this.#allowedDownloadUrls)
+      || destinationUrl !== value) {
+      await this.#terminate({ disposition: "terminal", resourceType: "document", origin: value });
+      this.#assertNoTerminalRequests();
+      return;
+    }
+    this.#pendingOneShotNavigation = {
+      requestUrl,
+      destinationUrl,
+    };
+  }
+
+  #consumeOneShotNavigation(value: string): boolean {
+    if (this.#pendingOneShotNavigation?.requestUrl !== value) return false;
+    const { destinationUrl } = this.#pendingOneShotNavigation;
+    this.#pendingOneShotNavigation = undefined;
+    this.#visitedOneShotNavigationUrls.add(destinationUrl);
+    return true;
+  }
+
+  #assertExactNavigationDestination(expected: string): void {
+    if (this.#page.url() !== expected) {
+      throw new BrowserPolicyContractError("visible navigation destination changed after dispatch");
     }
   }
 }
@@ -1319,6 +1397,44 @@ function escapeHtmlAttribute(value: string): string {
 
 function escapeHtmlText(value: string): string {
   return escapeHtmlAttribute(value).replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+async function exactVisibleLinkTarget(link: Locator, baseUrl: string): Promise<string> {
+  const raw = await link.getAttribute("href");
+  if (raw === null) throw new BrowserPolicyContractError("visible link has no href");
+  try {
+    return new URL(raw, baseUrl).href;
+  } catch {
+    throw new BrowserPolicyContractError("visible link href is invalid");
+  }
+}
+
+async function exactGetFormTarget(submitter: Locator): Promise<string> {
+  try {
+    return await submitter.evaluate((element) => {
+      if (!(element instanceof HTMLButtonElement)
+        && !(element instanceof HTMLInputElement)) {
+        throw new Error("visible submit control is invalid");
+      }
+      const form = element.form;
+      if (form === null || form.method.toLowerCase() !== "get") {
+        throw new Error("visible button must submit an exact GET form");
+      }
+      const target = new URL(form.action, location.href);
+      const query = new URLSearchParams();
+      for (const [name, value] of new FormData(form, element)) {
+        if (typeof value !== "string") {
+          throw new Error("visible GET form must not submit file data");
+        }
+        query.append(name, value);
+      }
+      target.search = query.toString();
+      return target.href;
+    });
+  } catch (error) {
+    if (error instanceof BrowserPolicyContractError) throw error;
+    throw new BrowserPolicyContractError(messageOf(error));
+  }
 }
 
 async function visibleLocators(locator: Locator): Promise<Locator[]> {

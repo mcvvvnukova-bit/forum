@@ -8,11 +8,11 @@ import type { BrowserSession } from "../../../src/modules/audience/application/p
 import type {
   BrowserActionEvent,
   BrowserActionLedger,
-  ChecksummedBrowserRawBundle,
+  ChecksummedProjectionRawBundle,
   DiscoveryScope,
 } from "../../../src/modules/audience/domain/discovery";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
-import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
+import { checksumProjectionRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import { PolicyBrowserSessionFactory } from "../../../src/modules/audience/infrastructure/sources/browser/policy-browser";
 import {
   ListOrgLiveSource,
@@ -62,6 +62,20 @@ describe("ListOrgLiveSource", () => {
     ]);
     expect(fixture.companyRequestIds()).not.toContain("1013");
     expect(fixture.maxConcurrentCompanyRequests()).toBe(1);
+    expect(result.skips).toEqual([
+      expect.objectContaining({ sourceRecordKey: "1003", reason: "individual_entrepreneur" }),
+      expect.objectContaining({
+        sourceRecordKey: "1004",
+        reason: "duplicate_inn",
+        duplicateOfSourceRecordKey: "1001",
+      }),
+    ]);
+    const observedKeys = result.pages.flatMap((page) => page.orderedSourceRecordKeys);
+    expect(observedKeys).toHaveLength(12);
+    expect(new Set(observedKeys).size).toBe(12);
+    expect(result.companies.map((company) => company.sourceRecordKey)).toEqual(
+      observedKeys.filter((key) => key !== "1003" && key !== "1004"),
+    );
   });
 
   it("submits the source-shaped advanced form with canonical OKVED and both exclusion checkboxes cleared", async () => {
@@ -85,7 +99,9 @@ describe("ListOrgLiveSource", () => {
       expect(dom).toContain("Основной (по коду ОКВЭД ред.2):");
       expect(dom).toContain("<table>");
       expect(dom).not.toMatch(/Иван Петров|111-22-33|private\.person|private\.example|company-status/u);
-      expect(raw.redactedScreenshotPng).toHaveLength(0);
+      expect(raw.artifactKind).toBe("projection");
+      expect(raw).not.toHaveProperty("redactedScreenshotPng");
+      expect(raw).not.toHaveProperty("actions");
     }
   });
 
@@ -372,15 +388,16 @@ function verificationGate(inputValue: string): HumanVerificationGate {
 }
 
 function expectEveryRawBundleMinimized(
-  rawBundles: readonly ChecksummedBrowserRawBundle[],
+  rawBundles: readonly ChecksummedProjectionRawBundle[],
 ): void {
   for (const raw of rawBundles) {
     const dom = new TextDecoder().decode(raw.sanitizedDomUtf8);
     expect(dom).not.toMatch(
       /results-person-secret|results-page-two-secret|results\.person|222-33-44|333-44-55|captcha-challenge-secret|Иван Проверяемый|Иван Петров|111-22-33|private\.person|private\.example|hidden-company-secret|hidden-okved-secret/u,
     );
-    expect(raw.redactedScreenshotPng).toHaveLength(0);
-    expect(raw.actions.some((action) => action.kind === "verify-visual-safety")).toBe(false);
-    expect(checksumBrowserRawBundle(raw).checksumSha256).toBe(raw.checksumSha256);
+    expect(raw.artifactKind).toBe("projection");
+    expect(raw).not.toHaveProperty("redactedScreenshotPng");
+    expect(raw).not.toHaveProperty("actions");
+    expect(checksumProjectionRawBundle(raw).checksumSha256).toBe(raw.checksumSha256);
   }
 }

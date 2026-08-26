@@ -5,6 +5,7 @@ import { chromium } from "playwright";
 
 import type { BrowserSessionFactory } from "../../../src/modules/audience/application/ports/browser-session";
 import { parseOkvedCode } from "../../../src/modules/audience/domain/okved";
+import { sanitizePolicyViolationIdentifier } from "../../../src/modules/audience/domain/terminal-block-reason";
 import {
   ListOrgBrowserSource,
   PlaywrightBrowserSessionFactory,
@@ -422,7 +423,7 @@ describe("ListOrgBrowserSource", () => {
       expect(result.status).toBe("blocked");
       expect(result.reason).toBe("policy_block");
       expect(result.blockers.at(-1)).toMatchObject({
-        detail: "service-worker-registration",
+        detail: sanitizePolicyViolationIdentifier("service-worker-registration"),
         raw: expect.objectContaining({
           checksumSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
         }),
@@ -440,7 +441,7 @@ describe("ListOrgBrowserSource", () => {
     expect(result.status).toBe("blocked");
     expect(result.reason).toBe("policy_block");
     expect(result.blockers.at(-1)).toMatchObject({
-      detail: "service-worker-registration",
+      detail: sanitizePolicyViolationIdentifier("service-worker-registration"),
       raw: expect.objectContaining({
         checksumSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
       }),
@@ -459,7 +460,11 @@ describe("ListOrgBrowserSource", () => {
 
     expect(result.status).toBe("blocked");
     expect(result.reason).toBe("policy_block");
-    expect(result.blockers.at(-1)?.detail).toContain(evidence);
+    if (_case === "popup") {
+      expect(result.blockers.at(-1)?.detail).toMatch(/^sha256:[0-9a-f]{64}$/u);
+    } else {
+      expect(result.blockers.at(-1)?.detail).toContain(evidence);
+    }
     expect(result.blockers.at(-1)?.raw.checksumSha256).toMatch(/^[0-9a-f]{64}$/u);
   });
 
@@ -480,7 +485,7 @@ describe("ListOrgBrowserSource", () => {
       expect(result.blockers).toEqual([
         expect.objectContaining({
           reason: "policy_block",
-          detail: new URL(probe.url).origin,
+          detail: expect.stringMatching(/^sha256:[0-9a-f]{64}$/u),
           raw: expect.objectContaining({
             checksumSha256: expect.stringMatching(/^[0-9a-f]{64}$/),
           }),

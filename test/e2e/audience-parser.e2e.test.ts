@@ -1184,6 +1184,54 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     await temporaryDatabase?.drop();
   });
 
+  async function executeIndependentLivePilot(
+    input: Parameters<typeof executeLivePilot>[0],
+  ): Promise<object> {
+    if (database === undefined) throw new Error("live pilot acceptance database is unavailable");
+    const activeDatabase = database;
+    const priorAttempts = await activeDatabase.query<{ id: string; scope_json: unknown }>(
+      `SELECT id, scope_json
+       FROM audience.crawl_runs
+       WHERE scope_json = $1::jsonb
+         AND fixture_version = 'list-org-live/1.0.0'
+         AND parser_version = 'list-org-live/1.0.0'`,
+      [JSON.stringify({
+        okved: "43.11",
+        year: 2025,
+        dryRun: true,
+        maxPages: 2,
+        maxCompanies: 10,
+        onlyActive: false,
+        requiredFinancialMetrics: ["revenue", "income", "expenses"],
+      })],
+    );
+    await activeDatabase.transaction(async (transaction) => {
+      for (const prior of priorAttempts.rows) {
+        await transaction.query(
+          `UPDATE audience.crawl_runs
+           SET scope_json = scope_json || jsonb_build_object('__independent_acceptance__', id::text)
+           WHERE id = $1`,
+          [prior.id],
+        );
+      }
+      // Each case models a fresh owned deployment. The durable/concurrent
+      // one-shot behavior itself is covered against a separate fresh database.
+      await transaction.query("TRUNCATE audience.live_pilot_attempts");
+    });
+    try {
+      return await executeLivePilot(input);
+    } finally {
+      await activeDatabase.transaction(async (transaction) => {
+        for (const prior of priorAttempts.rows) {
+          await transaction.query(
+            "UPDATE audience.crawl_runs SET scope_json = $2::jsonb WHERE id = $1",
+            [prior.id, JSON.stringify(prior.scope_json)],
+          );
+        }
+      });
+    }
+  }
+
   it("runs the real production orchestration through source-shaped loopback adapters", async () => {
     if (env === undefined || repository === undefined || discoveryRawStorage === undefined
       || database === undefined || listServer === undefined || bfoServer === undefined
@@ -1215,12 +1263,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     });
     const bfoSessions = new PolicyBrowserSessionFactory({
       allowedOrigins: [bfoServer.origin],
-      allowedNavigationUrls: [
-        { origin: bfoServer.origin, pathname: "/" },
-        { origin: bfoServer.origin, pathname: "/search" },
-        { origin: bfoServer.origin, pathname: "/cards/*" },
-        { origin: bfoServer.origin, pathname: "/statements/*" },
-      ],
+      allowedNavigationUrls: [`${bfoServer.origin}/`],
       allowInsecureHttpForTesting: true,
     }, {
       sourceKind: "fns-bfo-live",
@@ -1232,7 +1275,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     let listSourceCreations = 0;
     let bfoSourceCreations = 0;
     let storageClosures = 0;
-    const report = await executeLivePilot({
+    const report = await executeIndependentLivePilot({
       env,
       repository,
       discoveryRawStorage,
@@ -1447,7 +1490,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
       },
     });
     const noCaptcha = { wait: async () => { throw new Error("unexpected CAPTCHA"); } };
-    const result = await executeLivePilot({
+    const result = await executeIndependentLivePilot({
       env,
       repository,
       discoveryRawStorage,
@@ -1591,7 +1634,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
       terminalCode: string;
     } | undefined;
     try {
-      result = await executeLivePilot({
+      result = await executeIndependentLivePilot({
         env,
         repository: mismatchedRepository,
         discoveryRawStorage,
@@ -1729,12 +1772,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     });
     const bfoSessions = new PolicyBrowserSessionFactory({
       allowedOrigins: [bfoServer.origin],
-      allowedNavigationUrls: [
-        { origin: bfoServer.origin, pathname: "/" },
-        { origin: bfoServer.origin, pathname: "/search" },
-        { origin: bfoServer.origin, pathname: "/cards/*" },
-        { origin: bfoServer.origin, pathname: "/statements/*" },
-      ],
+      allowedNavigationUrls: [`${bfoServer.origin}/`],
       allowInsecureHttpForTesting: true,
     }, {
       sourceKind: "fns-bfo-live", transportRetryDelayMs: 0,
@@ -1772,7 +1810,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     };
     let executionError: unknown;
     let report: { runId: string } | undefined;
-    const execution = executeLivePilot({
+    const execution = executeIndependentLivePilot({
       env,
       repository: leaseRepository,
       discoveryRawStorage,
@@ -1867,12 +1905,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     });
     const bfoSessions = new PolicyBrowserSessionFactory({
       allowedOrigins: [bfoServer.origin],
-      allowedNavigationUrls: [
-        { origin: bfoServer.origin, pathname: "/" },
-        { origin: bfoServer.origin, pathname: "/search" },
-        { origin: bfoServer.origin, pathname: "/cards/*" },
-        { origin: bfoServer.origin, pathname: "/statements/*" },
-      ],
+      allowedNavigationUrls: [`${bfoServer.origin}/?scenario=report-soft-block`],
       allowInsecureHttpForTesting: true,
     }, {
       sourceKind: "fns-bfo-live",
@@ -1923,7 +1956,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     };
 
     try {
-      await expect(executeLivePilot({
+      await expect(executeIndependentLivePilot({
         env,
         repository,
         discoveryRawStorage,
@@ -1939,8 +1972,8 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
       )).rows.filter((row) => !beforeRuns.has(row.id));
       expect(newRuns).toHaveLength(1);
       expect(newRuns[0]).toMatchObject({
-        status: "failed",
-        terminal_reason: "live_finance_blocked",
+        status: "blocked",
+        terminal_reason: "soft_block",
       });
       const blockedRunId = newRuns[0]!.id;
       const tasks = await database.query<{
@@ -1959,9 +1992,12 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
       );
       expect(tasks.rows).toHaveLength(10);
       expect(tasks.rows.map((task) => task.company_inn)).toEqual(orderedInns);
-      expect(tasks.rows.map((task) => task.status)).toEqual(Array(10).fill("failed"));
+      expect(tasks.rows.map((task) => task.status)).toEqual([
+        "blocked",
+        ...Array(9).fill("failed"),
+      ]);
       expect(tasks.rows.map((task) => task.error_code)).toEqual([
-        "live_finance_blocked",
+        "soft_block",
         ...Array(9).fill("live_finance_cancelled"),
       ]);
       expect(tasks.rows[0]!.action_ledger).toEqual(expect.arrayContaining([
@@ -1982,7 +2018,7 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
       );
       expect(rawAudit.rows).toEqual([{
         bfo_raw: "1",
-        revexp_raw: "0",
+        revexp_raw: "1",
         loopback_only: true,
       }]);
       expect(bfoServer.submittedInns().slice(beforeBfoSearches)).toEqual([orderedInns[0]]);

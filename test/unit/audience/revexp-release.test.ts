@@ -15,6 +15,18 @@ const finalArchiveUrl = "https://file.nalog.ru/opendata/7707329152-revexp/data-2
 const xsdUrl = "https://www.nalog.gov.ru/opendata/7707329152-revexp/structure-5.10.xsd";
 
 describe("resolveRevexpRelease", () => {
+  it("rejects query, fragment, and credentials before transport or durable provenance", async () => {
+    for (const unsafe of [
+      `${metadataUrl}?token=secret`,
+      `${metadataUrl}#private`,
+      "https://user:password@www.nalog.gov.ru/opendata/7707329152-revexp/",
+    ]) {
+      const transport = new FixtureTransport([]);
+      await expect(resolveRevexpRelease(unsafe, transport)).rejects.toThrow(/forbidden/u);
+      expect(transport.requests).toEqual([]);
+    }
+  });
+
   it("resolves the official 2025 release and retains exact metadata/HEAD capture provenance", async () => {
     const html = await officialMetadata();
     const transport = new FixtureTransport([

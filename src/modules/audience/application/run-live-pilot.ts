@@ -13,6 +13,17 @@ export interface LivePilotDiscoverySummary {
   acceptedSourceRecordKeys: readonly string[];
   candidates: readonly { inn: string; sourceRecordKey: string }[];
   rawObjects: number;
+  occurrences?: number;
+  uniqueSourceRecords?: number;
+  skips?: readonly {
+    sourceRecordKey: string;
+    reason: "individual_entrepreneur" | "duplicate_inn";
+    duplicateOfSourceRecordKey?: string;
+  }[];
+  pageIdentities?: readonly {
+    page: number;
+    orderedSourceRecordKeys: readonly string[];
+  }[];
 }
 
 export class LivePilotDiscoveryBlockedError extends Error {
@@ -77,7 +88,32 @@ function hasExactDiscoveryPreflight(discovery: LivePilotDiscoverySummary): boole
     || discovery.discoveredCompanies !== 10
     || discovery.acceptedCompanies !== 10
     || discovery.candidates.length !== 10
-    || discovery.acceptedSourceRecordKeys.length !== 10) return false;
+    || discovery.acceptedSourceRecordKeys.length !== 10
+    || discovery.occurrences !== 12
+    || discovery.uniqueSourceRecords !== 12
+    || discovery.skips?.length !== 2
+    || discovery.pageIdentities?.length !== 2) return false;
+  const pages = discovery.pageIdentities;
+  const skips = discovery.skips;
+  if (pages === undefined || skips === undefined
+    || pages[0]?.page !== 1 || pages[1]?.page !== 2) return false;
+  const occurrenceKeys = pages.flatMap((page) => page.orderedSourceRecordKeys);
+  if (occurrenceKeys.length !== 12 || new Set(occurrenceKeys).size !== 12) return false;
+  const entrepreneurs = skips.filter((skip) => skip.reason === "individual_entrepreneur");
+  const duplicateInns = skips.filter((skip) => skip.reason === "duplicate_inn");
+  if (entrepreneurs.length !== 1 || duplicateInns.length !== 1
+    || duplicateInns[0]?.duplicateOfSourceRecordKey === undefined
+    || new Set(skips.map((skip) => skip.sourceRecordKey)).size !== 2
+    || skips.some((skip) => !occurrenceKeys.includes(skip.sourceRecordKey))) return false;
+  const skippedKeys = new Set(skips.map((skip) => skip.sourceRecordKey));
+  const duplicate = duplicateInns[0]!;
+  if (!discovery.acceptedSourceRecordKeys.includes(duplicate.duplicateOfSourceRecordKey!)
+    || occurrenceKeys.indexOf(duplicate.duplicateOfSourceRecordKey!)
+      >= occurrenceKeys.indexOf(duplicate.sourceRecordKey)) return false;
+  const expectedAcceptedKeys = occurrenceKeys.filter((key) => !skippedKeys.has(key));
+  if (expectedAcceptedKeys.length !== 10
+    || expectedAcceptedKeys.some((key, index) =>
+      key !== discovery.acceptedSourceRecordKeys[index])) return false;
   const inns: string[] = [];
   for (const [index, candidate] of discovery.candidates.entries()) {
     try {

@@ -8,6 +8,7 @@ import {
 import type {
   RawObjectStorage,
   StoredBrowserRawObject,
+  StoredProjectionRawObject,
   StoredRawObject,
   VerifiedRawObject,
 } from "../../application/ports/raw-object-storage";
@@ -16,6 +17,7 @@ import type {
   CandidateContactEvidence,
   CandidateEvidence,
   ChecksummedBrowserRawBundle,
+  ChecksummedProjectionRawBundle,
 } from "../../domain/discovery";
 import type { AppEnv } from "../../../../shared/config/env";
 import {
@@ -23,7 +25,13 @@ import {
   browserEvidenceSourceProfile,
   isCanonicalBrowserActionId,
 } from "../sources/list-org-browser/browser-raw-sanitizer";
-import { checksumBrowserRawBundle, RAW_MANIFEST_VERSION, sha256 } from "./raw-bundle";
+import {
+  checksumBrowserRawBundle,
+  checksumProjectionRawBundle,
+  PROJECTION_RAW_MANIFEST_VERSION,
+  RAW_MANIFEST_VERSION,
+  sha256,
+} from "./raw-bundle";
 
 export class S3RawObjectStorage implements RawObjectStorage {
   readonly #client: S3Client;
@@ -42,7 +50,14 @@ export class S3RawObjectStorage implements RawObjectStorage {
     this.#ownsClient = client === undefined;
   }
 
-  async put(bundle: ChecksummedBrowserRawBundle): Promise<StoredBrowserRawObject> {
+  put(bundle: ChecksummedBrowserRawBundle): Promise<StoredBrowserRawObject>;
+  put(bundle: ChecksummedProjectionRawBundle): Promise<StoredProjectionRawObject>;
+  put(
+    bundle: ChecksummedBrowserRawBundle | ChecksummedProjectionRawBundle,
+  ): Promise<StoredBrowserRawObject | StoredProjectionRawObject>;
+  async put(
+    bundle: ChecksummedBrowserRawBundle | ChecksummedProjectionRawBundle,
+  ): Promise<StoredBrowserRawObject | StoredProjectionRawObject> {
     this.#assertOpen();
     validateBundle(bundle);
     if (bundle.sourceKind !== this.#sourceKind) {
@@ -59,9 +74,28 @@ export class S3RawObjectStorage implements RawObjectStorage {
       bundle.checksumSha256,
     ].join("/");
     const manifestKey = `${prefix}/manifest.json`;
+    if (isProjectionBundle(bundle)) {
+      const projectionKey = `${prefix}/projection.html`;
+      await this.#putImmutable(
+        projectionKey,
+        bundle.sanitizedDomUtf8,
+        "text/html; charset=utf-8",
+      );
+      await this.#putImmutable(manifestKey, bundle.manifestUtf8, "application/json; charset=utf-8");
+      return {
+        kind: "projection",
+        runId: bundle.identity.runId,
+        sourceKind: bundle.sourceKind,
+        sourceRecordKey: bundle.identity.sourceRecordKey ?? `page:${bundle.identity.page}`,
+        parserVersion: bundle.parserVersion,
+        checksumSha256: bundle.checksumSha256,
+        prefix,
+        manifestKey,
+        projectionKey,
+      };
+    }
     const domKey = `${prefix}/dom.html`;
     const screenshotKey = `${prefix}/screenshot.png`;
-
     await this.#putImmutable(domKey, bundle.sanitizedDomUtf8, "text/html; charset=utf-8");
     await this.#putImmutable(screenshotKey, bundle.redactedScreenshotPng, "image/png");
     await this.#putImmutable(manifestKey, bundle.manifestUtf8, "application/json; charset=utf-8");
@@ -82,6 +116,7 @@ export class S3RawObjectStorage implements RawObjectStorage {
 
   async verify(object: StoredRawObject): Promise<VerifiedRawObject> {
     this.#assertOpen();
+    if (object.kind === "projection") return this.#verifyProjection(object);
     if (object.kind !== "browser") {
       throw new Error("raw object artifact kind is invalid");
     }
@@ -134,6 +169,52 @@ export class S3RawObjectStorage implements RawObjectStorage {
       runId: manifest.identity.runId,
       sourceKind: manifest.sourceKind,
       sourceRecordKey: manifestRecordKey,
+      checksumSha256: object.checksumSha256,
+      parserVersion: manifest.parserVersion,
+      candidateEvidence: manifest.candidateEvidence,
+    };
+  }
+
+  async #verifyProjection(object: StoredProjectionRawObject): Promise<VerifiedRawObject> {
+    validateStoredProjectionObject(object);
+    if (object.sourceKind !== this.#sourceKind) {
+      throw new Error("raw object identity verification failed");
+    }
+    const [manifestBytes, projectionBytes] = await Promise.all([
+      this.#get(object.manifestKey),
+      this.#get(object.projectionKey),
+    ]);
+    const manifest = parseProjectionManifest(manifestBytes);
+    if (manifest === null
+      || sha256(manifestBytes) !== object.checksumSha256
+      || manifest.artifacts.sanitizedProjection.file !== "projection.html"
+      || sha256(projectionBytes) !== manifest.artifacts.sanitizedProjection.checksumSha256
+      || manifest.pageFingerprintSha256 !== sha256(projectionBytes)) {
+      throw new Error("raw object checksum verification failed");
+    }
+    const sourceRecordKey = manifest.identity.sourceRecordKey ?? `page:${manifest.identity.page}`;
+    if (manifest.identity.runId !== object.runId
+      || manifest.sourceKind !== object.sourceKind
+      || sourceRecordKey !== object.sourceRecordKey
+      || manifest.parserVersion !== object.parserVersion
+      || (manifest.candidateEvidence !== null
+        && manifest.candidateEvidence.sourceRecordKey !== sourceRecordKey)) {
+      throw new Error("raw object identity verification failed");
+    }
+    assertBrowserCaptureSafe({
+      sourceKind: manifest.sourceKind,
+      finalUrl: manifest.finalUrl,
+      sanitizedDomUtf8: projectionBytes,
+      redactedScreenshotPng: new Uint8Array(),
+      pageFingerprintSha256: manifest.pageFingerprintSha256,
+      candidateEvidence: manifest.candidateEvidence,
+      actions: [],
+      sensitiveFormFieldNames: manifest.sensitiveFormFieldNames,
+    });
+    return {
+      runId: manifest.identity.runId,
+      sourceKind: manifest.sourceKind,
+      sourceRecordKey,
       checksumSha256: object.checksumSha256,
       parserVersion: manifest.parserVersion,
       candidateEvidence: manifest.candidateEvidence,
@@ -197,6 +278,21 @@ interface RawManifest {
   artifacts: {
     sanitizedDom: { file: string; checksumSha256: string };
     redactedScreenshot: { file: string; checksumSha256: string };
+  };
+}
+
+interface ProjectionManifest {
+  sourceKind: string;
+  parserVersion: string;
+  sensitiveFormFieldNames: readonly string[];
+  finalUrl: string;
+  capturedAt: string;
+  navigationStatus: number | null;
+  pageFingerprintSha256: string;
+  identity: { runId: string; page: number; sourceRecordKey?: string };
+  candidateEvidence: CandidateEvidence | null;
+  artifacts: {
+    sanitizedProjection: { file: string; checksumSha256: string };
   };
 }
 
@@ -274,6 +370,51 @@ function parseRawManifest(bytes: Uint8Array): RawManifest | null {
       sanitizedDom: value.artifacts.sanitizedDom,
       redactedScreenshot: value.artifacts.redactedScreenshot,
     },
+  };
+}
+
+function parseProjectionManifest(bytes: Uint8Array): ProjectionManifest | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch {
+    return null;
+  }
+  if (!isRecord(value)
+    || !hasExactlyKeys(value, [
+      "version", "artifactKind", "sourceKind", "parserVersion",
+      "sensitiveFormFieldNames", "finalUrl", "capturedAt", "navigationStatus",
+      "pageFingerprintSha256", "identity", "candidateEvidence", "artifacts",
+    ])
+    || value.version !== PROJECTION_RAW_MANIFEST_VERSION
+    || value.artifactKind !== "projection"
+    || typeof value.sourceKind !== "string"
+    || !/^[a-z0-9-]+$/u.test(value.sourceKind)
+    || browserEvidenceSourceProfile(value.sourceKind) !== "projection"
+    || !isSafeRetainedText(value.parserVersion)
+    || !isSafeRetainedTextArray(value.sensitiveFormFieldNames)
+    || !isSafeRetainedText(value.finalUrl)
+    || !isCanonicalIsoTimestamp(value.capturedAt)
+    || !isNavigationStatus(value.navigationStatus)
+    || !isSha256(value.pageFingerprintSha256)
+    || !isRawIdentity(value.identity)
+    || !isCandidateEvidenceOrNull(value.candidateEvidence)
+    || !isRecord(value.artifacts)
+    || !hasExactlyKeys(value.artifacts, ["sanitizedProjection"])
+    || !isArtifact(value.artifacts.sanitizedProjection)) {
+    return null;
+  }
+  return {
+    sourceKind: value.sourceKind,
+    parserVersion: value.parserVersion,
+    sensitiveFormFieldNames: value.sensitiveFormFieldNames,
+    finalUrl: value.finalUrl,
+    capturedAt: value.capturedAt,
+    navigationStatus: value.navigationStatus,
+    pageFingerprintSha256: value.pageFingerprintSha256,
+    identity: value.identity,
+    candidateEvidence: value.candidateEvidence,
+    artifacts: { sanitizedProjection: value.artifacts.sanitizedProjection },
   };
 }
 
@@ -387,7 +528,32 @@ function clientConfig(env: AppEnv): S3ClientConfig {
   };
 }
 
-function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
+function validateBundle(
+  bundle: ChecksummedBrowserRawBundle | ChecksummedProjectionRawBundle,
+): void {
+  if (isProjectionBundle(bundle)) {
+    const recalculated = checksumProjectionRawBundle({
+      artifactKind: "projection",
+      sourceKind: bundle.sourceKind,
+      parserVersion: bundle.parserVersion,
+      finalUrl: bundle.finalUrl,
+      capturedAt: bundle.capturedAt,
+      navigationStatus: bundle.navigationStatus,
+      sanitizedDomUtf8: bundle.sanitizedDomUtf8,
+      pageFingerprintSha256: bundle.pageFingerprintSha256,
+      identity: bundle.identity,
+      candidateEvidence: bundle.candidateEvidence,
+      sensitiveFormFieldNames: bundle.sensitiveFormFieldNames,
+    });
+    if (bundle.checksumSha256 !== recalculated.checksumSha256
+      || bundle.artifacts.sanitizedProjectionSha256
+        !== recalculated.artifacts.sanitizedProjectionSha256
+      || bundle.artifacts.manifestSha256 !== recalculated.artifacts.manifestSha256
+      || !bytesEqual(bundle.manifestUtf8, recalculated.manifestUtf8)) {
+      throw new Error("raw bundle checksum validation failed");
+    }
+    return;
+  }
   const recalculated = checksumBrowserRawBundle({
     sourceKind: bundle.sourceKind,
     parserVersion: bundle.parserVersion,
@@ -410,6 +576,32 @@ function validateBundle(bundle: ChecksummedBrowserRawBundle): void {
     || !bytesEqual(bundle.manifestUtf8, recalculated.manifestUtf8)
   ) {
     throw new Error("raw bundle checksum validation failed");
+  }
+}
+
+function isProjectionBundle(
+  bundle: ChecksummedBrowserRawBundle | ChecksummedProjectionRawBundle,
+): bundle is ChecksummedProjectionRawBundle {
+  return "artifactKind" in bundle && bundle.artifactKind === "projection";
+}
+
+function validateStoredProjectionObject(object: StoredProjectionRawObject): void {
+  const expectedPrefix = [
+    "raw", object.runId, object.sourceKind, object.checksumSha256,
+  ].join("/");
+  if (!hasExactlyKeys(object, [
+    "kind", "runId", "sourceKind", "sourceRecordKey", "parserVersion",
+    "checksumSha256", "prefix", "manifestKey", "projectionKey",
+  ])
+    || !/^[A-Za-z0-9._-]+$/u.test(object.runId)
+    || !/^[a-z0-9-]+$/u.test(object.sourceKind)
+    || !isSafeRetainedText(object.sourceRecordKey)
+    || !isSafeRetainedText(object.parserVersion)
+    || !/^[0-9a-f]{64}$/u.test(object.checksumSha256)
+    || object.prefix !== expectedPrefix
+    || object.manifestKey !== `${expectedPrefix}/manifest.json`
+    || object.projectionKey !== `${expectedPrefix}/projection.html`) {
+    throw new Error("raw object identity verification failed");
   }
 }
 

@@ -1,4 +1,8 @@
-import type { CandidateEvidence, ChecksummedBrowserRawBundle } from "../../domain/discovery";
+import type {
+  CandidateEvidence,
+  ChecksummedBrowserRawBundle,
+  ChecksummedProjectionRawBundle,
+} from "../../domain/discovery";
 
 export interface StoredRawObjectIdentity {
   runId: string;
@@ -16,6 +20,11 @@ export type StoredBrowserRawObject = StoredRawObjectIdentity & {
   screenshotKey: string;
 };
 
+export type StoredProjectionRawObject = StoredRawObjectIdentity & {
+  kind: "projection";
+  projectionKey: string;
+};
+
 export type StoredFileRawObject = StoredRawObjectIdentity & {
   kind: "file";
   dataKey: string;
@@ -23,7 +32,7 @@ export type StoredFileRawObject = StoredRawObjectIdentity & {
   byteLength: number;
 };
 
-export type StoredRawObject = StoredBrowserRawObject | StoredFileRawObject;
+export type StoredRawObject = StoredBrowserRawObject | StoredProjectionRawObject | StoredFileRawObject;
 
 export interface VerifiedRawObject {
   runId: string;
@@ -36,5 +45,9 @@ export interface VerifiedRawObject {
 
 export interface RawObjectStorage {
   put(bundle: ChecksummedBrowserRawBundle): Promise<StoredBrowserRawObject>;
+  put(bundle: ChecksummedProjectionRawBundle): Promise<StoredProjectionRawObject>;
+  put(
+    bundle: ChecksummedBrowserRawBundle | ChecksummedProjectionRawBundle,
+  ): Promise<StoredBrowserRawObject | StoredProjectionRawObject>;
   verify(object: StoredRawObject): Promise<VerifiedRawObject>;
 }

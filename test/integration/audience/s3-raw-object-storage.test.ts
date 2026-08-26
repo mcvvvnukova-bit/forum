@@ -18,7 +18,10 @@ import {
   browserVisualSafetyTarget,
 } from "../../../src/modules/audience/infrastructure/sources/list-org-browser/browser-raw-sanitizer";
 import { S3RawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-raw-object-storage";
-import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
+import {
+  checksumBrowserRawBundle,
+  checksumProjectionRawBundle,
+} from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 
 describe("S3RawObjectStorage", () => {
   const bucket = `okved-raw-test-${randomUUID()}`;
@@ -92,6 +95,49 @@ describe("S3RawObjectStorage", () => {
     );
     expect(manifest.candidateEvidence).toEqual(bundle.candidateEvidence);
     expect(JSON.stringify(manifest)).not.toMatch(/\+7 \(495\) 111-22-33|info@alpha\.example/i);
+  });
+
+  it("stores a truthful projection manifest without claiming screenshot or action artifacts", async () => {
+    const storage = new S3RawObjectStorage(env, "list-org-live", client);
+    const projection = checksumProjectionRawBundle({
+      artifactKind: "projection",
+      sourceKind: "list-org-live",
+      parserVersion: "list-org-live/1.0.0",
+      finalUrl: "https://www.list-org.com/company/1001",
+      capturedAt: "2026-08-26T12:00:00.000Z",
+      navigationStatus: 200,
+      sanitizedDomUtf8: new TextEncoder().encode("<!doctype html><main>safe projection</main>"),
+      pageFingerprintSha256: fixtureSha256(
+        new TextEncoder().encode("<!doctype html><main>safe projection</main>"),
+      ),
+      identity: { runId: "projection-artifact", page: 1, sourceRecordKey: "1001" },
+      candidateEvidence: null,
+      sensitiveFormFieldNames: [...MANDATORY_SENSITIVE_QUERY_PARAMETERS],
+    });
+
+    const stored = await storage.put(projection);
+    expect(stored).toMatchObject({ kind: "projection" });
+    expect(stored).not.toHaveProperty("screenshotKey");
+    const listed = await client.send(new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: `${stored.prefix}/`,
+    }));
+    expect(listed.Contents?.map((item) => item.Key).sort()).toEqual([
+      stored.manifestKey,
+      stored.projectionKey,
+    ].sort());
+    const manifestResponse = await client.send(new GetObjectCommand({
+      Bucket: bucket,
+      Key: stored.manifestKey,
+    }));
+    const manifest = JSON.parse(await manifestResponse.Body!.transformToString()) as Record<string, unknown>;
+    expect(manifest).toMatchObject({ version: 3, artifactKind: "projection" });
+    expect(manifest).not.toHaveProperty("actions");
+    expect(JSON.stringify(manifest)).not.toMatch(/screenshot|\.png|captcha/iu);
+    await expect(storage.verify(stored)).resolves.toMatchObject({
+      sourceRecordKey: "1001",
+      candidateEvidence: null,
+    });
   });
 
   it("destroys an owned S3 client exactly once on close", () => {

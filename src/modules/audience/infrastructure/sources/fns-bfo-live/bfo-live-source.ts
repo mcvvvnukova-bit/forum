@@ -5,11 +5,12 @@ import type {
 } from "../../../application/ports/browser-session";
 import type { FinancialSourceAttempt } from "../../../application/ports/audience-repository";
 import type { FinancialMetricEvidence } from "../../../domain/financial";
-import type { ChecksummedBrowserRawBundle, DiscoveryExecutionContext } from "../../../domain/discovery";
+import type { ChecksummedProjectionRawBundle, DiscoveryExecutionContext } from "../../../domain/discovery";
 import { ExternalBrowserRequestError } from "../../../domain/discovery";
 import { parseLegalEntityInn, type LegalEntityInn } from "../../../domain/inn";
+import type { TerminalBlockReason } from "../../../domain/terminal-block-reason";
 import { OperatorAbortedError } from "../../../../../apps/browser-runner/human-verification";
-import { checksumBrowserRawBundle, sha256 } from "../../storage/raw-bundle";
+import { checksumProjectionRawBundle, sha256 } from "../../storage/raw-bundle";
 import {
   BrowserPolicyContractError,
   BrowserTransportError,
@@ -59,20 +60,20 @@ export type BfoLiveRevenueResult =
     outcome: "published";
     evidence: FinancialMetricEvidence;
     sourceAttempt: FinancialSourceAttempt;
-    raw: ChecksummedBrowserRawBundle;
+    raw: ChecksummedProjectionRawBundle;
   }
   | {
     outcome: "no_data";
     reason: "report_restricted" | "report_unavailable" | "line_2110_absent";
     evidence: null;
     sourceAttempt: FinancialSourceAttempt;
-    raw: ChecksummedBrowserRawBundle;
+    raw: ChecksummedProjectionRawBundle;
   }
   | {
     outcome: "blocked";
-    reason: string;
+    reason: TerminalBlockReason;
     evidence: null;
-    raw: ChecksummedBrowserRawBundle;
+    raw: ChecksummedProjectionRawBundle;
   };
 
 export interface BfoLiveSourceOptions {
@@ -105,6 +106,10 @@ export class BfoLiveSource {
     if (options.sessions.policy.allowedOrigins.length !== 1
       || options.sessions.policy.allowedOrigins[0] !== searchUrl.origin) {
       throw new Error("BFO live browser policy must allow only the exact search origin");
+    }
+    if (options.sessions.policy.allowedNavigationUrls.length !== 1
+      || options.sessions.policy.allowedNavigationUrls[0] !== searchUrl.href) {
+      throw new Error("BFO live browser policy must allow only the exact entry URL");
     }
     if ((options.sessions.policy.allowedDownloadUrls?.length ?? 0) !== 0
       || (options.sessions.policy.allowedDownloadOrigins?.length ?? 0) !== 0) {
@@ -148,7 +153,7 @@ export class BfoLiveSource {
     let navigationStatus: number | null = null;
 
     const block = async (
-      reason: string,
+      reason: TerminalBlockReason,
       policyOrigins: readonly string[] = [],
     ): Promise<BfoLiveRevenueResult> => {
       let finalUrl: string;
@@ -353,26 +358,25 @@ export class BfoLiveSource {
     finalUrl: string,
     sourceRecordKey: string,
     navigationStatus: number | null,
-  ): ChecksummedBrowserRawBundle {
-    return checksumBrowserRawBundle({
+  ): ChecksummedProjectionRawBundle {
+    return checksumProjectionRawBundle({
+      artifactKind: "projection",
       sourceKind: SOURCE_KIND,
       parserVersion: this.#parserVersion,
       finalUrl: sanitizeBrowserUrl(finalUrl, projection.sensitiveFormFieldNames),
       capturedAt: this.#now().toISOString(),
       navigationStatus,
       sanitizedDomUtf8: projection.sanitizedDomUtf8,
-      redactedScreenshotPng: new Uint8Array(),
       pageFingerprintSha256: sha256(projection.sanitizedDomUtf8),
       identity: { runId: this.#runId, page: 1, sourceRecordKey },
       candidateEvidence: null,
-      actions: [],
       sensitiveFormFieldNames: projection.sensitiveFormFieldNames,
     });
   }
 }
 
 class LiveBlockedError extends Error {
-  constructor(readonly reason: string) { super(reason); }
+  constructor(readonly reason: TerminalBlockReason) { super(reason); }
 }
 
 function assertNonTerminalStatus(status: number | null): void {

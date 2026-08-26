@@ -8,10 +8,10 @@ import type { BrowserSession } from "../../../src/modules/audience/application/p
 import type {
   BrowserActionEvent,
   BrowserActionLedger,
-  ChecksummedBrowserRawBundle,
+  ChecksummedProjectionRawBundle,
 } from "../../../src/modules/audience/domain/discovery";
 import { parseLegalEntityInn } from "../../../src/modules/audience/domain/inn";
-import { checksumBrowserRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
+import { checksumProjectionRawBundle } from "../../../src/modules/audience/infrastructure/storage/raw-bundle";
 import { PolicyBrowserSessionFactory } from "../../../src/modules/audience/infrastructure/sources/browser/policy-browser";
 import {
   BfoLiveSource,
@@ -65,6 +65,7 @@ describe("BfoLiveSource", () => {
         parserVersion: "fns-bfo-live/1.0.0",
       },
       raw: {
+        artifactKind: "projection",
         sourceKind: "fns-bfo-live",
         parserVersion: "fns-bfo-live/1.0.0",
         navigationStatus: 200,
@@ -74,7 +75,6 @@ describe("BfoLiveSource", () => {
           sourceRecordKey: "7707083893:2025:0710002:2",
         },
         candidateEvidence: null,
-        actions: [],
       },
     });
     if (result.outcome !== "published") throw new Error("expected published result");
@@ -283,7 +283,8 @@ describe("BfoLiveSource", () => {
         ordering.push("gate-entered");
         expect(events.at(-1)?.kind).toBe("captcha_waiting");
         const browser = request.source as BrowserSession;
-        await browser.navigate(await browser.currentUrl());
+        await expect(browser.currentUrl()).resolves.toContain("/statements/");
+        await expect(browser.clickLink("Продолжить после CAPTCHA")).resolves.toBe(200);
         return realGate.wait({
           ...request,
           revalidate: async (sameSession) => {
@@ -369,6 +370,22 @@ describe("BfoLiveSource", () => {
     expect(fixture.requests()).toEqual([]);
   });
 
+  it("rejects a wildcard BFO navigation policy before opening the browser", () => {
+    const sessions = new PolicyBrowserSessionFactory({
+      allowedOrigins: [fixture.origin],
+      allowedNavigationUrls: [{ origin: fixture.origin, pathname: "/*" }],
+      allowInsecureHttpForTesting: true,
+    });
+    expect(() => new BfoLiveSource({
+      searchUrl: `${fixture.origin}/`,
+      sessions,
+      humanVerification: failIfCaptchaAppears(),
+      runId: "bfo-wildcard-policy",
+      parserVersion: "fns-bfo-live/1.0.0",
+    })).toThrow("exact entry URL");
+    expect(fixture.requests()).toEqual([]);
+  });
+
   async function collect(
     scenario: string,
     humanVerification: HumanVerificationGatePort = failIfCaptchaAppears(),
@@ -386,14 +403,10 @@ describe("BfoLiveSource", () => {
     scenario: string,
     humanVerification: HumanVerificationGatePort = failIfCaptchaAppears(),
   ) {
+    const searchUrl = `${fixture.origin}/${scenario === "default" ? "" : `?scenario=${scenario}`}`;
     const sessions = new PolicyBrowserSessionFactory({
       allowedOrigins: [fixture.origin],
-      allowedNavigationUrls: [
-        { origin: fixture.origin, pathname: "/" },
-        { origin: fixture.origin, pathname: "/search" },
-        { origin: fixture.origin, pathname: "/cards/*" },
-        { origin: fixture.origin, pathname: "/statements/*" },
-      ],
+      allowedNavigationUrls: [searchUrl],
       allowInsecureHttpForTesting: true,
     }, {
       sourceKind: "fns-bfo-live",
@@ -406,7 +419,7 @@ describe("BfoLiveSource", () => {
     });
     return {
       source: new BfoLiveSource({
-        searchUrl: `${fixture.origin}/${scenario === "default" ? "" : `?scenario=${scenario}`}`,
+        searchUrl,
         sessions,
         humanVerification,
         runId: `bfo-${scenario}`,
@@ -435,11 +448,12 @@ function visibleCompletedActions(actions: readonly BrowserActionEvent[]) {
     .map((action) => [action.kind, action.target]);
 }
 
-function expectRawProjectionSafe(raw: ChecksummedBrowserRawBundle): void {
+function expectRawProjectionSafe(raw: ChecksummedProjectionRawBundle): void {
   const dom = new TextDecoder().decode(raw.sanitizedDomUtf8);
-  expect(raw.redactedScreenshotPng).toHaveLength(0);
-  expect(raw.actions).toEqual([]);
+  expect(raw.artifactKind).toBe("projection");
+  expect(raw).not.toHaveProperty("redactedScreenshotPng");
+  expect(raw).not.toHaveProperty("actions");
   expect(raw.candidateEvidence).toBeNull();
   expect(dom).not.toMatch(/captcha-challenge-secret|results-unrelated-secret|report-unrelated-secret|person@example|\+7 \(495\)/u);
-  expect(checksumBrowserRawBundle(raw).checksumSha256).toBe(raw.checksumSha256);
+  expect(checksumProjectionRawBundle(raw).checksumSha256).toBe(raw.checksumSha256);
 }

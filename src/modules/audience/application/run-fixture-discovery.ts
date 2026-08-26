@@ -123,6 +123,7 @@ export async function runFixtureDiscovery(
     const occurrenceKeys = result.pages.flatMap((page) =>
       page.occurrences.map((occurrence) => occurrence.sourceRecordKey)
     );
+    const skips = result.skips ?? [];
     const uniqueSourceRecords = new Set(occurrenceKeys).size;
     const materializedSourceRecords = new Set([
       ...result.companies.map((company) => company.sourceRecordKey),
@@ -155,6 +156,14 @@ export async function runFixtureDiscovery(
         rawFetchKey: blocker.raw.checksumSha256,
         ...(blocker.detail === undefined ? {} : { detail: blocker.detail }),
       })),
+      skips: skips.map((skip) => ({
+        sourceRecordKey: skip.sourceRecordKey,
+        reason: skip.reason,
+        rawFetchKey: skip.raw.checksumSha256,
+        ...(skip.duplicateOfSourceRecordKey === undefined ? {} : {
+          duplicateOfSourceRecordKey: skip.duplicateOfSourceRecordKey,
+        }),
+      })),
       rawObjects,
       discovery: {
         occurrences: occurrenceKeys.length,
@@ -163,6 +172,20 @@ export async function runFixtureDiscovery(
         duplicates: occurrenceKeys.length - uniqueSourceRecords,
         rejected: result.rejects.length,
         blockedOrConflicted,
+        ...(taskKind !== "live_discovery" ? {} : {
+          individualEntrepreneurs: skips.filter((skip) =>
+            skip.reason === "individual_entrepreneur"
+          ).length,
+          duplicateInns: skips.filter((skip) => skip.reason === "duplicate_inn").length,
+          skips: skips.map((skip) => ({
+            sourceRecordKey: skip.sourceRecordKey,
+            reason: skip.reason,
+            rawFetchKey: skip.raw.checksumSha256,
+            ...(skip.duplicateOfSourceRecordKey === undefined ? {} : {
+              duplicateOfSourceRecordKey: skip.duplicateOfSourceRecordKey,
+            }),
+          })),
+        }),
         acceptedSourceRecordKeys: result.companies.map((company) => company.sourceRecordKey),
         pageIdentities: result.pages.map((page) => ({
           page: page.page,

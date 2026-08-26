@@ -1,4 +1,5 @@
 import { GetObjectCommand, PutObjectCommand, type S3Client } from "@aws-sdk/client-s3";
+import { access } from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { AppEnv } from "../../../src/shared/config/env";
@@ -7,7 +8,7 @@ import {
   resolveRevexpRelease,
 } from "../../../src/modules/audience/infrastructure/sources/fns-revexp/revexp-release";
 import { selectRevexpMetrics } from "../../../src/modules/audience/infrastructure/sources/fns-revexp/revexp-archive-parser";
-import { checksumFileRawEvidence } from "../../../src/modules/audience/infrastructure/storage/file-raw-evidence";
+import { checksumFileRawEvidenceFromPath } from "../../../src/modules/audience/infrastructure/storage/file-raw-evidence";
 import { S3FileRawObjectStorage } from "../../../src/modules/audience/infrastructure/storage/s3-file-raw-object-storage";
 import {
   startRevexpContractServer,
@@ -33,8 +34,9 @@ describe("official revexp live source contract", () => {
     const downloaded = await downloadRevexpArchive(release, server.transport);
     const fakeS3 = new MemoryS3Client();
     const storage = new S3FileRawObjectStorage(fileEnv, "fns-revexp", fakeS3.client);
-    const parserVersion = `fns-revexp/1.0.0+xsd-${release.structureVersion}`;
-    const raw = checksumFileRawEvidence({
+    const parserVersion = `fns-revexp/structure-${release.structureVersion}`;
+    expect(downloaded).not.toHaveProperty("data");
+    const raw = checksumFileRawEvidenceFromPath({
       sourceKind: "fns-revexp",
       parserVersion,
       finalUrl: downloaded.finalUrl,
@@ -45,33 +47,87 @@ describe("official revexp live source contract", () => {
         sourceRecordKey: `${release.datasetId}:${release.reportYear}`,
       },
       mimeType: downloaded.contentType,
-      data: downloaded.data,
+      filePath: downloaded.filePath,
+      byteLength: downloaded.byteLength,
+      dataChecksumSha256: downloaded.dataChecksumSha256,
+      provenance: {
+        datasetId: release.datasetId,
+        reportYear: release.reportYear,
+        publishedAt: release.publishedAt,
+        updatedAt: release.updatedAt,
+        structureVersion: release.structureVersion,
+        xsdUrl: release.xsdUrl,
+        metadata: release.capture.metadata,
+        archive: {
+          ...release.capture.archive,
+          finalUrl: downloaded.finalUrl,
+          status: downloaded.status,
+          capturedAt: downloaded.capturedAt,
+          contentType: downloaded.contentType,
+          contentLength: downloaded.contentLength,
+          etag: downloaded.etag,
+          lastModified: downloaded.lastModified,
+        },
+      },
     });
-    const stored = await storage.put(raw);
-    await expect(storage.verify(stored)).resolves.toEqual(expect.objectContaining({
-      checksumSha256: raw.checksumSha256,
-      sourceRecordKey: "7707329152-revexp:2025",
-    }));
+    try {
+      const stored = await storage.put(raw);
+      await expect(storage.verify(stored)).resolves.toEqual(expect.objectContaining({
+        checksumSha256: raw.checksumSha256,
+        sourceRecordKey: "7707329152-revexp:2025",
+      }));
 
-    const evidence = await selectRevexpMetrics(chunked(downloaded.data, 29), targetInns, {
-      reportYear: release.reportYear,
-      sourceRecordKey: (inn) => `${inn}:${release.reportYear}:${release.datasetId}`,
-      observedAt: release.updatedAt,
-      rawFetchKey: stored.checksumSha256,
-      parserVersion,
-    });
+      const observedChunkSizes: number[] = [];
+      const evidence = await selectRevexpMetrics(observeChunks(
+        downloaded.openStream(),
+        observedChunkSizes,
+      ), targetInns, {
+        reportYear: release.reportYear,
+        sourceRecordKey: (inn) => `${inn}:${release.reportYear}:${release.datasetId}`,
+        observedAt: release.updatedAt,
+        rawFetchKey: stored.checksumSha256,
+        parserVersion,
+      });
 
-    expect(evidence).toHaveLength(20);
-    expect(evidence.map((item) => [item.inn, item.metric, item.value]).slice(0, 4)).toEqual([
-      ["7700000016", "income", "1001.00"],
-      ["7700000016", "expenses", "501.00"],
-      ["7700000023", "income", "1002.00"],
-      ["7700000023", "expenses", "502.00"],
-    ]);
-    expect(new Set(evidence.map((item) => item.rawFetchKey))).toEqual(new Set([stored.checksumSha256]));
-    expect([...new Set(evidence.map((item) => item.sourceRecordKey))]).toHaveLength(10);
-    expect(fakeS3.dataWrites).toBe(1);
-    expect(fakeS3.objects.get(stored.dataKey)).toEqual(downloaded.data);
+      expect(evidence).toHaveLength(20);
+      expect(evidence.map((item) => [item.inn, item.metric, item.value]).slice(0, 4)).toEqual([
+        ["7700000016", "income", "1001.00"],
+        ["7700000016", "expenses", "501.00"],
+        ["7700000023", "income", "1002.00"],
+        ["7700000023", "expenses", "502.00"],
+      ]);
+      expect(new Set(evidence.map((item) => item.rawFetchKey))).toEqual(new Set([stored.checksumSha256]));
+      expect([...new Set(evidence.map((item) => item.sourceRecordKey))]).toHaveLength(10);
+      expect(observedChunkSizes.length).toBeGreaterThan(1);
+      expect(Math.max(...observedChunkSizes)).toBeLessThan(downloaded.byteLength);
+      expect(fakeS3.dataWrites).toBe(1);
+      expect(fakeS3.objects.get(stored.dataKey)).toHaveLength(downloaded.byteLength);
+      const manifest = JSON.parse(new TextDecoder().decode(
+        fakeS3.objects.get(stored.manifestKey),
+      )) as Record<string, unknown>;
+      expect(manifest).toMatchObject({
+        version: 2,
+        parserVersion: `fns-revexp/structure-${release.structureVersion}`,
+        provenance: {
+          datasetId: "7707329152-revexp",
+          reportYear: 2025,
+          publishedAt: release.publishedAt,
+          updatedAt: release.updatedAt,
+          structureVersion: release.structureVersion,
+          xsdUrl: release.xsdUrl,
+          metadata: release.capture.metadata,
+          archive: expect.objectContaining({
+            finalUrl: downloaded.finalUrl,
+            etag: downloaded.etag,
+            lastModified: downloaded.lastModified,
+          }),
+        },
+      });
+    } finally {
+      await downloaded.cleanup();
+    }
+    await expect(downloaded.cleanup()).resolves.toBeUndefined();
+    await expect(access(downloaded.filePath)).rejects.toMatchObject({ code: "ENOENT" });
     expect(server.metadataDispatchCount()).toBe(3);
     expect(server.archiveHeadCount()).toBe(2);
     expect(server.successfulArchiveDownloads()).toBe(1);
@@ -90,10 +146,10 @@ class MemoryS3Client {
     send: async (command: unknown) => {
       if (command instanceof PutObjectCommand) {
         const key = command.input.Key;
-        if (key === undefined || !(command.input.Body instanceof Uint8Array)) {
+        if (key === undefined || command.input.Body === undefined) {
           throw new Error("unexpected S3 put input");
         }
-        this.objects.set(key, command.input.Body);
+        this.objects.set(key, await bodyBytes(command.input.Body));
         if (key.endsWith("/data")) this.dataWrites += 1;
         return {};
       }
@@ -122,8 +178,31 @@ const fileEnv: AppEnv = {
   fnsLiveEnabled: false,
 };
 
-async function* chunked(bytes: Uint8Array, size: number): AsyncIterable<Uint8Array> {
-  for (let offset = 0; offset < bytes.byteLength; offset += size) {
-    yield bytes.subarray(offset, Math.min(offset + size, bytes.byteLength));
+async function* observeChunks(
+  input: AsyncIterable<Uint8Array>,
+  sizes: number[],
+): AsyncIterable<Uint8Array> {
+  for await (const chunk of input) {
+    sizes.push(chunk.byteLength);
+    await Promise.resolve();
+    yield chunk;
   }
+}
+
+async function bodyBytes(body: unknown): Promise<Uint8Array> {
+  if (body instanceof Uint8Array) return body;
+  const chunks: Uint8Array[] = [];
+  let byteLength = 0;
+  for await (const chunk of body as AsyncIterable<Uint8Array>) {
+    const bytes = chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk);
+    chunks.push(bytes);
+    byteLength += bytes.byteLength;
+  }
+  const result = new Uint8Array(byteLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return result;
 }

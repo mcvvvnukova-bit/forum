@@ -1,12 +1,17 @@
 import type { LegalEntityInn } from "./inn";
 import type { OkvedCode } from "./okved";
+import {
+  sanitizePolicyViolationIdentifier,
+  type TerminalBlockReason,
+} from "./terminal-block-reason";
 
 export class ExternalBrowserRequestError extends Error {
   readonly origins: readonly string[];
 
   constructor(origins: readonly string[]) {
-    super(`browser request escaped fixture allowlist: ${origins.join(", ")}`);
-    this.origins = origins;
+    const sanitized = [...new Set(origins.map(sanitizePolicyViolationIdentifier))].sort();
+    super(`browser request escaped fixture allowlist: ${sanitized.join(", ")}`);
+    this.origins = sanitized;
   }
 }
 
@@ -94,6 +99,35 @@ export interface ChecksummedBrowserRawBundle extends BrowserRawBundle {
   manifestUtf8: Uint8Array;
 }
 
+/** A minimized visible-DOM projection. It deliberately has no screenshot or
+ * browser-action fields: absence is part of the checksummed artifact contract. */
+export interface ProjectionRawBundle {
+  artifactKind: "projection";
+  sourceKind: string;
+  parserVersion: string;
+  finalUrl: string;
+  capturedAt: string;
+  navigationStatus: number | null;
+  sanitizedDomUtf8: Uint8Array;
+  pageFingerprintSha256: string;
+  identity: { runId: string; page: number; sourceRecordKey?: string };
+  candidateEvidence: CandidateEvidence | null;
+  sensitiveFormFieldNames: readonly string[];
+}
+
+export interface ChecksummedProjectionRawBundle extends ProjectionRawBundle {
+  checksumSha256: string;
+  artifacts: {
+    sanitizedProjectionSha256: string;
+    manifestSha256: string;
+  };
+  manifestUtf8: Uint8Array;
+}
+
+export type ChecksummedDiscoveryRawBundle =
+  | ChecksummedBrowserRawBundle
+  | ChecksummedProjectionRawBundle;
+
 export interface DiscoveryOccurrence {
   sourceRecordKey: string;
   resultFingerprintBefore: string;
@@ -102,7 +136,7 @@ export interface DiscoveryOccurrence {
 
 export interface DiscoveryPage {
   page: number;
-  raw: ChecksummedBrowserRawBundle;
+  raw: ChecksummedDiscoveryRawBundle;
   occurrences: readonly DiscoveryOccurrence[];
   orderedSourceRecordKeys: readonly string[];
   resultFingerprintSha256: string;
@@ -117,14 +151,23 @@ export type DiscoveryRejectReason =
 export interface DiscoveryReject {
   sourceRecordKey: string;
   reason: DiscoveryRejectReason;
-  raw: ChecksummedBrowserRawBundle;
+  raw: ChecksummedDiscoveryRawBundle;
 }
 
 export interface DiscoveryBlocker {
-  reason: string;
+  reason: TerminalBlockReason;
   sourceRecordKey?: string;
   detail?: string;
-  raw: ChecksummedBrowserRawBundle;
+  raw: ChecksummedDiscoveryRawBundle;
+}
+
+export type DiscoverySkipReason = "individual_entrepreneur" | "duplicate_inn";
+
+export interface DiscoverySkip {
+  sourceRecordKey: string;
+  reason: DiscoverySkipReason;
+  duplicateOfSourceRecordKey?: string;
+  raw: ChecksummedDiscoveryRawBundle;
 }
 
 export interface DiscoveryResult {
@@ -132,7 +175,30 @@ export interface DiscoveryResult {
   reason: string;
   companies: readonly DiscoveredCompany[];
   pages: readonly DiscoveryPage[];
-  rawBundles: readonly ChecksummedBrowserRawBundle[];
+  rawBundles: readonly ChecksummedDiscoveryRawBundle[];
   rejects: readonly DiscoveryReject[];
   blockers: readonly DiscoveryBlocker[];
+  skips?: readonly DiscoverySkip[];
+}
+
+export interface BrowserDiscoveryResult extends Omit<
+  DiscoveryResult,
+  "pages" | "rawBundles" | "rejects" | "blockers" | "skips"
+> {
+  pages: readonly (Omit<DiscoveryPage, "raw"> & { raw: ChecksummedBrowserRawBundle })[];
+  rawBundles: readonly ChecksummedBrowserRawBundle[];
+  rejects: readonly (Omit<DiscoveryReject, "raw"> & { raw: ChecksummedBrowserRawBundle })[];
+  blockers: readonly (Omit<DiscoveryBlocker, "raw"> & { raw: ChecksummedBrowserRawBundle })[];
+  skips?: readonly (Omit<DiscoverySkip, "raw"> & { raw: ChecksummedBrowserRawBundle })[];
+}
+
+export interface ProjectionDiscoveryResult extends Omit<
+  DiscoveryResult,
+  "pages" | "rawBundles" | "rejects" | "blockers" | "skips"
+> {
+  pages: readonly (Omit<DiscoveryPage, "raw"> & { raw: ChecksummedProjectionRawBundle })[];
+  rawBundles: readonly ChecksummedProjectionRawBundle[];
+  rejects: readonly (Omit<DiscoveryReject, "raw"> & { raw: ChecksummedProjectionRawBundle })[];
+  blockers: readonly (Omit<DiscoveryBlocker, "raw"> & { raw: ChecksummedProjectionRawBundle })[];
+  skips: readonly (Omit<DiscoverySkip, "raw"> & { raw: ChecksummedProjectionRawBundle })[];
 }
