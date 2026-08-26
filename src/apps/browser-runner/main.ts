@@ -25,7 +25,7 @@ import {
 } from "../../modules/audience/infrastructure/sources/list-org-browser/list-org-browser-source";
 import { checksumBrowserRawBundle, sha256 } from "../../modules/audience/infrastructure/storage/raw-bundle";
 import { S3RawObjectStorage } from "../../modules/audience/infrastructure/storage/s3-raw-object-storage";
-import { parseEnv, type AppEnv } from "../../shared/config/env";
+import { assertAudienceCommandActivation, parseEnv, type AppEnv } from "../../shared/config/env";
 import { PgBossJobQueue } from "../../shared/jobs/pg-boss-job-queue";
 import { PostgresDatabase } from "../../shared/postgres/database";
 import { CliInputError, parseAudienceCli } from "./cli";
@@ -37,8 +37,9 @@ const LIST_ORG_PARSER_VERSION = "list-org-browser/1.0.0";
 async function execute(argv: readonly string[], inputEnv: NodeJS.ProcessEnv): Promise<object> {
   const command = parseAudienceCli(argv);
   const env = parseEnv(inputEnv);
-  if (env.appMode !== "fixture" || env.listOrgLiveEnabled) {
-    throw new PublicOperationError("audience CLI is fixture-only");
+  assertAudienceCommandActivation(command, env);
+  if (command.kind === "live-pilot") {
+    throw new PublicOperationError("live pilot orchestration is unavailable");
   }
   const database = new PostgresDatabase(env.databaseUrl);
   const repository = new PostgresAudienceRepository(database);

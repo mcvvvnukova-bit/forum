@@ -74,6 +74,7 @@ describe("fixture discovery and replay publication", () => {
       s3AccessKeyId: "okved-local",
       s3SecretAccessKey: "okved-local-secret",
       listOrgLiveEnabled: false,
+      fnsLiveEnabled: false,
     };
     client = new S3Client({
       endpoint: env.s3Endpoint,

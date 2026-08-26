@@ -21,6 +21,20 @@ describe("parseAudienceCli", () => {
     });
   });
 
+  it("parses the exact bounded live pilot command in any option order", () => {
+    expect(parseAudienceCli([
+      "live-pilot",
+      "--max-companies", "10",
+      "--year", "2025",
+      "--okved", "43.11",
+    ])).toEqual({
+      kind: "live-pilot",
+      okved: "43.11",
+      year: 2025,
+      maxCompanies: 10,
+    });
+  });
+
   it.each([
     ["an unknown command", ["scrape", "--limit", "1"], "unknown audience command"],
     ["a live URL", ["fixture-discover", "--url", "https://example.test"], "live URL options are forbidden"],
@@ -39,6 +53,17 @@ describe("parseAudienceCli", () => {
       "--max-pages", "11", "--max-companies", "50", "--dry-run",
     ], "--max-pages must be between 1 and 10"],
     ["an unknown option", ["reconcile", "--run-id", randomRunId(), "--verbose"], "unknown option"],
+    ["an omitted live option", ["live-pilot", "--okved", "43.11", "--year", "2025"], "--max-companies is required"],
+    ["a changed live OKVED", ["live-pilot", "--okved", "43.12", "--year", "2025", "--max-companies", "10"], "live-pilot requires --okved 43.11"],
+    ["a changed live year", ["live-pilot", "--okved", "43.11", "--year", "2024", "--max-companies", "10"], "live-pilot requires --year 2025"],
+    ["a changed live company limit", ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "9"], "live-pilot requires --max-companies 10"],
+    ["a duplicated live option", ["live-pilot", "--okved", "43.11", "--okved", "43.11", "--year", "2025", "--max-companies", "10"], "duplicate option --okved"],
+    ["a live source control", ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "10", "--source-url", "https://example.test"], "live URL options are forbidden"],
+    ["a live positional URL", ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "10", "https://example.test"], "live URL options are forbidden"],
+    ["a cookie control", ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "10", "--cookie", "session=value"], "source controls are forbidden"],
+    ["a concurrency control", ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "10", "--concurrency", "2"], "source controls are forbidden"],
+    ["a download control", ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "10", "--download", "export"], "source controls are forbidden"],
+    ["a browser-script control", ["live-pilot", "--okved", "43.11", "--year", "2025", "--max-companies", "10", "--browser-script", "script.js"], "source controls are forbidden"],
   ])("rejects %s before execution", (_case, argv, message) => {
     expect(() => parseAudienceCli(argv)).toThrow(new CliInputError(message));
   });

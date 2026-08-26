@@ -57,6 +57,7 @@ describe("task fencing and pg-boss delivery", () => {
       s3AccessKeyId: "okved-local",
       s3SecretAccessKey: "okved-local-secret",
       listOrgLiveEnabled: false,
+      fnsLiveEnabled: false,
     };
     client = s3Client(env);
     await client.send(new CreateBucketCommand({ Bucket: env.s3Bucket }));

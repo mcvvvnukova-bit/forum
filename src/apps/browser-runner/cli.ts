@@ -12,7 +12,8 @@ export type AudienceCliCommand =
   | { kind: "replay-write"; runId: string }
   | { kind: "fixture-finance"; runId: string; year: number }
   | { kind: "reconcile"; runId: string }
-  | { kind: "resume"; runId: string };
+  | { kind: "resume"; runId: string }
+  | { kind: "live-pilot"; okved: "43.11"; year: 2025; maxCompanies: 10 };
 
 export class CliInputError extends Error {
   constructor(message: string) {
@@ -57,6 +58,9 @@ export function parseAudienceCli(argv: readonly string[]): AudienceCliCommand {
     case "fixture-finance":
       assertOnly(options, ["--run-id", "--year"]);
       return { kind: command, runId: runId(options), year: year(options) };
+    case "live-pilot":
+      assertOnly(options, ["--okved", "--year", "--max-companies"]);
+      return parseLivePilot(options);
   }
 }
 
@@ -76,12 +80,16 @@ function isCommand(value: string | undefined): value is AudienceCliCommand["kind
     || value === "replay-write"
     || value === "fixture-finance"
     || value === "reconcile"
-    || value === "resume";
+    || value === "resume"
+    || value === "live-pilot";
 }
 
 function rejectSourceControls(argv: readonly string[]): void {
   if (argv.some((value) => /^--(?:ip(?:-|$)|proxy(?:-|$))/i.test(value))) {
     throw new CliInputError("IP and proxy modes are forbidden");
+  }
+  if (argv.some((value) => /^--(?:cookie|concurrency|download|browser-script)(?:-|$)/i.test(value))) {
+    throw new CliInputError("source controls are forbidden");
   }
   if (argv.some((value) => /^--(?:url|live-url|source-url)$/i.test(value)
     || /^[a-z][a-z0-9+.-]*:\/\//i.test(value))) {
@@ -154,4 +162,17 @@ function runId(options: ReadonlyMap<string, string | true>): string {
     throw new CliInputError("--run-id must be a UUID");
   }
   return value;
+}
+
+function parseLivePilot(options: ReadonlyMap<string, string | true>): Extract<AudienceCliCommand, { kind: "live-pilot" }> {
+  if (requiredString(options, "--okved") !== "43.11") {
+    throw new CliInputError("live-pilot requires --okved 43.11");
+  }
+  if (requiredString(options, "--year") !== "2025") {
+    throw new CliInputError("live-pilot requires --year 2025");
+  }
+  if (requiredString(options, "--max-companies") !== "10") {
+    throw new CliInputError("live-pilot requires --max-companies 10");
+  }
+  return { kind: "live-pilot", okved: "43.11", year: 2025, maxCompanies: 10 };
 }

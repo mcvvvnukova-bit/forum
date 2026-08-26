@@ -30,6 +30,7 @@ describe("S3RawObjectStorage", () => {
     s3AccessKeyId: "okved-local",
     s3SecretAccessKey: "okved-local-secret",
     listOrgLiveEnabled: false,
+    fnsLiveEnabled: false,
   };
   const client = new S3Client({
     endpoint: env.s3Endpoint,
