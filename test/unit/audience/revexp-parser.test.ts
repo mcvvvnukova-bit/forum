@@ -270,6 +270,33 @@ describe("selectRevexpMetrics", () => {
     await expect(selectRevexpMetrics(chunked(archive, archive.byteLength), targetInns, archiveContext))
       .rejects.toThrow(`data-descriptor ${field}`);
   });
+
+  it.each([
+    ["ordinary ZIP", () => archiveWith({ "revexp.xml": validXml() })],
+    ["data-descriptor ZIP", () => streamingArchiveWith("revexp.xml", validXml())],
+  ])("accepts a valid exact DEFLATE boundary in an %s", async (_case, makeArchive) => {
+    const evidence = await selectRevexpMetrics(
+      chunked(makeArchive(), 17),
+      targetInns,
+      archiveContext,
+    );
+
+    expect(evidence.map((item) => [item.metric, item.value])).toEqual([["income", "1.00"]]);
+  });
+
+  it.each([
+    ["one zero byte in an ordinary ZIP", () => archiveWith({ "revexp.xml": validXml() }), [0x00]],
+    ["signature-like bytes in an ordinary ZIP", () => archiveWith({ "revexp.xml": validXml() }),
+      [0x50, 0x4b, 0x03, 0x04, 0x00, 0xff]],
+    ["one zero byte in a data-descriptor ZIP", () => streamingArchiveWith("revexp.xml", validXml()), [0x00]],
+    ["signature-like bytes in a data-descriptor ZIP", () => streamingArchiveWith("revexp.xml", validXml()),
+      [0x50, 0x4b, 0x07, 0x08, 0x00, 0xff]],
+  ])("rejects coherently claimed trailing DEFLATE payload: %s", async (_case, makeArchive, suffix) => {
+    const archive = withCoherentlyClaimedDeflateSuffix(makeArchive(), Uint8Array.from(suffix));
+
+    await expect(selectRevexpMetrics(chunked(archive, archive.byteLength), targetInns, archiveContext))
+      .rejects.toThrow("DEFLATE");
+  });
 });
 
 describe("parseMoneyText", () => {
@@ -382,6 +409,33 @@ function mutateDataDescriptor(archive: Uint8Array, fieldOffset: number): Uint8Ar
     descriptorOffset + fieldOffset,
     readUint32(bytes, descriptorOffset + fieldOffset) ^ 0xffff_ffff,
   );
+  return bytes;
+}
+
+function withCoherentlyClaimedDeflateSuffix(archive: Uint8Array, suffix: Uint8Array): Uint8Array {
+  const oldEocdOffset = findEocd(archive);
+  const oldCentralOffset = readUint32(archive, oldEocdOffset + 16);
+  const oldCompressedSize = readUint32(archive, oldCentralOffset + 20);
+  const flags = readUint16(archive, 6);
+  if (readUint16(archive, 8) !== 8 || suffix.byteLength === 0) {
+    throw new Error("test ZIP must contain DEFLATE data and a non-empty suffix");
+  }
+  const usesDescriptor = (flags & 0x0008) !== 0;
+  const insertionOffset = oldCentralOffset - (usesDescriptor ? 16 : 0);
+  if (usesDescriptor && readUint32(archive, insertionOffset) !== 0x08074b50) {
+    throw new Error("test ZIP has no signed data descriptor");
+  }
+  const bytes = new Uint8Array(archive.byteLength + suffix.byteLength);
+  bytes.set(archive.subarray(0, insertionOffset));
+  bytes.set(suffix, insertionOffset);
+  bytes.set(archive.subarray(insertionOffset), insertionOffset + suffix.byteLength);
+  const centralOffset = oldCentralOffset + suffix.byteLength;
+  const eocdOffset = oldEocdOffset + suffix.byteLength;
+  const claimedCompressedSize = oldCompressedSize + suffix.byteLength;
+  writeUint32(bytes, centralOffset + 20, claimedCompressedSize);
+  writeUint32(bytes, eocdOffset + 16, centralOffset);
+  if (usesDescriptor) writeUint32(bytes, centralOffset - 16 + 8, claimedCompressedSize);
+  else writeUint32(bytes, 18, claimedCompressedSize);
   return bytes;
 }
 

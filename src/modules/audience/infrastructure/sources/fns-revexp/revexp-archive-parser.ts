@@ -1,3 +1,6 @@
+import { once } from "node:events";
+import { createInflateRaw, type InflateRaw } from "node:zlib";
+
 import { Unzip, UnzipInflate, type UnzipFile } from "fflate";
 import { SaxesParser, type SaxesTagPlain } from "saxes";
 
@@ -25,6 +28,8 @@ const MAX_ZIP_TAIL_BYTES = 16 + MAX_CENTRAL_RECORD_BYTES + 22 + MAX_ZIP_COMMENT_
 // A 4 KiB DEFLATE input slice bounds even a maximum-ratio decoder callback to
 // a few MiB, so the cumulative quota is checked well before a 1 GiB allocation.
 const MAX_UNZIP_INPUT_CHUNK_BYTES = 4 * 1024;
+const DEFLATE_VERIFIER_OUTPUT_CHUNK_BYTES = 16 * 1024;
+const DEFLATE_VERIFIER_HIGH_WATER_BYTES = 16 * 1024;
 const DATA_DESCRIPTOR_FLAG = 0x0008;
 const UTF8_FLAG = 0x0800;
 const SUPPORTED_ZIP_FLAGS = 0x0006 | DATA_DESCRIPTOR_FLAG | UTF8_FLAG;
@@ -74,6 +79,17 @@ interface ObservedZipMember {
   expandedBytes: number;
   crc32State: number;
   crc32?: number;
+  actualDeflateCompressedBytes?: number;
+}
+
+type DeflateBoundaryResult =
+  | { consumedBytes: number }
+  | { error: Error };
+
+interface DeflateBoundaryVerifier {
+  stream: InflateRaw;
+  completion: Promise<DeflateBoundaryResult>;
+  result?: DeflateBoundaryResult;
 }
 
 export async function selectRevexpMetrics(
@@ -92,6 +108,9 @@ export async function selectRevexpMetrics(
   let dataMembers = 0;
   let finalizedDataMembers = 0;
   let observedDataMember: ObservedZipMember | undefined;
+  let localHeaderInspected = false;
+  let deflateBoundaryVerifier: DeflateBoundaryVerifier | undefined;
+  let deflateVerifierFeedOffset = 0;
   let zipPrefix: Uint8Array = new Uint8Array(0);
   let zipTail: Uint8Array = new Uint8Array(0);
   let fatalError: Error | undefined;
@@ -142,10 +161,26 @@ export async function selectRevexpMetrics(
         unzip.push(chunk.subarray(offset, offset + MAX_UNZIP_INPUT_CHUNK_BYTES), false);
         if (fatalError !== undefined) throw fatalError;
       }
+      await advanceDeflateBoundaryVerifier(
+        chunk,
+        compressedBytes - chunk.byteLength,
+        compressedBytes,
+      );
     }
     if (compressedBytes === 0) throw new Error("revexp archive stream is empty");
     unzip.push(new Uint8Array(0), true);
     if (fatalError !== undefined) throw fatalError;
+    if (dataMembers !== 1 || finalizedDataMembers !== 1) {
+      throw new Error("revexp ZIP must contain exactly one complete data member");
+    }
+    if (observedDataMember?.compression === 8) {
+      if (deflateBoundaryVerifier === undefined) {
+        throw new Error("revexp ZIP DEFLATE boundary verifier did not observe a complete local header");
+      }
+      observedDataMember.actualDeflateCompressedBytes = await finishDeflateBoundaryVerifier(
+        deflateBoundaryVerifier,
+      );
+    }
     validateZipStructure({
       prefix: zipPrefix,
       tail: zipTail,
@@ -155,13 +190,10 @@ export async function selectRevexpMetrics(
       limits,
     });
   } catch (error) {
+    deflateBoundaryVerifier?.stream.destroy();
     const message = errorMessage(error);
     if (/^revexp /u.test(message)) throw asError(error);
     throw new Error(`revexp ZIP is malformed: ${message}`);
-  }
-
-  if (dataMembers !== 1 || finalizedDataMembers !== 1) {
-    throw new Error("revexp ZIP must contain exactly one complete data member");
   }
 
   const evidence: FinancialMetricEvidence[] = [];
@@ -272,6 +304,131 @@ export async function selectRevexpMetrics(
     const previous = retained.get(inn);
     if (previous === undefined || compareCandidate(candidate, previous) > 0) retained.set(inn, candidate);
   }
+
+  async function advanceDeflateBoundaryVerifier(
+    chunk: Uint8Array,
+    chunkOffset: number,
+    archiveOffset: number,
+  ): Promise<void> {
+    if (!localHeaderInspected) {
+      const localHeader = readCompleteLocalHeader(zipPrefix);
+      if (localHeader === undefined) return;
+      localHeaderInspected = true;
+      if (localHeader.method !== 8) return;
+      deflateBoundaryVerifier = createDeflateBoundaryVerifier(limits.expandedBytes);
+      await writeDeflateVerifier(
+        deflateBoundaryVerifier,
+        zipPrefix.subarray(localHeader.dataOffset),
+      );
+      deflateVerifierFeedOffset = zipPrefix.byteLength;
+    }
+    if (deflateBoundaryVerifier === undefined || deflateVerifierFeedOffset >= archiveOffset) return;
+    const nextOffset = Math.max(deflateVerifierFeedOffset, chunkOffset);
+    await writeDeflateVerifier(
+      deflateBoundaryVerifier,
+      chunk.subarray(nextOffset - chunkOffset),
+    );
+    deflateVerifierFeedOffset = archiveOffset;
+  }
+}
+
+function readCompleteLocalHeader(prefix: Uint8Array): { dataOffset: number; method: number } | undefined {
+  if (prefix.byteLength < 30 || readUint32(prefix, 0) !== 0x04034b50) return undefined;
+  const dataOffset = 30 + readUint16(prefix, 26) + readUint16(prefix, 28);
+  if (prefix.byteLength < dataOffset) return undefined;
+  return { dataOffset, method: readUint16(prefix, 8) };
+}
+
+function createDeflateBoundaryVerifier(expandedByteCeiling: number): DeflateBoundaryVerifier {
+  const streamOptions = {
+    chunkSize: DEFLATE_VERIFIER_OUTPUT_CHUNK_BYTES,
+    readableHighWaterMark: DEFLATE_VERIFIER_HIGH_WATER_BYTES,
+    writableHighWaterMark: DEFLATE_VERIFIER_HIGH_WATER_BYTES,
+  };
+  const stream = createInflateRaw(streamOptions);
+  let expandedBytes = 0;
+  let resolveResult: (result: DeflateBoundaryResult) => void = () => {};
+  const verifier: DeflateBoundaryVerifier = {
+    stream,
+    completion: new Promise((resolve) => { resolveResult = resolve; }),
+  };
+  const settle = (result: DeflateBoundaryResult): void => {
+    if (verifier.result !== undefined) return;
+    verifier.result = result;
+    resolveResult(result);
+  };
+  stream.on("data", (bytes: Buffer) => {
+    expandedBytes += bytes.byteLength;
+    if (expandedBytes > expandedByteCeiling) {
+      stream.destroy(new Error("revexp ZIP DEFLATE verifier exceeds the cumulative expanded-byte ceiling"));
+    }
+    // Keep the readable side flowing; every bounded output chunk is discarded immediately.
+  });
+  stream.once("error", (error) => {
+    settle({ error: new Error(`revexp ZIP DEFLATE verifier failed: ${errorMessage(error)}`) });
+  });
+  stream.once("end", () => {
+    // Node 24 stops bytesWritten at the raw DEFLATE end marker even when the
+    // same write also contains a descriptor or central-directory bytes.
+    const consumedBytes = stream.bytesWritten;
+    if (!Number.isSafeInteger(consumedBytes) || consumedBytes < 0) {
+      settle({ error: new Error("revexp ZIP DEFLATE verifier did not report an exact consumed-byte count") });
+      return;
+    }
+    settle({ consumedBytes });
+  });
+  stream.once("close", () => {
+    settle({ error: new Error("revexp ZIP DEFLATE verifier closed before reporting consumed bytes") });
+  });
+  return verifier;
+}
+
+async function writeDeflateVerifier(
+  verifier: DeflateBoundaryVerifier,
+  bytes: Uint8Array,
+): Promise<void> {
+  for (let offset = 0; offset < bytes.byteLength; offset += MAX_UNZIP_INPUT_CHUNK_BYTES) {
+    if (verifier.result !== undefined) {
+      throw deflateBoundaryResultError(verifier.result, "ended before archive input completed");
+    }
+    let acceptsMore: boolean;
+    try {
+      acceptsMore = verifier.stream.write(bytes.subarray(offset, offset + MAX_UNZIP_INPUT_CHUNK_BYTES));
+    } catch (error) {
+      throw new Error(`revexp ZIP DEFLATE verifier failed: ${errorMessage(error)}`);
+    }
+    if (acceptsMore) continue;
+    let outcome: "drain" | DeflateBoundaryResult;
+    try {
+      outcome = await Promise.race([
+        once(verifier.stream, "drain").then(() => "drain" as const),
+        verifier.completion,
+      ]);
+    } catch (error) {
+      throw new Error(`revexp ZIP DEFLATE verifier failed: ${errorMessage(error)}`);
+    }
+    if (outcome !== "drain") throw deflateBoundaryResultError(outcome, "ended before input drained");
+  }
+}
+
+async function finishDeflateBoundaryVerifier(verifier: DeflateBoundaryVerifier): Promise<number> {
+  if (verifier.result !== undefined) {
+    throw deflateBoundaryResultError(verifier.result, "ended before archive input completed");
+  }
+  try {
+    verifier.stream.end();
+  } catch (error) {
+    throw new Error(`revexp ZIP DEFLATE verifier failed: ${errorMessage(error)}`);
+  }
+  const result = await verifier.completion;
+  if ("error" in result) throw result.error;
+  return result.consumedBytes;
+}
+
+function deflateBoundaryResultError(result: DeflateBoundaryResult, fallback: string): Error {
+  return "error" in result
+    ? result.error
+    : new Error(`revexp ZIP DEFLATE verifier ${fallback}`);
 }
 
 function appendZipPrefix(previous: Uint8Array, chunk: Uint8Array): Uint8Array {
@@ -409,6 +566,10 @@ function validateZipStructure(input: {
     || localName !== centralName
     || observedDataMember.name !== centralName) {
     throw new Error("revexp ZIP is malformed: local and central member name differs");
+  }
+  if (centralMethod === 8
+    && observedDataMember.actualDeflateCompressedBytes !== centralCompressedSize) {
+    throw new Error("revexp ZIP DEFLATE stream consumed bytes differ from the declared compressed size");
   }
   if (observedDataMember.declaredCompressedSize !== undefined
     && observedDataMember.declaredCompressedSize !== centralCompressedSize) {
