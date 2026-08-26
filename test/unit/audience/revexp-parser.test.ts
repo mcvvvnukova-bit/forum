@@ -285,6 +285,22 @@ describe("selectRevexpMetrics", () => {
   });
 
   it.each([
+    ["ordinary ZIP after the first central-directory byte", () => archiveWith({ "revexp.xml": validXml() }),
+      (archive: Uint8Array) => centralDirectoryOffset(archive) + 1],
+    ["data-descriptor ZIP after the first descriptor byte", () => streamingArchiveWith("revexp.xml", validXml()),
+      (archive: Uint8Array) => signedDataDescriptorOffset(archive) + 1],
+  ])("accepts a paced valid DEFLATE boundary in an %s", async (_case, makeArchive, splitAt) => {
+    const archive = makeArchive();
+    const evidence = await selectRevexpMetrics(
+      pacedChunks(archive, splitAt(archive), 50),
+      targetInns,
+      archiveContext,
+    );
+
+    expect(evidence.map((item) => [item.metric, item.value])).toEqual([["income", "1.00"]]);
+  });
+
+  it.each([
     ["one zero byte in an ordinary ZIP", () => archiveWith({ "revexp.xml": validXml() }), [0x00]],
     ["signature-like bytes in an ordinary ZIP", () => archiveWith({ "revexp.xml": validXml() }),
       [0x50, 0x4b, 0x03, 0x04, 0x00, 0xff]],
@@ -345,6 +361,16 @@ async function* chunked(bytes: Uint8Array, size: number): AsyncIterable<Uint8Arr
   for (let offset = 0; offset < bytes.byteLength; offset += size) {
     yield bytes.subarray(offset, Math.min(offset + size, bytes.byteLength));
   }
+}
+
+async function* pacedChunks(
+  bytes: Uint8Array,
+  splitAt: number,
+  delayMilliseconds: number,
+): AsyncIterable<Uint8Array> {
+  yield bytes.subarray(0, splitAt);
+  await new Promise((resolve) => setTimeout(resolve, delayMilliseconds));
+  yield bytes.subarray(splitAt);
 }
 
 function mutateCentral(
@@ -445,6 +471,18 @@ function findEocd(bytes: Uint8Array): number {
       && offset + 22 + readUint16(bytes, offset + 20) === bytes.byteLength) return offset;
   }
   throw new Error("test ZIP has no EOCD");
+}
+
+function centralDirectoryOffset(bytes: Uint8Array): number {
+  return readUint32(bytes, findEocd(bytes) + 16);
+}
+
+function signedDataDescriptorOffset(bytes: Uint8Array): number {
+  const offset = centralDirectoryOffset(bytes) - 16;
+  if (readUint32(bytes, offset) !== 0x08074b50) {
+    throw new Error("test ZIP has no signed data descriptor");
+  }
+  return offset;
 }
 
 function readUint16(bytes: Uint8Array, offset: number): number {
