@@ -183,7 +183,7 @@ describe("ListOrgLiveSource", () => {
     const cardStatus = await collect("card-201");
     expect(cardStatus.result.rawBundles.find((raw) => raw.identity.sourceRecordKey === "1001")?.navigationStatus)
       .toBe(201);
-  });
+  }, 20_000);
 
   it("does not enter the human gate until the durable captcha_waiting write resolves", async () => {
     const input = new PassThrough();

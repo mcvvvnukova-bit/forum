@@ -41,6 +41,7 @@ export interface LivePilotActiveAuthorization {
 
 export interface LivePilotConsumedAuthorization {
   readonly reviewedAt: string;
+  readonly expiresAt?: string;
   readonly consumedAt: string;
   readonly status: "consumed";
 }
@@ -123,8 +124,22 @@ const reviewedPolicyV2Active = {
   },
 } as const satisfies LivePilotPolicyDocument;
 
+const reviewedPolicyV2Consumed = {
+  ...reviewedPolicyV2Active,
+  authorization: {
+    ...reviewedPolicyV2Active.authorization,
+    consumedAt: "2026-08-27T08:39:58Z",
+    status: "consumed",
+  },
+} as const satisfies LivePilotPolicyDocument;
+
 export const LIVE_PILOT_POLICY_V1 = bindLivePilotPolicy(reviewedPolicyV1Consumed);
-export const LIVE_PILOT_POLICY = bindLivePilotPolicy(reviewedPolicyV2Active);
+export const LIVE_PILOT_POLICY_V2_ACTIVE = bindLivePilotPolicy(reviewedPolicyV2Active);
+export const LIVE_PILOT_POLICY_HISTORY = Object.freeze([
+  LIVE_PILOT_POLICY_V1,
+  LIVE_PILOT_POLICY_V2_ACTIVE,
+] as const);
+export const LIVE_PILOT_POLICY = bindLivePilotPolicy(reviewedPolicyV2Consumed);
 
 export type LivePilotCommandContract = typeof LIVE_PILOT_POLICY.command;
 

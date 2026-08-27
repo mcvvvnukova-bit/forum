@@ -3,7 +3,9 @@ import {
   assertLivePilotPolicyActive,
   checksumLivePilotPolicy,
   LIVE_PILOT_POLICY,
+  LIVE_PILOT_POLICY_HISTORY,
   LIVE_PILOT_POLICY_V1,
+  LIVE_PILOT_POLICY_V2_ACTIVE,
   type LivePilotActiveAuthorization,
   type LivePilotPolicy,
   type LivePilotPolicyDocument,
@@ -23,8 +25,8 @@ describe("second live-pilot authorization", () => {
     );
   });
 
-  it("binds the exact active v2 scope and expiry", () => {
-    expect(LIVE_PILOT_POLICY).toMatchObject({
+  it("preserves the exact active v2 snapshot after terminal consumption", () => {
+    expect(LIVE_PILOT_POLICY_V2_ACTIVE).toMatchObject({
       version: 2,
       scopeKey: "okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02",
       authorization: {
@@ -34,20 +36,49 @@ describe("second live-pilot authorization", () => {
       },
       command: { kind: "live-pilot", okved: "43.11", year: 2025, maxCompanies: 10 },
     });
+    expect(LIVE_PILOT_POLICY_V2_ACTIVE.checksumSha256).toBe(
+      "59c874e60e119a923d50034c6ee859bf65ff2baffb3dad4bc71ef8a232585542",
+    );
+  });
+
+  it("exposes immutable v1 and active-v2 authorization history", () => {
+    expect(LIVE_PILOT_POLICY_HISTORY).toEqual([
+      LIVE_PILOT_POLICY_V1,
+      LIVE_PILOT_POLICY_V2_ACTIVE,
+    ]);
+    expect(Object.isFrozen(LIVE_PILOT_POLICY_HISTORY)).toBe(true);
+  });
+
+  it("binds the current v2 snapshot as consumed at the terminal timestamp", () => {
+    expect(LIVE_PILOT_POLICY).toMatchObject({
+      version: 2,
+      scopeKey: "okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02",
+      authorization: {
+        reviewedAt: "2026-08-27T09:40:50+03:00",
+        consumedAt: "2026-08-27T08:39:58Z",
+        status: "consumed",
+      },
+    });
     expect(LIVE_PILOT_POLICY.checksumSha256).toMatch(/^[0-9a-f]{64}$/u);
+    expect(LIVE_PILOT_POLICY.checksumSha256).not.toBe(
+      LIVE_PILOT_POLICY_V2_ACTIVE.checksumSha256,
+    );
+    expect(() => assertLivePilotPolicyActive(LIVE_PILOT_POLICY)).toThrow(
+      "LIVE_PILOT_AUTHORIZATION_CONSUMED",
+    );
   });
 
   it("accepts v2 through expiry and rejects it after expiry", () => {
     expect(() => assertLivePilotPolicyActive(
-      LIVE_PILOT_POLICY,
+      LIVE_PILOT_POLICY_V2_ACTIVE,
       new Date("2026-08-27T18:00:00+03:00"),
     )).not.toThrow();
     expect(() => assertLivePilotPolicyActive(
-      LIVE_PILOT_POLICY,
+      LIVE_PILOT_POLICY_V2_ACTIVE,
       new Date("2026-08-27T21:40:50+03:00"),
     )).not.toThrow();
     expect(() => assertLivePilotPolicyActive(
-      LIVE_PILOT_POLICY,
+      LIVE_PILOT_POLICY_V2_ACTIVE,
       new Date("2026-08-27T21:40:51+03:00"),
     )).toThrow("LIVE_PILOT_AUTHORIZATION_EXPIRED");
   });
@@ -66,7 +97,7 @@ describe("second live-pilot authorization", () => {
 
   it("fails closed for an invalid clock", () => {
     expect(() => assertLivePilotPolicyActive(
-      LIVE_PILOT_POLICY,
+      LIVE_PILOT_POLICY_V2_ACTIVE,
       new Date("invalid clock"),
     )).toThrow("LIVE_PILOT_AUTHORIZATION_EXPIRED");
   });
@@ -75,7 +106,7 @@ describe("second live-pilot authorization", () => {
 function withActiveAuthorization(
   authorizationPatch: Partial<Omit<LivePilotActiveAuthorization, "status">>,
 ): LivePilotPolicy {
-  const { checksumSha256: _checksumSha256, ...document } = LIVE_PILOT_POLICY;
+  const { checksumSha256: _checksumSha256, ...document } = LIVE_PILOT_POLICY_V2_ACTIVE;
   const authorization = {
     reviewedAt: "2026-08-27T09:40:50+03:00",
     expiresAt: "2026-08-27T21:40:50+03:00",

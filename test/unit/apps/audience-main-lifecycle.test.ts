@@ -168,10 +168,14 @@ describe("audience CLI resource lifetime", () => {
     }
   });
 
-  it("constructs public resources only after the active policy validates", async () => {
+  it("constructs public resources only after a synthetic active policy validates", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-08-27T18:00:00+03:00"));
-    harness.livePilotPolicy = await activeProductionPolicy();
+    harness.livePilotPolicy = await policyWithAuthorization({
+      reviewedAt: "2026-08-27T09:40:50+03:00",
+      expiresAt: "2026-08-27T21:40:50+03:00",
+      status: "active",
+    });
     harness.liveOperation.mockResolvedValue({ runId: "authorized-live-run" });
 
     await startProductionMain(liveCommand);
@@ -192,6 +196,18 @@ describe("audience CLI resource lifetime", () => {
     expect(process.exitCode).toBeUndefined();
   });
 
+  it("rejects the current consumed policy before public DB or S3 construction", async () => {
+    harness.livePilotPolicy = await currentProductionPolicy();
+
+    await startProductionMain(liveCommand);
+    await waitForOutput();
+
+    expect(harness.events).toEqual([]);
+    expect(harness.liveOperation).not.toHaveBeenCalled();
+    expect(JSON.parse(harness.output.join(""))).toEqual({ ok: false, error: "operation failed" });
+    expect(process.exitCode).toBe(1);
+  });
+
   it.each([
     ["a consumed snapshot", () => policyWithAuthorization({
       reviewedAt: "2026-08-27T09:40:50+03:00",
@@ -204,7 +220,7 @@ describe("audience CLI resource lifetime", () => {
       status: "active",
     })],
     ["a checksum-invalid snapshot", async () => ({
-      ...(await activeProductionPolicy()),
+      ...(await currentProductionPolicy()),
       checksumSha256: "0".repeat(64),
     })],
   ] as const)("rejects %s before public DB or S3 construction", async (_label, createPolicy) => {
@@ -342,7 +358,7 @@ function deferred<T>(): {
   return { promise, resolve: resolvePromise, reject: rejectPromise };
 }
 
-async function activeProductionPolicy(): Promise<LivePilotPolicy> {
+async function currentProductionPolicy(): Promise<LivePilotPolicy> {
   const policy = await vi.importActual<typeof import("../../../src/modules/audience/domain/live-pilot-policy")>(
     "../../../src/modules/audience/domain/live-pilot-policy",
   );
@@ -356,7 +372,7 @@ async function policyWithAuthorization(
     "../../../src/modules/audience/domain/live-pilot-policy",
   );
   const { checksumSha256: _checksumSha256, ...document } = policyModule.LIVE_PILOT_POLICY;
-  const reviewed = { ...document, authorization };
+  const reviewed = { ...document, scopeKey: "test-only/lifecycle-active", authorization };
   return {
     ...reviewed,
     checksumSha256: policyModule.checksumLivePilotPolicy(reviewed),

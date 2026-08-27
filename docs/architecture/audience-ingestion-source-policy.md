@@ -2,26 +2,22 @@
 
 ## Decision
 
-Fixture mode is the default execution mode for the audience parser. The sole
-authorization outside fixture mode is the checksum-bound, expiring v2 exception
-recorded below; it applies only to its exact one-shot scope.
+Fixture mode is the only authorized execution mode for the audience parser.
+Both historical live-pilot authorizations are consumed; no live exception is
+currently active.
 
 - The List-Org browser source may access only the fixture server origin on
-  loopback, except for the v2 policy's exact reviewed origin and routes.
-- FNS BFO and revexp data may be read only from repository fixtures, except for
-  the v2 policy's exact reviewed origins and routes.
-- Live List-Org discovery is disabled except for the active v2 policy's exact
-  scope while its checksum and expiry validation pass.
-- Live FNS BFO access is disabled except for the active v2 policy's exact scope
-  while its checksum and expiry validation pass.
+  loopback.
+- FNS BFO and revexp data may be read only from repository fixtures.
+- Live List-Org discovery and live FNS access are disabled because the current
+  production policy is consumed.
 - A blocked run is terminal and is never resumed. A new run requires an applicable
   authorization after the cause is reviewed.
 - IP or proxy selection is not part of this slice. It remains a separate stage-2 decision.
 
-The first bounded live-pilot authorization was reviewed and consumed on
-2026-08-26. Its immutable history is preserved below. A separate, expiring v2
-authorization is the only reviewed exception currently recorded; it is bounded
-by its distinct scope, checksum, and expiry and cannot reuse v1's guard row.
+The first bounded live-pilot authorization was consumed on 2026-08-26. The
+distinct v2 authorization was consumed by its sole terminal command on
+2026-08-27. Their immutable history is preserved below.
 
 ## Enforced fixture controls
 
@@ -91,15 +87,14 @@ The exception does not authorize an origin wildcard, an arbitrary same-origin
 path, another command, or a replacement attempt. A prior scoped attempt in any
 state consumes the scope.
 
-## Active second live-pilot exception
+## Consumed second live-pilot exception
 
-This is a distinct, one-shot authorization. Its active status ends at the exact
-expiry instant below; runtime rejects it at any later instant. It is not a
-renewal of the consumed v1 record.
+This distinct one-shot authorization terminated as `blocked` with
+`policy_block`. It is historical evidence, not permission for another command.
 
 | Field | Reviewed value |
 |---|---|
-| Status | `active — not yet consumed` |
+| Status | `consumed` at `2026-08-27T08:39:58Z` |
 | Accountable owner | `Veronica — АСТ Форум repository operator` |
 | Scope key | `okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02` |
 | Reviewed at | `2026-08-27T09:40:50+03:00` |
@@ -107,12 +102,13 @@ renewal of the consumed v1 record.
 | Command | `audience live-pilot --okved 43.11 --year 2025 --max-companies 10` |
 | Run scope | OKVED `43.11`; year `2025`; `dryRun=true`; at most 2 pages; exactly 10 accepted legal entities; active and inactive entities; `revenue`, `income`, and `expenses` |
 | Reviewed origins, routes, actions, limits, and retention | Exactly the v1 contract enumerated above: no added origin, route, action, concurrency, or retention exception |
-| Immutable checksum | `59c874e60e119a923d50034c6ee859bf65ff2baffb3dad4bc71ef8a232585542` |
+| Active guard checksum | `59c874e60e119a923d50034c6ee859bf65ff2baffb3dad4bc71ef8a232585542` |
+| Consumed runtime checksum | `87f9294a8c9175d754757bb55ad6bc470dae379575079fd60d851d4e3165adae` |
+| Terminal result | Run `8da208ea-2bff-44a6-a94f-431bbe5f97e7`; `blocked` / `policy_block`; command exit code `1` |
 
-The v2 guard is keyed by its v2 scope key, so preserved historical v1 data does
-not consume it. The first terminal v2 command outcome consumes v2 operationally;
-the required post-run policy update records that fact. No third attempt is
-authorized.
+The v2 guard is keyed by its v2 scope key and preserves the active checksum
+above. The current runtime binds the consumed checksum and rejects before public
+resource construction. No third attempt is authorized.
 
 ## Live activation gate
 
@@ -121,8 +117,8 @@ source does not enable another. The record must name an accountable owner,
 decision and expiry dates, exact methods and routes, actions, fixed request and
 concurrency limits, terminal responses, retention rules, and an immutable
 checksum. Until all fields are reviewed, the source stays disabled in
-configuration, deployment, CLI, worker, and network policy. The existing v2
-record is the sole exception until it expires or is consumed.
+configuration, deployment, CLI, worker, and network policy. There is no current
+exception.
 
 Wildcards such as an entire origin are insufficient. A future record must
 enumerate navigation, form submission, pagination, downloads, and retries. It
@@ -141,8 +137,7 @@ named owner, and create a new run only after a new valid decision permits it.
 
 ## Future decisions outside this slice
 
-- Any new Live List-Org or FNS authorization after v2 expires or is consumed;
-  this includes any third attempt.
+- Any new Live List-Org or FNS authorization; this includes any third attempt.
 - Full traversal of all 967 selected codes.
 - Stage-2 IP strategy, if separately justified and approved.
 - Production retention, deletion, and legal-hold automation.
