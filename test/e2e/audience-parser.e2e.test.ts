@@ -1221,7 +1221,11 @@ describe.sequential("live pilot production-path loopback acceptance", () => {
     const policy = {
       ...reviewed,
       scopeKey: `test-only/live-pilot/e2e/${randomUUID()}`,
-      authorization: { reviewedAt: "2026-08-27", status: "active" },
+      authorization: {
+        reviewedAt: "2026-08-27T00:00:00.000Z",
+        expiresAt: "2099-12-31T23:59:59.000Z",
+        status: "active",
+      },
     } as const;
     return executeLivePilot({
       ...input,

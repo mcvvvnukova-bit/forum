@@ -6,7 +6,13 @@ import { runner } from "node-pg-migrate";
 import { executeLivePilot, type LivePilotFactories } from "../../../src/apps/browser-runner/run-live-pilot";
 import type { AudienceRepository } from "../../../src/modules/audience/application/ports/audience-repository";
 import type { RawObjectStorage } from "../../../src/modules/audience/application/ports/raw-object-storage";
-import { LIVE_PILOT_POLICY } from "../../../src/modules/audience/domain/live-pilot-policy";
+import {
+  LIVE_PILOT_POLICY,
+  LIVE_PILOT_POLICY_V1,
+  type LivePilotActiveAuthorization,
+  type LivePilotPolicy,
+  type LivePilotPolicyDocument,
+} from "../../../src/modules/audience/domain/live-pilot-policy";
 import { PostgresAudienceRepository } from "../../../src/modules/audience/infrastructure/postgres/audience-repository";
 import type { AppEnv } from "../../../src/shared/config/env";
 import { PostgresDatabase } from "../../../src/shared/postgres/database";
@@ -36,8 +42,10 @@ describe("durable live-pilot attempt guard", () => {
     await temporary?.drop();
   });
 
-  it("rejects the consumed production policy before the fresh guard or any client factory is touched", async () => {
-    const repository = new PostgresAudienceRepository(firstDatabase);
+  it("rejects an expired test-only policy before the fresh guard or any client factory is touched", async () => {
+    const policy = activeTestPolicy("expired-before-construction", {
+      expiresAt: "2000-01-01T00:00:00.000Z",
+    });
     const factories = new Proxy({
       endpoints: {
         listOrgSearchUrl: "http://127.0.0.1:1/search",
@@ -63,16 +71,13 @@ describe("durable live-pilot attempt guard", () => {
 
     await expect(executeLivePilot({
       env,
-      repository,
+      repository: new Proxy({}, {
+        get: () => { throw new Error("repository touched"); },
+      }) as AudienceRepository,
       discoveryRawStorage: {} as RawObjectStorage,
       factories,
-    })).rejects.toThrow("LIVE_PILOT_AUTHORIZATION_CONSUMED");
-
-    const persisted = await firstDatabase.query<{ count: string }>(
-      "SELECT count(*)::text AS count FROM audience.live_pilot_attempts WHERE scope_key = $1",
-      [LIVE_PILOT_POLICY.scopeKey],
-    );
-    expect(persisted.rows[0]?.count).toBe("0");
+      testOnlyActivePolicy: policy,
+    })).rejects.toThrow("LIVE_PILOT_AUTHORIZATION_EXPIRED");
   });
 
   it("rejects a test-only active policy whose reviewed document checksum was changed", async () => {
@@ -126,7 +131,7 @@ describe("durable live-pilot attempt guard", () => {
     })).resolves.toBe(false);
   });
 
-  it("allows a separately reviewed future policy exactly once despite a historical consumed run", async () => {
+  it("allows the distinct reviewed v2 scope exactly once after preserved v1 history", async () => {
     await firstDatabase.query(
       `INSERT INTO audience.crawl_runs (
          id, scope_json, fixture_version, parser_version, status
@@ -134,35 +139,61 @@ describe("durable live-pilot attempt guard", () => {
          '00000000-0000-4000-8000-000000000027',
          $1::jsonb, 'list-org-live/1.0.0', 'list-org-live/1.0.0', 'failed'
        )`,
-      [JSON.stringify(LIVE_PILOT_POLICY.runScope)],
+      [JSON.stringify(LIVE_PILOT_POLICY_V1.runScope)],
     );
-    const policy = activeTestPolicy("future-reviewed-policy");
-    const repository = new PostgresAudienceRepository(firstDatabase);
     const input = {
-      scopeKey: policy.scopeKey,
-      commandContract: policy.command,
-      policyChecksumSha256: policy.checksumSha256,
+      scopeKey: LIVE_PILOT_POLICY.scopeKey,
+      commandContract: LIVE_PILOT_POLICY.command,
+      policyChecksumSha256: LIVE_PILOT_POLICY.checksumSha256,
     } as const;
+    const results = await Promise.all([
+      new PostgresAudienceRepository(firstDatabase).acquireLivePilotAttempt(input),
+      new PostgresAudienceRepository(secondDatabase).acquireLivePilotAttempt(input),
+    ]);
 
-    await expect(repository.acquireLivePilotAttempt(input)).resolves.toBe(true);
-    await expect(repository.acquireLivePilotAttempt(input)).resolves.toBe(false);
+    expect(results.sort()).toEqual([false, true]);
+    const v1AttemptRows = await attemptCount(LIVE_PILOT_POLICY_V1.scopeKey);
+    const v2AttemptRows = await attemptCount(LIVE_PILOT_POLICY.scopeKey);
+    const storedV2Checksum = await firstDatabase.query<{ policy_checksum_sha256: string }>(
+      "SELECT policy_checksum_sha256 FROM audience.live_pilot_attempts WHERE scope_key = $1",
+      [LIVE_PILOT_POLICY.scopeKey],
+    );
+    expect(v1AttemptRows).toBe("0");
+    expect(v2AttemptRows).toBe("1");
+    expect(storedV2Checksum.rows[0]?.policy_checksum_sha256).toBe(
+      LIVE_PILOT_POLICY.checksumSha256,
+    );
   });
+
+  async function attemptCount(scopeKey: string): Promise<string | undefined> {
+    const persisted = await firstDatabase.query<{ count: string }>(
+      "SELECT count(*)::text AS count FROM audience.live_pilot_attempts WHERE scope_key = $1",
+      [scopeKey],
+    );
+    return persisted.rows[0]?.count;
+  }
 });
 
-function activeTestPolicy(label: string) {
+function activeTestPolicy(
+  label: string,
+  authorizationPatch: Partial<Omit<LivePilotActiveAuthorization, "status">> = {},
+): LivePilotPolicy {
   const { checksumSha256: _checksumSha256, ...reviewed } = LIVE_PILOT_POLICY;
-  const policy = {
+  const authorization = {
+    reviewedAt: "2026-08-27T00:00:00.000Z",
+    expiresAt: "2099-12-31T23:59:59.000Z",
+    status: "active",
+    ...authorizationPatch,
+  } as const satisfies LivePilotActiveAuthorization;
+  const policy: LivePilotPolicyDocument = {
     ...reviewed,
     scopeKey: `test-only/live-pilot/${label}`,
-    authorization: {
-      reviewedAt: "2026-08-27",
-      status: "active",
-    },
+    authorization,
   } as const;
   return {
     ...policy,
     checksumSha256: createHash("sha256").update(JSON.stringify(policy)).digest("hex"),
-  } as const;
+  };
 }
 
 function loopbackFactoryAccessTrap(): LivePilotFactories {

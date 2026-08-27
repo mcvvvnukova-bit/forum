@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { LivePilotPolicy } from "../../../src/modules/audience/domain/live-pilot-policy";
 
 const harness = vi.hoisted(() => ({
   events: [] as string[],
@@ -6,6 +7,7 @@ const harness = vi.hoisted(() => ({
   liveOperation: vi.fn<(...args: unknown[]) => Promise<object>>(),
   fixtureOperation: vi.fn<(...args: unknown[]) => Promise<object>>(),
   reconcileOperation: vi.fn<(...args: unknown[]) => Promise<object>>(),
+  livePilotPolicy: undefined as unknown as LivePilotPolicy,
 }));
 
 vi.mock("../../../src/shared/postgres/database", () => ({
@@ -52,6 +54,16 @@ vi.mock("../../../src/modules/audience/infrastructure/storage/s3-raw-object-stor
 vi.mock("../../../src/apps/browser-runner/run-live-pilot", () => ({
   executeLivePilot: (...args: unknown[]) => harness.liveOperation(...args),
 }));
+
+vi.mock("../../../src/modules/audience/domain/live-pilot-policy", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/modules/audience/domain/live-pilot-policy")>();
+  return {
+    ...actual,
+    get LIVE_PILOT_POLICY() {
+      return harness.livePilotPolicy;
+    },
+  };
+});
 
 vi.mock("../../../src/modules/audience/application/run-fixture-discovery", () => ({
   runFixtureDiscovery: (...args: unknown[]) => harness.fixtureOperation(...args),
@@ -137,6 +149,7 @@ describe("audience CLI resource lifetime", () => {
     harness.liveOperation.mockReset();
     harness.fixtureOperation.mockReset();
     harness.reconcileOperation.mockReset();
+    harness.livePilotPolicy = undefined as unknown as LivePilotPolicy;
     process.exitCode = undefined;
     vi.spyOn(process.stdout, "write").mockImplementation(((chunk: unknown) => {
       harness.output.push(String(chunk));
@@ -145,6 +158,7 @@ describe("audience CLI resource lifetime", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     process.argv = [...originalArgv];
     process.exitCode = originalExitCode;
@@ -154,16 +168,56 @@ describe("audience CLI resource lifetime", () => {
     }
   });
 
-  it("rejects the consumed production policy before public DB or S3 construction", async () => {
+  it("constructs public resources only after the active policy validates", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-27T18:00:00+03:00"));
+    harness.livePilotPolicy = await activeProductionPolicy();
+    harness.liveOperation.mockResolvedValue({ runId: "authorized-live-run" });
+
+    await startProductionMain(liveCommand);
+    await waitForOutput();
+
+    expect(harness.events).toEqual([
+      "database:constructed",
+      "repository:constructed",
+      "raw-storage:constructed",
+      "raw-storage:closed",
+      "database:closed",
+    ]);
+    expect(harness.liveOperation).toHaveBeenCalledOnce();
+    expect(JSON.parse(harness.output.join(""))).toEqual({
+      ok: true,
+      result: { runId: "authorized-live-run" },
+    });
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it.each([
+    ["a consumed snapshot", () => policyWithAuthorization({
+      reviewedAt: "2026-08-27T09:40:50+03:00",
+      consumedAt: "2026-08-27T10:00:00+03:00",
+      status: "consumed",
+    })],
+    ["an expired snapshot", () => policyWithAuthorization({
+      reviewedAt: "2026-08-27T09:40:50+03:00",
+      expiresAt: "2026-08-27T17:59:59+03:00",
+      status: "active",
+    })],
+    ["a checksum-invalid snapshot", async () => ({
+      ...(await activeProductionPolicy()),
+      checksumSha256: "0".repeat(64),
+    })],
+  ] as const)("rejects %s before public DB or S3 construction", async (_label, createPolicy) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-27T18:00:00+03:00"));
+    harness.livePilotPolicy = await createPolicy();
+
     await startProductionMain(liveCommand);
     await waitForOutput();
 
     expect(harness.events).toEqual([]);
     expect(harness.liveOperation).not.toHaveBeenCalled();
-    expect(JSON.parse(harness.output.join(""))).toEqual({
-      ok: false,
-      error: "operation failed",
-    });
+    expect(JSON.parse(harness.output.join(""))).toEqual({ ok: false, error: "operation failed" });
     expect(process.exitCode).toBe(1);
   });
 
@@ -286,4 +340,25 @@ function deferred<T>(): {
     rejectPromise = reject;
   });
   return { promise, resolve: resolvePromise, reject: rejectPromise };
+}
+
+async function activeProductionPolicy(): Promise<LivePilotPolicy> {
+  const policy = await vi.importActual<typeof import("../../../src/modules/audience/domain/live-pilot-policy")>(
+    "../../../src/modules/audience/domain/live-pilot-policy",
+  );
+  return policy.LIVE_PILOT_POLICY;
+}
+
+async function policyWithAuthorization(
+  authorization: LivePilotPolicy["authorization"],
+): Promise<LivePilotPolicy> {
+  const policyModule = await vi.importActual<typeof import("../../../src/modules/audience/domain/live-pilot-policy")>(
+    "../../../src/modules/audience/domain/live-pilot-policy",
+  );
+  const { checksumSha256: _checksumSha256, ...document } = policyModule.LIVE_PILOT_POLICY;
+  const reviewed = { ...document, authorization };
+  return {
+    ...reviewed,
+    checksumSha256: policyModule.checksumLivePilotPolicy(reviewed),
+  };
 }

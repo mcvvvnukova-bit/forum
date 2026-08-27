@@ -55,18 +55,18 @@ npm run migrate:down
 The complete manual fixture flow is in the [audience parser canary runbook](docs/runbooks/audience-parser-canary.md).
 Source activation rules are in the [audience ingestion source policy](docs/architecture/audience-ingestion-source-policy.md).
 
-The repository records one exceptional, operator-controlled authorization for a
-bounded pilot covering OKVED `43.11`, year 2025, and exactly 10 legal entities.
-That authorization was consumed on 2026-08-26. The
-[live-pilot runbook](docs/runbooks/okved-live-pilot.md) now documents the
-historical command and the post-attempt audit only; it does not authorize a
-rerun. Any new live attempt requires a new explicit authorization, reviewed
-policy record, checksum, and one-shot scope.
+The repository preserves one consumed pilot authorization from 2026-08-26 and
+records one distinct, expiring second authorization for OKVED `43.11`, year
+2025, and exactly 10 legal entities. The historical
+[live-pilot runbook](docs/runbooks/okved-live-pilot.md) is audit-only. Before
+the exact v2 expiry, the only possible exceptional workflow is the
+[second-attempt runbook](docs/runbooks/okved-live-pilot-second-attempt.md),
+which binds the reviewed scope and checksum. It is not a rerun or a reusable
+permission; after its one terminal outcome, no third attempt is authorized.
 
 ## Current scope
 
-Fixture mode is the default and the only currently authorized execution mode.
-The consumed live exception linked above does not authorize another live run,
-full 967-code traversal, export or hidden API use, proxy or IP rotation, or
-arbitrary non-loopback source traffic. IP support remains a separate stage-2
-plan.
+Fixture mode is the default execution mode. The narrowly time-bounded v2
+exception above does not authorize another live run, full 967-code traversal,
+export or hidden API use, proxy or IP rotation, or arbitrary non-loopback source
+traffic. IP support remains a separate stage-2 plan.

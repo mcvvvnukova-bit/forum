@@ -13,8 +13,10 @@ parser.
   authorization after the cause is reviewed.
 - IP or proxy selection is not part of this slice. It remains a separate stage-2 decision.
 
-One bounded live-pilot authorization was reviewed and consumed on 2026-08-26. Its
-record is below. It grants no permission for another live attempt.
+The first bounded live-pilot authorization was reviewed and consumed on
+2026-08-26. Its immutable history is preserved below. A separate, expiring v2
+authorization is the only reviewed exception currently recorded; it is bounded
+by its distinct scope, checksum, and expiry and cannot reuse v1's guard row.
 
 ## Enforced fixture controls
 
@@ -83,6 +85,29 @@ The reviewed actions and limits were:
 The exception does not authorize an origin wildcard, an arbitrary same-origin
 path, another command, or a replacement attempt. A prior scoped attempt in any
 state consumes the scope.
+
+## Active second live-pilot exception
+
+This is a distinct, one-shot authorization. Its active status ends at the exact
+expiry instant below; runtime rejects it at any later instant. It is not a
+renewal of the consumed v1 record.
+
+| Field | Reviewed value |
+|---|---|
+| Status | `active — not yet consumed` |
+| Accountable owner | `Veronica — АСТ Форум repository operator` |
+| Scope key | `okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02` |
+| Reviewed at | `2026-08-27T09:40:50+03:00` |
+| Expires at | `2026-08-27T21:40:50+03:00` |
+| Command | `audience live-pilot --okved 43.11 --year 2025 --max-companies 10` |
+| Run scope | OKVED `43.11`; year `2025`; `dryRun=true`; at most 2 pages; exactly 10 accepted legal entities; active and inactive entities; `revenue`, `income`, and `expenses` |
+| Reviewed origins, routes, actions, limits, and retention | Exactly the v1 contract enumerated above: no added origin, route, action, concurrency, or retention exception |
+| Immutable checksum | `59c874e60e119a923d50034c6ee859bf65ff2baffb3dad4bc71ef8a232585542` |
+
+The v2 guard is keyed by its v2 scope key, so preserved historical v1 data does
+not consume it. The first terminal v2 command outcome consumes v2 operationally;
+the required post-run policy update records that fact. No third attempt is
+authorized.
 
 ## Live activation gate
 

@@ -4,11 +4,7 @@ export interface LivePilotPolicyDocument {
   readonly version: number;
   readonly scopeKey: string;
   readonly owner: string;
-  readonly authorization: {
-    readonly reviewedAt: string;
-    readonly consumedAt?: string;
-    readonly status: "active" | "consumed";
-  };
+  readonly authorization: LivePilotAuthorization;
   readonly command: {
     readonly kind: "live-pilot";
     readonly okved: string;
@@ -35,7 +31,21 @@ export interface LivePilotPolicy extends LivePilotPolicyDocument {
   readonly checksumSha256: string;
 }
 
-const reviewedPolicy = {
+export type LivePilotAuthorization = LivePilotActiveAuthorization | LivePilotConsumedAuthorization;
+
+export interface LivePilotActiveAuthorization {
+  readonly reviewedAt: string;
+  readonly expiresAt: string;
+  readonly status: "active";
+}
+
+export interface LivePilotConsumedAuthorization {
+  readonly reviewedAt: string;
+  readonly consumedAt: string;
+  readonly status: "consumed";
+}
+
+const reviewedPolicyV1Consumed = {
   version: 1,
   scopeKey: "okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-26",
   owner: "Veronica — АСТ Форум repository operator",
@@ -91,10 +101,30 @@ const reviewedPolicy = {
   retention: "immutable minimized raw evidence; no screenshots, action traces, CAPTCHA, cookies, or session material",
 } as const satisfies LivePilotPolicyDocument;
 
-export const LIVE_PILOT_POLICY: LivePilotPolicy = Object.freeze({
-  ...reviewedPolicy,
-  checksumSha256: checksumLivePilotPolicy(reviewedPolicy),
-});
+const sharedPilotContract = {
+  command: reviewedPolicyV1Consumed.command,
+  runScope: reviewedPolicyV1Consumed.runScope,
+  origins: reviewedPolicyV1Consumed.origins,
+  routes: reviewedPolicyV1Consumed.routes,
+  actions: reviewedPolicyV1Consumed.actions,
+  limits: reviewedPolicyV1Consumed.limits,
+  retention: reviewedPolicyV1Consumed.retention,
+} as const;
+
+const reviewedPolicyV2Active = {
+  ...sharedPilotContract,
+  version: 2,
+  scopeKey: "okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02",
+  owner: "Veronica — АСТ Форум repository operator",
+  authorization: {
+    reviewedAt: "2026-08-27T09:40:50+03:00",
+    expiresAt: "2026-08-27T21:40:50+03:00",
+    status: "active",
+  },
+} as const satisfies LivePilotPolicyDocument;
+
+export const LIVE_PILOT_POLICY_V1 = bindLivePilotPolicy(reviewedPolicyV1Consumed);
+export const LIVE_PILOT_POLICY = bindLivePilotPolicy(reviewedPolicyV2Active);
 
 export type LivePilotCommandContract = typeof LIVE_PILOT_POLICY.command;
 
@@ -110,9 +140,47 @@ export function assertLivePilotPolicyChecksum(policy: LivePilotPolicy): void {
   }
 }
 
-export function assertLivePilotPolicyActive(policy: LivePilotPolicy): void {
+export function assertLivePilotPolicyActive(policy: LivePilotPolicy, now: Date = new Date()): void {
   assertLivePilotPolicyChecksum(policy);
   if (policy.authorization.status !== "active") {
     throw new Error("LIVE_PILOT_AUTHORIZATION_CONSUMED");
   }
+  if (!isCanonicalRfc3339Instant(policy.authorization.reviewedAt)
+    || !isCanonicalRfc3339Instant(policy.authorization.expiresAt)) {
+    throw new Error("LIVE_PILOT_AUTHORIZATION_EXPIRED");
+  }
+  const expiry = Date.parse(policy.authorization.expiresAt);
+  const currentTime = now.getTime();
+  if (!Number.isFinite(currentTime) || currentTime > expiry) {
+    throw new Error("LIVE_PILOT_AUTHORIZATION_EXPIRED");
+  }
+}
+
+function bindLivePilotPolicy(document: LivePilotPolicyDocument): LivePilotPolicy {
+  return Object.freeze({
+    ...document,
+    checksumSha256: checksumLivePilotPolicy(document),
+  });
+}
+
+function isCanonicalRfc3339Instant(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.exec(value);
+  if (match === null) return false;
+
+  const [, year, month, day, hour, minute, second] = match;
+  const calendarYear = Number(year);
+  const calendarMonth = Number(month);
+  const calendarDay = Number(day);
+  const calendarHour = Number(hour);
+  const calendarMinute = Number(minute);
+  const calendarSecond = Number(second);
+  const calendar = new Date(Date.UTC(calendarYear, calendarMonth - 1, calendarDay));
+
+  return calendar.getUTCFullYear() === calendarYear
+    && calendar.getUTCMonth() === calendarMonth - 1
+    && calendar.getUTCDate() === calendarDay
+    && calendarHour <= 23
+    && calendarMinute <= 59
+    && calendarSecond <= 59
+    && Number.isFinite(Date.parse(value));
 }
