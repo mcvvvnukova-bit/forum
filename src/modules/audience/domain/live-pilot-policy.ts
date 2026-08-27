@@ -172,10 +172,21 @@ export function assertLivePilotPolicyActive(policy: LivePilotPolicy, now: Date =
 }
 
 function bindLivePilotPolicy(document: LivePilotPolicyDocument): LivePilotPolicy {
-  return Object.freeze({
+  return deepFreezePolicyGraph({
     ...document,
     checksumSha256: checksumLivePilotPolicy(document),
   });
+}
+
+function deepFreezePolicyGraph<T>(value: T, seen: WeakSet<object> = new WeakSet()): T {
+  if (value === null || typeof value !== "object") return value;
+  const object = value as object;
+  if (seen.has(object)) return value;
+  seen.add(object);
+  for (const nested of Object.values(value as Record<string, unknown>)) {
+    deepFreezePolicyGraph(nested, seen);
+  }
+  return Object.freeze(value);
 }
 
 function isCanonicalRfc3339Instant(value: string): boolean {

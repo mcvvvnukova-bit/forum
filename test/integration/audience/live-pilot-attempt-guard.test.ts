@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { runner } from "node-pg-migrate";
 
 import { executeLivePilot, type LivePilotFactories } from "../../../src/apps/browser-runner/run-live-pilot";
@@ -117,15 +117,21 @@ describe("durable live-pilot attempt guard", () => {
       fnsLiveEnabled: false,
     };
 
-    await expect(executeLivePilot({
-      env,
-      repository: new Proxy({}, {
-        get: () => { throw new Error("repository touched"); },
-      }) as AudienceRepository,
-      discoveryRawStorage: {} as RawObjectStorage,
-      factories: loopbackFactoryAccessTrap(),
-      testOnlyActivePolicy: LIVE_PILOT_POLICY_V2_ACTIVE,
-    })).rejects.toThrow("LIVE_PILOT_TEST_POLICY_FORBIDDEN");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-08-27T18:00:00+03:00"));
+      await expect(executeLivePilot({
+        env,
+        repository: new Proxy({}, {
+          get: () => { throw new Error("repository touched"); },
+        }) as AudienceRepository,
+        discoveryRawStorage: {} as RawObjectStorage,
+        factories: loopbackFactoryAccessTrap(),
+        testOnlyActivePolicy: LIVE_PILOT_POLICY_V2_ACTIVE,
+      })).rejects.toThrow("LIVE_PILOT_TEST_POLICY_FORBIDDEN");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("allows at most one of two concurrent callers to consume the exact reviewed scope", async () => {

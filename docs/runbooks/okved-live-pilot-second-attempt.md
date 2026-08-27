@@ -11,6 +11,14 @@ the consumed runtime checksum is
 This runbook is now audit-only and does not authorize preflight, source access,
 or another live command. There is explicitly no third attempt.
 
+Credential-bearing values are never stored in this runbook. Historical command
+references require `OKVED_AUDIT_DATABASE_URL` to be preconfigured for exactly
+`127.0.0.1:5433/okved`, `OKVED_AUDIT_S3_ENDPOINT` for exactly
+`http://127.0.0.1:9000`, `OKVED_AUDIT_S3_BUCKET` for exactly `okved-raw`, and
+`OKVED_AUDIT_S3_ACCESS_KEY_ID` / `OKVED_AUDIT_S3_SECRET_ACCESS_KEY` from the
+operator's local secret store. These references neither authorize the commands
+nor renew the consumed authorization.
+
 | Field | Bound value |
 |---|---|
 | Scope key | `okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02` |
@@ -109,7 +117,8 @@ The preserved database may only migrate upward from migration 001 to migrations
 002 and 003. Never run a down migration against it:
 
 ```bash
-APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false FNS_LIVE_ENABLED=false DATABASE_URL=postgresql://okved:okved-local-password@127.0.0.1:5433/okved npm run migrate:up
+APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false FNS_LIVE_ENABLED=false \
+  DATABASE_URL="$OKVED_AUDIT_DATABASE_URL" npm run migrate:up
 docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
   psql -U okved -d okved -X -v ON_ERROR_STOP=1 -At <<'SQL'
 SELECT name
@@ -177,7 +186,13 @@ route probes were both zero. These checks are consumed and must not be repeated.
 The consumed attempt executed this command exactly once:
 
 ```bash
-APP_MODE=live LIST_ORG_LIVE_ENABLED=true FNS_LIVE_ENABLED=true DATABASE_URL=postgresql://okved:okved-local-password@127.0.0.1:5433/okved S3_ENDPOINT=http://127.0.0.1:9000 S3_BUCKET=okved-raw S3_ACCESS_KEY_ID=okved-local S3_SECRET_ACCESS_KEY=okved-local-secret npm run audience -- live-pilot --okved 43.11 --year 2025 --max-companies 10
+APP_MODE=live LIST_ORG_LIVE_ENABLED=true FNS_LIVE_ENABLED=true \
+  DATABASE_URL="$OKVED_AUDIT_DATABASE_URL" \
+  S3_ENDPOINT="$OKVED_AUDIT_S3_ENDPOINT" \
+  S3_BUCKET="$OKVED_AUDIT_S3_BUCKET" \
+  S3_ACCESS_KEY_ID="$OKVED_AUDIT_S3_ACCESS_KEY_ID" \
+  S3_SECRET_ACCESS_KEY="$OKVED_AUDIT_S3_SECRET_ACCESS_KEY" \
+  npm run audience -- live-pilot --okved 43.11 --year 2025 --max-companies 10
 ```
 
 It returned the safe terminal message `live pilot discovery blocked`. Do not run

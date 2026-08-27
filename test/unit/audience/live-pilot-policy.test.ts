@@ -49,6 +49,45 @@ describe("second live-pilot authorization", () => {
     expect(Object.isFrozen(LIVE_PILOT_POLICY_HISTORY)).toBe(true);
   });
 
+  it("deep-freezes every policy snapshot and representative nested values", () => {
+    for (const policy of [
+      LIVE_PILOT_POLICY_V1,
+      LIVE_PILOT_POLICY_V2_ACTIVE,
+      LIVE_PILOT_POLICY,
+    ]) {
+      expect(Object.isFrozen(policy)).toBe(true);
+      expect(Object.isFrozen(policy.authorization)).toBe(true);
+      expect(Object.isFrozen(policy.command)).toBe(true);
+      expect(Object.isFrozen(policy.runScope)).toBe(true);
+      expect(Object.isFrozen(policy.runScope.requiredFinancialMetrics)).toBe(true);
+      expect(Object.isFrozen(policy.routes)).toBe(true);
+      expect(Object.isFrozen(policy.limits)).toBe(true);
+    }
+
+    expect(() => {
+      (LIVE_PILOT_POLICY_V2_ACTIVE.authorization as unknown as { status: string }).status = "consumed";
+    }).toThrow(TypeError);
+    expect(() => {
+      (LIVE_PILOT_POLICY_V2_ACTIVE.command as unknown as { okved: string }).okved = "99";
+    }).toThrow(TypeError);
+    expect(() => {
+      (LIVE_PILOT_POLICY.runScope.requiredFinancialMetrics as unknown as string[]).push("revenue");
+    }).toThrow(TypeError);
+    expect(() => {
+      (LIVE_PILOT_POLICY.routes as unknown as string[]).push("forbidden-route");
+    }).toThrow(TypeError);
+    expect(() => {
+      (LIVE_PILOT_POLICY.limits as unknown as Record<string, number>).acceptedCompanies = 11;
+    }).toThrow(TypeError);
+
+    expect(LIVE_PILOT_POLICY_V2_ACTIVE.checksumSha256).toBe(
+      "59c874e60e119a923d50034c6ee859bf65ff2baffb3dad4bc71ef8a232585542",
+    );
+    expect(LIVE_PILOT_POLICY.checksumSha256).toBe(
+      "87f9294a8c9175d754757bb55ad6bc470dae379575079fd60d851d4e3165adae",
+    );
+  });
+
   it("binds the current v2 snapshot as consumed at the terminal timestamp", () => {
     expect(LIVE_PILOT_POLICY).toMatchObject({
       version: 2,
