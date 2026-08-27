@@ -188,7 +188,7 @@ Set the returned UUID once and audit only that v2 run and its guard row:
 RUN_ID='<uuid-from-terminal-json>'
 docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
   psql -U okved -d okved -X -v ON_ERROR_STOP=1 -v run_id="$RUN_ID" <<'SQL'
-SELECT scope_key, command_contract, policy_checksum_sha256, acquired_at
+SELECT scope_key, command_contract, policy_checksum_sha256, consumed_at
 FROM audience.live_pilot_attempts
 WHERE scope_key = 'okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02';
 SELECT id, status, terminal_reason, scope_json, published_at IS NOT NULL AS published
