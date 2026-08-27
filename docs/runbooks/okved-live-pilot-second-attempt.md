@@ -200,31 +200,218 @@ it again for any reason.
 
 ## Run-scoped audit
 
-Audit only the frozen v2 run and its guard row:
+Audit only the frozen v2 run and its guard row. The run and scope identifiers
+below are literals, not operator inputs. The transaction is explicitly
+read-only, and every reported v2 database invariant is calculated from the
+preserved rows:
 
 ```bash
-RUN_ID='8da208ea-2bff-44a6-a94f-431bbe5f97e7'
 docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
-  psql -U okved -d okved -X -v ON_ERROR_STOP=1 -v run_id="$RUN_ID" <<'SQL'
-SELECT scope_key, command_contract, policy_checksum_sha256, consumed_at
+  psql -U okved -d okved -X -v ON_ERROR_STOP=1 <<'SQL'
+\set run_id '8da208ea-2bff-44a6-a94f-431bbe5f97e7'
+\set scope_key 'okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02'
+\pset pager off
+BEGIN TRANSACTION READ ONLY;
+
+SELECT scope_key, command_contract, policy_checksum_sha256, consumed_at IS NOT NULL AS consumed
 FROM audience.live_pilot_attempts
-WHERE scope_key = 'okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-27-02';
+WHERE scope_key = :'scope_key';
+
 SELECT id, status, terminal_reason, scope_json, published_at IS NOT NULL AS published
-FROM audience.crawl_runs WHERE id = :'run_id'::uuid;
-SELECT task_kind, status, count(*) AS tasks
-FROM audience.crawl_tasks WHERE run_id = :'run_id'::uuid
-GROUP BY task_kind, status ORDER BY task_kind, status;
-SELECT source_kind, source_record_key, object_key, checksum_sha256
-FROM audience.source_fetches WHERE run_id = :'run_id'::uuid
+FROM audience.crawl_runs
+WHERE id = :'run_id'::uuid;
+
+SELECT id, task_kind, status, attempts, fencing_token,
+       result_json->>'reason' AS terminal_reason,
+       completed_at IS NOT NULL AS completed
+FROM audience.crawl_tasks
+WHERE run_id = :'run_id'::uuid
+ORDER BY created_at, id;
+
+SELECT id, source_kind, source_record_key, object_key, checksum_sha256,
+       parser_version, raw_upload_intent_id
+FROM audience.source_fetches
+WHERE run_id = :'run_id'::uuid
 ORDER BY source_kind, source_record_key, object_key;
+
+SELECT id, task_id, state, artifact_kind, source_kind, source_record_key,
+       manifest_key, manifest_checksum_sha256, source_fetch_id,
+       verified_at IS NOT NULL AS verified,
+       committed_at IS NOT NULL AS committed
+FROM audience.raw_upload_intents
+WHERE run_id = :'run_id'::uuid
+ORDER BY created_at, id;
+
+WITH target_run AS (
+  SELECT * FROM audience.crawl_runs WHERE id = :'run_id'::uuid
+), run_matches AS (
+  SELECT * FROM audience.run_company_matches WHERE run_id = :'run_id'::uuid
+), metric_outcomes AS (
+  SELECT outcome.key AS metric, outcome.value AS outcome
+  FROM audience.crawl_tasks AS task
+  JOIN target_run AS run ON run.id = task.run_id
+  CROSS JOIN LATERAL jsonb_each(
+    COALESCE(task.result_json->'metricOutcomes', '{}'::jsonb)
+  ) AS outcome
+  WHERE task.task_kind = 'live_finance'
+    AND run.scope_json->>'year' = '2025'
+), unexplained_upload_intents AS (
+  SELECT intent.id
+  FROM audience.raw_upload_intents AS intent
+  WHERE intent.run_id = :'run_id'::uuid
+    AND NOT (
+      (intent.state = 'committed' AND EXISTS (
+        SELECT 1
+        FROM audience.source_fetches AS source_fetch
+        WHERE source_fetch.id = intent.source_fetch_id
+          AND source_fetch.raw_upload_intent_id = intent.id
+          AND source_fetch.run_id = intent.run_id
+          AND source_fetch.source_kind = intent.source_kind
+          AND source_fetch.source_record_key = intent.source_record_key
+          AND source_fetch.parser_version = intent.parser_version
+          AND source_fetch.object_key = intent.manifest_key
+          AND source_fetch.checksum_sha256 = intent.manifest_checksum_sha256
+      ))
+      OR (intent.state = 'failed'
+          AND intent.source_fetch_id IS NULL
+          AND intent.failure_phase IS NOT NULL
+          AND intent.failure_code IS NOT NULL
+          AND intent.failed_at IS NOT NULL)
+    )
+), unexplained_source_fetches AS (
+  SELECT source_fetch.id
+  FROM audience.source_fetches AS source_fetch
+  WHERE source_fetch.run_id = :'run_id'::uuid
+    AND NOT EXISTS (
+      SELECT 1 FROM audience.organization_evidence AS evidence
+      WHERE evidence.source_fetch_id = source_fetch.id
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM audience.financial_evidence AS evidence
+      WHERE evidence.source_fetch_id = source_fetch.id
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM audience.crawl_tasks AS task
+      CROSS JOIN LATERAL jsonb_each(
+        COALESCE(task.result_json->'metricOutcomes', '{}'::jsonb)
+      ) AS outcome
+      WHERE task.run_id = source_fetch.run_id
+        AND task.task_kind = 'live_finance'
+        AND task.status = 'succeeded'
+        AND outcome.value->>'outcome' = 'no_data'
+        AND outcome.value->'sourceAttempt'->>'rawSourceKind' = source_fetch.source_kind
+        AND outcome.value->'sourceAttempt'->>'sourceRecordKey' = source_fetch.source_record_key
+        AND outcome.value->'sourceAttempt'->>'parserVersion' = source_fetch.parser_version
+        AND outcome.value->'sourceAttempt'->>'rawFetchKey'
+          IN (source_fetch.object_key, source_fetch.checksum_sha256)
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM audience.crawl_tasks AS task
+      WHERE task.run_id = source_fetch.run_id
+        AND task.task_kind = 'live_revexp_capture'
+        AND task.status = 'succeeded'
+        AND task.result_json->'rawCapture'->>'sourceKind' = source_fetch.source_kind
+        AND task.result_json->'rawCapture'->>'sourceRecordKey' = source_fetch.source_record_key
+        AND task.result_json->'rawCapture'->>'checksumSha256' = source_fetch.checksum_sha256
+        AND task.result_json->'rawCapture'->>'parserVersion' = source_fetch.parser_version
+    )
+    AND NOT (
+      source_fetch.source_kind = 'list-org-live'
+      AND source_fetch.source_record_key ~ '^page:[1-9][0-9]*$'
+    )
+), invariant_counts AS (
+  SELECT
+    (SELECT count(*) FROM target_run) AS runs,
+    (SELECT count(*) FROM audience.live_pilot_attempts WHERE scope_key = :'scope_key') AS guard_rows,
+    (SELECT count(*) FROM audience.crawl_tasks WHERE run_id = :'run_id'::uuid) AS tasks,
+    (SELECT count(*) FROM audience.crawl_tasks
+      WHERE run_id = :'run_id'::uuid AND task_kind = 'live_discovery'
+        AND status = 'succeeded') AS live_discovery_succeeded,
+    (SELECT count(*) FROM audience.crawl_tasks
+      WHERE run_id = :'run_id'::uuid AND task_kind = 'live_discovery'
+        AND status = 'blocked' AND result_json->>'reason' = 'policy_block') AS live_discovery_policy_blocked,
+    (SELECT count(*) FROM audience.crawl_tasks
+      WHERE run_id = :'run_id'::uuid AND task_kind = 'live_revexp_capture'
+        AND status = 'succeeded') AS live_revexp_capture_succeeded,
+    (SELECT count(*) FROM audience.crawl_tasks
+      WHERE run_id = :'run_id'::uuid AND task_kind = 'live_finance'
+        AND status = 'succeeded') AS live_finance_succeeded,
+    (SELECT count(*) FROM audience.crawl_tasks
+      WHERE run_id = :'run_id'::uuid AND status IN ('pending', 'running')) AS nonterminal_tasks,
+    (SELECT count(DISTINCT company_inn) FROM run_matches) AS companies,
+    (SELECT count(*)
+      FROM audience.company_okveds AS relation
+      JOIN run_matches AS match
+        ON match.company_inn = relation.company_inn
+       AND match.matched_okved_code = relation.okved_code
+      WHERE relation.okved_code = '43.11') AS company_okved_relations_43_11,
+    (SELECT count(*) FROM metric_outcomes
+      WHERE metric IN ('revenue', 'income', 'expenses')
+        AND outcome->>'outcome' IN ('published', 'no_data')) AS terminal_metric_outcomes_2025,
+    (SELECT count(*) FROM metric_outcomes
+      WHERE metric = 'revenue'
+        AND outcome->>'outcome' IN ('published', 'no_data')) AS revenue_outcomes_2025,
+    (SELECT count(*) FROM metric_outcomes
+      WHERE metric = 'income'
+        AND outcome->>'outcome' IN ('published', 'no_data')) AS income_outcomes_2025,
+    (SELECT count(*) FROM metric_outcomes
+      WHERE metric = 'expenses'
+        AND outcome->>'outcome' IN ('published', 'no_data')) AS expenses_outcomes_2025,
+    (SELECT count(*) FROM audience.source_fetches WHERE run_id = :'run_id'::uuid) AS source_fetches,
+    (SELECT count(*)
+      FROM audience.financial_evidence AS evidence
+      JOIN audience.source_fetches AS source_fetch ON source_fetch.id = evidence.source_fetch_id
+      WHERE source_fetch.run_id = :'run_id'::uuid) AS financial_evidence_rows,
+    (SELECT count(*) FROM audience.raw_upload_intents
+      WHERE run_id = :'run_id'::uuid AND state = 'committed') AS committed_upload_intents,
+    (SELECT count(*) FROM unexplained_upload_intents) AS unexplained_upload_intents,
+    (SELECT count(*) FROM unexplained_source_fetches) AS unexplained_source_fetches
+)
+SELECT counts.*,
+       run.status,
+       run.terminal_reason,
+       run.published_at IS NOT NULL AS published,
+       CASE
+         WHEN run.status = 'blocked'
+          AND run.terminal_reason = 'policy_block'
+          AND run.published_at IS NULL
+          AND counts.live_revexp_capture_succeeded = 0
+          AND counts.live_finance_succeeded = 0
+         THEN 'not_reached'
+         ELSE 'not_proven'
+       END AS reconciliation
+FROM invariant_counts AS counts
+CROSS JOIN target_run AS run;
+
+COMMIT;
 SQL
 ```
 
-Use the returned `object_key` values to check MinIO object existence and
-checksums only; do not browse or disclose evidence payloads. Attempt 02 retained
-a projection manifest (`artifacts.sanitizedProjection`), not the historical
-DOM/screenshot manifest shape. The terminal audit verified its manifest and
-projection checksums and returned `verifiedObjects=1`.
+Expected invariant row: `runs=1`, `guard_rows=1`, `tasks=1`,
+`live_discovery_succeeded=0`, `live_discovery_policy_blocked=1`, both downstream
+success counts `0`, `nonterminal_tasks=0`, `companies=0`,
+`company_okved_relations_43_11=0`, `terminal_metric_outcomes_2025=0`,
+each of the three per-metric 2025 outcome counts `0`,
+`source_fetches=1`, `financial_evidence_rows=0`,
+`committed_upload_intents=1`, both unexplained counts `0`, status/reason
+`blocked`/`policy_block`, `published=false`, and `reconciliation=not_reached`.
+
+Verify only the exact committed manifest and projection keys. The verifier
+requires the five externally supplied `OKVED_AUDIT_*` values named at the top of
+this runbook, rejects any other database/S3 coordinates, uses a read-only SQL
+transaction plus exact S3 `GetObject` calls, and does not list, write, delete, or
+print object payloads:
+
+```bash
+./node_modules/.bin/tsx src/apps/audit/second-live-pilot-object-audit.ts
+```
+
+Expected safe JSON: the exact run/source/record identity, upload-intent state
+`committed`, manifest and projection keys/checksums, and `verifiedObjects: 1`.
+Attempt 02 retained a projection manifest (`artifacts.sanitizedProjection`),
+and the verifier validates its v3 manifest identity and projection digest.
 
 ## Completed mandatory consumption
 
