@@ -32,23 +32,33 @@ APP_MODE=fixture LIST_ORG_LIVE_ENABLED=false FNS_LIVE_ENABLED=false node --input
 It must print the checksum above and exit 0. A consumed, expired, or checksum
 mismatch error ends this workflow; do not edit the clock or policy to continue.
 
-Audit the preserved v1 history before v2 access. These queries must show the
-unchanged v1 run and no v1 attempt-guard row:
+Audit the preserved v1 history before v2 access. These queries bind the exact
+historical run and its sole task, then prove that no v1 attempt-guard row exists:
 
 ```bash
+V1_RUN_ID='50b2909b-0171-45d6-ae17-7c805ff49be6'
 docker compose -p okved-parser -f compose.yaml -f deployment/okved-parser/postgres-5433.compose.yaml exec -T postgres \
-  psql -U okved -d okved -X -v ON_ERROR_STOP=1 -c "
-SELECT id, status, scope_json
+  psql -U okved -d okved -X -v ON_ERROR_STOP=1 -v v1_run_id="$V1_RUN_ID" -c "
+SELECT id, status, terminal_reason, published_at IS NOT NULL AS published, scope_json
 FROM audience.crawl_runs
-WHERE scope_json = jsonb_build_object(
-  'okved', '43.11', 'year', 2025, 'dryRun', true, 'maxPages', 2,
-  'maxCompanies', 10, 'onlyActive', false,
-  'requiredFinancialMetrics', jsonb_build_array('revenue', 'income', 'expenses')
-);
+WHERE id = :'v1_run_id'::uuid;
+SELECT id, task_kind, status, attempts, fencing_token, result_json, error_json, completed_at
+FROM audience.crawl_tasks
+WHERE run_id = :'v1_run_id'::uuid
+ORDER BY id;
 SELECT scope_key, policy_checksum_sha256, acquired_at
 FROM audience.live_pilot_attempts
 WHERE scope_key = 'okved-live-pilot/43.11/2025/10/all-legal-entities/attempt-2026-08-26';"
 ```
+
+Expected preserved state: exactly run
+`50b2909b-0171-45d6-ae17-7c805ff49be6` is `running`, has no terminal reason,
+is unpublished, and has the preserved `43.11`/2025/2-page/10-company run scope.
+It has exactly one `live_discovery` task in `running` state with `attempts=1`,
+`fencing_token=1`, and no result, error, or completion time. The v1 scope query
+must return zero guard rows. Abort before v2 access if any row, count, state,
+scope, or nullability differs. Do not alter the historical evidence report while
+investigating a mismatch.
 
 The preserved database may only migrate upward from migration 001 to migrations
 002 and 003. Never run a down migration against it:

@@ -2,13 +2,18 @@
 
 ## Decision
 
-Fixture mode is the only currently authorized execution mode for the audience
-parser.
+Fixture mode is the default execution mode for the audience parser. The sole
+authorization outside fixture mode is the checksum-bound, expiring v2 exception
+recorded below; it applies only to its exact one-shot scope.
 
-- The List-Org browser source may access only the fixture server origin on loopback.
-- FNS BFO and revexp data may be read only from repository fixtures.
-- Live List-Org discovery is disabled.
-- Live FNS BFO access is disabled.
+- The List-Org browser source may access only the fixture server origin on
+  loopback, except for the v2 policy's exact reviewed origin and routes.
+- FNS BFO and revexp data may be read only from repository fixtures, except for
+  the v2 policy's exact reviewed origins and routes.
+- Live List-Org discovery is disabled except for the active v2 policy's exact
+  scope while its checksum and expiry validation pass.
+- Live FNS BFO access is disabled except for the active v2 policy's exact scope
+  while its checksum and expiry validation pass.
 - A blocked run is terminal and is never resumed. A new run requires an applicable
   authorization after the cause is reviewed.
 - IP or proxy selection is not part of this slice. It remains a separate stage-2 decision.
@@ -116,7 +121,8 @@ source does not enable another. The record must name an accountable owner,
 decision and expiry dates, exact methods and routes, actions, fixed request and
 concurrency limits, terminal responses, retention rules, and an immutable
 checksum. Until all fields are reviewed, the source stays disabled in
-configuration, deployment, CLI, worker, and network policy.
+configuration, deployment, CLI, worker, and network policy. The existing v2
+record is the sole exception until it expires or is consumed.
 
 Wildcards such as an entire origin are insufficient. A future record must
 enumerate navigation, form submission, pagination, downloads, and retries. It
@@ -135,7 +141,8 @@ named owner, and create a new run only after a new valid decision permits it.
 
 ## Future decisions outside this slice
 
-- Any new Live List-Org or FNS authorization after the consumed 2026-08-26 scope.
+- Any new Live List-Org or FNS authorization after v2 expires or is consumed;
+  this includes any third attempt.
 - Full traversal of all 967 selected codes.
 - Stage-2 IP strategy, if separately justified and approved.
 - Production retention, deletion, and legal-hold automation.
