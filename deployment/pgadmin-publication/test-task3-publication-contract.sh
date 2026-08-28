@@ -110,6 +110,16 @@ run_publication
 [[ "$(tr '\n' ' ' < "$operation_log")" == 'validated applied ' ]] || \
   fail 'publication orchestration did not validate before apply'
 
+# Break caught: a retry after a successful deployment must not recreate pgAdmin
+# or Caddy merely because the reviewed candidate is already active.
+: > "$operation_log"
+publication_already_applied=0
+verify_publication_prerequisites() { publication_already_applied=1; printf 'validated\n' >> "$operation_log"; }
+apply_validated_candidates() { printf 'unexpected-apply\n' >> "$operation_log"; }
+run_publication
+[[ "$(tr '\n' ' ' < "$operation_log")" == 'validated ' ]] || \
+  fail 'already-applied publication was not idempotent'
+
 bash -n "$builder_path"
 bash -n "$root_script_path"
 printf 'task3 publication contract: PASS\n'

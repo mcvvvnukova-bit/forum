@@ -23,6 +23,7 @@ caddy_id=""
 pgadmin_id=""
 preapply_dir=""
 mutation_started=0
+publication_already_applied=0
 
 pass() { printf 'PASS: %s\n' "$1"; }
 fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
@@ -163,18 +164,34 @@ validate_caddy_configurations() {
 }
 
 verify_publication_prerequisites() {
-  require_exact_sha "$OUTLINE_CADDY" "$ACTIVE_CADDY_SHA"
-  require_exact_sha "$PGADMIN_COMPOSE" "$ACTIVE_COMPOSE_SHA"
-  require_exact_sha "$STAGED_CADDY" "$CANDIDATE_CADDY_SHA"
-  require_exact_sha "$STAGED_COMPOSE" "$CANDIDATE_COMPOSE_SHA"
-  verify_caddy_candidate_layout "$STAGED_CADDY"
-  verify_compose_candidate_layout "$STAGED_COMPOSE"
+  local active_caddy_sha active_compose_sha
+
+  active_caddy_sha="$(sha256_of "$OUTLINE_CADDY")" || fail 'cannot hash active Caddyfile'
+  active_compose_sha="$(sha256_of "$PGADMIN_COMPOSE")" || fail 'cannot hash active pgAdmin Compose'
+  if [[ "$active_caddy_sha" == "$ACTIVE_CADDY_SHA" && "$active_compose_sha" == "$ACTIVE_COMPOSE_SHA" ]]; then
+    require_exact_sha "$STAGED_CADDY" "$CANDIDATE_CADDY_SHA"
+    require_exact_sha "$STAGED_COMPOSE" "$CANDIDATE_COMPOSE_SHA"
+    verify_caddy_candidate_layout "$STAGED_CADDY"
+    verify_compose_candidate_layout "$STAGED_COMPOSE"
+  elif [[ "$active_caddy_sha" == "$CANDIDATE_CADDY_SHA" && "$active_compose_sha" == "$CANDIDATE_COMPOSE_SHA" ]]; then
+    publication_already_applied=1
+    verify_caddy_candidate_layout "$OUTLINE_CADDY"
+    verify_compose_candidate_layout "$PGADMIN_COMPOSE"
+  else
+    fail 'active Caddyfile or pgAdmin Compose SHA does not match the reviewed pre-apply or applied state'
+  fi
   verify_task1_snapshot
   require_quiet 'active Outline Compose configuration validates' docker compose -f "$OUTLINE_COMPOSE" config --quiet
   require_quiet 'active pgAdmin Compose configuration validates' docker compose -f "$PGADMIN_COMPOSE" config --quiet
-  require_quiet 'candidate pgAdmin Compose configuration validates' docker compose -f "$STAGED_COMPOSE" config --quiet
+  if [[ "$publication_already_applied" == 0 ]]; then
+    require_quiet 'candidate pgAdmin Compose configuration validates' docker compose -f "$STAGED_COMPOSE" config --quiet
+  fi
   verify_runtime_boundary
-  validate_caddy_configurations
+  if [[ "$publication_already_applied" == 0 ]]; then
+    validate_caddy_configurations
+  else
+    require_quiet 'active Caddy configuration validates' docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+  fi
   pass 'all active and candidate publication validations completed before mutation'
 }
 
@@ -244,6 +261,10 @@ rollback_partial_apply() {
 
 run_publication() {
   verify_publication_prerequisites
+  if [[ "$publication_already_applied" == 1 ]]; then
+    pass 'Task 3 publication is already applied; no container is recreated'
+    return 0
+  fi
   apply_validated_candidates
 }
 
