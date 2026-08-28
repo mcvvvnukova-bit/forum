@@ -29,6 +29,30 @@ reject_text() {
   fi
 }
 
+assert_caddy_binding_case() {
+  local case_name="$1"
+  local bindings="$2"
+  local expected_status="$3"
+  local actual_status
+
+  if bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    require_caddy_public_bindings "$2"
+  ' _ "$script_path" "$bindings"; then
+    actual_status=pass
+  else
+    actual_status=fail
+  fi
+
+  [[ "$actual_status" == "$expected_status" ]] || {
+    printf 'Caddy binding case %s: expected %s, got %s\n' \
+      "$case_name" "$expected_status" "$actual_status" >&2
+    exit 1
+  }
+}
+
 test -f "$script_path"
 test -f "$report_path"
 
@@ -42,7 +66,7 @@ require_script_text 'docker inspect --format'
 require_script_text 'require_exact_loopback_binding "$pgadmin_bindings" 5050/tcp 127.0.0.1:5050'
 require_script_text 'reject_public_bindings'
 require_script_text 'reject_public_listener'
-require_script_text 'Caddy Compose container exposes public TCP ports 80 and 443'
+require_script_text 'if [[ "${BASH_SOURCE[0]}" != "$0" ]]'
 require_report_text 'sudo env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin bash --noprofile --norc -c'
 require_report_text 'expected_sha256='
 require_report_text 'root_dir=/root/pgadmin-publication'
@@ -53,5 +77,8 @@ reject_text 'sudo bash /home/testing-user/' "$script_path" "$report_path"
 reject_text '.State.Pid' "$script_path"
 reject_text 'expected_sha256=REVIEWED_COMMITTED_SHA256' "$report_path"
 
+assert_caddy_binding_case 'public Caddy bindings' $'80/tcp 0.0.0.0:80\n443/tcp :::443' pass
+assert_caddy_binding_case 'loopback-only Caddy bindings' $'80/tcp 127.0.0.1:80\n443/tcp 127.0.0.1:443' fail
+
 bash -n "$script_path"
-printf 'task1 round-1 contract: PASS\n'
+printf 'task1 round-2 contract: PASS\n'

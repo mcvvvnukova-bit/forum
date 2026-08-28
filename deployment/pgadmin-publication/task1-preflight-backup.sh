@@ -114,15 +114,20 @@ reject_public_bindings() {
 
 require_caddy_public_bindings() {
   local bindings="$1"
-  local container_port host_port binding found
+  local container_port host_port binding found public_found
 
   for container_port in 80/tcp 443/tcp; do
     host_port="${container_port%/tcp}"
     found=0
+    public_found=0
     while IFS= read -r binding; do
-      [[ "$binding" == *":$host_port" ]] && found=1
+      if [[ "$binding" == *":$host_port" ]]; then
+        found=1
+        is_loopback_binding "$binding" || public_found=1
+      fi
     done < <(bindings_for_port "$bindings" "$container_port")
     (( found == 1 )) || fail "Caddy Compose container has no host binding for TCP $host_port"
+    (( public_found == 1 )) || fail "Caddy Compose container has no non-loopback host binding for TCP $host_port"
   done
   pass 'Caddy Compose container exposes public TCP ports 80 and 443'
 }
@@ -159,6 +164,10 @@ require_listener() {
   fi
   pass "$service_name host listener is present on TCP $port"
 }
+
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+  return 0
+fi
 
 if [[ ${EUID} -eq 0 ]]; then
   pass 'root execution confirmed'
