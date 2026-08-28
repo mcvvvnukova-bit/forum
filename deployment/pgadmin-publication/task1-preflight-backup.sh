@@ -135,11 +135,13 @@ require_caddy_http_binding() {
 
 require_absent_caddy_tcp_443_binding() {
   local bindings="$1"
-  local tcp_443
+  local tcp_443 udp_443
 
   tcp_443="$(bindings_for_port "$bindings" 443/tcp)"
-  [[ -z "$tcp_443" ]] || fail 'Caddy Compose container has unexpected host binding for TCP 443'
-  pass 'Caddy Compose container has no TCP 443 host binding; upstream TLS topology confirmed'
+  udp_443="$(bindings_for_port "$bindings" 443/udp)"
+  [[ -z "$tcp_443" && -z "$udp_443" ]] || \
+    fail 'Caddy Compose container has unexpected host binding for TCP or UDP 443'
+  pass 'Caddy Compose container has no TCP or UDP 443 host binding; upstream TLS topology confirmed'
 }
 
 record_shared_network() {

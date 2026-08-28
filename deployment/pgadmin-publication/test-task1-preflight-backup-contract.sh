@@ -166,8 +166,10 @@ assert_shared_network_case 'missing shared network is recorded' 'outline_fronten
 assert_caddy_tls_binding_case 'HTTP-only Caddy has no TCP 443 binding' $'80/tcp 0.0.0.0:80' pass
 assert_caddy_tls_binding_case 'loopback TCP 443 binding is rejected' $'80/tcp 0.0.0.0:80\n443/tcp 127.0.0.1:443' fail
 assert_caddy_tls_binding_case 'public TCP 443 binding is rejected' $'80/tcp 0.0.0.0:80\n443/tcp 0.0.0.0:443' fail
+assert_caddy_tls_binding_case 'loopback UDP 443 binding is rejected' $'80/tcp 0.0.0.0:80\n443/udp 127.0.0.1:443' fail
+assert_caddy_tls_binding_case 'public UDP 443 binding is rejected' $'80/tcp 0.0.0.0:80\n443/udp 0.0.0.0:443' fail
 assert_absent_host_listener_case 'no host TCP 443 listener' $'State Recv-Q Send-Q Local Address:Port Peer Address:Port\nLISTEN 0 4096 0.0.0.0:80 0.0.0.0:*' pass
 assert_absent_host_listener_case 'host TCP 443 listener is rejected' $'State Recv-Q Send-Q Local Address:Port Peer Address:Port\nLISTEN 0 4096 127.0.0.1:443 0.0.0.0:*' fail
 
 bash -n "$script_path"
-printf 'task1 round-4 contract: PASS\n'
+printf 'task1 round-5 contract: PASS\n'
