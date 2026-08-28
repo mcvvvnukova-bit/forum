@@ -147,6 +147,57 @@ assert_outline_pgpass_secret_case() {
   }
 }
 
+assert_admin_secret_baseline_case() {
+  local temporary_root fixture_secret actual_status
+
+  temporary_root="$(mktemp -d)"
+  fixture_secret="$temporary_root/admin_password"
+  printf '1234567890123456789012345678901234567890123456789' > "$fixture_secret"
+  chmod 0400 "$fixture_secret"
+  if (
+    pass() { :; }
+    fail() { exit 97; }
+    verify_task1_snapshot() { :; }
+    require_file() {
+      if [[ "$1" == "$ADMIN_SECRET" ]]; then
+        [[ -f "$fixture_secret" && -s "$fixture_secret" ]]
+      else
+        return 0
+      fi
+    }
+    require_quiet() { :; }
+    stat() {
+      case "$2:$3" in
+        '%a:'"$ADMIN_SECRET") printf '400\n' ;;
+        '%u:'"$ADMIN_SECRET") printf '5050\n' ;;
+        '%a:%u:%g:'"$ADMIN_SECRET") printf '400:5050:5050\n' ;;
+        '%a:%u:%g:'"$OUTLINE_PGPASS_SECRET") printf '400:5050:5050\n' ;;
+        *) exit 98 ;;
+      esac
+    }
+    docker() {
+      if [[ "$1" == inspect ]]; then
+        printf 'dpage/pgadmin4:9.17\n'
+      else
+        printf 'pgadmin-container-id\n'
+      fi
+    }
+    curl() { printf 'PING'; }
+    verify_baseline
+  ); then
+    actual_status=pass
+  else
+    actual_status=fail
+  fi
+  rm -rf -- "$temporary_root"
+
+  [[ "$actual_status" == pass ]] || {
+    printf 'admin secret baseline case: expected pass for non-empty 0400:5050:5050, got %s\n' \
+      "$actual_status" >&2
+    exit 1
+  }
+}
+
 assert_container_pgpass_copy_case() {
   local temporary_root source_file storage_directory destination_file actual_status
 
@@ -199,8 +250,9 @@ assert_snapshot_guard_case 'missing Caddyfile is rejected' Caddyfile fail
 assert_snapshot_guard_case 'missing pgAdmin Compose snapshot is rejected' pgadmin-compose.yaml fail
 assert_snapshot_guard_case 'missing server-definition snapshot is rejected' servers.json fail
 assert_snapshot_guard_case 'missing pgAdmin database snapshot is rejected' pgadmin4.db fail
+assert_admin_secret_baseline_case
 assert_outline_pgpass_secret_case 'exact 0400:5050:5050 host secret is accepted' 400 5050 5050 pass
-assert_outline_pgpass_secret_case 'root-owned host secret is rejected' 400 0 0 fail
+assert_outline_pgpass_secret_case 'wrong-owner host secret is rejected' 400 5051 5050 fail
 assert_outline_pgpass_secret_case 'wrong-group host secret is rejected' 400 5050 5051 fail
 assert_outline_pgpass_secret_case 'group-readable host secret is rejected' 440 5050 5050 fail
 assert_container_pgpass_copy_case

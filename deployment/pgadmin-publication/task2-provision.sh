@@ -54,6 +54,11 @@ require_mode_owner_group() {
     fail "mode or ownership check failed for $1"
 }
 
+require_pgadmin_owned_secret() {
+  require_file "$1"
+  require_mode_owner_group "$1" 400 5050 5050
+}
+
 assert_distinct_password_values() {
   [[ -n "$1" && -n "$2" && "$1" != "$2" ]]
 }
@@ -105,8 +110,7 @@ sys.exit(0 if any(isinstance(server, dict) and server.get("Name") == "AST Forum 
 require_outline_pgpass_secret() {
   local secret_path="${1:-$OUTLINE_PGPASS_SECRET}"
 
-  require_file "$secret_path"
-  require_mode_owner_group "$secret_path" 400 5050 5050
+  require_pgadmin_owned_secret "$secret_path"
 }
 
 cleanup() {
@@ -157,8 +161,7 @@ verify_baseline() {
 
   require_file "$PGADMIN_COMPOSE"
   require_file "$PGADMIN_SERVERS"
-  require_file "$ADMIN_SECRET"
-  require_root_owned_mode "$ADMIN_SECRET" 400
+  require_pgadmin_owned_secret "$ADMIN_SECRET"
   require_outline_pgpass_secret
   require_quiet 'pgAdmin Compose configuration is valid' docker compose -f "$PGADMIN_COMPOSE" config --quiet
   pgadmin_id="$(docker compose -f "$PGADMIN_COMPOSE" ps -q pgadmin 2>/dev/null)" || fail 'cannot determine the pgAdmin Compose container ID'
