@@ -201,6 +201,7 @@ assert_snapshot_guard_case 'missing server-definition snapshot is rejected' serv
 assert_snapshot_guard_case 'missing pgAdmin database snapshot is rejected' pgadmin4.db fail
 assert_outline_pgpass_secret_case 'exact 0400:5050:5050 host secret is accepted' 400 5050 5050 pass
 assert_outline_pgpass_secret_case 'root-owned host secret is rejected' 400 0 0 fail
+assert_outline_pgpass_secret_case 'wrong-group host secret is rejected' 400 5050 5051 fail
 assert_outline_pgpass_secret_case 'group-readable host secret is rejected' 440 5050 5050 fail
 assert_container_pgpass_copy_case
 
