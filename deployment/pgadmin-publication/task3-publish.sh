@@ -245,17 +245,21 @@ cleanup_transient_candidates() {
 }
 
 rollback_partial_apply() {
-  local original_status="$1"
+  local original_status="$1" rollback_failed=0
   if [[ "$mutation_started" == 1 && -n "$preapply_dir" ]]; then
     printf 'INFO: rolling back Task 3 from exact pre-apply copies; Task 1 snapshot is preserved\n' >&2
-    cp -- "$preapply_dir/compose.yaml" "$PGADMIN_COMPOSE" || true
-    docker compose -f "$PGADMIN_COMPOSE" up -d --no-deps --force-recreate pgadmin >/dev/null 2>&1 || true
-    cp -- "$preapply_dir/Caddyfile" "$OUTLINE_CADDY" || true
-    chown root:root "$OUTLINE_CADDY" 2>/dev/null || true
-    chmod 0644 "$OUTLINE_CADDY" 2>/dev/null || true
-    docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1 || true
+    cp -- "$preapply_dir/compose.yaml" "$PGADMIN_COMPOSE" || rollback_failed=1
+    docker compose -f "$PGADMIN_COMPOSE" up -d --no-deps --force-recreate pgadmin >/dev/null 2>&1 || rollback_failed=1
+    cp -- "$preapply_dir/Caddyfile" "$OUTLINE_CADDY" || rollback_failed=1
+    chown root:root "$OUTLINE_CADDY" 2>/dev/null || rollback_failed=1
+    chmod 0644 "$OUTLINE_CADDY" 2>/dev/null || rollback_failed=1
+    docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1 || rollback_failed=1
   fi
   cleanup_transient_candidates
+  if [[ "$rollback_failed" == 1 ]]; then
+    printf 'FAIL: partial-apply rollback was incomplete; preserve and use the Task 1 snapshot\n' >&2
+    return 1
+  fi
   return "$original_status"
 }
 
