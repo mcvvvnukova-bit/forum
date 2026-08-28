@@ -201,6 +201,13 @@ require_absent_listener() {
   pass "$service_name has no host TCP $port listener"
 }
 
+verify_pgadmin_ping() {
+  local ping_body="$1"
+
+  [[ "$ping_body" == 'PING' ]] || fail 'pgAdmin ping did not return PING'
+  pass 'pgAdmin ping returned PING'
+}
+
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
   return 0
 fi
@@ -330,8 +337,7 @@ pass "rollback snapshot verified: $backup_dir"
 # Step 4: record the required health checks without exposing their payloads.
 pgadmin_ping="$(curl -fsS http://127.0.0.1:5050/misc/ping 2>/dev/null)" || \
   fail 'pgAdmin ping request failed'
-[[ "$pgadmin_ping" == SUCCESS ]] || fail 'pgAdmin ping did not return SUCCESS'
-pass 'pgAdmin ping returned SUCCESS'
+verify_pgadmin_ping "$pgadmin_ping"
 
 pgadmin_users="$(docker compose -f /opt/pgadmin/compose.yaml exec -T pgadmin \
   /venv/bin/python3 /pgadmin4/setup.py get-users --username admin@astforum.ru --json 2>/dev/null)" || \
