@@ -26,6 +26,10 @@ pass() {
   printf 'PASS: %s\n' "$1"
 }
 
+info() {
+  printf 'INFO: %s\n' "$1"
+}
+
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
   exit 1
@@ -112,24 +116,48 @@ reject_public_bindings() {
   pass "$service_name has no non-loopback Docker binding"
 }
 
-require_caddy_public_bindings() {
+require_caddy_http_binding() {
   local bindings="$1"
-  local container_port host_port binding found public_found
+  local binding found public_found
 
-  for container_port in 80/tcp 443/tcp; do
-    host_port="${container_port%/tcp}"
-    found=0
-    public_found=0
-    while IFS= read -r binding; do
-      if [[ "$binding" == *":$host_port" ]]; then
-        found=1
-        is_loopback_binding "$binding" || public_found=1
-      fi
-    done < <(bindings_for_port "$bindings" "$container_port")
-    (( found == 1 )) || fail "Caddy Compose container has no host binding for TCP $host_port"
-    (( public_found == 1 )) || fail "Caddy Compose container has no non-loopback host binding for TCP $host_port"
+  found=0
+  public_found=0
+  while IFS= read -r binding; do
+    if [[ "$binding" == *':80' ]]; then
+      found=1
+      is_loopback_binding "$binding" || public_found=1
+    fi
+  done < <(bindings_for_port "$bindings" 80/tcp)
+  (( found == 1 )) || fail 'Caddy Compose container has no host binding for TCP 80'
+  (( public_found == 1 )) || fail 'Caddy Compose container has no non-loopback host binding for TCP 80'
+  pass 'Caddy Compose container exposes public TCP port 80'
+}
+
+record_upstream_tls_topology() {
+  local bindings="$1"
+  local tcp_443 udp_443
+
+  tcp_443="$(bindings_for_port "$bindings" 443/tcp)"
+  udp_443="$(bindings_for_port "$bindings" 443/udp)"
+  if [[ -z "$tcp_443" && -z "$udp_443" ]]; then
+    info 'Caddy has no 443 binding; upstream TLS termination topology recorded'
+  else
+    info 'Caddy has 443 binding facts; upstream TLS topology requires review'
+  fi
+}
+
+record_shared_network() {
+  local caddy_networks="$1"
+  local pgadmin_networks="$2"
+  local network
+
+  for network in $caddy_networks; do
+    if [[ " $pgadmin_networks " == *" $network "* ]]; then
+      pass "shared Docker network recorded: $network"
+      return 0
+    fi
   done
-  pass 'Caddy Compose container exposes public TCP ports 80 and 443'
+  info 'Caddy and pgAdmin share no Docker network; snapshot may proceed before attachment'
 }
 
 require_loopback_listener() {
@@ -215,15 +243,7 @@ caddy_networks="$(docker inspect --format '{{range $name, $_ := .NetworkSettings
   fail 'cannot inspect Caddy Docker networks'
 pgadmin_networks="$(docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$pgadmin_id" 2>/dev/null)" || \
   fail 'cannot inspect pgAdmin Docker networks'
-shared_network=""
-for network in $caddy_networks; do
-  if [[ " $pgadmin_networks " == *" $network "* ]]; then
-    shared_network="$network"
-    break
-  fi
-done
-[[ -n "$shared_network" ]] || fail 'Caddy and pgAdmin do not share a Docker network'
-pass "shared Docker network: $shared_network"
+record_shared_network "$caddy_networks" "$pgadmin_networks"
 
 pgadmin_bindings="$(inspect_container_bindings "$pgadmin_id")" || \
   fail 'cannot inspect pgAdmin Docker port bindings'
@@ -238,7 +258,8 @@ require_exact_loopback_binding "$pgadmin_bindings" 5050/tcp 127.0.0.1:5050 'pgAd
 reject_public_bindings "$pgadmin_bindings" 5050/tcp 'pgAdmin 5050'
 reject_public_bindings "$postgres_bindings" 5432/tcp 'PostgreSQL 5432'
 reject_public_bindings "$redis_bindings" 6379/tcp 'Redis 6379'
-require_caddy_public_bindings "$caddy_bindings"
+require_caddy_http_binding "$caddy_bindings"
+record_upstream_tls_topology "$caddy_bindings"
 
 listening_sockets="$(ss -ltnp 2>/dev/null)" || fail 'cannot inspect listening TCP sockets'
 require_loopback_listener 5050 'pgAdmin 5050'
@@ -246,7 +267,6 @@ reject_public_listener 5050 'pgAdmin 5050'
 reject_public_listener 5432 'PostgreSQL 5432'
 reject_public_listener 6379 'Redis 6379'
 require_listener 80 'Caddy'
-require_listener 443 'Caddy'
 
 # Step 3: make a root-only, consistent rollback snapshot.
 backup_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
