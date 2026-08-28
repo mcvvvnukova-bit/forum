@@ -108,14 +108,34 @@ verify_root_staging() {
   pass 'root-only staging path verified'
 }
 
-verify_baseline() {
-  local pgadmin_id pgadmin_image ping_body snapshot_path
-  require_file "$BACKUP_MARKER"
-  require_root_owned_mode "$BACKUP_MARKER" 600
-  snapshot_path="$(<"$BACKUP_MARKER")"
-  [[ "$snapshot_path" == /opt/backups/pgadmin-publication/* && -d "$snapshot_path" ]] || fail 'Task 1 rollback snapshot marker is invalid'
+verify_task1_snapshot() {
+  local marker_path="${1:-$BACKUP_MARKER}"
+  local snapshot_parent="${2:-/opt/backups/pgadmin-publication}"
+  local snapshot_path snapshot_artifact
+  local snapshot_artifacts=(
+    outline-docker-compose.yml
+    Caddyfile
+    pgadmin-compose.yaml
+    servers.json
+    pgadmin4.db
+  )
+
+  require_file "$marker_path"
+  require_root_owned_mode "$marker_path" 600
+  snapshot_path="$(<"$marker_path")"
+  [[ "$snapshot_path" == "$snapshot_parent"/* && -d "$snapshot_path" ]] || fail 'Task 1 rollback snapshot marker is invalid'
   require_root_owned_mode "$snapshot_path" 700
+  for snapshot_artifact in "${snapshot_artifacts[@]}"; do
+    require_file "$snapshot_path/$snapshot_artifact"
+    require_root_owned_mode "$snapshot_path/$snapshot_artifact" 600
+  done
   pass 'Task 1 restricted rollback snapshot is available'
+}
+
+verify_baseline() {
+  local pgadmin_id pgadmin_image ping_body
+
+  verify_task1_snapshot
 
   require_file "$PGADMIN_COMPOSE"
   require_file "$PGADMIN_SERVERS"
