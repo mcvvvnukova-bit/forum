@@ -5,9 +5,9 @@ set +x
 umask 077
 
 readonly ROOT_SCRIPT_PATH=/root/pgadmin-publication/task3-publish.sh
-readonly STAGING_DIR=/home/testing-user/pgadmin-deploy
-readonly STAGED_CADDY="$STAGING_DIR/task3-Caddyfile.candidate"
-readonly STAGED_COMPOSE="$STAGING_DIR/task3-pgadmin-compose.candidate.yaml"
+readonly ROOT_DEPLOY_DIR=/root/pgadmin-publication
+readonly ROOT_CADDY="$ROOT_DEPLOY_DIR/task3-Caddyfile.candidate"
+readonly ROOT_COMPOSE="$ROOT_DEPLOY_DIR/task3-pgadmin-compose.candidate.yaml"
 readonly OUTLINE_COMPOSE=/opt/outline/docker-compose.yml
 readonly OUTLINE_CADDY=/opt/outline/Caddyfile
 readonly PGADMIN_COMPOSE=/opt/pgadmin/compose.yaml
@@ -55,6 +55,17 @@ require_root_owned_mode() {
   [[ "$actual" == "$expected_mode:0:0" ]] || fail "unexpected owner or mode for $path"
 }
 
+verify_root_candidate_file() {
+  local path="$1" root_directory="$2" resolved_path resolved_root_directory metadata
+
+  require_file "$path"
+  resolved_path="$(readlink -f "$path" 2>/dev/null)" || fail "cannot resolve root candidate path: $path"
+  resolved_root_directory="$(readlink -f "$root_directory" 2>/dev/null)" || fail "cannot resolve root deployment directory: $root_directory"
+  [[ "$resolved_path" == "$resolved_root_directory/"* ]] || fail "candidate is outside the root-only deployment directory: $path"
+  metadata="$(stat -c '%a:%u:%g' "$resolved_path" 2>/dev/null)" || fail "cannot inspect root candidate: $path"
+  [[ "$metadata" == '400:0:0' ]] || fail "candidate is not root-owned mode 0400: $path"
+}
+
 require_exact_loopback_binding() {
   local bindings="$1" actual
   actual="$(awk '$1 == "5050/tcp" { for (i = 2; i <= NF; i++) print $i }' <<< "$bindings")"
@@ -73,6 +84,17 @@ require_absent_host_tcp_443() {
   sockets="$(ss -ltnH 2>/dev/null)" || fail 'cannot inspect host TCP listeners'
   if awk '$4 ~ /:443$/ { found = 1 } END { exit(found ? 0 : 1) }' <<< "$sockets"; then
     fail 'host has an unexpected TCP 443 listener'
+  fi
+}
+
+require_absent_host_udp_443() {
+  local sockets="${1:-}"
+
+  if [[ -z "$sockets" ]]; then
+    sockets="$(ss -lunH 2>/dev/null)" || fail 'cannot inspect host UDP listeners'
+  fi
+  if awk '$4 ~ /:443$/ { found = 1 } END { exit(found ? 0 : 1) }' <<< "$sockets"; then
+    fail 'host has an unexpected UDP 443 listener'
   fi
 }
 
@@ -138,7 +160,8 @@ inspect_port_bindings() {
 }
 
 verify_runtime_boundary() {
-  local caddy_bindings pgadmin_bindings caddy_networks pgadmin_image
+  local require_pgadmin_frontend="${1:-0}"
+  local caddy_bindings pgadmin_bindings caddy_networks pgadmin_networks pgadmin_image
   require_quiet 'existing outline_frontend Docker network is available' docker network inspect "$FRONTEND_NETWORK"
   caddy_id="$(docker compose -f "$OUTLINE_COMPOSE" ps -q caddy 2>/dev/null)" || fail 'cannot determine Caddy container ID'
   pgadmin_id="$(docker compose -f "$PGADMIN_COMPOSE" ps -q pgadmin 2>/dev/null)" || fail 'cannot determine pgAdmin container ID'
@@ -146,19 +169,39 @@ verify_runtime_boundary() {
   caddy_networks="$(docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$caddy_id" 2>/dev/null)" || fail 'cannot inspect Caddy networks'
   [[ " $caddy_networks " == *" $FRONTEND_NETWORK "* ]] || fail 'Caddy is not attached to outline_frontend'
   [[ " $caddy_networks " != *' outline_backend '* ]] || fail 'Caddy must not be attached to outline_backend'
+  pgadmin_networks="$(docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$pgadmin_id" 2>/dev/null)" || fail 'cannot inspect pgAdmin networks'
+  [[ " $pgadmin_networks " == *' outline_backend '* ]] || fail 'pgAdmin is not attached to outline_backend'
+  [[ " $pgadmin_networks " == *' pgadmin_pgadmin-access '* ]] || fail 'pgAdmin is not attached to pgadmin_pgadmin-access'
+  if [[ "$require_pgadmin_frontend" == 1 ]]; then
+    [[ " $pgadmin_networks " == *" $FRONTEND_NETWORK "* ]] || fail 'pgAdmin is not attached to outline_frontend'
+  fi
   pgadmin_image="$(docker inspect --format '{{.Config.Image}}' "$pgadmin_id" 2>/dev/null)" || fail 'cannot inspect pgAdmin image'
   [[ "$pgadmin_image" == dpage/pgadmin4:9.17 ]] || fail 'pgAdmin image is not dpage/pgadmin4:9.17'
   caddy_bindings="$(inspect_port_bindings "$caddy_id")" || fail 'cannot inspect Caddy bindings'
   pgadmin_bindings="$(inspect_port_bindings "$pgadmin_id")" || fail 'cannot inspect pgAdmin bindings'
   require_absent_caddy_443_bindings "$caddy_bindings"
   require_absent_host_tcp_443
+  require_absent_host_udp_443
   require_exact_loopback_binding "$pgadmin_bindings"
   pass 'HTTP-only upstream-TLS and private-port boundary verified'
 }
 
+verify_already_applied_runtime() {
+  local caddy_ping routed_ping
+
+  verify_runtime_boundary 1
+  require_quiet 'active Caddy configuration validates' docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+  caddy_ping="$(docker compose -f "$OUTLINE_COMPOSE" exec -T caddy wget -qO- http://pgadmin:5050/misc/ping 2>/dev/null)" || fail 'Caddy cannot resolve pgAdmin on retry'
+  require_exact_ping "$caddy_ping"
+  routed_ping="$(curl -fsS -H 'Host: pg.astforum.ru' http://127.0.0.1/misc/ping 2>/dev/null)" || fail 'host-routed Caddy request to pgAdmin failed on retry'
+  require_exact_ping "$routed_ping"
+  verify_runtime_boundary 1
+  pass 'already-applied pgAdmin route and private-port boundary revalidated'
+}
+
 validate_caddy_configurations() {
   require_quiet 'active Caddy configuration validates' docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-  docker cp "$STAGED_CADDY" "$caddy_id:/tmp/task3-Caddyfile.candidate" || fail 'cannot copy Caddy candidate into Caddy container'
+  docker cp "$ROOT_CADDY" "$caddy_id:/tmp/task3-Caddyfile.candidate" || fail 'cannot copy Caddy candidate into Caddy container'
   require_quiet 'candidate Caddy configuration validates' docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy validate --config /tmp/task3-Caddyfile.candidate --adapter caddyfile
   require_quiet 'transient Caddy candidate removed from container' docker exec "$caddy_id" rm -f /tmp/task3-Caddyfile.candidate
 }
@@ -169,10 +212,12 @@ verify_publication_prerequisites() {
   active_caddy_sha="$(sha256_of "$OUTLINE_CADDY")" || fail 'cannot hash active Caddyfile'
   active_compose_sha="$(sha256_of "$PGADMIN_COMPOSE")" || fail 'cannot hash active pgAdmin Compose'
   if [[ "$active_caddy_sha" == "$ACTIVE_CADDY_SHA" && "$active_compose_sha" == "$ACTIVE_COMPOSE_SHA" ]]; then
-    require_exact_sha "$STAGED_CADDY" "$CANDIDATE_CADDY_SHA"
-    require_exact_sha "$STAGED_COMPOSE" "$CANDIDATE_COMPOSE_SHA"
-    verify_caddy_candidate_layout "$STAGED_CADDY"
-    verify_compose_candidate_layout "$STAGED_COMPOSE"
+    verify_root_candidate_file "$ROOT_CADDY" "$ROOT_DEPLOY_DIR"
+    verify_root_candidate_file "$ROOT_COMPOSE" "$ROOT_DEPLOY_DIR"
+    require_exact_sha "$ROOT_CADDY" "$CANDIDATE_CADDY_SHA"
+    require_exact_sha "$ROOT_COMPOSE" "$CANDIDATE_COMPOSE_SHA"
+    verify_caddy_candidate_layout "$ROOT_CADDY"
+    verify_compose_candidate_layout "$ROOT_COMPOSE"
   elif [[ "$active_caddy_sha" == "$CANDIDATE_CADDY_SHA" && "$active_compose_sha" == "$CANDIDATE_COMPOSE_SHA" ]]; then
     publication_already_applied=1
     verify_caddy_candidate_layout "$OUTLINE_CADDY"
@@ -184,13 +229,13 @@ verify_publication_prerequisites() {
   require_quiet 'active Outline Compose configuration validates' docker compose -f "$OUTLINE_COMPOSE" config --quiet
   require_quiet 'active pgAdmin Compose configuration validates' docker compose -f "$PGADMIN_COMPOSE" config --quiet
   if [[ "$publication_already_applied" == 0 ]]; then
-    require_quiet 'candidate pgAdmin Compose configuration validates' docker compose -f "$STAGED_COMPOSE" config --quiet
+    require_quiet 'candidate pgAdmin Compose configuration validates' docker compose -f "$ROOT_COMPOSE" config --quiet
   fi
   verify_runtime_boundary
   if [[ "$publication_already_applied" == 0 ]]; then
     validate_caddy_configurations
   else
-    require_quiet 'active Caddy configuration validates' docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+    verify_already_applied_runtime
   fi
   pass 'all active and candidate publication validations completed before mutation'
 }
@@ -215,7 +260,7 @@ apply_validated_candidates() {
   local caddy_ping routed_ping pgadmin_networks pgadmin_bindings
   prepare_preapply_rollback
   mutation_started=1
-  install -o root -g root -m 0644 "$STAGED_COMPOSE" "$PGADMIN_COMPOSE" || fail 'cannot install pgAdmin Compose candidate'
+  install -o root -g root -m 0644 "$ROOT_COMPOSE" "$PGADMIN_COMPOSE" || fail 'cannot install pgAdmin Compose candidate'
   docker compose -f "$PGADMIN_COMPOSE" up -d --no-deps --force-recreate pgadmin >/dev/null || fail 'cannot recreate only pgAdmin with the frontend attachment'
   wait_for_pgadmin_ping
   pgadmin_id="$(docker compose -f "$PGADMIN_COMPOSE" ps -q pgadmin 2>/dev/null)" || fail 'cannot determine recreated pgAdmin container ID'
@@ -227,19 +272,18 @@ apply_validated_candidates() {
   caddy_ping="$(docker compose -f "$OUTLINE_COMPOSE" exec -T caddy wget -qO- http://pgadmin:5050/misc/ping 2>/dev/null)" || fail 'Caddy cannot resolve pgAdmin after frontend attachment'
   require_exact_ping "$caddy_ping"
   pass 'Caddy resolves exact pgAdmin PING through outline_frontend'
-  cp -- "$STAGED_CADDY" "$OUTLINE_CADDY" || fail 'cannot install Caddy candidate while preserving the bind-mounted file'
+  cp -- "$ROOT_CADDY" "$OUTLINE_CADDY" || fail 'cannot install Caddy candidate while preserving the bind-mounted file'
   chown root:root "$OUTLINE_CADDY"
   chmod 0644 "$OUTLINE_CADDY"
   docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null || fail 'Caddy reload failed'
   routed_ping="$(curl -fsS -H 'Host: pg.astforum.ru' http://127.0.0.1/misc/ping 2>/dev/null)" || fail 'host-routed Caddy request to pgAdmin failed'
   require_exact_ping "$routed_ping"
-  require_absent_host_tcp_443
+  verify_runtime_boundary 1
   pass 'HTTP-only Caddy route reaches pgAdmin with exact PING'
 }
 
 cleanup_transient_candidates() {
   [[ -n "$caddy_id" ]] && quietly docker exec "$caddy_id" rm -f /tmp/task3-Caddyfile.candidate || true
-  rm -f -- "$STAGED_CADDY" "$STAGED_COMPOSE"
   [[ -n "$preapply_dir" ]] && rm -rf -- "$preapply_dir"
   preapply_dir=""
 }

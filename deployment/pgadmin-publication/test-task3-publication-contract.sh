@@ -21,10 +21,18 @@ assert_status() {
   local expected="$2"
   shift 2
   local actual=fail
-  if "$@"; then
+  local output_file="$temporary_root/$case_name.output"
+  if [[ "$expected" == fail ]]; then
+    if "$@" >"$output_file" 2>&1; then
+      actual=pass
+    fi
+  elif "$@"; then
     actual=pass
   fi
-  [[ "$actual" == "$expected" ]] || fail "$case_name: expected $expected, got $actual"
+  if [[ "$actual" != "$expected" ]]; then
+    [[ -f "$output_file" ]] && cat "$output_file" >&2
+    fail "$case_name: expected $expected, got $actual"
+  fi
 }
 
 assert_root_function_status() {
@@ -77,6 +85,30 @@ assert_status 'duplicate pgAdmin host fixture is rejected' fail \
 
 source "$root_script_path"
 
+# Break caught: root verifies staged candidates but subsequently follows a
+# testing-user-controlled path. The real provenance guard must accept only
+# root-owned, root-directory candidate copies.
+root_candidate="$temporary_root/root-candidate"
+user_candidate="$temporary_root/user-candidate"
+printf 'candidate fixture\n' > "$root_candidate"
+printf 'candidate fixture\n' > "$user_candidate"
+assert_status 'root-owned candidate is accepted' pass \
+  bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    stat() { printf "400:0:0\n"; }
+    verify_root_candidate_file "$2" "$3"
+  ' _ "$root_script_path" "$root_candidate" "$temporary_root"
+assert_status 'testing-user candidate is rejected' fail \
+  bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    stat() { printf "400:1000:1000\n"; }
+    verify_root_candidate_file "$2" "$3"
+  ' _ "$root_script_path" "$user_candidate" "$temporary_root"
+
 # Break caught: a standalone HTTPS site or local :443 listener would steal the
 # upstream TLS boundary. Candidate structure and the runtime-binding guard both
 # have to reject it.
@@ -85,6 +117,7 @@ printf '%s\n' 'pg.astforum.ru {' '    reverse_proxy pgadmin:5050' '}' > "$https_
 assert_root_function_status 'standalone HTTPS Caddy site is rejected' fail verify_caddy_candidate_layout "$https_caddy"
 assert_root_function_status 'local TCP 443 binding is rejected' fail require_absent_caddy_443_bindings $'80/tcp 0.0.0.0:80\n443/tcp 127.0.0.1:443'
 assert_root_function_status 'local UDP 443 binding is rejected' fail require_absent_caddy_443_bindings $'80/tcp 0.0.0.0:80\n443/udp 127.0.0.1:443'
+assert_root_function_status 'host UDP 443 listener is rejected' fail require_absent_host_udp_443 $'UNCONN 0 0 127.0.0.1:443 0.0.0.0:*'
 
 # Break caught: Caddy must never be attached to the database network; only
 # pgAdmin joins outline_frontend while retaining its private networks and hardening.
@@ -101,6 +134,132 @@ assert_root_function_status 'Compose candidate that loses cap_drop ALL is reject
 # Break caught: the stale SUCCESS response must never pass the health gate.
 assert_root_function_status 'pgAdmin 9.17 PING is accepted' pass require_exact_ping PING
 assert_root_function_status 'stale SUCCESS is rejected' fail require_exact_ping SUCCESS
+
+# Break caught: an already-applied retry that skips the running network or
+# endpoint probes can claim success while the Caddy route is dead.
+assert_status 'already-applied runtime checks require both exact PING probes' pass \
+  bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    verify_runtime_boundary() { :; }
+    require_quiet() { :; }
+    docker() {
+      [[ "$*" == *"wget -qO- http://pgadmin:5050/misc/ping"* ]] && { printf PING; return 0; }
+      exit 98
+    }
+    curl() { printf PING; }
+    verify_already_applied_runtime
+  ' _ "$root_script_path"
+assert_status 'already-applied runtime rejects stale Caddy ping' fail \
+  bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    verify_runtime_boundary() { :; }
+    require_quiet() { :; }
+    docker() { [[ "$*" == *"wget -qO-"* ]] && { printf SUCCESS; return 0; }; exit 98; }
+    curl() { printf PING; }
+    verify_already_applied_runtime
+  ' _ "$root_script_path"
+
+assert_rollback_case() {
+  local case_name="$1"
+  local fail_reload="$2"
+  local expected_status="$3"
+  local rollback_root="$temporary_root/$case_name"
+  local log_file="$rollback_root/operations"
+  local marker="$rollback_root/task1-marker"
+  local snapshot="$rollback_root/task1-snapshot"
+  local preapply="$rollback_root/preapply"
+  local restored_compose="$rollback_root/restored-compose"
+  local restored_caddy="$rollback_root/restored-Caddyfile"
+  local status_file="$rollback_root/status"
+  local actual_status
+
+  mkdir -p "$snapshot" "$preapply"
+  printf 'Task 1 snapshot must survive\n' > "$snapshot/Caddyfile"
+  printf '%s\n' "$snapshot" > "$marker"
+  printf 'old compose\n' > "$preapply/compose.yaml"
+  printf 'old Caddy\n' > "$preapply/Caddyfile"
+  if bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    preapply_dir="$2"
+    mutation_started=1
+    caddy_id=caddy-id
+    rollback_log="$6"
+    fail_reload="$7"
+    status_file="$8"
+    restored_compose="$4"
+    restored_caddy="$5"
+    cp() {
+      local source_path destination_path
+      if [[ "$1" == -- ]]; then
+        source_path="$2"
+        destination_path="$3"
+      else
+        source_path="$1"
+        destination_path="$2"
+      fi
+      printf "copy:%s:%s\n" "$source_path" "$destination_path" >> "$rollback_log"
+      case "$source_path" in
+        */compose.yaml) command cp "$source_path" "$restored_compose" ;;
+        */Caddyfile) command cp "$source_path" "$restored_caddy" ;;
+        *) return 98 ;;
+      esac
+    }
+    chown() { printf "chown\n" >> "$rollback_log"; }
+    chmod() { printf "chmod\n" >> "$rollback_log"; }
+    docker() {
+      if [[ "$*" == *"up -d --no-deps --force-recreate pgadmin"* ]]; then
+        printf "pgadmin-recreate\n" >> "$rollback_log"
+        return 0
+      fi
+      if [[ "$*" == *"caddy reload"* ]]; then
+        printf "caddy-reload\n" >> "$rollback_log"
+        [[ "$fail_reload" == 0 ]] && return 0
+        return 1
+      fi
+      exit 98
+    }
+    cleanup_transient_candidates() { printf "cleanup\n" >> "$rollback_log"; }
+    set +e
+    rollback_partial_apply 23
+    status=$?
+    printf "%s\n" "$status" > "$status_file"
+    exit 0
+  ' _ "$root_script_path" "$preapply" "$marker" "$restored_compose" "$restored_caddy" "$log_file" "$fail_reload" "$status_file" >"$rollback_root/output" 2>&1; then
+    actual_status=pass
+  else
+    actual_status=fail
+  fi
+  [[ "$actual_status" == "$expected_status" ]] || fail "$case_name: expected $expected_status, got $actual_status"
+  if [[ "$fail_reload" == 0 ]]; then
+    [[ "$(<"$status_file")" == 23 ]] || fail "$case_name: successful rollback did not preserve the original failure status"
+  else
+    [[ "$(<"$status_file")" == 1 ]] || fail "$case_name: incomplete rollback did not fail closed"
+  fi
+  cmp -s "$preapply/compose.yaml" "$restored_compose" || fail "$case_name: Compose was not restored"
+  cmp -s "$preapply/Caddyfile" "$restored_caddy" || fail "$case_name: Caddyfile was not restored"
+  [[ -s "$snapshot/Caddyfile" && -s "$marker" ]] || fail "$case_name: Task 1 snapshot was not preserved"
+  awk '
+    /copy:.*\/compose\.yaml:/ { compose = NR }
+    /pgadmin-recreate/ { recreate = NR }
+    /copy:.*\/Caddyfile:/ { caddy_copy = NR }
+    /caddy-reload/ { reload = NR }
+    /cleanup/ { cleanup = NR }
+    END { exit(compose && recreate && caddy_copy && reload && cleanup &&
+      compose < recreate && recreate < caddy_copy && caddy_copy < reload && reload < cleanup ? 0 : 1) }
+  ' "$log_file" || fail "$case_name: rollback restoration order or transient cleanup is missing"
+}
+
+# Break caught: a partial apply can leave either candidate active unless the
+# real rollback function restores Compose, recreates only pgAdmin, restores and
+# reloads Caddy, preserves Task 1, cleans transients, and fails closed on error.
+assert_rollback_case 'complete-rollback' 0 pass
+assert_rollback_case 'incomplete-rollback' 1 pass
 
 # Break caught: mutating production before active and candidate validation.
 operation_log="$temporary_root/operation.log"
