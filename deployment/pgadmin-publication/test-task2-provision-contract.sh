@@ -198,24 +198,42 @@ assert_admin_secret_baseline_case() {
   }
 }
 
-assert_container_pgpass_copy_case() {
-  local temporary_root source_file storage_directory destination_file actual_status
+assert_both_existing_storage_pgpass_files_are_normalized_with_explicit_group() {
+  # Production break caught: installing only the CEO file, or invoking Docker
+  # without the explicit numeric 5050:5050 user/group, leaves admin stale or
+  # creates storage files with GID 0.
+  local temporary_root source_file storage_root admin_file ceo_file actual_status
 
   temporary_root="$(mktemp -d)"
   source_file="$temporary_root/run/secrets/outline_pgpass"
-  storage_directory="$temporary_root/var/lib/pgadmin/storage/ceo_astforum.ru"
-  destination_file="$storage_directory/.pgpass"
-  mkdir -p "$(dirname "$source_file")"
-  printf 'fixture password\n' > "$source_file"
+  storage_root="$temporary_root/var/lib/pgadmin/storage"
+  admin_file="$storage_root/admin_astforum.ru/.pgpass"
+  ceo_file="$storage_root/ceo_astforum.ru/.pgpass"
+  mkdir -p "$(dirname "$source_file")" "$(dirname "$admin_file")" "$(dirname "$ceo_file")"
+  printf 'canonical fixture password\n' > "$source_file"
+  printf 'stale admin password\n' > "$admin_file"
+  printf 'stale CEO password\n' > "$ceo_file"
+  chmod 0600 "$admin_file"
+  chmod 0400 "$ceo_file"
+
   if (
+    pass() { :; }
     docker() {
-      local container_command="${!#}"
+      local container_command
+
+      [[ "${11:-}" != load-servers ]] || return 0
+      [[ "$#" -eq 11 && "$1" == compose && "$2" == -f && "$3" == "$PGADMIN_COMPOSE" &&
+        "$4" == exec && "$5" == -T && "$6" == --user && "$7" == 5050:5050 &&
+        "$8" == pgadmin && "$9" == sh && "${10}" == -lc ]] || return 94
+      container_command="${11}"
       container_command="${container_command//\/run\/secrets\/outline_pgpass/$source_file}"
-      container_command="${container_command//\/var\/lib\/pgadmin\/storage\/ceo_astforum.ru/$storage_directory}"
+      container_command="${container_command//\/var\/lib\/pgadmin\/storage/$storage_root}"
       sh -lc "$container_command"
     }
-    install_ceo_storage_pgpass
-  ) && test -f "$destination_file" && cmp -s "$source_file" "$destination_file"; then
+    import_ceo_registration
+  ) && cmp -s "$source_file" "$admin_file" && cmp -s "$source_file" "$ceo_file" &&
+    [[ "$(stat -f '%Lp' "$admin_file")" == 400 ]] &&
+    [[ "$(stat -f '%Lp' "$ceo_file")" == 400 ]]; then
     actual_status=pass
   else
     actual_status=fail
@@ -223,7 +241,7 @@ assert_container_pgpass_copy_case() {
   rm -rf -- "$temporary_root"
 
   [[ "$actual_status" == pass ]] || {
-    printf 'container pgpass source-to-CEO-storage fixture failed\n' >&2
+    printf 'storage pgpass normalization failed: both existing files must be overwritten at 0400 via Docker user/group 5050:5050\n' >&2
     exit 1
   }
 }
@@ -255,7 +273,7 @@ assert_outline_pgpass_secret_case 'exact 0400:5050:5050 host secret is accepted'
 assert_outline_pgpass_secret_case 'wrong-owner host secret is rejected' 400 5051 5050 fail
 assert_outline_pgpass_secret_case 'wrong-group host secret is rejected' 400 5050 5051 fail
 assert_outline_pgpass_secret_case 'group-readable host secret is rejected' 440 5050 5050 fail
-assert_container_pgpass_copy_case
+assert_both_existing_storage_pgpass_files_are_normalized_with_explicit_group
 
 bash -n "$script_path"
 printf 'task2 provision contract: PASS\n'

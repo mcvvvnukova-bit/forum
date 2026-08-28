@@ -211,14 +211,21 @@ synchronize_ceo_administrator() {
   pass 'CEO pgAdmin account is synchronized without disclosing its password'
 }
 
-install_ceo_storage_pgpass() {
-  docker compose -f "$PGADMIN_COMPOSE" exec -T --user 5050 pgadmin sh -lc \
-    'install -d -m 0700 /var/lib/pgadmin/storage/ceo_astforum.ru && install -m 0400 /run/secrets/outline_pgpass /var/lib/pgadmin/storage/ceo_astforum.ru/.pgpass'
+install_storage_pgpass() {
+  local storage_user="$1"
+  local storage_directory="$STORAGE_ROOT/$storage_user"
+
+  docker compose -f "$PGADMIN_COMPOSE" exec -T --user 5050:5050 pgadmin sh -lc \
+    "install -d -m 0700 '$storage_directory' && install -m 0400 /run/secrets/outline_pgpass '$storage_directory/.pgpass'"
 }
 
 import_ceo_registration() {
+  local storage_user
+
   require_quiet 'canonical pgAdmin server definition imported for CEO' docker compose -f "$PGADMIN_COMPOSE" exec -T --user 5050 pgadmin /venv/bin/python3 /pgadmin4/setup.py load-servers /pgadmin4/servers.json --user "$CEO_EMAIL" --replace
-  require_quiet 'CEO pgAdmin storage password file is installed with restricted mode' install_ceo_storage_pgpass
+  for storage_user in admin_astforum.ru ceo_astforum.ru; do
+    require_quiet "pgAdmin storage password file is normalized for $storage_user" install_storage_pgpass "$storage_user"
+  done
 }
 
 verify_active_administrator() {
