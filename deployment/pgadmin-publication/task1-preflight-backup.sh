@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Task 1 production preflight and restricted rollback snapshot for pgAdmin.
-# Usage: operator runs `sudo bash /home/testing-user/pgadmin-deploy/task1-preflight-backup.sh`
-# from their normal Terminal. Do not run this script through the output-only Codex PTY.
+# Usage: use the one-command root staging procedure in task-1-report.md. It must copy
+# this file to the root-only path below, verify its reviewed SHA-256, then execute that copy.
+# Never execute this user-owned upload directly through sudo or the output-only Codex PTY.
 
 set -Eeuo pipefail
 set +x
@@ -14,9 +15,12 @@ readonly PGADMIN_SERVERS=/opt/pgadmin/servers.json
 readonly BACKUP_PARENT=/opt/backups/pgadmin-publication
 readonly BACKUP_MARKER=/root/.pgadmin-publication-last-backup
 readonly CONTAINER_DB_BACKUP=/tmp/pgadmin4.db.backup
+readonly ROOT_SCRIPT_PATH=/root/pgadmin-publication/task1-preflight-backup.sh
 
 pgadmin_id=""
 caddy_id=""
+postgres_id=""
+redis_id=""
 
 pass() {
   printf 'PASS: %s\n' "$1"
@@ -64,11 +68,107 @@ cleanup_container_backup() {
   fi
 }
 
+inspect_container_bindings() {
+  docker inspect --format '{{range $port, $bindings := .NetworkSettings.Ports}}{{$port}}{{range $bindings}} {{.HostIp}}:{{.HostPort}}{{end}}{{"\n"}}{{end}}' "$1" 2>/dev/null
+}
+
+bindings_for_port() {
+  local bindings="$1"
+  local container_port="$2"
+
+  awk -v port="$container_port" '$1 == port { for (i = 2; i <= NF; i += 1) print $i }' <<< "$bindings"
+}
+
+is_loopback_binding() {
+  case "$1" in
+    127.0.0.1:*|::1:*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+require_exact_loopback_binding() {
+  local bindings="$1"
+  local container_port="$2"
+  local expected_binding="$3"
+  local service_name="$4"
+  local actual_bindings
+
+  actual_bindings="$(bindings_for_port "$bindings" "$container_port")"
+  [[ "$actual_bindings" == "$expected_binding" ]] || \
+    fail "$service_name does not have exactly the required loopback Docker binding"
+  pass "exact loopback binding verified for $service_name"
+}
+
+reject_public_bindings() {
+  local bindings="$1"
+  local container_port="$2"
+  local service_name="$3"
+  local binding
+
+  while IFS= read -r binding; do
+    [[ -z "$binding" ]] && continue
+    is_loopback_binding "$binding" || fail "$service_name has a non-loopback Docker binding"
+  done < <(bindings_for_port "$bindings" "$container_port")
+  pass "$service_name has no non-loopback Docker binding"
+}
+
+require_caddy_public_bindings() {
+  local bindings="$1"
+  local container_port host_port binding found
+
+  for container_port in 80/tcp 443/tcp; do
+    host_port="${container_port%/tcp}"
+    found=0
+    while IFS= read -r binding; do
+      [[ "$binding" == *":$host_port" ]] && found=1
+    done < <(bindings_for_port "$bindings" "$container_port")
+    (( found == 1 )) || fail "Caddy Compose container has no host binding for TCP $host_port"
+  done
+  pass 'Caddy Compose container exposes public TCP ports 80 and 443'
+}
+
+require_loopback_listener() {
+  local port="$1"
+  local service_name="$2"
+  local listener_count
+
+  listener_count="$(awk -v port="$port" '$4 == "127.0.0.1:" port { count += 1 } END { print count + 0 }' <<< "$listening_sockets")"
+  [[ "$listener_count" == 1 ]] || fail "$service_name does not have exactly one loopback listener"
+  pass "exact loopback listener verified for $service_name"
+}
+
+reject_public_listener() {
+  local port="$1"
+  local service_name="$2"
+
+  if awk -v port="$port" '
+    $4 ~ (":" port "$") && $4 != "127.0.0.1:" port && $4 != "::1:" port && $4 != "[::1]:" port { public_listener = 1 }
+    END { exit(public_listener ? 0 : 1) }
+  ' <<< "$listening_sockets"; then
+    fail "$service_name has a non-loopback host listener"
+  fi
+  pass "$service_name has no non-loopback host listener"
+}
+
+require_listener() {
+  local port="$1"
+  local service_name="$2"
+
+  if ! awk -v port="$port" '$4 ~ (":" port "$") { listener = 1 } END { exit(listener ? 0 : 1) }' <<< "$listening_sockets"; then
+    fail "$service_name has no host listener on TCP $port"
+  fi
+  pass "$service_name host listener is present on TCP $port"
+}
+
 if [[ ${EUID} -eq 0 ]]; then
   pass 'root execution confirmed'
 else
   fail 'this script must run as root'
 fi
+
+script_path="$(readlink -f "$0" 2>/dev/null)" || fail 'cannot resolve script path'
+[[ "$script_path" == "$ROOT_SCRIPT_PATH" ]] || fail 'refusing to execute outside the root-owned staging path'
+require_mode_and_owner "$ROOT_SCRIPT_PATH" 700
 
 trap cleanup_container_backup EXIT
 
@@ -86,9 +186,15 @@ pgadmin_id="$(docker compose -f /opt/pgadmin/compose.yaml ps -q pgadmin 2>/dev/n
   fail 'cannot determine the pgAdmin Compose container ID'
 caddy_id="$(docker compose -f /opt/outline/docker-compose.yml ps -q caddy 2>/dev/null)" || \
   fail 'cannot determine the Caddy Compose container ID'
+postgres_id="$(docker compose -f /opt/outline/docker-compose.yml ps -q postgres 2>/dev/null)" || \
+  fail 'cannot determine the PostgreSQL Compose container ID'
+redis_id="$(docker compose -f /opt/outline/docker-compose.yml ps -q redis 2>/dev/null)" || \
+  fail 'cannot determine the Redis Compose container ID'
 [[ -n "$pgadmin_id" ]] || fail 'pgAdmin Compose container is not running'
 [[ -n "$caddy_id" ]] || fail 'Caddy Compose container is not running'
-pass 'pgAdmin and Caddy Compose containers are running'
+[[ -n "$postgres_id" ]] || fail 'PostgreSQL Compose container is not running'
+[[ -n "$redis_id" ]] || fail 'Redis Compose container is not running'
+pass 'pgAdmin, Caddy, PostgreSQL, and Redis Compose containers are running'
 
 pgadmin_image="$(docker inspect --format '{{.Config.Image}}' "$pgadmin_id" 2>/dev/null)" || \
   fail 'cannot inspect the pgAdmin image'
@@ -110,23 +216,28 @@ done
 [[ -n "$shared_network" ]] || fail 'Caddy and pgAdmin do not share a Docker network'
 pass "shared Docker network: $shared_network"
 
-listening_sockets="$(ss -ltnp 2>/dev/null)" || fail 'cannot inspect listening TCP sockets'
-if ! printf '%s\n' "$listening_sockets" | awk '$0 ~ /127\.0\.0\.1:5050([[:space:]]|$)/ { found=1 } END { exit !found }'; then
-  fail 'pgAdmin is not listening on 127.0.0.1:5050'
-fi
-pass 'pgAdmin loopback listener is present'
+pgadmin_bindings="$(inspect_container_bindings "$pgadmin_id")" || \
+  fail 'cannot inspect pgAdmin Docker port bindings'
+caddy_bindings="$(inspect_container_bindings "$caddy_id")" || \
+  fail 'cannot inspect Caddy Docker port bindings'
+postgres_bindings="$(inspect_container_bindings "$postgres_id")" || \
+  fail 'cannot inspect PostgreSQL Docker port bindings'
+redis_bindings="$(inspect_container_bindings "$redis_id")" || \
+  fail 'cannot inspect Redis Docker port bindings'
 
-caddy_pid="$(docker inspect --format '{{.State.Pid}}' "$caddy_id" 2>/dev/null)" || \
-  fail 'cannot inspect the Caddy process ID'
-[[ "$caddy_pid" =~ ^[1-9][0-9]*$ ]] || fail 'Caddy process ID is invalid'
-for public_port in 80 443; do
-  if ! printf '%s\n' "$listening_sockets" | \
-    awk -v port="$public_port" -v process="pid=$caddy_pid" \
-      '$0 ~ (":" port "([[:space:]]|$)") && index($0, process) { found=1 } END { exit !found }'; then
-    fail "Caddy does not own public TCP port $public_port"
-  fi
-done
-pass 'Caddy owns public TCP ports 80 and 443'
+require_exact_loopback_binding "$pgadmin_bindings" 5050/tcp 127.0.0.1:5050 'pgAdmin 5050'
+reject_public_bindings "$pgadmin_bindings" 5050/tcp 'pgAdmin 5050'
+reject_public_bindings "$postgres_bindings" 5432/tcp 'PostgreSQL 5432'
+reject_public_bindings "$redis_bindings" 6379/tcp 'Redis 6379'
+require_caddy_public_bindings "$caddy_bindings"
+
+listening_sockets="$(ss -ltnp 2>/dev/null)" || fail 'cannot inspect listening TCP sockets'
+require_loopback_listener 5050 'pgAdmin 5050'
+reject_public_listener 5050 'pgAdmin 5050'
+reject_public_listener 5432 'PostgreSQL 5432'
+reject_public_listener 6379 'Redis 6379'
+require_listener 80 'Caddy'
+require_listener 443 'Caddy'
 
 # Step 3: make a root-only, consistent rollback snapshot.
 backup_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
