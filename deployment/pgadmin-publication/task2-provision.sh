@@ -11,7 +11,7 @@ readonly PGADMIN_SERVERS=/opt/pgadmin/servers.json
 readonly PGADMIN_SECRETS=/opt/pgadmin/secrets
 readonly ADMIN_SECRET="${PGADMIN_SECRETS}/admin_password"
 readonly CEO_SECRET="${PGADMIN_SECRETS}/ceo_password"
-readonly PGPASS_SECRET="${PGADMIN_SECRETS}/pgpass"
+readonly OUTLINE_PGPASS_SECRET="${PGADMIN_SECRETS}/outline_pgpass"
 readonly BACKUP_MARKER=/root/.pgadmin-publication-last-backup
 readonly ROOT_SCRIPT_PATH=/root/pgadmin-publication/task2-provision.sh
 readonly CEO_EMAIL=ceo@astforum.ru
@@ -41,6 +41,17 @@ require_root_owned_mode() {
   mode="$(stat -c '%a' "$1" 2>/dev/null)" || fail "cannot inspect mode for $1"
   owner="$(stat -c '%u' "$1" 2>/dev/null)" || fail "cannot inspect owner for $1"
   [[ "$mode" == "$2" && "$owner" == 0 ]] || fail "restricted mode or root ownership check failed for $1"
+}
+
+require_mode_owner_group() {
+  local expected_mode="$2"
+  local expected_owner="$3"
+  local expected_group="$4"
+  local actual
+
+  actual="$(stat -c '%a:%u:%g' "$1" 2>/dev/null)" || fail "cannot inspect mode or ownership for $1"
+  [[ "$actual" == "$expected_mode:$expected_owner:$expected_group" ]] || \
+    fail "mode or ownership check failed for $1"
 }
 
 assert_distinct_password_values() {
@@ -89,6 +100,13 @@ servers = document.get("Servers", {})
 values = servers.values() if isinstance(servers, dict) else servers if isinstance(servers, list) else ()
 sys.exit(0 if any(isinstance(server, dict) and server.get("Name") == "AST Forum / Outline PostgreSQL" and server.get("Host") == "postgres" and server.get("Username") == "outline" for server in values) else 1)
 '
+}
+
+require_outline_pgpass_secret() {
+  local secret_path="${1:-$OUTLINE_PGPASS_SECRET}"
+
+  require_file "$secret_path"
+  require_mode_owner_group "$secret_path" 400 5050 5050
 }
 
 cleanup() {
@@ -140,9 +158,8 @@ verify_baseline() {
   require_file "$PGADMIN_COMPOSE"
   require_file "$PGADMIN_SERVERS"
   require_file "$ADMIN_SECRET"
-  require_file "$PGPASS_SECRET"
   require_root_owned_mode "$ADMIN_SECRET" 400
-  require_root_owned_mode "$PGPASS_SECRET" 400
+  require_outline_pgpass_secret
   require_quiet 'pgAdmin Compose configuration is valid' docker compose -f "$PGADMIN_COMPOSE" config --quiet
   pgadmin_id="$(docker compose -f "$PGADMIN_COMPOSE" ps -q pgadmin 2>/dev/null)" || fail 'cannot determine the pgAdmin Compose container ID'
   [[ -n "$pgadmin_id" ]] || fail 'pgAdmin Compose container is not running'
@@ -191,9 +208,14 @@ synchronize_ceo_administrator() {
   pass 'CEO pgAdmin account is synchronized without disclosing its password'
 }
 
+install_ceo_storage_pgpass() {
+  docker compose -f "$PGADMIN_COMPOSE" exec -T --user 5050 pgadmin sh -lc \
+    'install -d -m 0700 /var/lib/pgadmin/storage/ceo_astforum.ru && install -m 0400 /run/secrets/outline_pgpass /var/lib/pgadmin/storage/ceo_astforum.ru/.pgpass'
+}
+
 import_ceo_registration() {
   require_quiet 'canonical pgAdmin server definition imported for CEO' docker compose -f "$PGADMIN_COMPOSE" exec -T --user 5050 pgadmin /venv/bin/python3 /pgadmin4/setup.py load-servers /pgadmin4/servers.json --user "$CEO_EMAIL" --replace
-  require_quiet 'CEO pgAdmin storage password file is installed with restricted mode' docker compose -f "$PGADMIN_COMPOSE" exec -T --user 5050 pgadmin sh -lc 'install -d -m 0700 /var/lib/pgadmin/storage/ceo_astforum.ru && install -m 0400 /run/secrets/pgpass /var/lib/pgadmin/storage/ceo_astforum.ru/.pgpass'
+  require_quiet 'CEO pgAdmin storage password file is installed with restricted mode' install_ceo_storage_pgpass
 }
 
 verify_active_administrator() {
