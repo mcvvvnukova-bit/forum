@@ -51,7 +51,7 @@ require_report_text 'reviewed root copy SHA-256 verified'
 require_report_text 'exec "$root_path"'
 reject_text 'sudo bash /home/testing-user/' "$script_path" "$report_path"
 reject_text '.State.Pid' "$script_path"
-reject_text 'REVIEWED_COMMITTED_SHA256' "$report_path"
+reject_text 'expected_sha256=REVIEWED_COMMITTED_SHA256' "$report_path"
 
 bash -n "$script_path"
 printf 'task1 round-1 contract: PASS\n'
