@@ -133,17 +133,13 @@ require_caddy_http_binding() {
   pass 'Caddy Compose container exposes public TCP port 80'
 }
 
-record_upstream_tls_topology() {
+require_absent_caddy_tcp_443_binding() {
   local bindings="$1"
-  local tcp_443 udp_443
+  local tcp_443
 
   tcp_443="$(bindings_for_port "$bindings" 443/tcp)"
-  udp_443="$(bindings_for_port "$bindings" 443/udp)"
-  if [[ -z "$tcp_443" && -z "$udp_443" ]]; then
-    info 'Caddy has no 443 binding; upstream TLS termination topology recorded'
-  else
-    info 'Caddy has 443 binding facts; upstream TLS topology requires review'
-  fi
+  [[ -z "$tcp_443" ]] || fail 'Caddy Compose container has unexpected host binding for TCP 443'
+  pass 'Caddy Compose container has no TCP 443 host binding; upstream TLS topology confirmed'
 }
 
 record_shared_network() {
@@ -191,6 +187,16 @@ require_listener() {
     fail "$service_name has no host listener on TCP $port"
   fi
   pass "$service_name host listener is present on TCP $port"
+}
+
+require_absent_listener() {
+  local port="$1"
+  local service_name="$2"
+
+  if awk -v port="$port" '$4 ~ (":" port "$") { listener = 1 } END { exit(listener ? 0 : 1) }' <<< "$listening_sockets"; then
+    fail "$service_name has unexpected host TCP $port listener"
+  fi
+  pass "$service_name has no host TCP $port listener"
 }
 
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
@@ -259,7 +265,7 @@ reject_public_bindings "$pgadmin_bindings" 5050/tcp 'pgAdmin 5050'
 reject_public_bindings "$postgres_bindings" 5432/tcp 'PostgreSQL 5432'
 reject_public_bindings "$redis_bindings" 6379/tcp 'Redis 6379'
 require_caddy_http_binding "$caddy_bindings"
-record_upstream_tls_topology "$caddy_bindings"
+require_absent_caddy_tcp_443_binding "$caddy_bindings"
 
 listening_sockets="$(ss -ltnp 2>/dev/null)" || fail 'cannot inspect listening TCP sockets'
 require_loopback_listener 5050 'pgAdmin 5050'
@@ -267,6 +273,7 @@ reject_public_listener 5050 'pgAdmin 5050'
 reject_public_listener 5432 'PostgreSQL 5432'
 reject_public_listener 6379 'Redis 6379'
 require_listener 80 'Caddy'
+require_absent_listener 443 'Caddy TLS'
 
 # Step 3: make a root-only, consistent rollback snapshot.
 backup_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
