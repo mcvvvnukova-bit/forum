@@ -136,6 +136,62 @@ assert_root_function_status 'Compose candidate that loses cap_drop ALL is reject
 assert_root_function_status 'pgAdmin 9.17 PING is accepted' pass require_exact_ping PING
 assert_root_function_status 'stale SUCCESS is rejected' fail require_exact_ping SUCCESS
 
+assert_wait_for_pgadmin_ping_case() {
+  local case_name="$1"
+  local timeout_seconds="$2"
+  local ready_probe="$3"
+  local non_ping_body="$4"
+  local expected_status="$5"
+  local expected_probes="$6"
+  local case_root="$temporary_root/$case_name"
+  local probe_file="$case_root/probes"
+  local status_file="$case_root/status"
+  local actual_status
+
+  mkdir -p "$case_root"
+  printf '0\n' > "$probe_file"
+  if env PGADMIN_READY_TIMEOUT_SECONDS="$timeout_seconds" bash -c '
+    source "$1"
+    fail() { return 1; }
+    probe_file="$2"
+    ready_probe="$3"
+    non_ping_body="$4"
+    clock=0
+    pgadmin_ready_now() { printf "%s\n" "$clock"; }
+    pgadmin_ready_sleep() { clock=$((clock + 1)); }
+    sleep() { clock=$((clock + 1)); }
+    pgadmin_ping_probe() {
+      probe_count="$(<"$probe_file")"
+      probe_count=$((probe_count + 1))
+      printf "%s\n" "$probe_count" > "$probe_file"
+      if [[ "$ready_probe" -gt 0 && "$probe_count" -eq "$ready_probe" ]]; then
+        printf PING
+      else
+        printf "%s" "$non_ping_body"
+      fi
+    }
+    set +e
+    wait_for_pgadmin_ping
+    result=$?
+    printf "%s\n" "$result" > "$5"
+    exit 0
+  ' _ "$root_script_path" "$probe_file" "$ready_probe" "$non_ping_body" "$status_file"; then
+    actual_status=pass
+  else
+    actual_status=fail
+  fi
+  [[ "$actual_status" == pass ]] || fail "$case_name: readiness harness failed"
+  [[ "$(<"$status_file")" == "$expected_status" ]] || \
+    fail "$case_name: expected readiness status $expected_status, got $(<"$status_file")"
+  [[ "$(<"$probe_file")" == "$expected_probes" ]] || \
+    fail "$case_name: expected $expected_probes probes, got $(<"$probe_file")"
+}
+
+# Break caught: the previous 30-attempt limit rolls back the measured healthy
+# startup that returns non-PING for 42 one-second probes and exact PING on 43.
+assert_wait_for_pgadmin_ping_case 'ready-on-43rd-probe' 180 43 SUCCESS 0 43
+assert_wait_for_pgadmin_ping_case 'never-ready-times-out-at-test-bound' 3 0 SUCCESS 1 3
+
 # Break caught: an already-applied retry that skips the running network or
 # endpoint probes can claim success while the Caddy route is dead.
 assert_status 'already-applied runtime checks require both exact PING probes' pass \

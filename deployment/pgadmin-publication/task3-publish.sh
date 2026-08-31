@@ -18,6 +18,7 @@ readonly ACTIVE_CADDY_SHA=58d2d055109b06165467cded49860be63b166593b3fc76d61461ec
 readonly ACTIVE_COMPOSE_SHA=fad20a2f71534bba65f85bf249a1dd300bb20947361f4b76a4af8c08f98ab92f
 readonly CANDIDATE_CADDY_SHA=100224644bcff315e79f0f5ff5c7ebaf1f7e58d7f34a2fe4d88144520bb00e55
 readonly CANDIDATE_COMPOSE_SHA=89ef7bb04008063fb2ba2a60e1d53e212d4cee3db5a9e87f2628b578f9848142
+readonly PGADMIN_READY_TIMEOUT_SECONDS="${PGADMIN_READY_TIMEOUT_SECONDS:-180}"
 
 caddy_id=""
 pgadmin_id=""
@@ -252,14 +253,28 @@ prepare_preapply_rollback() {
   install -m 0600 "$PGADMIN_COMPOSE" "$preapply_dir/compose.yaml" || fail 'cannot preserve pre-apply pgAdmin Compose'
 }
 
+pgadmin_ready_now() {
+  date +%s
+}
+
+pgadmin_ready_sleep() {
+  sleep 1
+}
+
+pgadmin_ping_probe() {
+  curl -fsS http://127.0.0.1:5050/misc/ping 2>/dev/null
+}
+
 wait_for_pgadmin_ping() {
-  local attempt body
-  for attempt in $(seq 1 30); do
-    body="$(curl -fsS http://127.0.0.1:5050/misc/ping 2>/dev/null || true)"
+  local deadline body
+
+  deadline=$(( $(pgadmin_ready_now) + PGADMIN_READY_TIMEOUT_SECONDS ))
+  while (( $(pgadmin_ready_now) < deadline )); do
+    body="$(pgadmin_ping_probe || true)"
     [[ "$body" == PING ]] && return 0
-    sleep 1
+    pgadmin_ready_sleep
   done
-  fail 'pgAdmin did not become healthy on its private loopback endpoint'
+  fail 'pgAdmin did not return exact PING on its private loopback endpoint before readiness timeout'
 }
 
 apply_validated_candidates() {
