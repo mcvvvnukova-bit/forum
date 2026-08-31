@@ -115,8 +115,9 @@ assert_status 'testing-user candidate is rejected' fail \
 https_caddy="$temporary_root/https-Caddyfile"
 printf '%s\n' 'pg.astforum.ru {' '    reverse_proxy pgadmin:5050' '}' > "$https_caddy"
 assert_root_function_status 'standalone HTTPS Caddy site is rejected' fail verify_caddy_candidate_layout "$https_caddy"
-assert_root_function_status 'local TCP 443 binding is rejected' fail require_absent_caddy_443_bindings $'80/tcp 0.0.0.0:80\n443/tcp 127.0.0.1:443'
-assert_root_function_status 'local UDP 443 binding is rejected' fail require_absent_caddy_443_bindings $'80/tcp 0.0.0.0:80\n443/udp 127.0.0.1:443'
+assert_root_function_status 'actual TCP 443 host binding is rejected' fail require_absent_caddy_443_bindings $'80/tcp 0.0.0.0:80\n443/tcp 0.0.0.0:443'
+assert_root_function_status 'actual UDP 443 host binding is rejected' fail require_absent_caddy_443_bindings $'80/tcp 0.0.0.0:80\n443/udp :::443'
+assert_root_function_status 'exposed but unbound Caddy 443 ports are accepted' pass require_absent_caddy_443_bindings $'80/tcp 0.0.0.0:80\n443/tcp\n443/udp\n2019/tcp\n'
 assert_root_function_status 'host UDP 443 listener is rejected' fail require_absent_host_udp_443 $'UNCONN 0 0 127.0.0.1:443 0.0.0.0:*'
 
 # Break caught: Caddy must never be attached to the database network; only

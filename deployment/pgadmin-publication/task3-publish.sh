@@ -72,10 +72,16 @@ require_exact_loopback_binding() {
   [[ "$actual" == '127.0.0.1:5050' ]] || fail 'pgAdmin 5050 is not exactly loopback-bound'
 }
 
+bindings_for_port() {
+  local bindings="$1" container_port="$2"
+
+  awk -v port="$container_port" '$1 == port { for (i = 2; i <= NF; i += 1) print $i }' <<< "$bindings"
+}
+
 require_absent_caddy_443_bindings() {
   local bindings="$1" tcp udp
-  tcp="$(awk '$1 == "443/tcp" { print }' <<< "$bindings")"
-  udp="$(awk '$1 == "443/udp" { print }' <<< "$bindings")"
+  tcp="$(bindings_for_port "$bindings" 443/tcp)"
+  udp="$(bindings_for_port "$bindings" 443/udp)"
   [[ -z "$tcp" && -z "$udp" ]] || fail 'Caddy has an unexpected Docker TCP or UDP 443 binding'
 }
 
