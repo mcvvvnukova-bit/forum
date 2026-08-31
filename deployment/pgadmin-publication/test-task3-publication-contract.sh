@@ -146,13 +146,14 @@ assert_wait_for_pgadmin_ping_case() {
   local case_root="$temporary_root/$case_name"
   local probe_file="$case_root/probes"
   local status_file="$case_root/status"
+  local output_file="$case_root/output"
   local actual_status
 
   mkdir -p "$case_root"
   printf '0\n' > "$probe_file"
   if env PGADMIN_READY_TIMEOUT_SECONDS="$timeout_seconds" bash -c '
     source "$1"
-    fail() { return 1; }
+    fail() { printf "FAIL: %s\n" "$1" >&2; return 1; }
     probe_file="$2"
     ready_probe="$3"
     non_ping_body="$4"
@@ -175,21 +176,33 @@ assert_wait_for_pgadmin_ping_case() {
     result=$?
     printf "%s\n" "$result" > "$5"
     exit 0
-  ' _ "$root_script_path" "$probe_file" "$ready_probe" "$non_ping_body" "$status_file"; then
+  ' _ "$root_script_path" "$probe_file" "$ready_probe" "$non_ping_body" "$status_file" >"$output_file" 2>&1; then
     actual_status=pass
   else
     actual_status=fail
   fi
-  [[ "$actual_status" == pass ]] || fail "$case_name: readiness harness failed"
+  if [[ "$actual_status" != pass ]]; then
+    cat "$output_file" >&2
+    fail "$case_name: readiness harness failed"
+  fi
   [[ "$(<"$status_file")" == "$expected_status" ]] || \
-    fail "$case_name: expected readiness status $expected_status, got $(<"$status_file")"
+    { cat "$output_file" >&2; fail "$case_name: expected readiness status $expected_status, got $(<"$status_file")"; }
   [[ "$(<"$probe_file")" == "$expected_probes" ]] || \
-    fail "$case_name: expected $expected_probes probes, got $(<"$probe_file")"
+    { cat "$output_file" >&2; fail "$case_name: expected $expected_probes probes, got $(<"$probe_file")"; }
+  if [[ "$expected_status" != 0 ]]; then
+    grep -Fqx 'FAIL: pgAdmin did not return exact PING on its private loopback endpoint before readiness timeout' "$output_file" || \
+      { cat "$output_file" >&2; fail "$case_name: expected timeout failure was not captured"; }
+  fi
+}
+
+assert_old_30_bound_regression_control() {
+  assert_wait_for_pgadmin_ping_case 'old-30-bound-rejects-ready-on-43rd-probe' 30 43 SUCCESS 1 30
 }
 
 # Break caught: the previous 30-attempt limit rolls back the measured healthy
 # startup that returns non-PING for 42 one-second probes and exact PING on 43.
 assert_wait_for_pgadmin_ping_case 'ready-on-43rd-probe' 180 43 SUCCESS 0 43
+assert_old_30_bound_regression_control
 assert_wait_for_pgadmin_ping_case 'never-ready-times-out-at-test-bound' 3 0 SUCCESS 1 3
 
 # Break caught: an already-applied retry that skips the running network or
