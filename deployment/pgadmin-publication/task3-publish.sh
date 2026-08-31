@@ -18,6 +18,7 @@ readonly ACTIVE_CADDY_SHA=58d2d055109b06165467cded49860be63b166593b3fc76d61461ec
 readonly ACTIVE_COMPOSE_SHA=fad20a2f71534bba65f85bf249a1dd300bb20947361f4b76a4af8c08f98ab92f
 readonly CANDIDATE_CADDY_SHA=100224644bcff315e79f0f5ff5c7ebaf1f7e58d7f34a2fe4d88144520bb00e55
 readonly CANDIDATE_COMPOSE_SHA=89ef7bb04008063fb2ba2a60e1d53e212d4cee3db5a9e87f2628b578f9848142
+readonly PGADMIN_READY_MAX_TIMEOUT_SECONDS=180
 readonly PGADMIN_READY_TIMEOUT_SECONDS="${PGADMIN_READY_TIMEOUT_SECONDS:-180}"
 
 caddy_id=""
@@ -109,6 +110,43 @@ require_exact_ping() {
   [[ "$1" == PING ]] || fail 'pgAdmin ping did not return exact PING'
 }
 
+curl_http_ping_probe() {
+  local max_time="$1" response status body
+  shift
+
+  response="$(curl --disable --silent --show-error --no-location --max-redirs 0 \
+    --max-time "$max_time" --write-out $'\n%{http_code}' "$@" 2>/dev/null)" || return 1
+  status="${response##*$'\n'}"
+  body="${response%$'\n'*}"
+  [[ "$status" == 200 && "$body" == PING ]] || return 1
+  printf PING
+}
+
+caddy_ping_probe() {
+  local headers_file body_with_sentinel body status
+
+  headers_file="$(mktemp /tmp/task3-caddy-ping.XXXXXX)" || return 1
+  if ! body_with_sentinel="$(
+    docker compose -f "$OUTLINE_COMPOSE" exec -T caddy \
+      wget -S -T 5 -O - http://pgadmin:5050/misc/ping 2>"$headers_file"
+    probe_status=$?
+    printf %s __TASK3_BODY_END__
+    exit "$probe_status"
+  )"; then
+    rm -f -- "$headers_file"
+    return 1
+  fi
+  body="${body_with_sentinel%__TASK3_BODY_END__}"
+  status="$(awk '$1 ~ /^HTTP\/[0-9.]+$/ && $2 ~ /^[0-9][0-9][0-9]$/ { print $2 }' "$headers_file")"
+  rm -f -- "$headers_file"
+  [[ "$status" == 200 && "$body" == PING ]] || return 1
+  printf PING
+}
+
+routed_ping_probe() {
+  curl_http_ping_probe 5 -H 'Host: pg.astforum.ru' http://127.0.0.1/misc/ping
+}
+
 verify_caddy_candidate_layout() {
   local candidate="$1" host_count handle_count final_404_count
   require_file "$candidate"
@@ -198,9 +236,9 @@ verify_already_applied_runtime() {
 
   verify_runtime_boundary 1
   require_quiet 'active Caddy configuration validates' docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-  caddy_ping="$(docker compose -f "$OUTLINE_COMPOSE" exec -T caddy wget -qO- http://pgadmin:5050/misc/ping 2>/dev/null)" || fail 'Caddy cannot resolve pgAdmin on retry'
+  caddy_ping="$(caddy_ping_probe)" || fail 'Caddy cannot resolve pgAdmin with HTTP 200 on retry'
   require_exact_ping "$caddy_ping"
-  routed_ping="$(curl -fsS -H 'Host: pg.astforum.ru' http://127.0.0.1/misc/ping 2>/dev/null)" || fail 'host-routed Caddy request to pgAdmin failed on retry'
+  routed_ping="$(routed_ping_probe)" || fail 'host-routed Caddy request to pgAdmin did not return HTTP 200 on retry'
   require_exact_ping "$routed_ping"
   verify_runtime_boundary 1
   pass 'already-applied pgAdmin route and private-port boundary revalidated'
@@ -262,16 +300,29 @@ pgadmin_ready_sleep() {
 }
 
 pgadmin_ping_probe() {
-  curl -fsS http://127.0.0.1:5050/misc/ping 2>/dev/null
+  curl_http_ping_probe "${1:-1}" http://127.0.0.1:5050/misc/ping
+}
+
+validate_pgadmin_ready_timeout() {
+  [[ "$PGADMIN_READY_TIMEOUT_SECONDS" =~ ^([1-9]|[1-9][0-9]|1[0-7][0-9]|180)$ ]] || \
+    fail "PGADMIN_READY_TIMEOUT_SECONDS must be a positive integer no greater than $PGADMIN_READY_MAX_TIMEOUT_SECONDS"
 }
 
 wait_for_pgadmin_ping() {
-  local deadline body
+  local timeout_seconds deadline body now probe_timeout
 
-  deadline=$(( $(pgadmin_ready_now) + PGADMIN_READY_TIMEOUT_SECONDS ))
-  while (( $(pgadmin_ready_now) < deadline )); do
-    body="$(pgadmin_ping_probe || true)"
+  validate_pgadmin_ready_timeout
+  timeout_seconds=$((10#$PGADMIN_READY_TIMEOUT_SECONDS))
+  deadline=$(( $(pgadmin_ready_now) + timeout_seconds ))
+  while true; do
+    now="$(pgadmin_ready_now)"
+    (( now < deadline )) || break
+    probe_timeout=$((deadline - now))
+    (( probe_timeout <= 1 )) || probe_timeout=1
+    body="$(pgadmin_ping_probe "$probe_timeout" || true)"
     [[ "$body" == PING ]] && return 0
+    now="$(pgadmin_ready_now)"
+    (( now < deadline )) || break
     pgadmin_ready_sleep
   done
   fail 'pgAdmin did not return exact PING on its private loopback endpoint before readiness timeout'
@@ -290,23 +341,45 @@ apply_validated_candidates() {
   [[ " $pgadmin_networks " == *" $FRONTEND_NETWORK "* ]] || fail 'recreated pgAdmin did not join outline_frontend'
   pgadmin_bindings="$(inspect_port_bindings "$pgadmin_id")" || fail 'cannot inspect recreated pgAdmin bindings'
   require_exact_loopback_binding "$pgadmin_bindings"
-  caddy_ping="$(docker compose -f "$OUTLINE_COMPOSE" exec -T caddy wget -qO- http://pgadmin:5050/misc/ping 2>/dev/null)" || fail 'Caddy cannot resolve pgAdmin after frontend attachment'
+  caddy_ping="$(caddy_ping_probe)" || fail 'Caddy cannot resolve pgAdmin with HTTP 200 after frontend attachment'
   require_exact_ping "$caddy_ping"
   pass 'Caddy resolves exact pgAdmin PING through outline_frontend'
   cp -- "$ROOT_CADDY" "$OUTLINE_CADDY" || fail 'cannot install Caddy candidate while preserving the bind-mounted file'
   chown root:root "$OUTLINE_CADDY"
   chmod 0644 "$OUTLINE_CADDY"
   docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null || fail 'Caddy reload failed'
-  routed_ping="$(curl -fsS -H 'Host: pg.astforum.ru' http://127.0.0.1/misc/ping 2>/dev/null)" || fail 'host-routed Caddy request to pgAdmin failed'
+  routed_ping="$(routed_ping_probe)" || fail 'host-routed Caddy request to pgAdmin did not return HTTP 200'
   require_exact_ping "$routed_ping"
   verify_runtime_boundary 1
   pass 'HTTP-only Caddy route reaches pgAdmin with exact PING'
 }
 
 cleanup_transient_candidates() {
-  [[ -n "$caddy_id" ]] && quietly docker exec "$caddy_id" rm -f /tmp/task3-Caddyfile.candidate || true
+  cleanup_transient_container_candidate
   [[ -n "$preapply_dir" ]] && rm -rf -- "$preapply_dir"
   preapply_dir=""
+}
+
+cleanup_transient_container_candidate() {
+  [[ -n "$caddy_id" ]] && quietly docker exec "$caddy_id" rm -f /tmp/task3-Caddyfile.candidate || true
+}
+
+verify_restored_runtime() {
+  local pgadmin_networks
+
+  cmp -s "$preapply_dir/compose.yaml" "$PGADMIN_COMPOSE" || fail 'restored pgAdmin Compose differs from its exact pre-apply copy'
+  cmp -s "$preapply_dir/Caddyfile" "$OUTLINE_CADDY" || fail 'restored Caddyfile differs from its exact pre-apply copy'
+  require_quiet 'restored pgAdmin Compose configuration validates' docker compose -f "$PGADMIN_COMPOSE" config --quiet
+  require_quiet 'restored Outline Compose configuration validates' docker compose -f "$OUTLINE_COMPOSE" config --quiet
+  require_quiet 'restored Caddy configuration validates' docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+  wait_for_pgadmin_ping
+  verify_runtime_boundary 0
+  pgadmin_networks="$(docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$pgadmin_id" 2>/dev/null)" || fail 'cannot inspect restored pgAdmin networks'
+  [[ " $pgadmin_networks " == *' outline_backend '* && \
+     " $pgadmin_networks " == *' pgadmin_pgadmin-access '* && \
+     " $pgadmin_networks " != *" $FRONTEND_NETWORK "* && \
+     "$(wc -w <<< "$pgadmin_networks")" == 2 ]] || fail 'restored pgAdmin networks do not match the exact pre-apply boundary'
+  pass 'restored pgAdmin runtime and HTTP-only/private-port boundary revalidated'
 }
 
 rollback_partial_apply() {
@@ -319,16 +392,21 @@ rollback_partial_apply() {
     chown root:root "$OUTLINE_CADDY" 2>/dev/null || rollback_failed=1
     chmod 0644 "$OUTLINE_CADDY" 2>/dev/null || rollback_failed=1
     docker compose -f "$OUTLINE_COMPOSE" exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1 || rollback_failed=1
+    if [[ "$rollback_failed" == 0 ]] && ! (verify_restored_runtime); then
+      rollback_failed=1
+    fi
   fi
-  cleanup_transient_candidates
   if [[ "$rollback_failed" == 1 ]]; then
-    printf 'FAIL: partial-apply rollback was incomplete; preserve and use the Task 1 snapshot\n' >&2
+    cleanup_transient_container_candidate
+    printf 'FAIL: partial-apply rollback was incomplete; exact pre-apply copies are retained at %s and the Task 1 snapshot is preserved\n' "$preapply_dir" >&2
     return 1
   fi
+  cleanup_transient_candidates
   return "$original_status"
 }
 
 run_publication() {
+  validate_pgadmin_ready_timeout
   verify_publication_prerequisites
   if [[ "$publication_already_applied" == 1 ]]; then
     pass 'Task 3 publication is already applied; no container is recreated'

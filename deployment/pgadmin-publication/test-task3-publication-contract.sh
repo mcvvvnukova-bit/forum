@@ -16,6 +16,10 @@ fail() {
   exit 1
 }
 
+fix5_case_enabled() {
+  [[ -z "${TASK3_FIX5_CASE:-}" || "$TASK3_FIX5_CASE" == "$1" ]]
+}
+
 assert_status() {
   local case_name="$1"
   local expected="$2"
@@ -136,6 +140,287 @@ assert_root_function_status 'Compose candidate that loses cap_drop ALL is reject
 assert_root_function_status 'pgAdmin 9.17 PING is accepted' pass require_exact_ping PING
 assert_root_function_status 'stale SUCCESS is rejected' fail require_exact_ping SUCCESS
 
+assert_readiness_timeout_cap_case() {
+  assert_status 'readiness override above 180 seconds is rejected before probing' fail \
+    env PGADMIN_READY_TIMEOUT_SECONDS=181 bash -c '
+      source "$1"
+      pass() { :; }
+      fail() { exit 97; }
+      pgadmin_ready_now() { printf "0\n"; }
+      pgadmin_ready_sleep() { :; }
+      pgadmin_ping_probe() { printf PING; }
+      wait_for_pgadmin_ping
+    ' _ "$root_script_path"
+}
+
+assert_stalled_readiness_probe_case() {
+  local case_root="$temporary_root/stalled-readiness-probe"
+  local status_file="$case_root/status"
+  local child_pid attempt
+
+  mkdir -p "$case_root"
+  env PGADMIN_READY_TIMEOUT_SECONDS=1 bash -c '
+    source "$1"
+    fail() { return 1; }
+    clock=0
+    pgadmin_ready_now() { printf "%s\n" "$clock"; }
+    pgadmin_ready_sleep() { clock=$((clock + 1)); }
+    curl() {
+      local argument has_max_time=0
+      for argument in "$@"; do
+        [[ "$argument" == --max-time || "$argument" == --max-time=* ]] && has_max_time=1
+      done
+      if [[ "$has_max_time" == 1 ]]; then
+        return 28
+      fi
+      command sleep 5
+      printf PING
+    }
+    set +e
+    wait_for_pgadmin_ping
+    printf "%s\n" "$?" > "$2"
+    exit 0
+  ' _ "$root_script_path" "$status_file" >"$case_root/output" 2>&1 &
+  child_pid=$!
+
+  for attempt in 1 2 3; do
+    kill -0 "$child_pid" 2>/dev/null || break
+    sleep 1
+  done
+  if kill -0 "$child_pid" 2>/dev/null; then
+    kill "$child_pid" 2>/dev/null || true
+    wait "$child_pid" 2>/dev/null || true
+    fail 'stalled readiness probe exceeded the hard test deadline'
+  fi
+  wait "$child_pid" || fail 'stalled readiness probe harness failed'
+  [[ -f "$status_file" && "$(<"$status_file")" != 0 ]] || \
+    fail 'stalled readiness probe did not return the bounded timeout failure'
+}
+
+assert_pgadmin_http_response_case() {
+  local case_name="$1"
+  local fixture_status="$2"
+  local simulate_redirect="$3"
+  local expected_status="$4"
+
+  assert_status "$case_name" "$expected_status" bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    fixture_status="$2"
+    simulate_redirect="$3"
+    curl() {
+      local argument has_write_out=0 follows_redirect=0 effective_status="$fixture_status"
+      for argument in "$@"; do
+        [[ "$argument" == --write-out || "$argument" == --write-out=* || "$argument" == -w ]] && has_write_out=1
+        [[ "$argument" == --location || "$argument" == -L ]] && follows_redirect=1
+      done
+      if [[ "$simulate_redirect" == 1 && "$follows_redirect" == 1 ]]; then
+        effective_status=200
+      fi
+      if [[ "$has_write_out" == 1 ]]; then
+        printf "PING\n%s" "$effective_status"
+      else
+        printf PING
+      fi
+    }
+    pgadmin_ping_probe 1 >/dev/null
+  ' _ "$root_script_path" "$fixture_status" "$simulate_redirect"
+}
+
+assert_exact_loopback_http_body_case() {
+  assert_status 'loopback HTTP 200 PING with trailing newline is rejected' fail bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    curl() {
+      if [[ " $* " == *" --write-out "* || " $* " == *" -w "* ]]; then
+        printf "PING\n\n200"
+      else
+        printf "PING\n"
+      fi
+    }
+    pgadmin_ping_probe 1 >/dev/null
+  ' _ "$root_script_path"
+}
+
+assert_exact_caddy_http_body_case() {
+  assert_status 'Caddy HTTP 200 PING with trailing newline is rejected' fail bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    verify_runtime_boundary() { :; }
+    require_quiet() { :; }
+    docker() {
+      if [[ " $* " == *" wget "* ]]; then
+        printf "  HTTP/1.1 200 OK\r\n" >&2
+        printf "PING\n"
+        return 0
+      fi
+      return 98
+    }
+    curl() {
+      if [[ " $* " == *" --write-out "* || " $* " == *" -w "* ]]; then
+        printf "PING\n200"
+      else
+        printf PING
+      fi
+    }
+    verify_already_applied_runtime
+  ' _ "$root_script_path"
+}
+
+assert_already_applied_http_case() {
+  local case_name="$1"
+  local caddy_status="$2"
+  local routed_status="$3"
+  local caddy_redirect="$4"
+  local routed_redirect="$5"
+  local expected_status="$6"
+
+  assert_status "$case_name" "$expected_status" bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    verify_runtime_boundary() { :; }
+    require_quiet() { :; }
+    caddy_status="$2"
+    routed_status="$3"
+    caddy_redirect="$4"
+    routed_redirect="$5"
+    docker() {
+      local effective_status="$caddy_status"
+      if [[ " $* " == *" wget "* ]]; then
+        if [[ "$caddy_redirect" == 1 ]]; then
+          printf "  HTTP/1.1 302 Found\r\n  HTTP/1.1 200 OK\r\n" >&2
+          printf PING
+          return 0
+        fi
+        printf "  HTTP/1.1 %s Fixture\r\n" "$effective_status" >&2
+        printf PING
+        return 0
+      fi
+      return 98
+    }
+    curl() {
+      local argument has_write_out=0 follows_redirect=0 effective_status="$routed_status"
+      for argument in "$@"; do
+        [[ "$argument" == --write-out || "$argument" == --write-out=* || "$argument" == -w ]] && has_write_out=1
+        [[ "$argument" == --location || "$argument" == -L ]] && follows_redirect=1
+      done
+      if [[ "$routed_redirect" == 1 && "$follows_redirect" == 1 ]]; then
+        effective_status=200
+      fi
+      if [[ "$has_write_out" == 1 ]]; then
+        printf "PING\n%s" "$effective_status"
+      else
+        printf PING
+      fi
+    }
+    verify_already_applied_runtime
+  ' _ "$root_script_path" "$caddy_status" "$routed_status" "$caddy_redirect" "$routed_redirect"
+}
+
+assert_apply_http_case() {
+  local case_name="$1"
+  local caddy_status="$2"
+  local routed_status="$3"
+  local expected_status="$4"
+
+  assert_status "$case_name" "$expected_status" bash -c '
+    source "$1"
+    pass() { :; }
+    fail() { exit 97; }
+    prepare_preapply_rollback() { :; }
+    install() { :; }
+    wait_for_pgadmin_ping() { :; }
+    inspect_port_bindings() { printf "5050/tcp 127.0.0.1:5050\n"; }
+    cp() { :; }
+    chown() { :; }
+    chmod() { :; }
+    verify_runtime_boundary() { :; }
+    caddy_status="$2"
+    routed_status="$3"
+    docker() {
+      if [[ " $* " == *" up -d --no-deps --force-recreate pgadmin "* ]]; then
+        return 0
+      fi
+      if [[ " $* " == *" ps -q pgadmin "* ]]; then
+        printf pgadmin-id
+        return 0
+      fi
+      if [[ " $* " == *"NetworkSettings.Networks"* ]]; then
+        printf "outline_backend pgadmin_pgadmin-access outline_frontend "
+        return 0
+      fi
+      if [[ " $* " == *" wget "* ]]; then
+        printf "  HTTP/1.1 %s Fixture\r\n" "$caddy_status" >&2
+        printf PING
+        return 0
+      fi
+      if [[ " $* " == *" caddy reload "* ]]; then
+        return 0
+      fi
+      return 98
+    }
+    curl() {
+      local argument has_write_out=0
+      for argument in "$@"; do
+        [[ "$argument" == --write-out || "$argument" == --write-out=* || "$argument" == -w ]] && has_write_out=1
+      done
+      if [[ "$has_write_out" == 1 ]]; then
+        printf "PING\n%s" "$routed_status"
+      else
+        printf PING
+      fi
+    }
+    apply_validated_candidates
+  ' _ "$root_script_path" "$caddy_status" "$routed_status"
+}
+
+if fix5_case_enabled timeout-cap; then
+  # Break caught: an environment override must never lengthen the production
+  # readiness deadline beyond the binding 180-second maximum.
+  assert_readiness_timeout_cap_case
+fi
+
+if fix5_case_enabled stalled-probe; then
+  # Break caught: one curl that never responds must not prevent readiness from
+  # reaching its bounded failure and entering rollback.
+  assert_stalled_readiness_probe_case
+fi
+
+if fix5_case_enabled body-exact-loopback; then
+  # Break caught: shell command substitution must not normalize a trailing
+  # loopback response newline into the byte-exact body PING.
+  assert_exact_loopback_http_body_case
+fi
+
+if fix5_case_enabled body-exact-caddy; then
+  # Break caught: Caddy-side header capture must preserve a trailing body
+  # newline long enough to reject it as different from byte-exact PING.
+  assert_exact_caddy_http_body_case
+fi
+
+if fix5_case_enabled http-status; then
+  # Break caught: exact PING on HTTP 201 is unhealthy at every publication
+  # health boundary, even when the HTTP client command itself succeeds.
+  assert_pgadmin_http_response_case 'loopback HTTP 200 exact PING is accepted' 200 0 pass
+  assert_pgadmin_http_response_case 'loopback HTTP 201 with PING is rejected' 201 0 fail
+  assert_already_applied_http_case 'already-applied Caddy HTTP 201 with PING is rejected' 201 200 0 0 fail
+  assert_already_applied_http_case 'already-applied routed HTTP 201 with PING is rejected' 200 201 0 0 fail
+  assert_apply_http_case 'apply Caddy HTTP 201 with PING is rejected' 201 200 fail
+  assert_apply_http_case 'apply routed HTTP 201 with PING is rejected' 200 201 fail
+fi
+
+if fix5_case_enabled redirect; then
+  # Break caught: redirect following can turn a 302 response into a final 200
+  # PING; curl following is disabled and Caddy-side response chains are rejected.
+  assert_pgadmin_http_response_case 'loopback HTTP redirect with PING is rejected without following' 302 1 fail
+  assert_already_applied_http_case 'already-applied Caddy redirect with PING is rejected without following' 200 200 1 0 fail
+  assert_already_applied_http_case 'already-applied routed redirect with PING is rejected without following' 200 302 0 1 fail
+fi
+
 assert_wait_for_pgadmin_ping_case() {
   local case_name="$1"
   local timeout_seconds="$2"
@@ -215,10 +500,20 @@ assert_status 'already-applied runtime checks require both exact PING probes' pa
     verify_runtime_boundary() { :; }
     require_quiet() { :; }
     docker() {
-      [[ "$*" == *"wget -qO- http://pgadmin:5050/misc/ping"* ]] && { printf PING; return 0; }
+      if [[ " $* " == *" wget "* ]]; then
+        printf "  HTTP/1.1 200 OK\r\n" >&2
+        printf PING
+        return 0
+      fi
       exit 98
     }
-    curl() { printf PING; }
+    curl() {
+      if [[ " $* " == *" --write-out "* || " $* " == *" -w "* ]]; then
+        printf "PING\n200"
+      else
+        printf PING
+      fi
+    }
     verify_already_applied_runtime
   ' _ "$root_script_path"
 assert_status 'already-applied runtime rejects stale Caddy ping' fail \
@@ -228,20 +523,37 @@ assert_status 'already-applied runtime rejects stale Caddy ping' fail \
     fail() { exit 97; }
     verify_runtime_boundary() { :; }
     require_quiet() { :; }
-    docker() { [[ "$*" == *"wget -qO-"* ]] && { printf SUCCESS; return 0; }; exit 98; }
-    curl() { printf PING; }
+    docker() {
+      if [[ " $* " == *" wget "* ]]; then
+        printf "  HTTP/1.1 200 OK\r\n" >&2
+        printf SUCCESS
+        return 0
+      fi
+      exit 98
+    }
+    curl() {
+      if [[ " $* " == *" --write-out "* || " $* " == *" -w "* ]]; then
+        printf "PING\n200"
+      else
+        printf PING
+      fi
+    }
     verify_already_applied_runtime
   ' _ "$root_script_path"
 
 assert_rollback_case() {
   local case_name="$1"
   local fail_reload="$2"
-  local expected_status="$3"
+  local fail_runtime_validation="$3"
+  local expected_rollback_status="$4"
+  local expect_recovery_copies="$5"
   local rollback_root="$temporary_root/$case_name"
   local log_file="$rollback_root/operations"
   local marker="$rollback_root/task1-marker"
   local snapshot="$rollback_root/task1-snapshot"
   local preapply="$rollback_root/preapply"
+  local expected_compose="$rollback_root/expected-compose"
+  local expected_caddy="$rollback_root/expected-Caddyfile"
   local restored_compose="$rollback_root/restored-compose"
   local restored_caddy="$rollback_root/restored-Caddyfile"
   local status_file="$rollback_root/status"
@@ -252,6 +564,8 @@ assert_rollback_case() {
   printf '%s\n' "$snapshot" > "$marker"
   printf 'old compose\n' > "$preapply/compose.yaml"
   printf 'old Caddy\n' > "$preapply/Caddyfile"
+  cp "$preapply/compose.yaml" "$expected_compose"
+  cp "$preapply/Caddyfile" "$expected_caddy"
   if bash -c '
     source "$1"
     pass() { :; }
@@ -264,6 +578,7 @@ assert_rollback_case() {
     status_file="$8"
     restored_compose="$4"
     restored_caddy="$5"
+    fail_runtime_validation="$9"
     cp() {
       local source_path destination_path
       if [[ "$1" == -- ]]; then
@@ -292,44 +607,69 @@ assert_rollback_case() {
         [[ "$fail_reload" == 0 ]] && return 0
         return 1
       fi
+      if [[ "$*" == *"exec caddy-id rm -f /tmp/task3-Caddyfile.candidate"* ]]; then
+        printf "candidate-cleanup\n" >> "$rollback_log"
+        return 0
+      fi
       exit 98
     }
-    cleanup_transient_candidates() { printf "cleanup\n" >> "$rollback_log"; }
+    verify_restored_runtime() {
+      printf "runtime-validation\n" >> "$rollback_log"
+      [[ "$fail_runtime_validation" == 0 ]]
+    }
     set +e
     rollback_partial_apply 23
     status=$?
     printf "%s\n" "$status" > "$status_file"
     exit 0
-  ' _ "$root_script_path" "$preapply" "$marker" "$restored_compose" "$restored_caddy" "$log_file" "$fail_reload" "$status_file" >"$rollback_root/output" 2>&1; then
+  ' _ "$root_script_path" "$preapply" "$marker" "$restored_compose" "$restored_caddy" "$log_file" "$fail_reload" "$status_file" "$fail_runtime_validation" >"$rollback_root/output" 2>&1; then
     actual_status=pass
   else
     actual_status=fail
   fi
-  [[ "$actual_status" == "$expected_status" ]] || fail "$case_name: expected $expected_status, got $actual_status"
-  if [[ "$fail_reload" == 0 ]]; then
-    [[ "$(<"$status_file")" == 23 ]] || fail "$case_name: successful rollback did not preserve the original failure status"
+  [[ "$actual_status" == pass ]] || fail "$case_name: rollback harness failed"
+  [[ "$(<"$status_file")" == "$expected_rollback_status" ]] || \
+    fail "$case_name: expected rollback status $expected_rollback_status, got $(<"$status_file")"
+  cmp -s "$expected_compose" "$restored_compose" || fail "$case_name: Compose was not restored"
+  cmp -s "$expected_caddy" "$restored_caddy" || fail "$case_name: Caddyfile was not restored"
+  if [[ "$expect_recovery_copies" == 1 ]]; then
+    [[ -d "$preapply" ]] || fail "$case_name: recovery directory was deleted after incomplete rollback"
+    cmp -s "$expected_compose" "$preapply/compose.yaml" || fail "$case_name: Compose recovery copy was not retained"
+    cmp -s "$expected_caddy" "$preapply/Caddyfile" || fail "$case_name: Caddy recovery copy was not retained"
   else
-    [[ "$(<"$status_file")" == 1 ]] || fail "$case_name: incomplete rollback did not fail closed"
+    [[ ! -e "$preapply" ]] || fail "$case_name: successful rollback did not clean recovery copies"
   fi
-  cmp -s "$preapply/compose.yaml" "$restored_compose" || fail "$case_name: Compose was not restored"
-  cmp -s "$preapply/Caddyfile" "$restored_caddy" || fail "$case_name: Caddyfile was not restored"
   [[ -s "$snapshot/Caddyfile" && -s "$marker" ]] || fail "$case_name: Task 1 snapshot was not preserved"
-  awk '
-    /copy:.*\/compose\.yaml:/ { compose = NR }
-    /pgadmin-recreate/ { recreate = NR }
-    /copy:.*\/Caddyfile:/ { caddy_copy = NR }
-    /caddy-reload/ { reload = NR }
-    /cleanup/ { cleanup = NR }
-    END { exit(compose && recreate && caddy_copy && reload && cleanup &&
-      compose < recreate && recreate < caddy_copy && caddy_copy < reload && reload < cleanup ? 0 : 1) }
-  ' "$log_file" || fail "$case_name: rollback restoration order or transient cleanup is missing"
+  if [[ "$fail_reload" == 0 ]]; then
+    awk '
+      /copy:.*\/compose\.yaml:/ { compose = NR }
+      /pgadmin-recreate/ { recreate = NR }
+      /copy:.*\/Caddyfile:/ { caddy_copy = NR }
+      /caddy-reload/ { reload = NR }
+      /runtime-validation/ { validation = NR }
+      END { exit(compose && recreate && caddy_copy && reload && validation &&
+        compose < recreate && recreate < caddy_copy && caddy_copy < reload && reload < validation ? 0 : 1) }
+    ' "$log_file" || fail "$case_name: restored runtime was not validated after reload"
+  fi
 }
 
-# Break caught: a partial apply can leave either candidate active unless the
-# real rollback function restores Compose, recreates only pgAdmin, restores and
-# reloads Caddy, preserves Task 1, cleans transients, and fails closed on error.
-assert_rollback_case 'complete-rollback' 0 pass
-assert_rollback_case 'incomplete-rollback' 1 pass
+# Break caught: a reported successful rollback must prove the restored pgAdmin
+# runtime and HTTP-only/private-port boundary before deleting recovery copies.
+if fix5_case_enabled rollback-success-validation; then
+  assert_rollback_case 'complete-rollback' 0 0 23 0
+fi
+
+# Break caught: failed restored-runtime validation must fail closed and retain
+# both exact pre-apply recovery copies for operator-directed recovery.
+if fix5_case_enabled rollback-failure-retention; then
+  assert_rollback_case 'rollback-runtime-validation-failure' 0 1 1 1
+fi
+
+# Existing restoration-operation failures remain fail-closed and now retain
+# the same recovery copies instead of deleting them prematurely.
+if [[ -z "${TASK3_FIX5_CASE:-}" ]]; then
+  assert_rollback_case 'rollback-reload-failure' 1 0 1 1
+fi
 
 # Break caught: mutating production before active and candidate validation.
 operation_log="$temporary_root/operation.log"
