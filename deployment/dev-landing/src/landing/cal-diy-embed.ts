@@ -90,15 +90,40 @@ function loadCalApi() {
   return loading
 }
 
+function waitForNativePopupClose() {
+  const existingModals = new Set(document.querySelectorAll('cal-modal-box'))
+
+  return new Promise<void>((resolve) => {
+    let observer: MutationObserver
+    const watchModal = (modal: Element) => {
+      observer.disconnect()
+      modal.addEventListener('close', () => resolve(), {once: true})
+    }
+    const findNewModal = () =>
+      Array.from(document.querySelectorAll('cal-modal-box')).find((modal) => !existingModals.has(modal))
+
+    observer = new MutationObserver(() => {
+      const modal = findNewModal()
+      if (modal) watchModal(modal)
+    })
+    observer.observe(document.body, {childList: true, subtree: true})
+
+    const modal = findNewModal()
+    if (modal) watchModal(modal)
+  })
+}
+
 export function openDemoBooking() {
   if (openingPromise) return openingPromise
 
   const opening = loadCalApi().then((cal) => {
+    const popupClosed = waitForNativePopupClose()
     cal('modal', {
       calLink: CAL_LINK,
       calOrigin: CAL_ORIGIN,
       config: {layout: 'month_view'},
     })
+    return popupClosed
   })
   openingPromise = opening
   void opening.then(
