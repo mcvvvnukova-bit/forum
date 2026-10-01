@@ -1,0 +1,302 @@
+[
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T201116Z/verify-public.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/verify-public.sh",
+    "git_blob": "0d5e2d76e866addadf1fb40edbc7a18e26a95890"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T201116Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/deploy.sh",
+    "git_blob": "cfc3b9a6f79d8976e4bc577d20de6e4639a9aeb1"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T201116Z/tests/test_auth_gateway.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/tests/test_auth_gateway.py",
+    "git_blob": "4cf0c377b7b8f66e3d5ff5f97e95c3e9eacb96ed"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T201116Z/auth-gateway/forum_dev_auth.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/auth-gateway/forum_dev_auth.py",
+    "git_blob": "96ffaf469800883c865c7e651818b318600de2f0"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T201116Z/src/main.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/main.tsx",
+    "git_blob": "29f77e95c483b319793351078038dfd82061ec7b"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.tsx",
+    "git_blob": "5b70b62a6fdb5d9c851403ae216d748f04455d2f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.test.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.test.tsx",
+    "git_blob": "b6ba9cbe023f8d14dd49ab22e29cf2d706b479ee"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T201116Z/src/auth-screen.css",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/auth-screen.css",
+    "git_blob": "5bb8efe2ac4794e24699a76e399717addf427c1f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T190216Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T190216Z/deploy.sh",
+    "git_blob": "83ed0b9c0671e088af8b2bb688949c63fbb51bbb"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T190513Z/verify-public.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T190513Z/verify-public.sh",
+    "git_blob": "32092b112eedcb6b968001779445b5f02c6bc883"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T190513Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T190216Z/deploy.sh",
+    "git_blob": "83ed0b9c0671e088af8b2bb688949c63fbb51bbb"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T192325Z/verify-public.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T190513Z/verify-public.sh",
+    "git_blob": "32092b112eedcb6b968001779445b5f02c6bc883"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T192325Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T190216Z/deploy.sh",
+    "git_blob": "83ed0b9c0671e088af8b2bb688949c63fbb51bbb"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/verify-public.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/verify-public.sh",
+    "git_blob": "0d5e2d76e866addadf1fb40edbc7a18e26a95890"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T210719Z/deploy.sh",
+    "git_blob": "45d623d5fe8c4d4d46e53cd25827688a2949fe04"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/tests/test_origin_login_check.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T210719Z/tests/test_origin_login_check.py",
+    "git_blob": "61a6784a2d365db59094fd9b6a3442352a949530"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/tests/test_auth_gateway.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T210719Z/tests/test_auth_gateway.py",
+    "git_blob": "c570b9af43d2b6f989d598f1e2549002a84843d8"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/auth-gateway/forum_dev_auth.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T210719Z/auth-gateway/forum_dev_auth.py",
+    "git_blob": "0ca8cfa4ae8397e466be3352f47c9f43621ce6e8"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/src/main.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/main.tsx",
+    "git_blob": "29f77e95c483b319793351078038dfd82061ec7b"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/src/AuthScreen.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.tsx",
+    "git_blob": "5b70b62a6fdb5d9c851403ae216d748f04455d2f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/src/AuthScreen.test.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.test.tsx",
+    "git_blob": "b6ba9cbe023f8d14dd49ab22e29cf2d706b479ee"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T210719Z/src/auth-screen.css",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/auth-screen.css",
+    "git_blob": "5bb8efe2ac4794e24699a76e399717addf427c1f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200857Z/verify-public.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/verify-public.sh",
+    "git_blob": "0d5e2d76e866addadf1fb40edbc7a18e26a95890"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200857Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/deploy.sh",
+    "git_blob": "cfc3b9a6f79d8976e4bc577d20de6e4639a9aeb1"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200857Z/tests/test_auth_gateway.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/tests/test_auth_gateway.py",
+    "git_blob": "4cf0c377b7b8f66e3d5ff5f97e95c3e9eacb96ed"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200857Z/auth-gateway/forum_dev_auth.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/auth-gateway/forum_dev_auth.py",
+    "git_blob": "96ffaf469800883c865c7e651818b318600de2f0"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200857Z/src/main.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T200857Z/src/main.tsx",
+    "git_blob": "e1a701038d6dbcecb7cbfed61cc2ae7156209d8a"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200857Z/src/AuthScreen.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.tsx",
+    "git_blob": "5b70b62a6fdb5d9c851403ae216d748f04455d2f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200857Z/src/AuthScreen.test.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.test.tsx",
+    "git_blob": "b6ba9cbe023f8d14dd49ab22e29cf2d706b479ee"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200857Z/src/auth-screen.css",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T200857Z/src/auth-screen.css",
+    "git_blob": "1800cb2782724488f20b155a5fe1f61a7042b09b"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/deploy.sh",
+    "git_blob": "b47edd1b0c2652a10fe65e6b6b68945effbd1e94"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/vite.landing.config.ts",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/vite.landing.config.ts",
+    "git_blob": "2e70e1eb6fae0932c204fc5d7d56c6534a7c2e5a"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/tests/test_auth_gateway.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/tests/test_auth_gateway.py",
+    "git_blob": "74e9b138521f8b90ebf2257bcee526aadf3619c9"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/auth-gateway/forum_dev_auth.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T210719Z/auth-gateway/forum_dev_auth.py",
+    "git_blob": "0ca8cfa4ae8397e466be3352f47c9f43621ce6e8"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/src/forum-tokens.css",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/src/forum-tokens.css",
+    "git_blob": "6428d58dfc10e75ad7d3935f6151beb08952e718"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/src/landing/LandingApp.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/src/landing/LandingApp.tsx",
+    "git_blob": "054f2d658c553aed7edb650f561cbc00f916a3e0"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/src/landing/main.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/src/landing/main.tsx",
+    "git_blob": "a4e3371b16f4a2447013065ced447d89aa37cff0"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/src/landing/LandingApp.test.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/src/landing/LandingApp.test.tsx",
+    "git_blob": "4e51bf0a3a3bcce12ddc1c5fc0bb805292e8a10a"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/src/landing/landing-screen.test.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/src/landing/landing-screen.test.tsx",
+    "git_blob": "77dfed7ad6027e6bd4e041cb1d0c5be681bcf0cc"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy/src/landing/landing-screen.css",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy/src/landing/landing-screen.css",
+    "git_blob": "892f444b1069389ba9021716544e5c0609e7eaa5"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T203928Z/verify-public.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/verify-public.sh",
+    "git_blob": "0d5e2d76e866addadf1fb40edbc7a18e26a95890"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T203928Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T203928Z/deploy.sh",
+    "git_blob": "67451479e3d3f4fe152e598599ef6780a2d22cf1"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T203928Z/tests/test_auth_gateway.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/tests/test_auth_gateway.py",
+    "git_blob": "4cf0c377b7b8f66e3d5ff5f97e95c3e9eacb96ed"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T203928Z/auth-gateway/forum_dev_auth.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/auth-gateway/forum_dev_auth.py",
+    "git_blob": "96ffaf469800883c865c7e651818b318600de2f0"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T203928Z/src/main.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/main.tsx",
+    "git_blob": "29f77e95c483b319793351078038dfd82061ec7b"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T203928Z/src/AuthScreen.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.tsx",
+    "git_blob": "5b70b62a6fdb5d9c851403ae216d748f04455d2f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T203928Z/src/AuthScreen.test.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.test.tsx",
+    "git_blob": "b6ba9cbe023f8d14dd49ab22e29cf2d706b479ee"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T203928Z/src/auth-screen.css",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/auth-screen.css",
+    "git_blob": "5bb8efe2ac4794e24699a76e399717addf427c1f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/verify-public.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/verify-public.sh",
+    "git_blob": "0d5e2d76e866addadf1fb40edbc7a18e26a95890"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T210719Z/deploy.sh",
+    "git_blob": "45d623d5fe8c4d4d46e53cd25827688a2949fe04"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/tests/test_origin_login_check.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T210719Z/tests/test_origin_login_check.py",
+    "git_blob": "61a6784a2d365db59094fd9b6a3442352a949530"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/tests/test_auth_gateway.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/tests/test_auth_gateway.py",
+    "git_blob": "4cf0c377b7b8f66e3d5ff5f97e95c3e9eacb96ed"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/auth-gateway/forum_dev_auth.py",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/auth-gateway/forum_dev_auth.py",
+    "git_blob": "96ffaf469800883c865c7e651818b318600de2f0"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/src/main.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/main.tsx",
+    "git_blob": "29f77e95c483b319793351078038dfd82061ec7b"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/src/AuthScreen.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.tsx",
+    "git_blob": "5b70b62a6fdb5d9c851403ae216d748f04455d2f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/src/AuthScreen.test.tsx",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/AuthScreen.test.tsx",
+    "git_blob": "b6ba9cbe023f8d14dd49ab22e29cf2d706b479ee"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T204448Z/src/auth-screen.css",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T201116Z/src/auth-screen.css",
+    "git_blob": "5bb8efe2ac4794e24699a76e399717addf427c1f"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T190346Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T190216Z/deploy.sh",
+    "git_blob": "83ed0b9c0671e088af8b2bb688949c63fbb51bbb"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200145Z/verify-public.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T200145Z/verify-public.sh",
+    "git_blob": "5f91a474b60b65e1772485d99cec7e2d3c79d11d"
+  },
+  {
+    "original_path": "/home/testing-user/dev-astforum-deploy.prev.20260901T200145Z/deploy.sh",
+    "archive_path": "deployment/vps/staging-tools/dev-astforum-deploy.prev.20260901T190216Z/deploy.sh",
+    "git_blob": "83ed0b9c0671e088af8b2bb688949c63fbb51bbb"
+  }
+]

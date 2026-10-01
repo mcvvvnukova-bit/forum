@@ -1,0 +1,130 @@
+:root,
+[data-color-mode="light"][data-light-theme="light"] {
+  --landing-accent-hover: #ff7140;
+  --landing-accent-rest: #ff551a;
+  --landing-accent-text: #ff551a;
+  --landing-bg-default: #ffffff;
+  --landing-bg-logo-tile: #f7f7f7;
+  --landing-bg-muted: #f6f8fa;
+  --landing-bg-stat: #4a4a4a;
+  --landing-bg-warm: #f7f3eb;
+  --landing-border-default: #d6d6d6;
+  --landing-stat-text: #ffffff;
+  --landing-text-heading: #040404;
+  --landing-text-primary: #282828;
+  --landing-text-secondary: #4a4a4a;
+  --landing-font-body: "Golos Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --landing-font-heading: "Unbounded", "Golos Text", system-ui, sans-serif;
+  --landing-font-weight-regular: 400;
+  --landing-font-weight-semibold: 600;
+  --landing-font-weight-bold: 700;
+  --landing-letter-spacing-default: 0;
+  --landing-size-auto: auto;
+  --landing-container-width: 1200px;
+  --landing-container-mobile-gutter: 48px;
+  --landing-section-inline: max(24px, calc((100vw - 1200px) / 2));
+  --landing-radius-sm: 6px;
+  --landing-radius-md: 8px;
+  --landing-radius-lg: 12px;
+  --landing-link-underline-offset: 4px;
+  --landing-nav-gap: 28px;
+  --landing-nav-font-size: 14px;
+  --landing-nav-line-height: 20px;
+  --landing-header-actions-gap: 12px;
+  --landing-button-font-size: 14px;
+  --landing-button-line-height: 20px;
+  --landing-hero-padding-block: 88px 84px;
+  --landing-hero-copy-gap: 36px;
+  --landing-hero-actions-gap: 24px;
+  --landing-hero-title-size: 96px;
+  --landing-hero-title-line-height: 54px;
+  --landing-hero-subtitle-size: 24px;
+  --landing-hero-subtitle-line-height: 28px;
+  --landing-section-title-margin: 28px 0 0;
+  --landing-section-title-size: 64px;
+  --landing-section-title-line-height: 72px;
+  --landing-eyebrow-font-size: 12px;
+  --landing-eyebrow-line-height: 16px;
+  --landing-card-padding: 24px;
+  --landing-card-gap: 16px;
+  --landing-card-media-left-content-inset: 175px;
+  --landing-card-media-left-text-width: 201px;
+  --landing-card-specialist-content-inset: 189px;
+  --landing-card-specialist-text-width: 187px;
+  --landing-layer-audience-card: 1;
+  --landing-layer-audience-vortex: 2;
+  --landing-card-number-size: 14px;
+  --landing-card-title-size: 16px;
+  --landing-card-title-line-height: 24px;
+  --landing-card-description-size: 14px;
+  --landing-card-text-line-height: 20px;
+  --landing-stat-column-gap: 103px;
+  --landing-stat-left: 28px;
+  --landing-stat-top: 48px;
+  --landing-stat-value-size: 40px;
+  --landing-stat-value-line-height: 42px;
+  --landing-stat-label-size: 12px;
+  --landing-stat-label-line-height: 18px;
+  --landing-demo-card-padding: 40px;
+  --landing-demo-copy-gap: 12px;
+  --landing-small-title-size: 28px;
+  --landing-small-title-line-height: 36px;
+  --landing-body-font-size: 16px;
+  --landing-body-line-height: 24px;
+  --landing-trust-gap: 32px;
+  --landing-trust-top: 96px;
+  --landing-partner-gap: 16px;
+  --landing-faq-heading-gap: 32px;
+  --landing-faq-top: 96px;
+  --landing-faq-item-gap: 16px;
+  --landing-faq-item-padding: 24px;
+  --landing-faq-question-size: 16px;
+  --landing-faq-question-line-height: 24px;
+  --landing-faq-answer-margin: 12px 0 0;
+  --landing-faq-answer-size: 14px;
+  --landing-faq-answer-line-height: 20px;
+  --landing-footer-inner-padding: 24px 0;
+  --landing-footer-brand-gap: 4px;
+  --landing-footer-links-gap: 32px;
+  --landing-footer-text-size: 14px;
+  --landing-footer-text-line-height: 20px;
+  --landing-motion-fast: 160ms;
+  --landing-responsive-section-gap: 32px;
+  --landing-responsive-stats-gap: 24px;
+  --landing-responsive-section-padding: 48px 24px;
+  --button-primary-bgColor-rest: #ff551a;
+  --button-primary-bgColor-hover: #ff7140;
+  --button-primary-bgColor-active: #e64a12;
+  --button-primary-bgColor-disabled: #ffd4b2;
+  --button-primary-borderColor-rest: #cc4415;
+  --button-primary-fgColor-rest: #040404;
+  --button-primary-fgColor-disabled: #4a4a4a;
+  --focus-outlineColor: #ff551a;
+  --focus-outline-color: #ff551a;
+}
+
+@media (max-width: 1180px) {
+  :root,
+  [data-color-mode="light"][data-light-theme="light"] {
+    --landing-section-title-size: 44px;
+    --landing-section-title-line-height: 52px;
+    --landing-hero-title-size: 72px;
+    --landing-hero-title-line-height: 54px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root,
+  [data-color-mode="light"][data-light-theme="light"] {
+    --landing-container-mobile-gutter: 32px;
+    --landing-hero-title-size: 56px;
+    --landing-hero-title-line-height: 48px;
+    --landing-hero-subtitle-size: 18px;
+    --landing-hero-subtitle-line-height: 26px;
+    --landing-section-title-size: 32px;
+    --landing-section-title-line-height: 40px;
+    --landing-small-title-size: 24px;
+    --landing-small-title-line-height: 32px;
+    --landing-responsive-section-padding: 40px 16px;
+  }
+}

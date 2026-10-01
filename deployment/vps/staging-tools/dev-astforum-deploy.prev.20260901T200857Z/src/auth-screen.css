@@ -1,0 +1,67 @@
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: var(--base-size-0, 0);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bgColor-muted);
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--base-size-24);
+  background: var(--bgColor-muted);
+}
+
+.auth-card {
+  width: min(100%, 380px);
+  display: grid;
+  gap: var(--base-size-24);
+  padding: var(--base-size-32);
+  border: var(--borderWidth-thin) solid var(--borderColor-default);
+  border-radius: var(--borderRadius-medium);
+  background: var(--bgColor-default);
+  box-shadow: var(--shadow-floating-small);
+}
+
+.auth-logo {
+  width: var(--base-size-96);
+  height: var(--base-size-96);
+  justify-self: center;
+  border-radius: var(--borderRadius-large);
+}
+
+.auth-copy {
+  display: grid;
+  gap: var(--base-size-8);
+  text-align: center;
+}
+
+.auth-title {
+  margin: var(--base-size-0, 0);
+}
+
+.auth-description {
+  margin: var(--base-size-0, 0);
+  color: var(--fgColor-muted);
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--base-size-16);
+}
+
+@media (max-width: 480px) {
+  .auth-page {
+    padding: var(--base-size-16);
+  }
+
+  .auth-card {
+    padding: var(--base-size-24);
+  }
+}
