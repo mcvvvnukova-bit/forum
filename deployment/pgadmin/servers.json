@@ -1,0 +1,31 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "AST Forum / Outline PostgreSQL",
+      "Group": "AST Forum",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "outline",
+      "Username": "outline",
+      "SSLMode": "prefer",
+      "ConnectionParameters": {
+        "sslmode": "prefer",
+        "connect_timeout": 10
+      }
+    },
+    "2": {
+      "Name": "AST Forum / Forum PostgreSQL",
+      "Group": "AST Forum",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "forum",
+      "Username": "forum_app",
+      "SSLMode": "prefer",
+      "ConnectionParameters": {
+        "sslmode": "prefer",
+        "connect_timeout": 10,
+        "passfile": "forum_app.pgpass"
+      }
+    }
+  }
+}
