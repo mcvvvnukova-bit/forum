@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Письмо «Заявка получена» — АСТ Форум</title>
+  <style>
+    :root { color-scheme:light; font-family:Arial,Helvetica,sans-serif; color:#282828; background:#edf0f3; }
+    * { box-sizing:border-box; }
+    body { margin:0; }
+    .preview-bar { display:flex; justify-content:space-between; align-items:center; gap:16px; max-width:1040px; margin:0 auto; padding:20px 28px; }
+    .preview-label { font-size:13px; color:#59616c; line-height:20px; }
+    .preview-label strong { color:#282828; }
+    .modes { display:flex; padding:3px; border:1px solid #d9dfe6; background:#fff; border-radius:8px; }
+    .mode { border:0; border-radius:5px; background:transparent; padding:8px 12px; font-size:13px; color:#4a4a4a; cursor:pointer; }
+    .mode[aria-pressed=true] { background:#282828; color:#fff; }
+    button:focus-visible, a:focus-visible { outline:3px solid #ff551a; outline-offset:3px; }
+    .mail-window { width:calc(100% - 56px); max-width:984px; margin:0 auto 28px; background:#fff; border:1px solid #dfe3e8; border-radius:12px; overflow:hidden; box-shadow:0 8px 28px #18202b08; }
+    .mail-header { padding:26px 32px 22px; }
+    .subject { margin:0 0 24px;font-size:23px;line-height:31px;font-weight:500;color:#23272e; }
+    .sender-row { display:flex; gap:12px; align-items:center; }
+    .avatar { display:flex;flex:0 0 38px;align-items:center;justify-content:center;width:38px;height:38px;background:#fff0ea;border-radius:50%;font-size:16px;font-weight:700;color:#bb3b0d; }
+    .sender { font-size:14px; line-height:22px; }
+    .address { color:#6b7280;font-size:12px;font-weight:400; }
+    .recipient { color:#6b7280;font-size:12px;line-height:18px; }
+    .body-wrap { border-top:1px solid #edf0f3;background:#f6f8fa; }
+    iframe { display:block;width:100%;border:0;height:760px; }
+    .mail-window.mobile { max-width:390px; }
+    .mobile .mail-header { padding:22px 20px; }
+    .mobile .subject { font-size:20px;line-height:28px;margin-bottom:20px; }
+    .mobile .sender strong { display:block; }
+    .mobile .sender .address { display:block;font-size:11px;line-height:16px; }
+    .mobile iframe { height:900px; }
+    .notice { position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);padding:14px 18px;border:1px solid #dfe3e8;border-radius:8px;background:#282828;color:white;font-size:14px;line-height:21px;box-shadow:0 4px 20px #0002; }
+    .notice[hidden] { display:none; }
+    @media(max-width:640px) {
+      .preview-bar { padding:16px;align-items:flex-start; }
+      .preview-label { max-width:150px;font-size:12px; }
+      .mode { padding:8px 9px;font-size:12px; }
+      .mail-window { width:calc(100% - 24px);border-radius:8px; }
+      .mail-header { padding:22px 20px; }
+      .subject { font-size:20px;line-height:28px; }
+      .sender strong,.sender .address { display:block; }
+      .sender .address { font-size:11px;line-height:16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="preview-bar">
+    <div class="preview-label"><strong>Предпросмотр письма</strong><br>Имя и дата — пример</div>
+    <nav class="modes" aria-label="Размер предпросмотра">
+      <button class="mode" type="button" data-mode="desktop" aria-pressed="true">Компьютер</button>
+      <button class="mode" type="button" data-mode="mobile" aria-pressed="false">Телефон</button>
+    </nav>
+  </header>
+  <main class="mail-window" id="mail-window">
+    <header class="mail-header">
+      <h1 class="subject">АСТ Форум — заявка на демо получена</h1>
+      <div class="sender-row">
+        <div class="avatar" aria-hidden="true">Ф</div>
+        <div class="sender"><strong>АСТ Форум</strong> <span class="address">&lt;notifications@astforum.ru&gt;</span><div class="recipient">кому: Александр &lt;alexander@example.com&gt;</div></div>
+      </div>
+    </header>
+    <div class="body-wrap"><iframe src="email.html" title="Письмо АСТ Форум — заявка на демо получена" id="email-frame"></iframe></div>
+  </main>
+  <div class="notice" role="status" hidden></div>
+  <script>
+    const frame = document.getElementById('email-frame');
+    const mail = document.getElementById('mail-window');
+    let noticeTimer;
+    function fitFrame() {
+      if (frame.contentDocument?.body) frame.style.height = Math.ceil(frame.contentDocument.body.getBoundingClientRect().height) + 'px';
+    }
+    document.querySelectorAll('.mode').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.mode').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      mail.classList.toggle('mobile', button.dataset.mode === 'mobile');
+      frame.style.height = '1px';
+      requestAnimationFrame(fitFrame);
+    }));
+    frame.addEventListener('load', () => {
+      fitFrame();
+      frame.contentDocument.addEventListener('click', event => {
+        const link = event.target.closest('a');
+        if (!link || !link.getAttribute('href').startsWith('#preview-')) return;
+        event.preventDefault();
+        const notice = document.querySelector('.notice');
+        notice.textContent = 'Это макет. В отправленном письме здесь будет персональная ссылка на запись.';
+        notice.hidden = false;
+        clearTimeout(noticeTimer);
+        noticeTimer = setTimeout(() => { notice.hidden = true; }, 5000);
+      });
+      new ResizeObserver(fitFrame).observe(frame.contentDocument.body);
+    });
+    window.addEventListener('resize', fitFrame);
+  </script>
+</body>
+</html>
