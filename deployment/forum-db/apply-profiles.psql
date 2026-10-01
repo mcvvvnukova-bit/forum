@@ -1,0 +1,2 @@
+-- Compatibility entrypoint; the current target schema is public.
+\ir apply-public.psql

@@ -1,0 +1,14 @@
+# Include only inside the astforum.ru host handler.
+@sber_callback_relay {
+    method GET
+    path /authorization
+}
+handle @sber_callback_relay {
+    route {
+        header {
+            Cache-Control "no-store"
+            Referrer-Policy "no-referrer"
+        }
+        redir https://dev.astforum.ru{uri} 303
+    }
+}
