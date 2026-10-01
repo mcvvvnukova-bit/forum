@@ -1,11 +1,28 @@
+import {useLayoutEffect, useRef} from 'react'
 import {Button, Heading, Link, Stack, Text} from '@primer/react'
 import {ArrowRightIcon} from '@primer/octicons-react'
 import {audiences} from './content'
 import {destinations} from './config'
 
 export function SiteHeader({authorized = false}: {authorized?: boolean}) {
+  const headerRef = useRef<HTMLElement>(null)
+
+  useLayoutEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    const root = document.documentElement
+    const updateHeight = () => root.style.setProperty('--site-header-height', `${header.getBoundingClientRect().height}px`)
+    updateHeight()
+    const observer = new window.ResizeObserver(updateHeight)
+    observer.observe(header)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--site-header-height')
+    }
+  }, [])
+
   return (
-    <header className="site-header" id="top">
+    <header ref={headerRef} className="site-header" id="top">
       <Link className="skip-link" href="#main">Перейти к содержанию</Link>
       <div className="container header-layout">
         <Link href="/" className="brand" aria-label="АСТ Форум — главная">

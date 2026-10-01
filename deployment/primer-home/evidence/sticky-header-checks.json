@@ -1,0 +1,106 @@
+{
+  "scroll": [
+    {
+      "clientWidth": 1611,
+      "cssTop": "0px",
+      "gap": 71.875,
+      "headerBottom": 89,
+      "headerTop": 0,
+      "position": "sticky",
+      "rulesTitleTop": 160.875,
+      "scrollPadding": "89px",
+      "scrollWidth": 1611,
+      "scrollY": 1090.5,
+      "width": 1626
+    },
+    {
+      "clientWidth": 1611,
+      "cssTop": "0px",
+      "gap": 161.875,
+      "headerBottom": 89,
+      "headerTop": 0,
+      "position": "sticky",
+      "rulesTitleTop": 250.875,
+      "scrollPadding": "89px",
+      "scrollWidth": 1611,
+      "scrollY": 1000.5,
+      "width": 1626,
+      "stage": "page-down"
+    },
+    {
+      "clientWidth": 753,
+      "cssTop": "0px",
+      "gap": 71.828125,
+      "headerBottom": 141,
+      "headerTop": 0,
+      "position": "sticky",
+      "rulesTitleTop": 212.828125,
+      "scrollPadding": "141px",
+      "scrollWidth": 753,
+      "scrollY": 2174.5,
+      "width": 768,
+      "stage": "anchor-navigation"
+    },
+    {
+      "clientWidth": 375,
+      "cssTop": "0px",
+      "gap": 56.1640625,
+      "headerBottom": 205,
+      "headerTop": 0,
+      "position": "sticky",
+      "rulesTitleTop": 261.1640625,
+      "scrollPadding": "205px",
+      "scrollWidth": 375,
+      "scrollY": 2204.5,
+      "width": 390,
+      "stage": "anchor-navigation"
+    }
+  ],
+  "dialog": {
+    "headerZIndex": "1",
+    "layers": [
+      {
+        "tag": "DIV",
+        "zIndex": "auto"
+      },
+      {
+        "tag": "DIV",
+        "zIndex": "auto"
+      },
+      {
+        "tag": "DIV",
+        "zIndex": "1"
+      },
+      {
+        "tag": "DIV",
+        "zIndex": "auto"
+      },
+      {
+        "tag": "DIV",
+        "zIndex": "auto"
+      },
+      {
+        "tag": "DIV",
+        "zIndex": "auto"
+      },
+      {
+        "tag": "DIV",
+        "zIndex": "auto"
+      },
+      {
+        "tag": "BODY",
+        "zIndex": "auto"
+      },
+      {
+        "tag": "HTML",
+        "zIndex": "auto"
+      }
+    ],
+    "top": 32,
+    "afterClose": {
+      "closed": true,
+      "focus": "Выбрать время",
+      "focusVisible": true
+    }
+  }
+}
