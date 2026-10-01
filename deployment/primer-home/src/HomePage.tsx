@@ -19,7 +19,7 @@ export function HomePage({onDemo}: {onDemo: (trigger: HTMLButtonElement) => void
               Находите новые проекты для компании, подработку или работу в штате для себя.
             </Text>
             <Stack direction="horizontal" gap="normal" wrap="wrap" className="hero-actions">
-              <Button as="a" href={destinations.login} variant="primary" size="large" trailingVisual={ArrowRightIcon}>Начать работу</Button>
+              <Button as="a" href={destinations.start} variant="primary" size="large" trailingVisual={ArrowRightIcon}>Начать работу</Button>
               <Button size="large" onClick={event => onDemo(event.currentTarget)}>Записаться на демо</Button>
             </Stack>
           </Stack>

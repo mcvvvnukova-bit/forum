@@ -1,7 +1,9 @@
 import {fireEvent, render, screen, waitFor, within} from '@testing-library/react'
 import {BaseStyles, ThemeProvider} from '@primer/react'
-import {describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 import {App} from './App'
+
+afterEach(() => {vi.unstubAllEnvs(); vi.unstubAllGlobals()})
 
 function renderPage(url = '/') {
   window.history.replaceState(null, '', url)
@@ -9,6 +11,22 @@ function renderPage(url = '/') {
 }
 
 describe('PUB.01.01.01', () => {
+  it('does not trust the preview query as a live authenticated session', () => {
+    vi.stubEnv('VITE_FORUM_SESSION', 'true')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ok: false}))
+    renderPage('/?previewSession=authorized&auth_error=__proto__')
+    expect(screen.getByRole('link', {name: 'Войти'})).toBeInTheDocument()
+    expect(screen.queryByRole('link', {name: 'В кабинет'})).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Заказы, исполнители и работа в строительстве')
+  })
+
+  it('offers registration when the existing login API requires it', () => {
+    vi.stubEnv('VITE_FORUM_SESSION', 'true')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ok: false}))
+    renderPage('/?auth_error=registration_required')
+    expect(screen.getByRole('link', {name: 'Зарегистрироваться через Сбер ID'})).toBeInTheDocument()
+    expect(screen.getByText('Аккаунт ещё не создан. Зарегистрируйтесь через Сбер ID.')).toBeInTheDocument()
+  })
   it('preserves required section order, headline, metrics and company contacts', () => {
     const {container} = renderPage()
     expect([...container.querySelectorAll('[data-section]')].map(element => element.getAttribute('data-section')))

@@ -6,6 +6,8 @@ import {DemoDialog} from './DemoDialog'
 import {SiteFooter, SiteHeader} from './SharedLayout'
 import {audiences} from './content'
 import {destinations} from './config'
+import {useForumSession} from './useForumSession'
+import {AuthNotice} from './AuthNotice'
 
 function DestinationPreview({path}: {path: string}) {
   const audience = audiences.find(item => item.path === path)
@@ -43,7 +45,7 @@ function DestinationPreview({path}: {path: string}) {
                   : 'Проверьте адрес или вернитесь на главную.'}
           </Text>
         </Banner>
-        {audience && <Button as="a" href={destinations.login} variant="primary">Начать работу</Button>}
+        {audience && <Button as="a" href={destinations.start} variant="primary">Начать работу</Button>}
         <Button as="a" href="/">Вернуться на главную</Button>
       </Stack>
     </main>
@@ -51,6 +53,7 @@ function DestinationPreview({path}: {path: string}) {
 }
 
 export function App() {
+  const authorized = useForumSession()
   const [demoOpen, setDemoOpen] = useState(false)
   const demoTriggerRef = useRef<HTMLElement | null>(null)
   const openDemo = (trigger: HTMLButtonElement) => {
@@ -60,10 +63,11 @@ export function App() {
   const pathname = window.location.pathname
   const path = pathname.endsWith('/') ? pathname : `${pathname}/`
   // A documented, read-only preview state. This never asserts a real session.
-  const authorizedPreview = new URLSearchParams(window.location.search).get('previewSession') === 'authorized'
+  const authorizedPreview = import.meta.env.VITE_FORUM_SESSION !== 'true' && new URLSearchParams(window.location.search).get('previewSession') === 'authorized'
   return (
     <>
-      <SiteHeader authorized={authorizedPreview} />
+      <SiteHeader authorized={authorized || authorizedPreview} />
+      {import.meta.env.VITE_FORUM_SESSION === 'true' && !authorized && <AuthNotice />}
       {path === '/' ? <HomePage onDemo={openDemo} /> : <DestinationPreview path={path} />}
       <SiteFooter />
       {demoOpen && <DemoDialog onClose={() => setDemoOpen(false)} returnFocusRef={demoTriggerRef} />}
