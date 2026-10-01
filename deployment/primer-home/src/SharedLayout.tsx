@@ -39,11 +39,11 @@ export function SiteFooter() {
         </Stack>
         <Stack gap="condensed">
           <Heading as="h2" variant="small">Контакты</Heading>
-          <Text as="p">ООО «Форум»</Text>
+          <Text as="p" size="small" className="muted">ООО «Форум»</Text>
           <Text as="p" size="small" className="muted">ИНН 9709128511</Text>
           <Text as="p" size="small" className="muted">ОГРН 1257700433935</Text>
-          <Link href="tel:+74952054565">+7 (495) 205-45-65</Link>
-          <Link href="mailto:info@astforum.ru">info@astforum.ru</Link>
+          <Text as="p" size="small" className="muted"><Link href="mailto:info@astforum.ru" muted>info@astforum.ru</Link></Text>
+          <Text as="p" size="small" className="muted">+7 (495) 205-45-65</Text>
         </Stack>
       </div>
       <div className="container footer-bottom">

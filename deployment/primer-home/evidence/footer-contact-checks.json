@@ -1,0 +1,159 @@
+{
+  "desktop": {
+    "background": "rgb(246, 248, 250)",
+    "clientWidth": 1611,
+    "footerHeight": 307.5,
+    "footerTop": 2649.375,
+    "phoneLinkCount": 0,
+    "rows": [
+      {
+        "color": "rgb(89, 99, 110)",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "href": null,
+        "lineHeight": "19.5px",
+        "tag": "P",
+        "text": "ООО «Форум»"
+      },
+      {
+        "color": "rgb(89, 99, 110)",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "href": null,
+        "lineHeight": "19.5px",
+        "tag": "P",
+        "text": "ИНН 9709128511"
+      },
+      {
+        "color": "rgb(89, 99, 110)",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "href": null,
+        "lineHeight": "19.5px",
+        "tag": "P",
+        "text": "ОГРН 1257700433935"
+      },
+      {
+        "color": "rgb(89, 99, 110)",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "href": "mailto:info@astforum.ru",
+        "lineHeight": "19.5px",
+        "tag": "A",
+        "text": "info@astforum.ru"
+      },
+      {
+        "color": "rgb(89, 99, 110)",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "href": null,
+        "lineHeight": "19.5px",
+        "tag": "P",
+        "text": "+7 (495) 205-45-65"
+      }
+    ],
+    "scrollWidth": 1611,
+    "width": 1626
+  },
+  "responsive": [
+    {
+      "clientWidth": 753,
+      "rows": [
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 538.6875,
+          "right": 729,
+          "text": "ООО «Форум»"
+        },
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 538.6875,
+          "right": 729,
+          "text": "ИНН 9709128511"
+        },
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 538.6875,
+          "right": 729,
+          "text": "ОГРН 1257700433935"
+        },
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 538.6875,
+          "right": 636.359375,
+          "text": "info@astforum.ru"
+        },
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 538.6875,
+          "right": 729,
+          "text": "+7 (495) 205-45-65"
+        }
+      ],
+      "scrollWidth": 753,
+      "width": 768
+    },
+    {
+      "clientWidth": 375,
+      "rows": [
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 16,
+          "right": 359,
+          "text": "ООО «Форум»"
+        },
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 16,
+          "right": 359,
+          "text": "ИНН 9709128511"
+        },
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 16,
+          "right": 359,
+          "text": "ОГРН 1257700433935"
+        },
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 16,
+          "right": 113.671875,
+          "text": "info@astforum.ru"
+        },
+        {
+          "color": "rgb(89, 99, 110)",
+          "fontSize": "12px",
+          "left": 16,
+          "right": 359,
+          "text": "+7 (495) 205-45-65"
+        }
+      ],
+      "scrollWidth": 375,
+      "width": 390
+    }
+  ],
+  "keyboardFocus": {
+    "forward": {
+      "href": "/privacy/",
+      "tag": "A",
+      "text": "Политика обработки персональных данных"
+    },
+    "back": {
+      "href": "mailto:info@astforum.ru",
+      "text": "info@astforum.ru",
+      "focusVisible": true,
+      "color": "rgb(89, 99, 110)"
+    },
+    "observation": "Captured during native Tab and Shift+Tab check before device emulation."
+  },
+  "contrast": 5.743198270382528
+}
