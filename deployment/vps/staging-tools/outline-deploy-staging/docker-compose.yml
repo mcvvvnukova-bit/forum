@@ -1,0 +1,96 @@
+name: outline
+
+services:
+  outline:
+    image: outlinewiki/outline:1.9.2
+    restart: unless-stopped
+    env_file:
+      - ./docker.env
+    expose:
+      - "3000"
+    volumes:
+      - outline-storage:/var/lib/outline/data
+    secrets:
+      - outline_secret_key
+      - outline_utils_secret
+      - outline_database_url
+      - outline_smtp_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - frontend
+      - backend
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: outline
+      POSTGRES_DB: outline
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U outline -d outline"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - backend
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - outline
+    networks:
+      - frontend
+
+secrets:
+  outline_secret_key:
+    file: ./secrets/outline_secret_key
+  outline_utils_secret:
+    file: ./secrets/outline_utils_secret
+  outline_database_url:
+    file: ./secrets/database_url
+  outline_smtp_password:
+    file: ./secrets/smtp_password
+  postgres_password:
+    file: ./secrets/postgres_password
+
+volumes:
+  outline-storage:
+    name: outline-storage
+  postgres-data:
+    name: outline-postgres
+  redis-data:
+    name: outline-redis
+
+networks:
+  frontend:
+  backend:
+    internal: true

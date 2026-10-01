@@ -1,0 +1,42 @@
+[
+  {
+    "original_path": "/home/testing-user/astforum-mail-verify.py",
+    "archive_path": "deployment/vps/staging-tools/astforum-mail-verify.py",
+    "git_blob": "20c0e80f109ad629dd1c2d744ad5638bc63df53b"
+  },
+  {
+    "original_path": "/home/testing-user/listmonk_setup.py",
+    "archive_path": "deployment/vps/staging-tools/listmonk_setup.py",
+    "git_blob": "90418897d41966d340b995f7b50e7ff8ee4733c7"
+  },
+  {
+    "original_path": "/home/testing-user/astforum-mail-stalwart_api.py",
+    "archive_path": "deployment/vps/staging-tools/astforum-mail-stalwart_api.py",
+    "git_blob": "d000f05d87bd1a677d4e1216918eac61856ccd11"
+  },
+  {
+    "original_path": "/home/testing-user/verify.py",
+    "archive_path": "deployment/vps/staging-tools/verify.py",
+    "git_blob": "400cd14d39efb1ba0dce5fc58de007aff6a6a897"
+  },
+  {
+    "original_path": "/home/testing-user/astforum-mail-listmonk_setup.py",
+    "archive_path": "deployment/vps/staging-tools/astforum-mail-listmonk_setup.py",
+    "git_blob": "b181eb90ae1292745eb2e9e929e80ad027efc8d9"
+  },
+  {
+    "original_path": "/home/testing-user/outline-deploy-staging/provision.sh",
+    "archive_path": "deployment/vps/staging-tools/outline-deploy-staging/provision.sh",
+    "git_blob": "46c9059cf417bf16cf5fad891d8864d1ecf2df66"
+  },
+  {
+    "original_path": "/home/testing-user/outline-deploy-staging/verify.sh",
+    "archive_path": "deployment/vps/staging-tools/outline-deploy-staging/verify.sh",
+    "git_blob": "84f31bafda5acfa4e17ab46349abd98b2659f42d"
+  },
+  {
+    "original_path": "/home/testing-user/outline-deploy-staging/docker-compose.yml",
+    "archive_path": "deployment/vps/staging-tools/outline-deploy-staging/docker-compose.yml",
+    "git_blob": "57827c78d8b7726b87b111bad6bb2ce7ca23f2f1"
+  }
+]
