@@ -21,7 +21,7 @@ section { scroll-margin-top: var(--base-size-24); }
 .section { padding-block: var(--base-size-48); }
 .section-title { margin-bottom: var(--base-size-24); }
 .three-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--base-size-24); }
-.audience-card { height: 100%; grid-auto-rows: minmax(0, 1fr); }
+.three-columns > .audience-card { height: 100%; grid-auto-rows: minmax(0, 1fr); }
 .audience-content { height: 100%; align-items: start; }
 .audience-steps { margin: var(--base-size-0); padding-inline-start: var(--base-size-20); }
 .audience-steps > li + li { margin-top: var(--base-size-4); }
@@ -30,10 +30,38 @@ section { scroll-margin-top: var(--base-size-24); }
 .demo-section { padding-top: var(--base-size-0); }
 .demo-copy { max-width: 750px; }
 .partner-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--base-size-16); }
-.partner-card { display: grid; place-items: center; min-height: 112px; }
-.partner-logo { display: block; max-width: 100%; width: auto; height: auto; max-height: 68px; object-fit: contain; }
+.partner-card {
+  --bgColor-default: var(--bgColor-muted);
+  --borderColor-default: var(--bgColor-muted);
+  --shadow-resting-small: none;
+  height: calc(var(--base-size-96) + var(--base-size-8));
+  transition: transform var(--motion-transition-stateChange);
+}
+.partner-card:nth-child(11) { grid-column: 2; }
+.partner-content { height: 100%; width: 100%; }
+.partner-logo {
+  display: block;
+  max-width: calc(100% - var(--base-size-16));
+  height: auto;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: .9;
+  mix-blend-mode: multiply;
+  transition: filter var(--motion-transition-stateChange), opacity var(--motion-transition-stateChange);
+}
+@media (hover: hover) and (pointer: fine) {
+  .partner-card:hover { transform: scale(1.05); }
+  .partner-card:hover .partner-logo { filter: grayscale(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .partner-card, .partner-logo { transition: none; }
+  .partner-card:hover { transform: none; }
+}
 .faq-section { padding-top: var(--base-size-24); padding-bottom: var(--base-size-64); }
 .faq-item { padding: var(--base-size-20); }
+.faq-summary { cursor: pointer; }
+.faq-chevron { flex-shrink: 0; }
+.faq-item[open] .faq-chevron { transform: rotate(180deg); }
 .faq-answer { padding-top: var(--base-size-16); }
 .site-footer { border-top: var(--borderWidth-thin) solid var(--borderColor-default); background: var(--bgColor-muted); padding-top: var(--base-size-40); }
 .footer-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: var(--base-size-48); }
@@ -42,10 +70,16 @@ section { scroll-margin-top: var(--base-size-24); }
 .booking-frame { display: block; width: 100%; min-height: 580px; border: none; }
 .destination-main { min-height: 50vh; padding-block: var(--base-size-64); }
 .destination-content { max-width: 720px; margin-inline: auto; }
+@media (max-width: 1180px) {
+  .partner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .partner-card:nth-child(11) { grid-column: auto; }
+}
+@media (max-width: 640px) {
+  .partner-grid { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 1100px) {
   .header-layout { flex-wrap: wrap; }
   .header-navigation { order: 3; width: 100%; padding-top: var(--base-size-4); }
-  .partner-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 1023px) {
   .three-columns { grid-template-columns: minmax(0, 1fr); }
@@ -57,8 +91,6 @@ section { scroll-margin-top: var(--base-size-24); }
   .section { padding-block: var(--base-size-32); }
   .three-columns { grid-template-columns: minmax(0, 1fr); }
   .header-navigation { display: grid; grid-template-columns: 1fr 1fr; gap: var(--base-size-16); }
-  .partner-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .partner-card { min-height: 96px; }
   .footer-grid { grid-template-columns: minmax(0, 1fr); gap: var(--base-size-32); }
   .footer-bottom { flex-direction: column; }
   .legal-links { flex-direction: column; gap: var(--base-size-12); }
@@ -67,5 +99,4 @@ section { scroll-margin-top: var(--base-size-24); }
 }
 @media (max-width: 479px) {
   .hero-actions { flex-direction: column; align-items: stretch; }
-  .partner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

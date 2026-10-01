@@ -31,7 +31,7 @@ export function SiteFooter() {
           <Link href="/" className="brand" aria-label="АСТ Форум — главная">
             <img src="/assets/brand-logo-horizontal-color.png" alt="АСТ Форум" width="144" height="48" loading="lazy" />
           </Link>
-          <Text as="p" className="muted">АСТ Форум — заказы, исполнители и работа в строительстве</Text>
+          <Text as="p" className="muted">АСТ Форум — заказы, исполнители<br />и работа в строительстве</Text>
         </Stack>
         <Stack gap="normal" as="nav" aria-label="Для участников">
           <Heading as="h2" variant="small">Для участников</Heading>
@@ -49,7 +49,6 @@ export function SiteFooter() {
       <div className="container footer-bottom">
         <Text size="small" className="muted">© 2026 ООО «Форум»</Text>
         <nav aria-label="Служебные ссылки" className="legal-links">
-          <Link href="#contacts" muted>Контакты</Link>
           <Link href={destinations.privacy} muted>Политика обработки персональных данных</Link>
           <Link href={destinations.cookies} muted>Использование cookies</Link>
         </nav>

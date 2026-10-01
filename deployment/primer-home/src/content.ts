@@ -16,8 +16,8 @@ export const audiences = [
     code: 'PUB.01.01.03',
     title: 'Нужны заказы для компании',
     description: 'Находите запросы на ваши товары, работы и услуги. Предлагайте свои условия и участвуйте в тендерах.',
-    action: 'Я поставщик или подрядчик',
-    steps: ['Укажите товары, работы или услуги.', 'Найдите подходящий заказ.', 'Отправьте предложение.'],
+    action: 'Я подрядчик',
+    steps: ['Укажите товары, работы или услуги, которые вы поставляете.', 'Найдите подходящий заказ.', 'Отправьте предложение.'],
   },
   {
     key: 'work',
@@ -33,7 +33,7 @@ export const audiences = [
 
 export const metrics = [
   {value: '28', label: 'открытых заказов'},
-  {value: '679 млн', label: 'сумма сделок, заключенных на площадке'},
+  {value: '679 млн', label: 'сумма сделок'},
   {value: '130', label: 'проверенных исполнителей'},
 ]
 
@@ -71,20 +71,23 @@ export const faq = [
   },
 ]
 
-export const partners = [
-  {name: 'Rentaero', file: 'logo-color-rentaero.svg'},
-  {name: 'Тахобан', file: 'logo-color-tahoban.svg'},
-  {name: 'Сфера-Снаб', file: 'logo-color-sfera-snab.svg'},
-  {name: 'Спецтранссервис', file: 'logo-color-spectransservice.png'},
-  {name: 'Tool Tech', file: 'logo-color-tool-tech.jpg'},
-  {name: 'ПрофМастер', file: 'logo-color-profmaster.svg'},
-  {name: 'Поли-групп', file: 'logo-color-polycorr.svg'},
-  {name: 'Зелёная дорога', file: 'logo-color-zelenaya-doroga.png'},
-  {name: 'Геопром', file: 'logo-color-geoprom.webp'},
-  {name: 'ВсеИнструменты.ру', file: 'logo-color-vseinstrumenti.svg'},
-  {name: 'Восток-Сервис', file: 'logo-color-vostok-service.svg'},
-  {name: 'БК-Ресурс', file: 'logo-color-bk-resource.png'},
-  {name: 'БИН Лизинг', file: 'logo-color-bin-leasing.png'},
+type Partner = {name: string; file: string; width: number; height: number; caption?: string}
+
+// Asset geometry observed on dev.astforum.ru; UI colors and type remain Primer Light.
+export const partners: readonly Partner[] = [
+  {name: 'Rentaero', file: 'logo-color-rentaero.svg', width: 149.333, height: 56},
+  {name: 'Тахобан', file: 'logo-color-tahoban.svg', width: 179.2, height: 42.279},
+  {name: 'Сфера-Снаб', file: 'logo-color-sfera-snab.svg', width: 179.2, height: 40.674},
+  {name: 'Спецтранссервис', file: 'logo-color-spectransservice.png', width: 162.791, height: 56},
+  {name: 'Tool Tech', file: 'logo-color-tool-tech.jpg', width: 145, height: 74},
+  {name: 'ПрофМастер', file: 'logo-color-profmaster.svg', width: 173, height: 32},
+  {name: 'Поли-групп', file: 'logo-color-polycorr.svg', width: 105, height: 56},
+  {name: 'Зелёная дорога', file: 'logo-color-zelenaya-doroga.png', width: 68, height: 68, caption: 'Зеленая дорога'},
+  {name: 'Геопром', file: 'logo-color-geoprom.webp', width: 145.6, height: 72},
+  {name: 'ВсеИнструменты.ру', file: 'logo-color-vseinstrumenti.svg', width: 179.2, height: 50.056},
+  {name: 'Восток-Сервис', file: 'logo-color-vostok-service.svg', width: 179.2, height: 31.015},
+  {name: 'БК-Ресурс', file: 'logo-color-bk-resource.png', width: 111.067, height: 56},
+  {name: 'БИН Лизинг', file: 'logo-color-bin-leasing.png', width: 179.2, height: 48.556},
 ]
 
 export const demo = {

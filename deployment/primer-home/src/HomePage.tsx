@@ -1,6 +1,6 @@
 import {Button, Details, Heading, Stack, Text} from '@primer/react'
 import {Card} from '@primer/react/experimental'
-import {ArrowRightIcon, BriefcaseIcon, CheckCircleIcon, PackageIcon, PersonIcon, ShieldCheckIcon, TasklistIcon} from '@primer/octicons-react'
+import {ArrowRightIcon, BriefcaseIcon, CheckCircleIcon, ChevronDownIcon, PackageIcon, PersonIcon, ShieldCheckIcon, TasklistIcon} from '@primer/octicons-react'
 import {audiences, demo, faq, metrics, partners, rules} from './content'
 import {destinations} from './config'
 
@@ -48,7 +48,7 @@ export function HomePage({onDemo}: {onDemo: (trigger: HTMLButtonElement) => void
 
       <section className="metrics-section" aria-labelledby="metrics-title" data-section="metrics">
         <div className="container">
-          <Heading as="h2" variant="small" id="metrics-title" className="section-title">Показатели площадки</Heading>
+          <Heading as="h2" variant="large" id="metrics-title" className="section-title">Показатели площадки</Heading>
           <div className="three-columns">
             {metrics.map(metric => (
               <Stack key={metric.value} gap="condensed">
@@ -89,20 +89,28 @@ export function HomePage({onDemo}: {onDemo: (trigger: HTMLButtonElement) => void
         <Heading as="h2" variant="large" id="partners-title" className="section-title">Нам доверяют</Heading>
         <div className="partner-grid">
           {partners.map(partner => (
-            <Card key={partner.name} padding="condensed" className="partner-card">
-              <img src={`/assets/${partner.file}`} alt={partner.name} className="partner-logo" loading="lazy" />
+            <Card key={partner.name} layout="compact" padding="none" borderRadius="medium" className="partner-card">
+              <Stack align="center" justify="center" gap="tight" className="partner-content">
+                <img src={`/assets/${partner.file}`} alt={partner.name} width={partner.width} height={partner.height} className="partner-logo" loading="lazy" />
+                {partner.caption && <Text size="medium" weight="semibold" className="muted">{partner.caption}</Text>}
+              </Stack>
             </Card>
           ))}
         </div>
       </section>
 
       <section className="section container faq-section" id="faq" aria-labelledby="faq-title" data-section="faq">
-        <Heading as="h2" variant="large" id="faq-title" className="section-title">Частые вопросы</Heading>
+        <Heading as="h2" variant="large" id="faq-title" className="section-title">Ответы на частые вопросы</Heading>
         <Stack gap="normal">
           {faq.map((item, index) => (
             <Card key={item.question} padding="none">
               <Details open={index === 0} className="faq-item">
-                <Details.Summary><Text weight="semibold" size="large">{item.question}</Text></Details.Summary>
+                <Details.Summary className="faq-summary">
+                  <Stack direction="horizontal" align="center" justify="space-between" gap="normal">
+                    <Text weight="semibold" size="large">{item.question}</Text>
+                    <ChevronDownIcon className="faq-chevron" aria-hidden="true" />
+                  </Stack>
+                </Details.Summary>
                 <Text as="p" className="faq-answer muted">{item.answer}</Text>
               </Details>
             </Card>

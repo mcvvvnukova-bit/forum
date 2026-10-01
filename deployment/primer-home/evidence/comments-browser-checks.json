@@ -1,0 +1,139 @@
+{
+  "desktop": {
+    "documentWidth": 1431,
+    "faq": [
+      {
+        "icon": "matrix(-1, 0, 0, -1, 0, 0)",
+        "open": true
+      },
+      {
+        "icon": "none",
+        "open": false
+      },
+      {
+        "icon": "none",
+        "open": false
+      },
+      {
+        "icon": "none",
+        "open": false
+      }
+    ],
+    "footer": "АСТ Форум — заказы, исполнители<br>и работа в строительстве",
+    "headings": [
+      {
+        "size": "32px",
+        "text": "С какой задачей вы пришли?"
+      },
+      {
+        "size": "32px",
+        "text": "Показатели площадки"
+      },
+      {
+        "size": "32px",
+        "text": "Понятные правила работы"
+      },
+      {
+        "size": "32px",
+        "text": "Посмотрите, как работает АСТ Форум"
+      },
+      {
+        "size": "32px",
+        "text": "Нам доверяют"
+      },
+      {
+        "size": "32px",
+        "text": "Ответы на частые вопросы"
+      }
+    ],
+    "height": 867,
+    "legal": [
+      "Политика обработки персональных данных",
+      "Использование cookies"
+    ],
+    "links": [
+      {
+        "href": "/customers/",
+        "name": "Я заказчик"
+      },
+      {
+        "href": "/suppliers/",
+        "name": "Я подрядчик"
+      },
+      {
+        "href": "/work/",
+        "name": "Я ищу работу"
+      }
+    ],
+    "metric": "Показатели площадки28открытых заказов679 млнсумма сделок130проверенных исполнителей",
+    "partnerColumns": "211.195px 211.203px 211.195px 211.203px 211.195px",
+    "partnersLoaded": true,
+    "steps": [
+      "Опишите заказ.Сравните предложения.Выберите исполнителя.",
+      "Укажите товары, работы или услуги, которые вы поставляете.Найдите подходящий заказ.Отправьте предложение.",
+      "Укажите навыки и опыт.Найдите заказ или вакансию.Предложите услуги или откликнитесь."
+    ],
+    "width": 1446
+  },
+  "responsive": [
+    {
+      "cards": [
+        {
+          "overflow": false,
+          "width": 705
+        },
+        {
+          "overflow": false,
+          "width": 705
+        },
+        {
+          "overflow": false,
+          "width": 705
+        }
+      ],
+      "documentWidth": 753,
+      "faqOverflow": false,
+      "height": 900,
+      "partners": "344.5px 344.5px",
+      "width": 768
+    },
+    {
+      "cards": [
+        {
+          "overflow": false,
+          "width": 343
+        },
+        {
+          "overflow": false,
+          "width": 343
+        },
+        {
+          "overflow": false,
+          "width": 343
+        }
+      ],
+      "documentWidth": 375,
+      "faqOverflow": false,
+      "height": 844,
+      "partners": "343px",
+      "width": 390
+    }
+  ],
+  "reducedMotion": {
+    "hover": true,
+    "imageTransition": "0s",
+    "transform": "none",
+    "transition": "0s"
+  },
+  "keyboard": {
+    "enter": "collapsed; icon none; focus-visible true",
+    "space": "expanded; icon matrix(-1,0,0,-1,0,0)"
+  },
+  "mouse": "second FAQ expanded then collapsed; icon changed",
+  "partnerHover": "Rentaero grayscale(0), scale(1.05)",
+  "restoredDefaultViewport": {
+    "documentWidth": 931,
+    "height": 867,
+    "width": 946
+  }
+}
