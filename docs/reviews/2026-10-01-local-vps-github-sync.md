@@ -1,5 +1,15 @@
 # Сверка локальных исходников и VPS с GitHub
 
+## Отмена парсера ОКВЭД
+
+После сверки 1 октября 2026 года владелец проекта отменил парсер организаций и финансовых данных по ОКВЭД. [PR № 2](https://github.com/mcvvvnukova-bit/forum/pull/2) закрыт без слияния. Удалены удалённая и локальная ветки `codex/okved-parser`, локальный worktree с исходниками, тестами, миграциями и конфигурацией запуска, а также отдельный локальный план пилота.
+
+В `origin/main` этот код не попадал. На VPS `forum-prod` не обнаружены сервисы, процессы или каталоги установки парсера. На локальном компьютере процессов парсера нет. В инструкциях проекта зафиксирована отмена; исторические документы и дифф закрытого PR не являются действующим заданием на разработку.
+
+Справочник ОКВЭД и остальные функции проекта сохранены. Ниже приведены результаты первоначальной сверки; проверки парсера относятся к его исторической версии до отмены.
+
+## Первоначальная сверка
+
 Проверено 1 октября 2026 года: проект АСТ «Форум», VPS `forum-prod` (`test-debian`), репозитории `mcvvvnukova-bit/forum` и `mcvvvnukova-bit/astforum-cal-diy`.
 
 Созданы восемь draft PR; существующий PR № 2 обновлён 44 локальными коммитами и переведён в draft. GitHub интеграция для форка Cal.diy подключена к тому же OpenProject проекту PROJ; ping и доставка pull_request отвечают HTTP 200. Для пяти PR подтверждены связи с соответствующими задачами, включая явно указанных родителей. Для четырёх PR подходящей задачи не найдено; новые задачи не создавались. Все PR прикреплены к текущему чату Codex.
@@ -7,7 +17,7 @@
 | PR | Изменение | Проверенные связи OpenProject | Коммит исходников GitHub |
 |---|---|---|---|
 | [astforum-cal-diy PR № 1](https://github.com/mcvvvnukova-bit/astforum-cal-diy/pull/1) | feat: синхронизировать запись на демо и SMTP напоминания | [PROJ-2](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-2), [PROJ-32](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-32), [PROJ-33](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-33), [PROJ-34](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-34), [PROJ-142](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-142) | `ec4b6d925734` |
-| [forum PR № 2](https://github.com/mcvvvnukova-bit/forum/pull/2) | feat: implement OKVED audience parser | Подходящая задача не найдена | `68c6a0a65c94` |
+| [forum PR № 2 — закрыт](https://github.com/mcvvvnukova-bit/forum/pull/2) | Отменён владельцем проекта; ветка и локальные исходники удалены | Подходящая задача не найдена; функционал отменён | `68c6a0a65c94` (история) |
 | [forum PR № 4](https://github.com/mcvvvnukova-bit/forum/pull/4) | feat: лендинги, вход, демо и логотип системы торгов | [PROJ-1](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-1), [PROJ-2](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-2), [PROJ-4](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-4), [PROJ-29](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-29), [PROJ-31](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-31), [PROJ-32](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-32), [PROJ-38](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-38), [PROJ-142](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-142), [PROJ-144](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-144), [PROJ-145](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-145) | `93d0eb506d75` |
 | [forum PR № 5](https://github.com/mcvvvnukova-bit/forum/pull/5) | feat: синхронизировать API Сбер ID и схемы профилей | [PROJ-3](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-3), [PROJ-4](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-4), [PROJ-5](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-5), [PROJ-35](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-35), [PROJ-38](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-38), [PROJ-41](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-41), [PROJ-42](https://roadmap.astforum.ru/projects/PROJ/work_packages/PROJ-42) | `5084b30b0be5` |
 | [forum PR № 6](https://github.com/mcvvvnukova-bit/forum/pull/6) | ops: сохранить конфигурацию почты, OpenProject и VPS | Подходящая задача не найдена | `1d47da96f30e` |
@@ -58,7 +68,6 @@ AuthStore API продолжает работать с прежними схем
 
 ## Изменения без подходящей задачи
 
-- PR № 2: парсер организаций и финансовых данных по ОКВЭД, evidence и ограниченный live-pilot.
 - PR № 6: почтовая инфраструктура Stalwart/listmonk/TMail, установка и patches OpenProject, маршруты VPS и правила доступа.
 - PR № 7: публикация pgAdmin, готовность, откат, конфигурация подключений.
 - PR № 9: служебные генераторы требований/BPMN и сценарии планирования, восстановления и публикации.
