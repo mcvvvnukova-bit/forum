@@ -1,0 +1,9 @@
+*.json
+*.log
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.zip
+*.tar*
+baseline/
