@@ -1,0 +1,28 @@
+{
+  "deployedSourceCommit": "2081463a98d414fe4ac1c18cd5ba6ceaf527a1ce",
+  "productionUnchanged": true,
+  "productionSha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+  "openprojectLinks": [
+    {
+      "task": "PROJ-144",
+      "apiId": 182,
+      "prNumber": 12,
+      "prUrl": "https://github.com/mcvvvnukova-bit/forum/pull/12",
+      "verified": true
+    },
+    {
+      "task": "PROJ-29",
+      "apiId": 66,
+      "prNumber": 12,
+      "prUrl": "https://github.com/mcvvvnukova-bit/forum/pull/12",
+      "verified": true
+    },
+    {
+      "task": "PROJ-1",
+      "apiId": 38,
+      "prNumber": 12,
+      "prUrl": "https://github.com/mcvvvnukova-bit/forum/pull/12",
+      "verified": true
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "viewports": [
+    {
+      "clientWidth": 1265,
+      "faqCount": 3,
+      "headerHeight": 89,
+      "headerTop": 0,
+      "heroImageLoaded": true,
+      "logoHeroDelta": 0.000014343261725002776,
+      "partnersCount": 13,
+      "partnersLoaded": 13,
+      "rulesBelowHeader": 71.875,
+      "scrollWidth": 1265,
+      "scrollY": 1090.5,
+      "sessionAction": {
+        "href": "/cabinet/",
+        "label": "В кабинет"
+      },
+      "startHref": "/auth/sber-id/start?intent=register&subject=individual",
+      "url": "https://dev.astforum.ru/#rules",
+      "width": 1280
+    },
+    {
+      "clientWidth": 753,
+      "faqCount": 3,
+      "headerHeight": 141,
+      "headerTop": 0,
+      "heroImageLoaded": true,
+      "logoHeroDelta": 0.000014343261717897349,
+      "partnersCount": 13,
+      "partnersLoaded": 13,
+      "rulesBelowHeader": 71.828125,
+      "scrollWidth": 753,
+      "scrollY": 2174.5,
+      "sessionAction": {
+        "href": "/cabinet/",
+        "label": "В кабинет"
+      },
+      "startHref": "/auth/sber-id/start?intent=register&subject=individual",
+      "url": "https://dev.astforum.ru/#rules",
+      "width": 768
+    },
+    {
+      "clientWidth": 375,
+      "faqCount": 3,
+      "headerHeight": 205,
+      "headerTop": 0,
+      "heroImageLoaded": true,
+      "logoHeroDelta": 0.000014343261717897349,
+      "partnersCount": 13,
+      "partnersLoaded": 13,
+      "rulesBelowHeader": 56.1640625,
+      "scrollWidth": 375,
+      "scrollY": 2204.5,
+      "sessionAction": {
+        "href": "/cabinet/",
+        "label": "В кабинет"
+      },
+      "startHref": "/auth/sber-id/start?intent=register&subject=individual",
+      "url": "https://dev.astforum.ru/#rules",
+      "width": 390
+    }
+  ],
+  "dialog": {
+    "headerZIndex": "1",
+    "iframeSrc": "https://cal.astforum.ru/demo/60min?embed=true&layout=month_view&theme=light",
+    "loading": false,
+    "visible": true,
+    "afterClose": {
+      "closed": true,
+      "focus": "Выбрать время",
+      "focusVisible": true
+    }
+  }
+}

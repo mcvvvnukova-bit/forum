@@ -1,3 +1,17 @@
+# Итог публикации — 02.10.2026
+
+Новая главная опубликована на https://dev.astforum.ru/ из коммита `2081463a98d414fe4ac1c18cd5ba6ceaf527a1ce`. Последующий коммит добавляет только документы и доказательства проверки; опубликованный код не меняет. Заглушка https://astforum.ru/ побайтно совпадает с сохранённой до публикации версией (SHA-256 `afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a`).
+
+- Draft PR: https://github.com/mcvvvnukova-bit/forum/pull/12. Связь с PROJ-144, PROJ-29 и PROJ-1 подтверждена API OpenProject; PR №12 виден во вкладке GitHub задачи PROJ-144. Снимок: `openproject-pr12.png`.
+- Origin и HTTPS: HTML и 18 ресурсов совпали с dist по SHA-256. Существующая страница `/customers/`, gateway health, закрытая session API и shared-password вход проверены. 31 защищённый файл (production/auth/customer/gateway/Caddy/Compose) остался прежним. Резервная копия: `/opt/outline/backups/primer-home-20261001T224611518972Z`.
+- IAB на 1280/768/390 px: header top=0 при прокрутке; заголовок правил ниже шапки; clientWidth=scrollWidth; видимый край логотипа совпадает с Hero с погрешностью менее 0,001 px. Hero и 13/13 изображений партнёров загружены. FAQ содержит 3 вопроса. Доказательства: `dev-published-home.png`, `dev-published-sticky.png`, `dev-published-checks.json`.
+- Текущая действующая Sber-сессия распознана: ссылка шапки «В кабинет». Начало регистрации ведёт на действующий start-маршрут Sber. Dialog показывает загруженный Cal.diy; Escape закрывает его и возвращает видимый фокус на кнопку. Новая регистрация человеком и отправка заявки на демо не выполнялись.
+- Проверки кода: TypeScript/build:dev, ESLint, 13/13 frontend-тестов, 2/2 deploy-тестов, git diff --check — успешно. Primer validator: 0 ошибок, 22 ранее просмотренных предупреждения PDS007. npm ci: 0 vulnerabilities. Полный VoiceOver и реальное сенсорное устройство не проверялись. Предупреждения сборки о размере JS и директиве зависимости остаются.
+
+Результаты сервера: `dev-deployment-result.json`; сохранность production и связи задач: `publication-checks.json`. Нижеследующие записи сохраняют историю локального этапа; прежние ограничения «только локально» отменены прямым поручением пользователя на push и dev-публикацию. PR не слит; production-заглушка сохранена.
+
+---
+
 # Проверка локальной главной — 01.10.2026
 
 Адрес: http://127.0.0.1:5188/. Только loopback; HTTP 200.

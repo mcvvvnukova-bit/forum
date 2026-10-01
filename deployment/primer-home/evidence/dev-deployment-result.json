@@ -1,0 +1,22 @@
+{
+  "commit": "2081463a98d414fe4ac1c18cd5ba6ceaf527a1ce",
+  "backup": "/opt/outline/backups/primer-home-20261001T224611518972Z",
+  "target": "/opt/outline/dev-astforum/landing",
+  "protectedFilesUnchanged": 31,
+  "checks": [
+    {
+      "base": "http://127.0.0.1",
+      "indexSha256": "b2b4baa9a8837bef01e89b2662645bff579e7105254e7d62da2dec2ffb1c4488",
+      "assetsVerified": 18,
+      "customersPreserved": true,
+      "gatewayHealth": "ok"
+    },
+    {
+      "base": "https://dev.astforum.ru",
+      "indexSha256": "b2b4baa9a8837bef01e89b2662645bff579e7105254e7d62da2dec2ffb1c4488",
+      "assetsVerified": 18,
+      "customersPreserved": true,
+      "gatewayHealth": "ok"
+    }
+  ]
+}
