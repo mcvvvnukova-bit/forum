@@ -1,0 +1,182 @@
+:80 {
+    @health path /_origin_health
+    respond @health 200
+
+    @docs host docs.astforum.ru
+    handle @docs {
+        encode zstd gzip
+
+        reverse_proxy outline:3000 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+
+    @astforum host astforum.ru
+    handle @astforum {
+        root * /srv/astforum
+        encode zstd gzip
+
+        # Approved Sber callback relay; the main placeholder stays unchanged.
+        @sber_callback_relay {
+            method GET
+            path /authorization
+        }
+        handle @sber_callback_relay {
+            route {
+                header {
+                    Cache-Control "no-store"
+                    Referrer-Policy "no-referrer"
+                }
+                redir https://dev.astforum.ru{uri} 303
+            }
+        }
+
+        header {
+            Content-Security-Policy "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'"
+            Referrer-Policy "strict-origin-when-cross-origin"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "DENY"
+        }
+
+        file_server
+    }
+
+    @pgadmin host pg.astforum.ru
+    handle @pgadmin {
+        encode zstd gzip
+
+        header {
+            -Server
+            Strict-Transport-Security "max-age=31536000"
+            X-Content-Type-Options "nosniff"
+            X-Frame-Options "SAMEORIGIN"
+            Referrer-Policy "same-origin"
+        }
+
+        reverse_proxy pgadmin:5050 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+
+    # astforum-dev-landing:start
+    @dev_astforum host dev.astforum.ru
+    handle @dev_astforum {
+        encode zstd gzip
+
+        reverse_proxy dev_landing_auth:8080 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+    # astforum-dev-landing:end
+
+
+
+
+
+
+
+
+
+
+
+    # astforum-cal-diy:start
+    @cal_astforum host cal.astforum.ru
+    handle @cal_astforum {
+        encode zstd gzip
+        reverse_proxy astforum-cal-diy-web-1:3000 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+    # astforum-cal-diy:end
+
+
+    # astforum-mail:start
+    @astforum_mail host mail.astforum.ru
+    handle @astforum_mail {
+        @webmail_origin header Origin https://webmail.astforum.ru
+        header @webmail_origin {
+            defer
+            Access-Control-Allow-Origin https://webmail.astforum.ru
+            Access-Control-Allow-Credentials true
+            Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Authorization, Content-Type, Accept, X-JMAP-Session, Cache-Control, X-Requested-With"
+            Access-Control-Expose-Headers "Content-Disposition, Content-Length, Location"
+            +Vary Origin
+        }
+        @mail_preflight {
+            method OPTIONS
+            header Origin https://webmail.astforum.ru
+        }
+        respond @mail_preflight 204
+        route {
+            # Public challenge files only; certificates and keys are stored elsewhere.
+            @mail_acme path /.well-known/acme-challenge/*
+            handle @mail_acme {
+                root * /srv/astforum
+                file_server
+            }
+            # Only this observed edge may supply the original client's address.
+            vars mail_client_socket {http.request.remote.host}
+            @mail_edge remote_ip 172.16.160.13
+            vars @mail_edge mail_client_socket {http.request.header.X-Real-IP}
+            map {vars.mail_client_socket} {mail_client_ip} {
+                ~^([0-9.]+):[0-9]+$ ${1}
+                ~^\[([0-9a-fA-F:]+)\]:[0-9]+$ ${1}
+                default {vars.mail_client_socket}
+            }
+            reverse_proxy astforum-stalwart:8080 {
+                header_up -Forwarded
+                header_up X-Forwarded-For {mail_client_ip}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Host {http.request.host}
+            }
+        }
+    }
+
+    @astforum_webmail host webmail.astforum.ru
+    handle @astforum_webmail {
+        encode zstd gzip
+        reverse_proxy astforum-tmail:80 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+
+    @astforum_campaigns host campaigns.astforum.ru
+    handle @astforum_campaigns {
+        encode zstd gzip
+        reverse_proxy astforum-mail-listmonk-1:9000 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+    # astforum-mail:end
+
+    # astforum-openproject:start
+    @astforum_roadmap host roadmap.astforum.ru
+    handle @astforum_roadmap {
+        encode zstd gzip
+        header {
+            -Server
+            X-Content-Type-Options nosniff
+            Referrer-Policy strict-origin-when-cross-origin
+        }
+        reverse_proxy /hocuspocus* astforum-openproject-collaboration:1234 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+        reverse_proxy astforum-openproject-web:8080 {
+            header_up -Forwarded
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+    # astforum-openproject:end
+
+
+    respond 404
+}

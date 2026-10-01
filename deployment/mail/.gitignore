@@ -1,0 +1,7 @@
+.env
+secrets/
+stalwart/
+postgres/
+uploads/
+*.private.json
+__pycache__/

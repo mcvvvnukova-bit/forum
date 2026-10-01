@@ -1,0 +1,33 @@
+; astforum.ru — состояние/план на 2026-09-11, рекомендуемый TTL 300 при вводе в эксплуатацию.
+; A, SPF, оба DKIM и DMARC опубликованы и проверены на ns1.reg.ru.
+; MX опубликован как 0 mail.astforum.ru. PTR пока отсутствует (NXDOMAIN).
+; В REG.RU имя указывается относительно зоны: mail, @, _dmarc и т.д.
+
+mail.astforum.ru.      300 IN A 84.47.165.130
+webmail.astforum.ru.   300 IN A 84.47.165.130
+campaigns.astforum.ru. 300 IN A 84.47.165.130
+
+; Опубликовано. Только одна SPF-запись на имя.
+; Сохраняет REG.RU SMTP, используемый Outline, и разрешает исходящий IP VPS.
+astforum.ru. 300 IN TXT "v=spf1 ip4:84.47.165.130 include:_spf.hosting.reg.ru ~all"
+mail.astforum.ru. 300 IN TXT "v=spf1 ip4:84.47.165.130 -all"
+_dmarc.astforum.ru. 300 IN TXT "v=DMARC1; p=none; rua=mailto:postmaster@astforum.ru"
+
+; Текущие опубликованные DKIM-ключи. DNS управляется вручную;
+; автоматическое обновление записей в REG.RU пока не настроено.
+v1-ed25519-20260908._domainkey.astforum.ru. 300 IN TXT "v=DKIM1; k=ed25519; h=sha256; p=hW+CuUxeJWWeTARmXaBswayTikI1kS+npUhZei90+8o="
+v1-rsa-20260908._domainkey.astforum.ru. 300 IN TXT (
+ "v=DKIM1; k=rsa; h=sha256; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxHkqK0XOQIUK4B+52VRzDrx8TdmM5ckPKVRzJN9UlXnyiqnCwy+d6mf8rc6queztYNhGu+6WTtVV/QWIO2U1racGUoKQusXYJvv3ZT0jgkxdEq8oK5hlSqQX1kYrCwov1sqwH7AVm9NUsj0cALyP+rSgn/B6cKVx+anEEmA7k6G9bb+q4hNufmh"
+ "/+G4d/EBYP0ybRYL66Mwg74YCuo43bWM4kbAt3kdejg+rBckhSD6BlGsgsrC25un5dN6w2FhEOS8lEO2m0xfemhZb8MrE97h1V+PYxF/zYsZAd8QNqZYhCYDbbJgCejAt0mYPko13Tej1YxCtYigtmZDzOJiUxwIDAQAB"
+)
+; Для поля REG.RU склеить две строки значения RSA без пробела, скобок и внешних кавычек.
+
+; Опубликованная MX-запись; входящий TCP25 доступен и проверен:
+astforum.ru. 300 IN MX 0 mail.astforum.ru.
+
+; У провайдера публичного IP, не в прямой DNS-зоне REG.RU:
+; PTR 84.47.165.130 -> mail.astforum.ru.
+
+; POP3S995 используется только внутри Docker для возвратов listmonk.
+; Публичный POP3 SRV не публиковать. Outlook настраивается вручную через IMAP993.
+; MTA-STS/DANE/autodiscover пока не публикуются: сначала проверить соответствующие endpoints и TLS.
