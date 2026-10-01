@@ -1,0 +1,42 @@
+{
+  "before": {
+    "imageHeight": 48,
+    "imageLeft": 72.5,
+    "imageWidth": 144,
+    "opticalLogoLeft": 93.54,
+    "titleLeft": 72.5,
+    "viewport": 1280
+  },
+  "after": [
+    {
+      "clientWidth": 1611,
+      "delta": 0.00002197265624204192,
+      "footerTransform": "none",
+      "heroLeft": 245.5,
+      "imageLoaded": true,
+      "scrollWidth": 1611,
+      "visibleLogoLeft": 245.50002197265624,
+      "width": 1626
+    },
+    {
+      "clientWidth": 753,
+      "delta": 0.000014343261717897349,
+      "footerTransform": "none",
+      "heroLeft": 24,
+      "imageLoaded": true,
+      "scrollWidth": 753,
+      "visibleLogoLeft": 24.00001434326172,
+      "width": 768
+    },
+    {
+      "clientWidth": 375,
+      "delta": 0.000014343261717897349,
+      "footerTransform": "none",
+      "heroLeft": 16,
+      "imageLoaded": true,
+      "scrollWidth": 375,
+      "visibleLogoLeft": 16.000014343261718,
+      "width": 390
+    }
+  ]
+}

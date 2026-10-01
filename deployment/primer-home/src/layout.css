@@ -11,6 +11,8 @@ section { scroll-margin-top: var(--base-size-24); }
 .header-navigation { display: flex; align-items: center; gap: var(--base-size-24); flex-wrap: wrap; }
 .brand { display: inline-flex; flex-shrink: 0; }
 .brand img { width: 144px; height: 48px; object-fit: contain; }
+/* PNG alpha begins at x=163/1600; contain adds 8px in the 144x48 slot: 21.04px / 144. */
+.site-header .brand img { transform: translateX(-14.6111%); }
 .skip-link { position: absolute; left: -10000px; padding: var(--base-size-12); background: var(--bgColor-default); z-index: 10; }
 .skip-link:focus { top: var(--base-size-8); left: var(--base-size-8); }
 .hero { background: var(--bgColor-muted); border-bottom: var(--borderWidth-thin) solid var(--borderColor-default); padding-block: var(--base-size-64); }
