@@ -28,7 +28,7 @@ export function App() {
     const titles: Record<string,string> = {'/customers/':'Для заказчиков', '/suppliers/':'Для поставщиков и подрядчиков', '/work/':'Работа и подработка', '/participate/':'Вход и регистрация'}
     document.title = `${titles[path] || 'Заказы, исполнители и работа в строительстве'} — АСТ Форум`
   }, [path])
-  const resumedIntent = path === '/participate/' ? readIntent() : null
+  const resumedIntent = path === '/participate/' && new URLSearchParams(window.location.search).get('resume') === '1' ? readIntent() : null
   const participation = (value: Intent, onReturn: () => void) => <Participation intent={value} session={session} loading={loading} unavailable={unavailable} onDemo={(trigger, audience) => {setIntent(null); openDemo(trigger, audience)}} onReturn={onReturn} />
   return <>
     <SiteHeader authorized={Boolean(session)} />

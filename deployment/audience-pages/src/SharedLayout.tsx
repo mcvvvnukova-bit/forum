@@ -30,7 +30,7 @@ export function SiteHeader({authorized = false}: {authorized?: boolean}) {
         </Link>
         <nav aria-label="Основная навигация" className="header-navigation">
           {audiences.map(item => <Link key={item.key} href={destinations[item.key]} muted>{item.nav}</Link>)}
-          <Link href={window.location.pathname === '/' ? '/#rules' : '#how'} muted>Как это работает</Link>
+          <Link href={['/customers', '/suppliers', '/work'].some(path => window.location.pathname === path || window.location.pathname === `${path}/`) ? '#how' : '/#rules'} muted>Как это работает</Link>
         </nav>
         <Button as="a" href={authorized ? destinations.cabinet : destinations.login} trailingVisual={ArrowRightIcon}>
           {authorized ? 'В кабинет' : 'Войти'}

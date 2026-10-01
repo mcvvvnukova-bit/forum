@@ -8,6 +8,8 @@ Forum / Light прочитан live read-only use_figma: collection VariableColl
 
 Выбор вакансий скрывает пример заказа, оставляет выбор обоих форматов и сохраняется после reload. Рабочая кнопка вакансий отсутствует по правилу выпуска. FAQ доступен без входа.
 
-Тесты: 16 Vitest assertions на сценарии/намерения/context/callback, 3 Python проверки scope/повторной публикации/rollback. Typecheck и lint проходят. Build проходит с предупреждениями Vite о chunk >500kB и директиве react-compiler-runtime. Primer validator: 0 ошибок; PDS007 warnings относятся к разрешённым props size/variant и существующим layout/padding в Details; просмотрены вручную.
+Тесты: 18 Vitest assertions на сценарии/намерения/context/callback, 3 Python проверки scope/повторной публикации/rollback. Typecheck и lint проходят. Build проходит с предупреждениями Vite о chunk >500kB и директиве react-compiler-runtime. Primer validator: 0 ошибок; PDS007 warnings относятся к разрешённым props size/variant и существующим layout/padding в Details; просмотрены вручную.
 
 Не проверено: полноценный VoiceOver и реальное завершение новой Sber регистрации в этом чате; операция создаёт пользователя и не требуется для проверки лендингов. Зависимые Диадок/профили/рабочие списки/найм на сервере отсутствуют и не объявляются готовыми.
+
+Независимое ревью: устранены потеря обычного входа при сохранённом намерении компании и ссылка на несуществующий якорь handoff-страницы. Оба воспроизведены тестами RED → GREEN. Клавиатура: Enter открывает CTA и FAQ, Escape закрывает Dialog, фокус возвращается на trigger с :focus-visible/solid outline. Демо iframe содержит audience=Компания-исполнитель.
