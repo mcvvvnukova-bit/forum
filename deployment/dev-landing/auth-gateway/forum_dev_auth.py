@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import http.client
 import mimetypes
 import os
 import posixpath
@@ -26,6 +27,7 @@ class GatewayConfig:
     public_host: str
     cookie_name: str = "forum_dev_auth"
     session_ttl_seconds: int = 86400
+    api_origin: str | None = None
 
     @classmethod
     def from_env(cls) -> "GatewayConfig":
@@ -39,6 +41,7 @@ class GatewayConfig:
             public_host=os.environ.get("PUBLIC_HOST", "dev.astforum.ru"),
             cookie_name=os.environ.get("COOKIE_NAME", "forum_dev_auth"),
             session_ttl_seconds=int(os.environ.get("SESSION_TTL_SECONDS", "86400")),
+            api_origin=os.environ.get("FORUM_API_ORIGIN") or None,
         )
 
 
@@ -55,6 +58,10 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
 
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
+
+            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session"}:
+                self._proxy_api(send_body=send_body)
+                return
 
             if path == "/_landing_health":
                 self._send_text(HTTPStatus.OK, "ok", send_body=send_body)
@@ -89,6 +96,10 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def do_POST(self) -> None:
             path = urlsplit(self.path).path
 
+            if path == "/api/auth/logout":
+                self._proxy_api(send_body=True)
+                return
+
             if path == "/auth/login":
                 self._handle_login()
                 return
@@ -101,6 +112,58 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
 
         def log_message(self, format: str, *args: object) -> None:
             print("%s - - [%s] %s" % (self.address_string(), self.log_date_time_string(), format % args))
+
+        def log_request(self, code="-", size="-") -> None:
+            self.log_message('"%s %s" %s %s', self.command, urlsplit(self.path).path, code, size)
+
+        def _proxy_api(self, *, send_body: bool) -> None:
+            if not config.api_origin:
+                if "text/html" in self.headers.get("Accept", ""):
+                    self._redirect("/?auth_error=sber_unavailable")
+                else:
+                    self._send_text(HTTPStatus.SERVICE_UNAVAILABLE, '{"code":"sber_unavailable"}', send_body=send_body)
+                return
+
+            origin = urlsplit(config.api_origin)
+            if origin.scheme not in {"http", "https"} or not origin.hostname or origin.username or origin.password or origin.path not in {"", "/"}:
+                self._send_text(HTTPStatus.SERVICE_UNAVAILABLE, "Invalid API configuration", send_body=send_body)
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length < 0 or length > 4096 or self.headers.get("Transfer-Encoding"):
+                    self._send_text(HTTPStatus.BAD_REQUEST, "Invalid request body", send_body=send_body)
+                    return
+            except ValueError:
+                self._send_text(HTTPStatus.BAD_REQUEST, "Invalid request body", send_body=send_body)
+                return
+            connection_type = http.client.HTTPSConnection if origin.scheme == "https" else http.client.HTTPConnection
+            connection = connection_type(origin.hostname, origin.port, timeout=45)
+            headers = {key: self.headers[key] for key in ("Cookie", "Origin", "Accept", "Content-Type") if key in self.headers}
+            headers["X-Forwarded-For"] = self.client_address[0]
+            try:
+                connection.request(self.command, self.path, body=self.rfile.read(length) if length else None, headers=headers)
+                response = connection.getresponse()
+                payload = response.read(65537)
+                if len(payload) > 65536:
+                    raise ValueError("Oversized API response")
+                self.send_response(response.status)
+                for key, value in response.getheaders():
+                    if key.lower() in {"set-cookie", "location", "content-type", "retry-after"}:
+                        self.send_header(key, value)
+                self.send_header("Content-Length", str(len(payload)))
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Referrer-Policy", "no-referrer")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.end_headers()
+                if send_body:
+                    self.wfile.write(payload)
+            except (OSError, ValueError, http.client.HTTPException):
+                if "text/html" in self.headers.get("Accept", ""):
+                    self._redirect("/?auth_error=temporarily_unavailable")
+                else:
+                    self._send_text(HTTPStatus.BAD_GATEWAY, '{"code":"temporarily_unavailable"}', send_body=send_body)
+            finally:
+                connection.close()
 
         def _handle_login(self) -> None:
             password = self._read_form_password()

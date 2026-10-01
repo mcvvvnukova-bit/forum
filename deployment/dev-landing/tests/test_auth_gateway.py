@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import http.client
+import contextlib
+import io
 import importlib.util
 import os
 import sys
 import tempfile
 import threading
 import unittest
-from http.server import ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -78,7 +80,7 @@ class AuthGatewayTest(unittest.TestCase):
     def tearDown(self):
         self.workspace.cleanup()
 
-    def make_handler(self):
+    def make_handler(self, api_origin=None):
         module = load_gateway_module()
         config = module.GatewayConfig(
             static_root=self.static_root,
@@ -89,6 +91,7 @@ class AuthGatewayTest(unittest.TestCase):
             public_host="dev.astforum.ru",
             cookie_name="forum_dev_auth",
             session_ttl_seconds=3600,
+            api_origin=api_origin,
         )
         return module.create_handler(config)
 
@@ -176,6 +179,49 @@ class AuthGatewayTest(unittest.TestCase):
         self.assertIn("script-src 'self' https://cal.astforum.ru", csp)
         self.assertIn("frame-src 'self' https://cal.astforum.ru", csp)
         self.assertIn("connect-src 'self' https://cal.astforum.ru", csp)
+
+    def test_sber_routes_without_an_api_return_unavailable_instead_of_the_password_screen(self):
+        with GatewayServer(self.make_handler()) as server:
+            status, _, payload = server.request("GET", "/auth/sber-id/start?intent=login")
+        self.assertEqual(status, 503)
+        self.assertIn("sber_unavailable", payload)
+
+    def test_api_proxy_preserves_cookies_and_redirects_without_logging_auth_codes(self):
+        requests = []
+
+        class ApiHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                requests.append((self.path, self.headers.get("Cookie")))
+                self.send_response(303)
+                self.send_header("Location", "/?auth=success")
+                self.send_header("Set-Cookie", "forum_session=opaque; HttpOnly; Secure; SameSite=Lax; Path=/")
+                self.send_header("Set-Cookie", "sber_attempt=; Max-Age=0; Path=/")
+                self.end_headers()
+
+            def log_message(self, *_):
+                pass
+
+        logs = io.StringIO()
+        callback_paths = ["/auth/sber-id/callback", "/authorization"]
+        with contextlib.redirect_stdout(logs), GatewayServer(ApiHandler) as api:
+            with GatewayServer(self.make_handler(f"http://127.0.0.1:{api.port}")) as gateway:
+                for path in callback_paths:
+                    with self.subTest(callback=path):
+                        connection = http.client.HTTPConnection("127.0.0.1", gateway.port)
+                        try:
+                            connection.request("GET", f"{path}?code=private-code&state=state", headers={"Cookie": "sber_attempt=browser"})
+                            response = connection.getresponse()
+                            headers = response.getheaders()
+                            response.read()
+                            self.assertEqual(response.status, 303)
+                            self.assertEqual(len([value for key, value in headers if key.lower() == "set-cookie"]), 2)
+                            self.assertIn(("Location", "/?auth=success"), headers)
+                            self.assertIn(("Referrer-Policy", "no-referrer"), headers)
+                        finally:
+                            connection.close()
+        self.assertEqual(requests, [(f"{path}?code=private-code&state=state", "sber_attempt=browser") for path in callback_paths])
+        self.assertNotIn("private-code", logs.getvalue())
+        self.assertNotIn("sber_attempt=browser", logs.getvalue())
 
 
 if __name__ == "__main__":

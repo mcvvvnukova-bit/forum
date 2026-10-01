@@ -2,3 +2,17 @@
 .DS_Store
 .secrets/
 .worktrees/
+
+# Local credentials and generated runtime files
+.env
+.env.*
+!.env.example
+*.private.*
+secrets/
+._*
+node_modules/
+dist/
+.test-build/
+__pycache__/
+.playwright-cli/
+.worktrees/

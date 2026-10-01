@@ -1,6 +1,7 @@
+import {useEffect, useId, useState} from 'react'
 import type {CSSProperties, ElementType, HTMLAttributes, MouseEvent, MouseEventHandler} from 'react'
-import {Button, Heading, Link, Text} from '@primer/react'
-import {ChevronDownIcon} from '@primer/octicons-react'
+import {Banner, Button, Heading, Link, Text} from '@primer/react'
+import {ChevronDownIcon, SignOutIcon, XIcon} from '@primer/octicons-react'
 import brandLogo from './assets/brand-logo-horizontal-color.png'
 import heroIllustration from './assets/hero-illustration-process-interface-v1.png'
 import audienceCustomer from './assets/audience-customer.png'
@@ -8,20 +9,22 @@ import audienceSupplier from './assets/audience-supplier.png'
 import audienceContractor from './assets/audience-contractor.png'
 import audienceSpecialist from './assets/audience-specialist-left-mirrored.png'
 import vortexIllustration from './assets/vortex-selected-concept-01.png'
-import logoRentaero from './assets/logo-rentaero-gray.png'
-import logoTahoban from './assets/logo-gray-tahoban.png'
-import logoSferaSnab from './assets/logo-gray-sfera-snab.png'
-import logoSpectransservice from './assets/logo-gray-spectransservice.png'
-import logoToolTech from './assets/logo-tool-tech-gray.png'
-import logoProfmaster from './assets/logo-gray-profmaster.png'
-import logoPolygroup from './assets/logo-polycorr-gray.png'
-import logoZelenayaDoroga from './assets/logo-gray-zelenaya-doroga.png'
-import logoGeoprom from './assets/logo-gray-geoprom.png'
-import logoVseinstrumenti from './assets/logo-gray-vseinstrumenti.png'
-import logoVostokService from './assets/logo-gray-vostok-service.png'
-import logoBkResource from './assets/logo-gray-bk-resource.png'
-import logoBinLeasing from './assets/logo-gray-bin-leasing.png'
-import {BOOKING_URL, onDemoBookingClick} from './cal-diy-embed'
+import sberIdOfficialMark from './assets/sber-id-official-mark.svg'
+import logoRentaero from './assets/logo-color-rentaero.svg'
+import logoTahoban from './assets/logo-color-tahoban.svg'
+import logoSferaSnab from './assets/logo-color-sfera-snab.svg'
+import logoSpectransservice from './assets/logo-color-spectransservice.png'
+import logoToolTech from './assets/logo-color-tool-tech.jpg'
+import logoProfmaster from './assets/logo-color-profmaster.svg'
+import logoPolygroup from './assets/logo-color-polycorr.svg'
+import logoZelenayaDoroga from './assets/logo-color-zelenaya-doroga.png'
+import logoGeoprom from './assets/logo-color-geoprom.webp'
+import logoVseinstrumenti from './assets/logo-color-vseinstrumenti.svg'
+import logoVostokService from './assets/logo-color-vostok-service.svg'
+import logoBkResource from './assets/logo-color-bk-resource.png'
+import logoBinLeasing from './assets/logo-color-bin-leasing.png'
+import {DemoSection} from '../shared/DemoSection'
+import {authErrorMessages, useLandingSession} from './use-landing-session'
 
 type AudienceCard = {
   className: string
@@ -34,6 +37,7 @@ type AudienceCard = {
 }
 
 type PartnerLogo = {
+  caption?: string
   className?: string
   height: string
   image: string
@@ -46,6 +50,13 @@ type FaqItem = {
   answer: string
   defaultOpen?: boolean
   question: string
+}
+
+type AuthDialogMode = 'login' | 'register'
+
+type RegistrationSubject = {
+  id: 'individual' | 'legal' | 'entrepreneur'
+  label: string
 }
 
 type BoxProps = HTMLAttributes<HTMLElement> & {
@@ -63,6 +74,20 @@ const navItems = [
   {href: '#demo', label: 'Демо'},
   {href: '#cases', label: 'Кейсы'},
   {href: '#faq', label: 'FAQ'},
+]
+
+const authProviderLinks = {
+  diadocLogin: '/auth/diadoc/start?intent=login',
+  diadocRegisterLegal: '/auth/diadoc/start?intent=register&subject=legal',
+  diadocRegisterEntrepreneur: '/auth/diadoc/start?intent=register&subject=entrepreneur',
+  sberIdLogin: '/auth/sber-id/start?intent=login',
+  sberIdRegisterIndividual: '/auth/sber-id/start?intent=register&subject=individual',
+}
+
+const registrationSubjects: RegistrationSubject[] = [
+  {id: 'individual', label: 'Физическое лицо'},
+  {id: 'legal', label: 'Юридическое лицо'},
+  {id: 'entrepreneur', label: 'Индивидуальный предприниматель'},
 ]
 
 const audienceCards: AudienceCard[] = [
@@ -118,7 +143,15 @@ const partnerLogos: PartnerLogo[] = [
   {height: '74px', image: logoToolTech, name: 'Tool Tech', opacity: '0.9', width: '145px'},
   {height: '32px', image: logoProfmaster, name: 'ПрофМастер', opacity: '0.9', width: '173px'},
   {height: '56px', image: logoPolygroup, name: 'Поли-групп', opacity: '0.9', width: '105px'},
-  {height: '68px', image: logoZelenayaDoroga, name: 'Зелёная дорога', opacity: '0.82', width: '68px'},
+  {
+    caption: 'Зеленая дорога',
+    className: 'partner-logo-card--with-caption',
+    height: '68px',
+    image: logoZelenayaDoroga,
+    name: 'Зелёная дорога',
+    opacity: '0.82',
+    width: '68px',
+  },
   {height: '72px', image: logoGeoprom, name: 'Геопром', opacity: '0.88', width: '145.6px'},
   {height: '50.056px', image: logoVseinstrumenti, name: 'ВсеИнструменты.ру', opacity: '0.9', width: '179.2px'},
   {
@@ -188,6 +221,148 @@ function SecondaryLinkButton({children, className, href}: {children: string; cla
     <Button as="a" href={href} className={`landing-button landing-button--secondary ${className}`}>
       {children}
     </Button>
+  )
+}
+
+function ProviderAuthLink({
+  children,
+  href,
+  variant = 'secondary',
+  withSberMark,
+}: {
+  children: string
+  href: string
+  variant?: 'primary' | 'secondary'
+  withSberMark?: boolean
+}) {
+  return (
+    <a className={`auth-dialog__provider auth-dialog__provider--${variant}`} href={href}>
+      {withSberMark ? (
+        <img className="auth-dialog__provider-mark" src={sberIdOfficialMark} alt="" width="24" height="24" aria-hidden />
+      ) : null}
+      <span className="auth-dialog__provider-label">{children}</span>
+    </a>
+  )
+}
+
+function RegistrationSubjectOption({
+  subject,
+  isSelected,
+  onSelect,
+}: {
+  subject: RegistrationSubject
+  isSelected: boolean
+  onSelect: (subjectId: RegistrationSubject['id']) => void
+}) {
+  return (
+    <label className={`auth-dialog__account-option ${isSelected ? 'auth-dialog__account-option--selected' : ''}`}>
+      <input
+        className="auth-dialog__account-radio"
+        type="radio"
+        name="registration-subject"
+        value={subject.id}
+        checked={isSelected}
+        onChange={() => onSelect(subject.id)}
+      />
+      <span>{subject.label}</span>
+    </label>
+  )
+}
+
+function AuthDialog({mode, onClose, error}: {mode: AuthDialogMode; onClose: () => void; error?: string | null}) {
+  const titleId = useId()
+  const [selectedSubject, setSelectedSubject] = useState<RegistrationSubject['id']>('individual')
+
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
+
+  const handleBackdropClick: MouseEventHandler<HTMLDivElement> = (event) => {
+    if (event.target === event.currentTarget) {
+      onClose()
+    }
+  }
+
+  const isRegistration = mode === 'register'
+  const title = isRegistration ? 'Создайте аккаунт' : 'Войти в аккаунт'
+
+  return (
+    <div className="auth-dialog-backdrop" onMouseDown={handleBackdropClick}>
+      <section
+        className={`auth-dialog auth-dialog--${mode}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <Heading id={titleId} as="h2" className="auth-dialog__title">
+          {title}
+        </Heading>
+        <button className="auth-dialog__close" type="button" onClick={onClose} aria-label="Закрыть окно авторизации">
+          <XIcon size={20} aria-hidden="true" />
+        </button>
+
+        {error ? <Banner className="auth-dialog__error" variant="critical" role="alert" title={error} /> : null}
+
+        {isRegistration ? (
+          <>
+            <fieldset className="auth-dialog__account-list" aria-label="Тип аккаунта">
+              {registrationSubjects.map((subject) => (
+                <RegistrationSubjectOption
+                  key={subject.id}
+                  subject={subject}
+                  isSelected={subject.id === selectedSubject}
+                  onSelect={setSelectedSubject}
+                />
+              ))}
+            </fieldset>
+            {selectedSubject === 'individual' ? (
+              <ProviderAuthLink href={authProviderLinks.sberIdRegisterIndividual} withSberMark>
+                Зарегистрироваться по Сбер ID
+              </ProviderAuthLink>
+            ) : (
+              <ProviderAuthLink
+                href={
+                  selectedSubject === 'legal'
+                    ? authProviderLinks.diadocRegisterLegal
+                    : authProviderLinks.diadocRegisterEntrepreneur
+                }
+                variant="primary"
+              >
+                Подтвердить через Контур.Диадок
+              </ProviderAuthLink>
+            )}
+          </>
+        ) : (
+          <div className="auth-dialog__login-flow">
+            <Text as="p" className="auth-dialog__helper">
+              Войти с помощью
+            </Text>
+            <ProviderAuthLink href={authProviderLinks.sberIdLogin} withSberMark>
+              Войти по Сбер ID
+            </ProviderAuthLink>
+            <Text as="p" className="auth-dialog__divider-text">
+              или
+            </Text>
+            <ProviderAuthLink href={authProviderLinks.diadocLogin} variant="primary">
+              Войти через Контур.Диадок
+            </ProviderAuthLink>
+          </div>
+        )}
+      </section>
+    </div>
   )
 }
 
@@ -264,6 +439,11 @@ function Partners() {
                   } as CSSProperties
                 }
               />
+              {logo.caption ? (
+                <Text as="span" className="partner-logo-card__caption">
+                  {logo.caption}
+                </Text>
+              ) : null}
             </Box>
           ))}
         </Box>
@@ -300,6 +480,31 @@ function Faq() {
 }
 
 export function LandingApp() {
+  const {session, logout, isLoggingOut, logoutError} = useLandingSession()
+  const [authError, setAuthError] = useState(() => new URLSearchParams(window.location.search).get('auth_error'))
+  const [authDialogMode, setAuthDialogMode] = useState<AuthDialogMode | null>(
+    authError === 'registration_required' ? 'register' : authError ? 'login' : null,
+  )
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('auth') || url.searchParams.has('auth_error')) {
+      url.searchParams.delete('auth')
+      url.searchParams.delete('auth_error')
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+    }
+  }, [])
+
+  const openRegistrationDialog: MouseEventHandler<HTMLAnchorElement> = (event) => {
+    event.preventDefault()
+    setAuthDialogMode('register')
+  }
+
+  const openLoginDialog: MouseEventHandler<HTMLAnchorElement> = (event) => {
+    event.preventDefault()
+    setAuthDialogMode('login')
+  }
+
   return (
     <Box className="landing-page">
       <Box as="header" className="landing-header">
@@ -315,15 +520,26 @@ export function LandingApp() {
             ))}
           </Box>
           <Box className="landing-header__actions">
-            <Link href="/login" className="landing-login-link">
-              Войти
-            </Link>
-            <PrimaryLinkButton href="/register" className="landing-header__register">
-              Регистрация
-            </PrimaryLinkButton>
+            {session ? (
+              <>
+                <Text className="landing-header__user" title={session.user.displayName}>{session.user.displayName}</Text>
+                <Button leadingVisual={SignOutIcon} onClick={() => void logout()} disabled={isLoggingOut}>Выйти</Button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={openLoginDialog} className="landing-login-link">
+                  Войти
+                </Link>
+                <PrimaryLinkButton href="/register" onClick={openRegistrationDialog} className="landing-header__register">
+                  Регистрация
+                </PrimaryLinkButton>
+              </>
+            )}
           </Box>
         </Box>
       </Box>
+
+      {logoutError ? <Banner variant="critical" role="alert" title={logoutError} /> : null}
 
       <Box as="main" id="top">
         <Box as="section" id="process" className="landing-hero" aria-labelledby="hero-title">
@@ -335,7 +551,7 @@ export function LandingApp() {
               электронная строительная площадка
             </Text>
             <Box className="landing-hero__actions">
-              <PrimaryLinkButton href="/register" className="landing-hero__start">
+              <PrimaryLinkButton href="/register" onClick={openRegistrationDialog} className="landing-hero__start">
                 Начать работу
               </PrimaryLinkButton>
               <SecondaryLinkButton href="#demo" className="landing-hero__demo">
@@ -382,26 +598,7 @@ export function LandingApp() {
 
         <Metrics />
 
-        <Box as="section" id="demo" className="landing-demo" aria-labelledby="demo-title">
-          <Box className="landing-demo__card">
-            <Box className="landing-demo__copy">
-              <Text as="p" className="landing-eyebrow">
-                демо по вашим задачам
-              </Text>
-              <Heading id="demo-title" as="h2" className="landing-demo__title">
-                Посмотрите «Форум» в работе
-              </Heading>
-              <Text as="p" className="landing-demo__text">
-                За час покажем сценарии, ответим на вопросы и подскажем,
-                <br />
-                как запустить работу на площадке в вашей команде.
-              </Text>
-            </Box>
-            <PrimaryLinkButton href={BOOKING_URL} onClick={onDemoBookingClick} className="landing-demo__button">
-              Выбрать время
-            </PrimaryLinkButton>
-          </Box>
-        </Box>
+        <DemoSection />
 
         <Partners />
         <Faq />
@@ -420,7 +617,7 @@ export function LandingApp() {
             <Link href="#process" className="landing-footer-link">
               О платформе
             </Link>
-            <Link href="#audience" className="landing-footer-link">
+            <Link href="/customers/" className="landing-footer-link">
               Для заказчиков
             </Link>
             <Link href="#audience" className="landing-footer-link">
@@ -432,6 +629,12 @@ export function LandingApp() {
           </Box>
         </Box>
       </Box>
+
+      {authDialogMode ? (
+        <AuthDialog mode={authDialogMode}
+          error={authError ? authErrorMessages[authError] ?? 'Не удалось войти через Сбер ID. Попробуйте ещё раз.' : null}
+          onClose={() => { setAuthDialogMode(null); setAuthError(null) }} />
+      ) : null}
     </Box>
   )
 }

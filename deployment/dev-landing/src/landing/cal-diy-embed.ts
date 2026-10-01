@@ -113,7 +113,7 @@ function waitForNativePopupClose() {
   })
 }
 
-export function openDemoBooking() {
+export function openDemoBooking(config: Record<string, string> = {}) {
   if (openingPromise) return openingPromise
 
   const opening = loadCalApi().then((cal) => {
@@ -121,7 +121,7 @@ export function openDemoBooking() {
     cal('modal', {
       calLink: CAL_LINK,
       calOrigin: CAL_ORIGIN,
-      config: {layout: 'month_view'},
+      config: {layout: 'month_view', ...config},
     })
     return popupClosed
   })

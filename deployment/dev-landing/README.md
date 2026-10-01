@@ -15,6 +15,20 @@ It uses the current `/opt/outline` Docker Compose project and Caddy origin:
 - the landing's «Выбрать время» link opens the self-hosted Cal.diy popup at `https://cal.astforum.ru/demo/60min` and remains a public-link fallback if the embed cannot load;
 - the dev host is marked `noindex`.
 
+## User Authentication
+
+User registration/login is handled by the NestJS API in `apps/api`, separately
+from the shared dev password. Set `FORUM_API_ORIGIN` for the gateway (the deploy
+template uses `http://forum_api:3001`). The gateway forwards Sber start/callback,
+session lookup and logout, preserving cookies and suppressing query strings in
+its request logs. The API deployment and credential setup are documented in
+[`apps/api/README.md`](../../apps/api/README.md).
+
+For local Vite development, the landing root and `/landing.html` both open the
+landing. `/auth/sber-id/*` and `/api/auth/*` proxy to `http://127.0.0.1:3001` by
+default, configurable with `FORUM_API_ORIGIN`. Keep the API's `PUBLIC_ORIGIN`
+equal to the browser origin, including the local port.
+
 ## Deploy
 
 Upload the package without requiring `rsync` on the VPS:
