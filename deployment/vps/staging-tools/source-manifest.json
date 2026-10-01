@@ -1,0 +1,12 @@
+[
+  {
+    "original_path": "/home/testing-user/pgadmin-deploy/compose.yaml",
+    "archive_path": "deployment/vps/staging-tools/pgadmin-deploy/compose.yaml",
+    "git_blob": "a66a5ef6b527604c37635c288a5d580fc0961638"
+  },
+  {
+    "original_path": "/home/testing-user/pgadmin-deploy/install-pgadmin.sh",
+    "archive_path": "deployment/vps/staging-tools/pgadmin-deploy/install-pgadmin.sh",
+    "git_blob": "71418f04276aad501688c7fe7cf9b36ff59fc3ee"
+  }
+]
