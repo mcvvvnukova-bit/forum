@@ -37,8 +37,8 @@ Interfaces: saveIntent(intent), readIntent():Intent|null; validate before local 
 Files: scripts/package-site.mjs, scripts/deploy.py, README.md, evidence/verification.md.
 Interfaces: package-site copies build HTML to supported routes; deploy backs up those routes/assets and appends marker-delimited resume script to homepage.
 
-- [ ] Run typecheck, lint, tests, build, Primer validator; Expected: exit 0.
-- [ ] Codex iab: 320/390/768/1440, keyboard/focus, FAQ, branches, intent.
-- [ ] Review branch; commit intended paths; push and PR with OP#PROJ-145/146/147/29.
-- [ ] Deploy audience assets/routes with rollback; served build hashes/rendered pages behind existing dev access. Homepage differs only by resume marker; astforum.ru hash unchanged.
-- [ ] Verify four GitHub tabs, attach PR, record external workflow limitations.
+- [x] Run typecheck, lint, tests, build, Primer validator; Expected: exit 0.
+- [x] Codex iab: 320/390/768/1440, keyboard/focus, FAQ, branches, intent.
+- [x] Review branch; commit intended paths; push and PR with OP#PROJ-145/146/147/29.
+- [x] Deploy audience assets/routes with rollback; served build hashes/rendered pages behind existing dev access. Homepage differs only by resume marker; astforum.ru hash unchanged.
+- [x] Verify four GitHub tabs, attach PR, record external workflow limitations.

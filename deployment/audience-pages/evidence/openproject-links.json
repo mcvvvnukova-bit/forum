@@ -1,0 +1,11 @@
+{
+  "verifiedBy": "Codex iab; Кузьмина",
+  "pullRequest": "https://github.com/mcvvvnukova-bit/forum/pull/11",
+  "workPackages": [
+    "PROJ-145",
+    "PROJ-146",
+    "PROJ-147",
+    "PROJ-29"
+  ],
+  "evidence": "PR #11 visible in GitHub tab of all four work packages"
+}

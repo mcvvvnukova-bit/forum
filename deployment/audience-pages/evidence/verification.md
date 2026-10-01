@@ -13,3 +13,11 @@ Forum / Light прочитан live read-only use_figma: collection VariableColl
 Не проверено: полноценный VoiceOver и реальное завершение новой Sber регистрации в этом чате; операция создаёт пользователя и не требуется для проверки лендингов. Зависимые Диадок/профили/рабочие списки/найм на сервере отсутствуют и не объявляются готовыми.
 
 Независимое ревью: устранены потеря обычного входа при сохранённом намерении компании и ссылка на несуществующий якорь handoff-страницы. Оба воспроизведены тестами RED → GREEN. Клавиатура: Enter открывает CTA и FAQ, Escape закрывает Dialog, фокус возвращается на trigger с :focus-visible/solid outline. Демо iframe содержит audience=Компания-исполнитель.
+
+## Публикация и проверка сервера
+
+Опубликованы https://dev.astforum.ru/customers/, https://dev.astforum.ru/suppliers/, https://dev.astforum.ru/work/ и экран следующего шага `/participate/`. Код: https://github.com/mcvvvnukova-bit/forum/pull/11, ветка `codex/PROJ-145-audience-pages`, base `main`. PR прикреплён к чату Codex. Через iab под Кузьмина проверено появление PR #11 во вкладке GitHub задач PROJ-145, PROJ-146, PROJ-147 и родителя PROJ-29; `openproject-links.json`.
+
+Все 26 опубликованных HTML/ресурсов сверены SHA-256 с пакетом; HTTP 200, `served-build.json`. Без dev cookie сервер показывает прежний вход и noindex/nofollow/noarchive. Существующая главная отличается только marker script возврата из Сбер ID; `homepage_only_resume_changed=true` в `deployment.json`. Публичная astforum.ru не изменилась: SHA-256 `afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a` до и после. Backup: `/opt/outline/backups/audience-pages-20261001T223939951849Z` (UTC).
+
+В iab на сервере просмотрены три страницы. Проверены направление «Поставка товаров» в CTA компании и сохранение «Выбрать вакансии» после reload. При существующем личном сеансе CTA подработки показывает подготовку профиля, а CTA компании требует подходящего контекста и сообщает о будущем запуске Диадок. Ошибок console на странице работы нет. Снимки `published-customers.png`, `published-suppliers.png`, `published-work.png` сохранены локально (не входят в Git). Верхний логотип и hero загружены; нижний логотип использует lazy loading вне viewport. Полноценные рабочие формы и новые регистрации не имитировались.

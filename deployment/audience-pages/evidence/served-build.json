@@ -1,0 +1,111 @@
+{
+  "verified": {
+    "customers/index.html": {
+      "status": 200,
+      "sha256": "dc8378c09379a9c69bbfab2dbc97ee7579a16c37c8d8a44201febcac0f1734ae"
+    },
+    "suppliers/index.html": {
+      "status": 200,
+      "sha256": "ccaed07a6a2dada7929b91dcf7ee1db4c4ddfec477349ba2d089fddeb8727d84"
+    },
+    "work/index.html": {
+      "status": 200,
+      "sha256": "ba8eb2f22149108efa943675507ddbebe5ebb9e426f3eef87aed0d864cfe568f"
+    },
+    "participate/index.html": {
+      "status": 200,
+      "sha256": "a2436a8b2dc4a1c35e865407c649c3ef4f74cba6ec26996a2ffd36aae5f64472"
+    },
+    "audience-assets/resume.js": {
+      "status": 200,
+      "sha256": "806b425a39d4d1c48272cf5eaedb977fa80d34bbb4bd3cfa48d57e0d9f277e7d"
+    },
+    "audience-assets/bundles/index-DLvZ9ET2.js": {
+      "status": 200,
+      "sha256": "85c7f0c11784a1922bdc75d967f8b622359ff06771be4fa2093275889c7d816a"
+    },
+    "audience-assets/bundles/index-DPr0FCSi.css": {
+      "status": 200,
+      "sha256": "80d86b9dfad60d3c1e795cf9651c0f41283221b9bcb8f5b7bd42535e1654d1ab"
+    },
+    "audience-assets/media/audience-specialist-left-mirrored.png": {
+      "status": 200,
+      "sha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04"
+    },
+    "audience-assets/media/logo-color-vseinstrumenti.svg": {
+      "status": 200,
+      "sha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4"
+    },
+    "audience-assets/media/logo-color-zelenaya-doroga.png": {
+      "status": 200,
+      "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3"
+    },
+    "audience-assets/media/forum-logo-square.svg": {
+      "status": 200,
+      "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6"
+    },
+    "audience-assets/media/logo-color-polycorr.svg": {
+      "status": 200,
+      "sha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c"
+    },
+    "audience-assets/media/logo-color-bin-leasing.png": {
+      "status": 200,
+      "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e"
+    },
+    "audience-assets/media/logo-color-tool-tech.jpg": {
+      "status": 200,
+      "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55"
+    },
+    "audience-assets/media/audience-supplier.png": {
+      "status": 200,
+      "sha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d"
+    },
+    "audience-assets/media/logo-color-bk-resource.png": {
+      "status": 200,
+      "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067"
+    },
+    "audience-assets/media/logo-color-spectransservice.png": {
+      "status": 200,
+      "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e"
+    },
+    "audience-assets/media/logo-color-geoprom.webp": {
+      "status": 200,
+      "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5"
+    },
+    "audience-assets/media/logo-color-profmaster.svg": {
+      "status": 200,
+      "sha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b"
+    },
+    "audience-assets/media/logo-color-rentaero.svg": {
+      "status": 200,
+      "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4"
+    },
+    "audience-assets/media/hero-illustration-process-interface.png": {
+      "status": 200,
+      "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6"
+    },
+    "audience-assets/media/brand-logo-horizontal-color.png": {
+      "status": 200,
+      "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63"
+    },
+    "audience-assets/media/logo-color-sfera-snab.svg": {
+      "status": 200,
+      "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516"
+    },
+    "audience-assets/media/logo-color-tahoban.svg": {
+      "status": 200,
+      "sha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b"
+    },
+    "audience-assets/media/logo-color-vostok-service.svg": {
+      "status": 200,
+      "sha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74"
+    },
+    "audience-assets/media/audience-customer.png": {
+      "status": 200,
+      "sha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610"
+    }
+  },
+  "root_matches_deployed": true,
+  "anonymous_gate_preserved": true,
+  "public_astforum_sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a"
+}
