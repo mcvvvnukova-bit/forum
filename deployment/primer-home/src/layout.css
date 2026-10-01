@@ -1,4 +1,4 @@
-/* Layout and Primer semantic tokens only. No Forum theme or component overrides. */
+/* Layout and Primer semantic tokens only. Primary Button color bindings live in forum-tokens.css. */
 body { margin: var(--base-size-0); }
 p { margin: var(--base-size-0); }
 html { scroll-padding-top: var(--base-size-24); }

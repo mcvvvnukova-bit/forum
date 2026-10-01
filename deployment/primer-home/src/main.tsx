@@ -8,6 +8,7 @@ import '@primer/primitives/dist/css/functional/size/radius.css'
 import '@primer/primitives/dist/css/functional/spacing/space.css'
 import '@primer/primitives/dist/css/functional/typography/typography.css'
 import '@primer/primitives/dist/css/functional/themes/light.css'
+import './forum-tokens.css'
 import './layout.css'
 import {App} from './App'
 
