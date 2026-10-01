@@ -29,22 +29,19 @@ export function HomePage({onDemo}: {onDemo: (trigger: HTMLButtonElement) => void
         <div className="three-columns">
           {audiences.map((item, index) => (
             <Card key={item.key} className="audience-card">
-              <Card.Icon icon={audienceIcons[index]} />
-              <Card.Heading as="h3">{item.title}</Card.Heading>
-              <Card.Description>{item.description}</Card.Description>
-              <Card.Metadata>
+              <Stack gap="normal" className="audience-content">
+                <Card.Icon icon={audienceIcons[index]} />
+                <Stack.Item grow>
+                  <Stack gap="condensed">
+                    <Card.Heading as="h3">{item.title}</Card.Heading>
+                    <Text as="ol" size="medium" className="audience-steps muted">
+                      {item.steps.map(step => <li key={step}>{step}</li>)}
+                    </Text>
+                  </Stack>
+                </Stack.Item>
                 <Button as="a" href={destinations[item.key]}>{item.action}</Button>
-              </Card.Metadata>
+              </Stack>
             </Card>
-          ))}
-        </div>
-        <div className="three-columns scenarios">
-          {audiences.map((item, index) => (
-            <Stack key={item.key} gap="normal" className="scenario">
-              <Text size="small" weight="semibold" className="muted">0{index + 1}</Text>
-              <Heading as="h3" variant="small">{item.scenarioTitle}</Heading>
-              <Text as="p" className="muted">{item.scenario}</Text>
-            </Stack>
           ))}
         </div>
       </section>

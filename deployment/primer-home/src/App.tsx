@@ -25,7 +25,11 @@ function DestinationPreview({path}: {path: string}) {
           <Card>
             <Card.Heading as="h2">{audience.title}</Card.Heading>
             <Card.Description>{audience.description}</Card.Description>
-            <Card.Metadata><Text>{audience.scenario}</Text></Card.Metadata>
+            <Card.Metadata>
+              <Text as="ol" size="medium" className="audience-steps muted">
+                {audience.steps.map(step => <li key={step}>{step}</li>)}
+              </Text>
+            </Card.Metadata>
           </Card>
         )}
         <Banner title="Локальный просмотр перехода" variant="info">

@@ -21,9 +21,10 @@ section { scroll-margin-top: var(--base-size-24); }
 .section { padding-block: var(--base-size-48); }
 .section-title { margin-bottom: var(--base-size-24); }
 .three-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--base-size-24); }
-.audience-card { height: 100%; }
-.scenarios { margin-top: var(--base-size-32); }
-.scenario { padding-top: var(--base-size-24); border-top: var(--borderWidth-thin) solid var(--borderColor-default); }
+.audience-card { height: 100%; grid-auto-rows: minmax(0, 1fr); }
+.audience-content { height: 100%; align-items: start; }
+.audience-steps { margin: var(--base-size-0); padding-inline-start: var(--base-size-20); }
+.audience-steps > li + li { margin-top: var(--base-size-4); }
 .metrics-section { background: var(--bgColor-muted); border-block: var(--borderWidth-thin) solid var(--borderColor-default); padding-block: var(--base-size-32); }
 .metric-value { font: var(--text-display-shorthand); }
 .demo-section { padding-top: var(--base-size-0); }
