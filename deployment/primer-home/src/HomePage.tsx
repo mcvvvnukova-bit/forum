@@ -14,7 +14,8 @@ export function HomePage({onDemo}: {onDemo: (trigger: HTMLButtonElement) => void
         <div className="container hero-content">
           <Heading as="h1" id="hero-title" className="hero-title">Заказы, исполнители и работа в строительстве</Heading>
           <Text as="p" size="large" className="hero-description muted">
-            Размещайте заказы на материалы, работы и услуги. Находите новые проекты для компании, подработку или работу в штате для себя.
+            Размещайте заказы на материалы, работы и услуги.<br />
+            Находите новые проекты для компании, подработку или работу в штате для себя.
           </Text>
           <Stack direction="horizontal" gap="normal" wrap="wrap" className="hero-actions">
             <Button as="a" href={destinations.login} variant="primary" size="large" trailingVisual={ArrowRightIcon}>Начать работу</Button>
