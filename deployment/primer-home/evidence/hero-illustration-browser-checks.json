@@ -1,0 +1,81 @@
+{
+  "desktop": {
+    "copy": {
+      "height": 278,
+      "width": 604.4375,
+      "x": 155.5,
+      "y": 175.1875
+    },
+    "documentWidth": 1431,
+    "image": {
+      "complete": true,
+      "height": 322.375,
+      "naturalHeight": 1024,
+      "naturalWidth": 1536,
+      "width": 483.5625,
+      "x": 791.9375,
+      "y": 153
+    },
+    "rules": [
+      "Участники платформы проходят верификацию",
+      "Заказы проходят проверку",
+      "Решение о сотрудничестве принимаете вы"
+    ],
+    "scrollWidth": 1431,
+    "viewport": 1446
+  },
+  "tablet": {
+    "columns": "705px",
+    "copy": {
+      "height": 254,
+      "width": 705,
+      "x": 24,
+      "y": 205
+    },
+    "documentWidth": 753,
+    "image": {
+      "complete": true,
+      "height": 373.328125,
+      "width": 560,
+      "x": 96.5,
+      "y": 491
+    },
+    "scrollWidth": 753,
+    "viewport": 768
+  },
+  "mobile": {
+    "columns": "343px",
+    "copy": {
+      "height": 392,
+      "width": 343,
+      "x": 16,
+      "y": 245
+    },
+    "documentWidth": 375,
+    "heroButtons": [
+      {
+        "height": 40,
+        "text": "Начать работу",
+        "width": 158.3515625,
+        "x": 16,
+        "y": 541
+      },
+      {
+        "height": 40,
+        "text": "Записаться на демо",
+        "width": 172.609375,
+        "x": 16,
+        "y": 597
+      }
+    ],
+    "image": {
+      "complete": true,
+      "height": 228.6640625,
+      "width": 343,
+      "x": 16,
+      "y": 669
+    },
+    "scrollWidth": 375,
+    "viewport": 390
+  }
+}

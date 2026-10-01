@@ -11,16 +11,19 @@ export function HomePage({onDemo}: {onDemo: (trigger: HTMLButtonElement) => void
   return (
     <main id="main" tabIndex={-1}>
       <section className="hero" aria-labelledby="hero-title" data-section="hero">
-        <div className="container hero-content">
-          <Heading as="h1" id="hero-title" className="hero-title">Заказы, исполнители и работа в строительстве</Heading>
-          <Text as="p" size="large" className="hero-description muted">
-            Размещайте заказы на материалы, работы и услуги.<br />
-            Находите новые проекты для компании, подработку или работу в штате для себя.
-          </Text>
-          <Stack direction="horizontal" gap="normal" wrap="wrap" className="hero-actions">
-            <Button as="a" href={destinations.login} variant="primary" size="large" trailingVisual={ArrowRightIcon}>Начать работу</Button>
-            <Button size="large" onClick={event => onDemo(event.currentTarget)}>Записаться на демо</Button>
+        <div className="container hero-layout">
+          <Stack gap="spacious" className="hero-content">
+            <Heading as="h1" id="hero-title" className="hero-title">Заказы, исполнители и работа в строительстве</Heading>
+            <Text as="p" size="large" className="hero-description muted">
+              Размещайте заказы на материалы, работы и услуги.<br />
+              Находите новые проекты для компании, подработку или работу в штате для себя.
+            </Text>
+            <Stack direction="horizontal" gap="normal" wrap="wrap" className="hero-actions">
+              <Button as="a" href={destinations.login} variant="primary" size="large" trailingVisual={ArrowRightIcon}>Начать работу</Button>
+              <Button size="large" onClick={event => onDemo(event.currentTarget)}>Записаться на демо</Button>
+            </Stack>
           </Stack>
+          <img src="/assets/hero-illustration-process-interface.png" alt="Интерфейс строительной площадки Форум" width={1536} height={1024} className="hero-illustration" fetchPriority="high" decoding="async" />
         </div>
       </section>
 
