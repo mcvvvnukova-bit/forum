@@ -81,7 +81,10 @@ export function HomePage({onDemo}: {onDemo: (trigger: HTMLButtonElement) => void
           <Stack direction={{narrow: 'vertical', regular: 'horizontal'}} align={{narrow: 'start', regular: 'center'}} gap="spacious" justify="space-between">
             <Stack gap="normal" className="demo-copy">
               <Heading as="h2" variant="large" id="demo-title">{demo.title}</Heading>
-              <Text as="p" size="large" className="muted">{demo.description}</Text>
+              <Text as="p" size="large" className="muted">
+                {demo.description}<br />
+                {demo.followUp}
+              </Text>
             </Stack>
             <Button onClick={event => onDemo(event.currentTarget)} variant="primary" size="large" trailingVisual={ArrowRightIcon}>Выбрать время</Button>
           </Stack>
