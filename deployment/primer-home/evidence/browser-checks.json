@@ -1,0 +1,84 @@
+{
+  "responsive": [
+    {
+      "clientWidth": 1440,
+      "clippedCards": 0,
+      "headingFont": "40px",
+      "scrollWidth": 1440,
+      "width": 1440
+    },
+    {
+      "clientWidth": 753,
+      "clippedCards": 0,
+      "headingFont": "40px",
+      "scrollWidth": 753,
+      "width": 768
+    },
+    {
+      "clientWidth": 375,
+      "clippedCards": 0,
+      "headingFont": "32px",
+      "scrollWidth": 375,
+      "width": 390
+    },
+    {
+      "clientWidth": 305,
+      "clippedCards": 0,
+      "headingFont": "32px",
+      "scrollWidth": 305,
+      "width": 320
+    }
+  ],
+  "contrast": [
+    {
+      "background": "rgb(255, 255, 255)",
+      "foreground": "rgb(89, 99, 110)",
+      "ratio": 6.11,
+      "text": "Заказчикам"
+    },
+    {
+      "background": "rgb(255, 255, 255)",
+      "foreground": "rgb(89, 99, 110)",
+      "ratio": 6.11,
+      "text": "Поставщикам и подрядчикам"
+    },
+    {
+      "background": "rgb(255, 255, 255)",
+      "foreground": "rgb(89, 99, 110)",
+      "ratio": 6.11,
+      "text": "Работа и подработка"
+    },
+    {
+      "background": "rgb(255, 255, 255)",
+      "foreground": "rgb(89, 99, 110)",
+      "ratio": 6.11,
+      "text": "Как это работает"
+    },
+    {
+      "background": "rgb(246, 248, 250)",
+      "foreground": "rgb(31, 35, 40)",
+      "ratio": 14.84,
+      "text": "Заказы, исполнители и работа в строительстве"
+    },
+    {
+      "background": "rgb(246, 248, 250)",
+      "foreground": "rgb(89, 99, 110)",
+      "ratio": 5.74,
+      "text": "Размещайте заказы на материалы, работы и услуги. Находите новые проекты для компании, подработку или работу в штате для себя."
+    },
+    {
+      "background": "rgb(31, 136, 61)",
+      "foreground": "rgb(255, 255, 255)",
+      "ratio": 4.52,
+      "text": "Начать работу"
+    },
+    {
+      "background": "rgb(246, 248, 250)",
+      "foreground": "rgb(37, 41, 46)",
+      "ratio": 13.74,
+      "text": "Записаться на демо"
+    }
+  ],
+  "exactTextChecks": 37,
+  "mismatches": []
+}
