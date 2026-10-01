@@ -1,0 +1,15 @@
+import {fireEvent, render, screen} from '@testing-library/react'
+import {beforeEach, describe, expect, it} from 'vitest'
+import {BaseStyles, ThemeProvider} from '@primer/react'
+import {App} from './App'
+
+function open(path: string) {window.history.replaceState({}, '', path); render(<ThemeProvider colorMode="light"><BaseStyles><App /></BaseStyles></ThemeProvider>)}
+beforeEach(() => {sessionStorage.clear()})
+describe('Audience landing behavior', () => {
+  it('shows both work examples before choosing a format', () => {open('/work/'); expect(screen.getByText('Укладка плитки в помещении')).toBeInTheDocument(); expect(screen.getByText('Монтажник в строительную компанию')).toBeInTheDocument(); expect(screen.getByRole('button', {name:'Выбрать заказы'})).toHaveAttribute('aria-pressed','false')})
+  it('filters examples and steps while keeping the format choices', () => {open('/work/');fireEvent.click(screen.getByRole('button',{name:'Выбрать заказы'}));expect(screen.queryByText('Монтажник в строительную компанию')).not.toBeInTheDocument(); expect(screen.getByRole('button',{name:'Выбрать вакансии'})).toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Выбрать вакансии'}));expect(screen.queryByText('Укладка плитки в помещении')).not.toBeInTheDocument();expect(screen.getByText('Монтажник в строительную компанию')).toBeInTheDocument()})
+  it('does not send an unavailable vacancy action to procurement', () => {open('/work/');expect(screen.getAllByText('Работа в штате — скоро').length).toBeGreaterThan(0);expect(screen.queryByRole('link',{name:'Найти вакансию'})).not.toBeInTheDocument();expect(screen.queryByRole('button',{name:'Найти вакансию'})).not.toBeInTheDocument()})
+  it('preserves supplier goods intent through the registration handoff', () => {open('/suppliers/');fireEvent.click(screen.getByRole('button',{name:'Хочу поставлять товары'}));expect(screen.getByRole('dialog')).toHaveTextContent('Регистрация компании-исполнителя');expect(screen.getByRole('dialog')).toHaveTextContent('Поставка товаров');expect(JSON.parse(sessionStorage.getItem('forum.public.intent')!)).toMatchObject({audience:'supplier',direction:'goods',action:'find-orders'})})
+  it('keeps the chosen supplier direction for the final CTA', () => {open('/suppliers/');fireEvent.click(screen.getByRole('button',{name:'Хочу выполнять работы и услуги'}));fireEvent.click(screen.getByRole('button',{name:'Вернуться к странице'}));fireEvent.click(screen.getAllByRole('button',{name:'Найти заказы'})[1]);expect(screen.getByRole('dialog')).toHaveTextContent('Работы и услуги')})
+  it('starts the customer path with the order intent', () => {open('/customers/');fireEvent.click(screen.getAllByRole('button',{name:'Разместить заказ'})[0]);expect(screen.getByRole('dialog')).toHaveTextContent('Регистрация компании-заказчика');expect(JSON.parse(sessionStorage.getItem('forum.public.intent')!)).toMatchObject({audience:'customer',action:'create-order'})})
+})

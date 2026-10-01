@@ -1,0 +1,30 @@
+/* Primary Button colors only, approved by the user on 2026-10-01.
+ * Source: Figma collection Forum / Light, VariableCollectionId:107:73.
+ * Preserve the source primitive → semantic → Primer aliases.
+ */
+:root,
+[data-color-mode="light"][data-light-theme="light"] {
+  --forum-primitive-accent: #ff551a;
+  --forum-primitive-accent-hover: #ff7140;
+  --forum-primitive-accent-pressed: #e64a12;
+  --forum-primitive-accent-muted: #ffd4b2;
+  --forum-primitive-black: #040404;
+  --forum-primitive-text-secondary: #4a4a4a;
+
+  --forum-color-bg-accent: var(--forum-primitive-accent);
+  --forum-color-bg-accent-hover: var(--forum-primitive-accent-hover);
+  --forum-color-bg-accent-pressed: var(--forum-primitive-accent-pressed);
+  --forum-color-bg-accent-muted: var(--forum-primitive-accent-muted);
+  --forum-color-text-on-accent: var(--forum-primitive-black);
+  --forum-color-text-secondary: var(--forum-primitive-text-secondary);
+
+  --button-primary-bgColor-rest: var(--forum-color-bg-accent);
+  --button-primary-bgColor-hover: var(--forum-color-bg-accent-hover);
+  --button-primary-bgColor-active: var(--forum-color-bg-accent-pressed);
+  --button-primary-bgColor-disabled: var(--forum-color-bg-accent-muted);
+  --button-primary-fgColor-rest: var(--forum-color-text-on-accent);
+  --button-primary-iconColor-rest: var(--button-primary-fgColor-rest);
+  --button-primary-fgColor-disabled: var(--forum-color-text-secondary);
+  --button-primary-iconColor-disabled: var(--button-primary-fgColor-disabled);
+  --button-primary-shadow-selected: var(--shadow-inset);
+}

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env.local
+evidence/*.png
+evidence/*.jpg
+
+__pycache__/
