@@ -30,7 +30,7 @@ export function SiteHeader({authorized = false}: {authorized?: boolean}) {
         </Link>
         <nav aria-label="Основная навигация" className="header-navigation">
           {audiences.map(item => <Link key={item.key} href={destinations[item.key]} muted>{item.nav}</Link>)}
-          <Link href="/#rules" muted>Как это работает</Link>
+          <Link href="/#rules" muted>О платформе</Link>
         </nav>
         <Button as="a" href={authorized ? destinations.cabinet : destinations.login} trailingVisual={ArrowRightIcon}>
           {authorized ? 'В кабинет' : 'Войти'}

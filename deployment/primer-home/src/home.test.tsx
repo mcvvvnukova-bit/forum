@@ -43,7 +43,7 @@ describe('PUB.01.01.01', () => {
     expect(screen.getByRole('link', {name: 'Я заказчик'})).toHaveAttribute('href', '/customers/')
     expect(screen.getByRole('link', {name: 'Я подрядчик'})).toHaveAttribute('href', '/suppliers/')
     expect(screen.getByRole('link', {name: 'Я ищу работу'})).toHaveAttribute('href', '/work/')
-    expect(screen.getByRole('link', {name: 'Как это работает'})).toHaveAttribute('href', '/#rules')
+    expect(screen.getByRole('link', {name: 'О платформе'})).toHaveAttribute('href', '/#rules')
   })
 
   it.each(['Записаться на демо', 'Выбрать время'])('opens the same booking widget from %s and closes with Escape', async name => {
