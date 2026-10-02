@@ -1,6 +1,6 @@
 Модуль: [PUB: Публичная часть и знакомство с платформой](https://docs.astforum.ru/doc/pub-publichnaya-chast-i-znakomstvo-s-platformoj-wVSYA9oLAL)\nЭпик: [PUB.02: Действия на главной странице](https://docs.astforum.ru/doc/pub02-dejstviya-na-glavnoj-stranice-GZ8Y4anCGh)\nФича: `PUB.02.02: Переход к регистрации и входу`\nЗадача: [PROJ-31](https://roadmap.astforum.ru/work_packages/PROJ-31/activity)
 
-Тестовый контур: 
+Тестовый контур:
 
 * [dev.astforum.ru/login](https://dev.astforum.ru/login)
 * [dev.astforum.ru/register](https://dev.astforum.ru/register)\n
