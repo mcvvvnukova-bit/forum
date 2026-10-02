@@ -1,0 +1,78 @@
+[
+  {
+    "header": [
+      {
+        "href": "#main",
+        "label": "Перейти к содержанию"
+      },
+      {
+        "href": "/",
+        "label": ""
+      },
+      {
+        "href": "/customers/",
+        "label": "Заказчикам"
+      },
+      {
+        "href": "/suppliers/",
+        "label": "Поставщикам и подрядчикам"
+      },
+      {
+        "href": "/work/",
+        "label": "Работа и подработка"
+      },
+      {
+        "href": "/#rules",
+        "label": "Как это работает"
+      },
+      {
+        "href": "/auth/sber-id/start?intent=login",
+        "label": "Войти"
+      }
+    ],
+    "legal": [
+      "12px",
+      "12px"
+    ],
+    "overflow": false,
+    "path": "/suppliers/"
+  },
+  {
+    "header": [
+      {
+        "href": "#main",
+        "label": "Перейти к содержанию"
+      },
+      {
+        "href": "/",
+        "label": ""
+      },
+      {
+        "href": "/customers/",
+        "label": "Заказчикам"
+      },
+      {
+        "href": "/suppliers/",
+        "label": "Поставщикам и подрядчикам"
+      },
+      {
+        "href": "/work/",
+        "label": "Работа и подработка"
+      },
+      {
+        "href": "/#rules",
+        "label": "Как это работает"
+      },
+      {
+        "href": "/auth/sber-id/start?intent=login",
+        "label": "Войти"
+      }
+    ],
+    "legal": [
+      "12px",
+      "12px"
+    ],
+    "overflow": false,
+    "path": "/work/"
+  }
+]

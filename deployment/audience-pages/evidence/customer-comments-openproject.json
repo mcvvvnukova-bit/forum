@@ -1,0 +1,24 @@
+{
+  "user": "Ассистент Кузьмина",
+  "links": [
+    {
+      "workPackage": "PROJ-145",
+      "href": "https://github.com/mcvvvnukova-bit/forum/pull/11"
+    },
+    {
+      "workPackage": "PROJ-146",
+      "title": "US: PUB.01.01.03: Страница для поставщиков и подрядчиков (PROJ-146) | АСТ \"Форум\" | OpenProject",
+      "href": "https://github.com/mcvvvnukova-bit/forum/pull/11"
+    },
+    {
+      "workPackage": "PROJ-147",
+      "title": "US: PUB.01.01.04: Страница для физических лиц: работа и подработка (PROJ-147) | АСТ \"Форум\" | OpenProject",
+      "href": "https://github.com/mcvvvnukova-bit/forum/pull/11"
+    },
+    {
+      "workPackage": "PROJ-29",
+      "title": "Фича: PUB.01.01: Главная страница и сценарии работы (PROJ-29) | АСТ \"Форум\" | OpenProject",
+      "href": "https://github.com/mcvvvnukova-bit/forum/pull/11"
+    }
+  ]
+}

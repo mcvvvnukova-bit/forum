@@ -14,4 +14,10 @@
 
 Typecheck, ESLint, 18 существующих Vitest tests и production build проходят. Primer validator: 0 ошибок; PDS007 предупреждения на существующие/допустимые props и layout literals проверены. Новые literal/layout mirror tests не добавлялись по developer instruction. Семантические aliases Forum / Light не менялись; используются подтверждённые ранее значения. Новых brand mappings и fallback цветов нет. Полный VoiceOver не проверен.
 
-Публикация, remote SHA и четыре ссылки OpenProject фиксируются после выкладки.
+Публикация завершена: `/customers/`, `/suppliers/`, `/work/`, `/participate/`; 26 served файлов совпали SHA-256 с package. Anonymous gate/noindex сохранены, публичная astforum.ru имеет прежний hash. Backup `/opt/outline/backups/audience-pages-20261002T120033586609Z`. Главная изменилась только marker возврата Сбер ID, `homepage_only_resume_changed=true`. JSON доказательства: customer-comments-deployment.json и customer-comments-served.json.
+
+В iab опубликованные правки видны после reload. Shared header и legal 12px проверены также на suppliers/work; customer-comments-shared-layout.json. Текущий сеанс физлица истёк: authenticated flow в этом проходе не завершался; постоянная подпись header не зависит от useSession по реализации и независимому ревью. Published снимки customer-comments-published-hero.png и customer-comments-published-final.png сохранены локально.
+
+Независимое ревью delta 2d089eb..da3621b: Critical 0, Important 0, Minor 0. Внешние Sber/Диадок/заказы и фактическое бронирование не проверялись, backend не менялся; проверен существующий endpoint URL, intent и Dialog. Цена ошибочного предположения — ранее существовавшая неисправность зависимого сервиса. Публикация/remote/OP отложены reviewer до Task 2 и проверены отдельно.
+
+Под Кузьмина API users/me и browser account совпали с user 8; PR #11 виден во вкладке GitHub PROJ-145, PROJ-146, PROJ-147 и PROJ-29. customer-comments-openproject.json содержит проверенные href. PR прикреплён к текущему чату.
