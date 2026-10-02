@@ -11,6 +11,7 @@ import '@primer/primitives/dist/css/functional/typography/typography.css'
 import '@primer/primitives/dist/css/functional/motion/motion.css'
 import '@primer/primitives/dist/css/functional/themes/light.css'
 import './sber-tokens.css'
+import './sber-fonts.css'
 import './auth.css'
 import {PublicAuth} from './PublicAuth'
 let root = document.getElementById('public-auth-root')

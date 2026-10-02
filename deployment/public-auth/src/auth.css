@@ -18,6 +18,8 @@
   white-space: normal;
   font-size: var(--sber-button-label-size);
   font-weight: var(--sber-button-label-weight);
+  font-family: var(--sber-button-font-family);
+  font-stretch: extra-condensed;
   line-height: var(--text-title-lineHeight-small);
 }
 .public-auth-mark {width: var(--base-size-24); height: var(--base-size-24); flex-shrink: 0;}
@@ -27,7 +29,15 @@
 .public-auth-page {display: grid; place-items: center; min-height: 100dvh; padding: var(--base-size-16); background: var(--bgColor-muted);}
 .public-auth-panel {box-sizing: border-box; width: min(100%, 560px); background: var(--bgColor-default); border: var(--borderWidth-thin) solid var(--borderColor-default); border-radius: var(--borderRadius-large);}
 
-.public-auth-label {display: block; white-space: normal; overflow-wrap: anywhere;}
+.public-auth-label {display: block; white-space: nowrap;}
 .public-auth-panel {min-width: 0;}
 
-.public-auth-label-layout {display: grid; grid-template-columns: var(--base-size-24) minmax(0, 1fr); align-items: center; gap: var(--base-size-8); inline-size: max-content; max-inline-size: min(20rem, calc(100vw - var(--base-size-96) - var(--base-size-16)));}
+.public-auth-label-layout {display: grid; grid-template-columns: var(--base-size-24) max-content; align-items: center; gap: var(--base-size-8); inline-size: max-content;}
+
+@media (max-width: 30rem) {
+  .public-auth-modal-body {padding-inline: var(--base-size-8);}
+}
+@media (max-width: 21.25rem) {
+  .public-auth-page {padding-inline: 0;}
+  .public-auth-label-layout {gap: var(--base-size-4);}
+}

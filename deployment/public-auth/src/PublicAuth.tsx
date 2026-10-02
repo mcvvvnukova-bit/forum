@@ -40,6 +40,9 @@ function ModalHeader({title, dialogLabelId, onClose}: DialogHeaderProps) {
     <IconButton icon={XIcon} aria-label="Закрыть окно" variant="invisible" onClick={() => onClose('close-button')} />
   </Dialog.Header>
 }
+function ModalBody({children}: React.PropsWithChildren) {
+  return <Dialog.Body className="public-auth-modal-body">{children}</Dialog.Body>
+}
 export function PublicAuth({navigate = url => location.assign(url)}: {navigate?: (url: string) => void}) {
   const [view, setView] = useState<View>(() => {const mode = modeFromPath(); return mode ? {mode, modal: false} : null})
   const [error, setError] = useState<string | null>(() => new URLSearchParams(location.search).get('auth_error'))
@@ -129,7 +132,7 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
     {session.kind === 'authenticated' ? <Text as="p" role="status">Вы уже вошли в аккаунт</Text> : <>
       <Button variant="primary" size="large" className="public-auth-sber"
         disabled={session.kind !== 'guest' || redirecting || blocked || unavailable} onClick={start}>
-        <span className="public-auth-label-layout"><img src={sberMark} alt="" aria-hidden className="public-auth-mark" /><span className="public-auth-label">{mode === 'register' ? 'Зарегистрироваться через Сбер ID' : 'Войти по Сбер ID'}</span></span>
+        <span className="public-auth-label-layout"><img src={sberMark} alt="" aria-hidden className="public-auth-mark" /><span className="public-auth-label">{mode === 'register' ? 'Зарегистрироваться по Сбер ID' : 'Войти по Сбер ID'}</span></span>
       </Button>
       {session.kind === 'checking' && <Stack direction="horizontal" align="center" gap="normal"><Spinner size="small" /><Text role="status">Проверяем вход…</Text></Stack>}
       {redirecting && <Text role="status">Переходим к Сбер ID…</Text>}
@@ -146,9 +149,9 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
       else start()
     }}>Повторить</Button>}
   </Stack>
-  if (view.modal) return <Dialog title={title} renderHeader={ModalHeader} returnFocusRef={returnFocusRef}
-    onClose={() => {setView(null); history.back()}} width="min(560px, calc(100vw - var(--base-size-32)))" position="center">{body}</Dialog>
-  return <main className="public-auth-page"><Stack gap="spacious" padding={{narrow:"normal", regular:"spacious"}} className="public-auth-panel">
+  if (view.modal) return <Dialog title={title} renderHeader={ModalHeader} renderBody={ModalBody} returnFocusRef={returnFocusRef}
+    onClose={() => {setView(null); history.back()}} width="min(560px, max(calc(100vw - var(--base-size-32)), min(320px, 100vw)))" style={{maxWidth:'100vw'}} position="center">{body}</Dialog>
+  return <main className="public-auth-page"><Stack gap="spacious" padding={{narrow:"condensed", regular:"spacious"}} className="public-auth-panel">
     <Link href="/">АСТ Форум</Link><Heading as="h1" variant="large">{title}</Heading>{body}
   </Stack></main>
 }

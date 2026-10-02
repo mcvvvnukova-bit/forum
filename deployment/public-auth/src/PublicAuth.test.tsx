@@ -31,7 +31,7 @@ describe('public authentication', () => {
     expect(location.pathname).toBe('/register')
     expect(screen.getByRole('heading', {name:'Создайте аккаунт'})).toBeInTheDocument()
     expect(navigate).not.toHaveBeenCalled()
-    const button=await screen.findByRole('button', {name:'Зарегистрироваться через Сбер ID'})
+    const button=await screen.findByRole('button', {name:'Зарегистрироваться по Сбер ID'})
     await waitFor(() => expect(button).toBeEnabled())
     fireEvent.click(button); fireEvent.click(button)
     expect(navigate).toHaveBeenCalledExactlyOnceWith('/auth/sber-id/start?intent=register&subject=individual')
@@ -45,7 +45,7 @@ describe('public authentication', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('link', {name:'АСТ Форум'})).toHaveAttribute('href','/')
     expect(location.search).toBe('')
-    expect(await screen.findByRole('button', {name:'Зарегистрироваться через Сбер ID'})).toBeEnabled()
+    expect(await screen.findByRole('button', {name:'Зарегистрироваться по Сбер ID'})).toBeEnabled()
   })
   it('shows a retry when the session cannot be verified instead of enabling IAM', async () => {
     history.replaceState(null, '', '/login')
@@ -73,7 +73,7 @@ describe('public authentication', () => {
   it('treats sber unavailability as a disabled provider with manual retry', async () => {
     history.replaceState(null, '', '/register?auth_error=sber_unavailable'); mount()
     expect(await screen.findByText('Регистрация через Сбер ID пока недоступна')).toBeInTheDocument()
-    expect(screen.getByRole('button', {name:'Зарегистрироваться через Сбер ID'})).toBeDisabled()
+    expect(screen.getByRole('button', {name:'Зарегистрироваться по Сбер ID'})).toBeDisabled()
     expect(screen.getByRole('link', {name:'Записаться на демо'})).toHaveAttribute('href', '/#demo')
   })
   it('closes a modal after Back and retains public content', async () => {

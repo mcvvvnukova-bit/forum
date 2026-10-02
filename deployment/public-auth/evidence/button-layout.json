@@ -1,0 +1,90 @@
+[
+  {
+    "buttonInsideViewport": true,
+    "buttonWidth": 301.078125,
+    "fontSize": "19px",
+    "labelInsideButton": true,
+    "lineCount": 1,
+    "mode": "modal",
+    "scrollWidth": 320,
+    "text": "Зарегистрироваться по Сбер ID",
+    "viewport": 320
+  },
+  {
+    "buttonInsideViewport": true,
+    "buttonWidth": 305.078125,
+    "fontSize": "19px",
+    "labelInsideButton": true,
+    "lineCount": 1,
+    "mode": "modal",
+    "scrollWidth": 360,
+    "text": "Зарегистрироваться по Сбер ID",
+    "viewport": 360
+  },
+  {
+    "buttonInsideViewport": true,
+    "buttonWidth": 305.078125,
+    "fontSize": "19px",
+    "labelInsideButton": true,
+    "lineCount": 1,
+    "mode": "modal",
+    "scrollWidth": 768,
+    "text": "Зарегистрироваться по Сбер ID",
+    "viewport": 768
+  },
+  {
+    "buttonInsideViewport": true,
+    "buttonWidth": 305.078125,
+    "fontSize": "19px",
+    "labelInsideButton": true,
+    "lineCount": 1,
+    "mode": "modal",
+    "scrollWidth": 1280,
+    "text": "Зарегистрироваться по Сбер ID",
+    "viewport": 1280
+  },
+  {
+    "buttonInsideViewport": true,
+    "buttonWidth": 305.078125,
+    "fontSize": "19px",
+    "labelInsideButton": true,
+    "lineCount": 1,
+    "mode": "standalone",
+    "scrollWidth": 1280,
+    "text": "Зарегистрироваться по Сбер ID",
+    "viewport": 1280
+  },
+  {
+    "buttonInsideViewport": true,
+    "buttonWidth": 305.078125,
+    "fontSize": "19px",
+    "labelInsideButton": true,
+    "lineCount": 1,
+    "mode": "standalone",
+    "scrollWidth": 360,
+    "text": "Зарегистрироваться по Сбер ID",
+    "viewport": 360
+  },
+  {
+    "buttonInsideViewport": true,
+    "buttonWidth": 301.078125,
+    "fontSize": "19px",
+    "labelInsideButton": true,
+    "lineCount": 1,
+    "mode": "standalone",
+    "scrollWidth": 320,
+    "text": "Зарегистрироваться по Сбер ID",
+    "viewport": 320
+  },
+  {
+    "buttonInsideViewport": true,
+    "buttonWidth": 305.078125,
+    "fontSize": "19px",
+    "labelInsideButton": true,
+    "lineCount": 1,
+    "mode": "standalone",
+    "scrollWidth": 768,
+    "text": "Зарегистрироваться по Сбер ID",
+    "viewport": 768
+  }
+]
