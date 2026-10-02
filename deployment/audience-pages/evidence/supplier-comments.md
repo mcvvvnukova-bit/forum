@@ -10,4 +10,10 @@ Codex iab: rules and demo text match the live homepage; comparison's next sectio
 
 Observed responsive widths: 1679/768 two columns, 390/320 one column, no horizontal document overflow. Long buttons shortened to «Хочу проектировать»/«Хочу предлагать лизинг» after checking clipping. All four button widths fit their card content area at 320 px (225 px available). Scoped temporary viewport overrides reset. Browser data: supplier-comments-local.json. Copy/layout checked manually, no mirror tests added.
 
-Independent read-only review of the six source files from 82246d5: Critical 0 / Important 0 / Minor 0. Publication pending; no completion claim yet.
+Independent read-only review of the six source files from 82246d5: Critical 0 / Important 0 / Minor 0.
+
+Published via existing deploy.py, backup `/opt/outline/backups/audience-pages-20261002T122407950799Z`. SHA-256 of all 26 served files matches the local package. Root homepage SHA unchanged, anonymous access still shows the password gate and noindex, production astforum.ru SHA unchanged. supplier-comments-deployment.json and supplier-comments-served.json record the checks.
+
+Published page reloaded in iab: four directions, removed notes, exact steps, standard rules and demo verified in DOM. Construction action shows correct direction. Live company demo URL and Enter/Escape/focus confirmed. Screenshot supplier-comments-published-cards.png retained locally; supplier-comments-published.json records the observed content.
+
+Code commit 676d5e0 verified in GitHub; PR #11 updated with all OP# references and attached to this chat. OpenProject account menu shows Ассистент Кузьмина. GitHub tabs of PROJ-146, PROJ-145, PROJ-147 and PROJ-29 each show mcvvvnukova-bit/forum#11 with the expected URL; supplier-comments-openproject.json records titles and links. Evidence committed and pushed separately; final local/remote/PR head equality is checked after this push.

@@ -19,6 +19,6 @@ Contract: existing Intent adds design/construction/leasing; strict validation an
 
 Files: evidence/supplier-comments.md and verification JSON. Interface: dist/site -> unchanged scripts/deploy.py.
 
-- [ ] Upload and deploy with backup; verify every served file, homepage/gate and production hash.
-- [ ] Verify published supplier page after reload in iab and save screenshot.
-- [ ] Commit evidence, push all task commits, update/attach PR #11 and verify OpenProject GitHub links and remote head.
+- [x] Upload and deploy with backup; verify every served file, homepage/gate and production hash.
+- [x] Verify published supplier page after reload in iab and save screenshot.
+- [x] Commit evidence, push all task commits, update/attach PR #11 and verify OpenProject GitHub links and remote head. Four links verified under Кузьмина; remote head is checked after the final evidence push.
