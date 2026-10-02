@@ -19,4 +19,4 @@ Interfaces: existing per-card direction/onAction, intent validation/storage and 
 - [x] All four JSON action strings become «Приступить к работе»; supplier Card className=audience-card; extend existing flexible row rule to `.two-columns > .audience-card`.
 - [x] Run typecheck/lint/25tests/build/package, 3 deployment tests, Primer validator; iab compare paired button top coordinates at1679/768, no overflow at390/320, correct directions on keyboard handoff. One independent review.
 - [x] Commit PROJ-146, stage/deploy with backup, verify all served hashes/root/gate/production; inspect fresh page and save live screenshot.
-- [ ] Commit evidence, push/update/attach PR11, verify OP GitHub links and remote/local/PR HEAD equality.
+- [x] Commit evidence, push/update/attach PR11, verify OP GitHub links and remote/local/PR HEAD equality.
