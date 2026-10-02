@@ -29,7 +29,7 @@ export function AudiencePage({kind, onAction, onDemo}: Props) {
       {isCustomer ? <InfoCards items={content.customers.needs} /> : <div className="two-columns">{content.suppliers.needs.map(item => {
         const direction = item.direction
         if (!isSupplierDirection(direction)) throw new Error(`Unknown supplier direction: ${direction}`)
-        return <Card key={direction}><Stack gap="spacious" className="audience-content">
+        return <Card key={direction} className="audience-card"><Stack gap="spacious" className="audience-content">
           <Card.Icon icon={supplierIcons[direction]} /><Stack.Item grow><Card.Heading as="h3">{item.title}</Card.Heading><Card.Description>{item.description}</Card.Description></Stack.Item>
           <Button onClick={() => act(direction)}>{item.action}</Button>
         </Stack></Card>

@@ -25,7 +25,7 @@ section { scroll-margin-top: var(--base-size-24); }
 .section { padding-block: var(--base-size-48); }
 .section-title { margin-bottom: var(--base-size-24); }
 .three-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--base-size-24); }
-.three-columns > .audience-card { height: 100%; grid-auto-rows: minmax(0, 1fr); }
+.three-columns > .audience-card, .two-columns > .audience-card { height: 100%; grid-auto-rows: minmax(0, 1fr); }
 .audience-content { height: 100%; align-items: start; }
 .audience-steps { margin: var(--base-size-0); padding-inline-start: var(--base-size-20); }
 .audience-steps > li + li { margin-top: var(--base-size-4); }
