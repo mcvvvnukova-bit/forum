@@ -1,11 +1,11 @@
 import {Banner, Button, Heading, Link, Spinner, Stack, Text} from '@primer/react'
 import type {Intent} from './AudiencePage'
-import {sessionContext} from './intent'
+import {isSupplierDirection, sessionContext, supplierDirectionLabels} from './intent'
 import type {Session} from './intent'
 export function Participation({intent, session, loading, unavailable, onDemo, onReturn}: {intent: Intent; session: Session | null; loading: boolean; unavailable: boolean; onDemo: (trigger: HTMLButtonElement, audience: string) => void; onReturn: () => void}) {
   const individual = intent.audience === 'individual'
   const context = sessionContext(session)
-  const direction = intent.direction === 'goods' ? 'Поставка товаров' : intent.direction === 'services' ? 'Работы и услуги' : intent.audience === 'customer' ? 'Размещение заказа' : 'Поиск подходящих заказов'
+  const direction = isSupplierDirection(intent.direction) ? supplierDirectionLabels[intent.direction] : intent.audience === 'customer' ? 'Размещение заказа' : 'Поиск подходящих заказов'
   const error = new URLSearchParams(window.location.search).get('auth_error')
   return <Stack gap="spacious">
     <Text as="p" weight="semibold">{direction}</Text>
