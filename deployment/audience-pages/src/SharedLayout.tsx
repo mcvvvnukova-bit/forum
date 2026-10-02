@@ -40,7 +40,7 @@ export function SiteHeader() {
   )
 }
 
-export function SiteFooter() {
+export function SiteFooter({onDemo}: {onDemo: (trigger: HTMLButtonElement) => void}) {
   return (
     <footer className="site-footer" id="contacts">
       <div className="container footer-grid">
@@ -50,9 +50,10 @@ export function SiteFooter() {
           </Link>
           <Text as="p" className="muted">АСТ Форум — заказы, исполнители<br />и работа в строительстве</Text>
         </Stack>
-        <Stack gap="normal" as="nav" aria-label="Для участников">
+        <Stack gap="normal" as="nav" aria-label="Для участников" align="start">
           <Heading as="h2" variant="small">Для участников</Heading>
           {audiences.map(item => <Link key={item.key} href={destinations[item.key]} muted>{item.nav}</Link>)}
+          <Link as="button" type="button" muted onClick={event => onDemo(event.currentTarget)}>Записаться на демо</Link>
         </Stack>
         <Stack gap="condensed">
           <Heading as="h2" variant="small">Контакты</Heading>

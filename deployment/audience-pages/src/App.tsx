@@ -33,7 +33,7 @@ export function App() {
   return <>
     <SiteHeader />
     {path === '/' ? <HomePage onDemo={openDemo} /> : path === '/customers/' || path === '/suppliers/' ? <AudiencePage kind={path === '/customers/' ? 'customers' : 'suppliers'} onAction={openAction} onDemo={openDemo} /> : path === '/work/' ? <WorkPage onAction={openAction} /> : path === '/participate/' ? <ParticipationPage>{resumedIntent ? participation(resumedIntent, () => {window.location.assign(resumedIntent.returnTo)}) : <Stack gap="normal"><Text as="p">Войдите в существующий аккаунт через Сбер ID или выберите направление работы.</Text><Button as="a" href="/auth/sber-id/start?intent=login">Войти через Сбер ID</Button><Link href="/customers/">Я заказчик</Link><Link href="/suppliers/">Я поставщик или подрядчик</Link><Link href="/work/">Я ищу работу</Link><Banner title="Регистрация компаний — скоро" variant="info">Мы готовим регистрацию через Контур.Диадок.</Banner></Stack>}</ParticipationPage> : <main id="main" className="container destination-main"><Heading as="h1">Страница не найдена</Heading><Link href="/">На главную</Link></main>}
-    <SiteFooter />
+    <SiteFooter onDemo={trigger => openDemo(trigger, path === '/customers/' ? 'Заказчик' : path === '/suppliers/' ? 'Компания-исполнитель' : undefined)} />
     {demoOpen && <DemoDialog audience={demoAudience} onClose={() => setDemoOpen(false)} returnFocusRef={returnFocusRef} />}
     {intent && <Dialog title={intent.audience === 'customer' ? 'Регистрация компании-заказчика' : intent.audience === 'supplier' ? 'Регистрация компании-исполнителя' : 'Регистрация через Сбер ID'} onClose={() => setIntent(null)} returnFocusRef={returnFocusRef}>
       {participation(intent, () => setIntent(null))}

@@ -43,7 +43,7 @@ export function AudiencePage({kind, onAction, onDemo}: Props) {
     <Faq title={isCustomer ? 'Часто задаваемые вопросы' : 'Вопросы поставщиков и подрядчиков'} items={c.faq} />
     <section className="section container" aria-labelledby="final-title"><Card className={isCustomer ? 'final-action-card' : undefined}><Stack gap="spacious" direction={isCustomer ? {narrow:'vertical', regular:'horizontal'} : 'vertical'} align={isCustomer ? {narrow:'start', regular:'center'} : undefined} justify="space-between">
       <Stack gap="normal" className={isCustomer ? 'final-action-copy' : undefined}><Heading as="h2" variant="large" id="final-title">{c.final[0]}</Heading><Text as="p" size="large" className="muted">{c.final[1]}</Text></Stack>
-      <Stack direction={isCustomer ? 'vertical' : 'horizontal'} gap="normal" wrap="wrap" className={isCustomer ? 'final-action-buttons' : 'hero-actions'}><ActionButton label={c.final[2]} onClick={() => act()} /><Button size="large" onClick={e => onDemo(e.currentTarget, audience)}>Записаться на демо</Button></Stack>
+      <Stack direction={isCustomer ? 'vertical' : 'horizontal'} gap="normal" wrap="wrap" className={isCustomer ? 'final-action-buttons' : 'hero-actions'}><ActionButton label={c.final[2]} onClick={() => act()} />{!isCustomer && <Button size="large" onClick={e => onDemo(e.currentTarget, audience)}>Записаться на демо</Button>}</Stack>
     </Stack></Card></section>
   </main>
 }
