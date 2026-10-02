@@ -2,3 +2,7 @@
 .DS_Store
 .secrets/
 .worktrees/
+
+deployment/public-auth/node_modules/
+deployment/public-auth/dist/
+deployment/public-auth/scripts/__pycache__/
