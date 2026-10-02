@@ -143,7 +143,7 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
   </Stack>
   if (view.modal) return <Dialog title={title} renderHeader={ModalHeader} returnFocusRef={returnFocusRef}
     onClose={() => {setView(null); history.back()}} width="min(560px, calc(100vw - var(--base-size-32)))" position="center">{body}</Dialog>
-  return <main className="public-auth-page"><Stack gap="spacious" className="public-auth-panel">
+  return <main className="public-auth-page"><Stack gap="spacious" padding={{narrow:"normal", regular:"spacious"}} className="public-auth-panel">
     <Link href="/">АСТ Форум</Link><Heading as="h1" variant="large">{title}</Heading>{body}
   </Stack></main>
 }

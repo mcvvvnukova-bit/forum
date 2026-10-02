@@ -22,4 +22,4 @@
 .public-auth-switch {margin: 0; text-align: center;}
 .public-auth-header {display: flex; align-items: center; justify-content: space-between; gap: var(--base-size-16); padding: var(--base-size-24);}
 .public-auth-page {display: grid; place-items: center; min-height: 100dvh; padding: var(--base-size-16); background: var(--bgColor-muted);}
-.public-auth-panel {box-sizing: border-box; width: min(100%, 560px); padding: var(--base-size-32); background: var(--bgColor-default); border: var(--borderWidth-thin) solid var(--borderColor-default); border-radius: var(--borderRadius-large);}
+.public-auth-panel {box-sizing: border-box; width: min(100%, 560px); background: var(--bgColor-default); border: var(--borderWidth-thin) solid var(--borderColor-default); border-radius: var(--borderRadius-large);}
