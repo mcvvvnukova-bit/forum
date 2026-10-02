@@ -27,5 +27,5 @@ Interfaces: same /#rules nav label, same measured logo offset; staged dist/index
 
 - [x] Rename homepage nav and extend measured brand offset to footer. Run typecheck/lint/tests/build:dev and Primer validator; existing deploy tests. Expected no regression.
 - [x] Commit PROJ-144. One fresh final review of both current deltas and public intent integration; resolve important findings with meaningful tests.
-- [ ] Stage unique release dirs. Publish audience routes/assets with backup; package homepage dist with existing callback marker and publish root/assets with backup. Verify actual hashes for all files, gateway/health, protected server fingerprints, production hash. IAB reopen and inspect live examples/FAQ/CTA/chrome; save screenshots.
-- [ ] Commit evidence, push both branches, update/attach PR11/12 with all OP refs, verify OpenProject Github links underKuzmina and local/remote/PR heads. Mark plan complete and remove only this plan's scratch.
+- [x] Stage unique release dirs. Publish audience routes/assets with backup; package homepage dist with existing callback marker and publish root/assets with backup. Verify actual hashes for all files, gateway/health, protected server fingerprints, production hash. IAB reopen and inspect live examples/FAQ/CTA/chrome; save screenshots.
+- [x] Commit evidence, push both branches, update/attach PR11/12 with all OP refs, verify OpenProject Github links underKuzmina and local/remote/PR heads. Mark plan complete and remove only this plan's scratch.

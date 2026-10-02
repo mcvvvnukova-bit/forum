@@ -7,7 +7,7 @@
   },
   "audienceCodeCommit": "2e33680db482609e8aa8a5e8eb9ed2dc63f7a4f6",
   "homepageCodeCommit": "96bfee47afa6794b1a55ade3dbffd39a08ee9a15",
-  "publication": "pending-ssh-connect-timeout",
+  "publication": "published-and-verified",
   "sshHost": "forum-prod",
   "sshAddress": "84.47.165.130",
   "sshPort": 15833,
@@ -15,5 +15,16 @@
   "httpsStatus": 200,
   "httpsDevGatePreserved": true,
   "localRouteInterface": "utun4",
-  "causeNotYetEstablished": true
+  "causeNotYetEstablished": true,
+  "publishedAt": "2026-10-02T18:03:18.439624+00:00",
+  "sshBindInterface": "en0",
+  "audienceBackup": "/opt/outline/backups/audience-pages-20261002T174952198518Z",
+  "homepageBackup": "/opt/outline/backups/primer-home-20261002T175037071771Z",
+  "audienceFilesVerified": 28,
+  "homepageAssetsVerified": 18,
+  "protectedFilesUnchanged": 30,
+  "rootMatchesStaged": true,
+  "productionUnchanged": true,
+  "resumeMarkerCount": 1,
+  "initialBlocker": "Default VPN route timed out before authentication; same configured host/key connected using per-process BindInterface=en0. No persistent network setting was changed."
 }
