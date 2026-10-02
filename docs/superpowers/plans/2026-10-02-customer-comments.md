@@ -33,4 +33,4 @@ Interfaces: dist/site -> existing deployment script; release upload path unique 
 
 - [x] Package, upload, deploy with backup. Expected: files served match build hashes, root differs only by resume marker if missing.
 - [x] Inspect published customer page and shared header/footer on suppliers/work in iab; save screenshots. Expected: comments persist after reload.
-- [ ] Push evidence commit, update PR #11 body, attach and recheck four GitHub tabs. Expected: remote head == local head and existing tasks show PR. Code da3621b already pushed; four tabs and attachment verified.
+- [x] Push code/evidence commits, update PR #11 body, attach and recheck four GitHub tabs. Four tabs and attachment verified; remote head verification is the final completion check.

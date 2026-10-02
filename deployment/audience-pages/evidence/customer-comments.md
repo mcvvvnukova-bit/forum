@@ -16,7 +16,7 @@ Typecheck, ESLint, 18 существующих Vitest tests и production build 
 
 Публикация завершена: `/customers/`, `/suppliers/`, `/work/`, `/participate/`; 26 served файлов совпали SHA-256 с package. Anonymous gate/noindex сохранены, публичная astforum.ru имеет прежний hash. Backup `/opt/outline/backups/audience-pages-20261002T120033586609Z`. Главная изменилась только marker возврата Сбер ID, `homepage_only_resume_changed=true`. JSON доказательства: customer-comments-deployment.json и customer-comments-served.json.
 
-В iab опубликованные правки видны после reload. Shared header и legal 12px проверены также на suppliers/work; customer-comments-shared-layout.json. Текущий сеанс физлица истёк: authenticated flow в этом проходе не завершался; постоянная подпись header не зависит от useSession по реализации и независимому ревью. Published снимки customer-comments-published-hero.png и customer-comments-published-final.png сохранены локально.
+В iab опубликованные правки видны после reload. Shared header и legal 12px проверены также на suppliers/work; customer-comments-shared-layout.json. Текущий сеанс физлица анонимный: authenticated flow в этом проходе не завершался; постоянная подпись header не зависит от useSession по реализации и независимому ревью. Published снимки customer-comments-published-hero.png и customer-comments-published-final.png сохранены локально.
 
 Независимое ревью delta 2d089eb..da3621b: Critical 0, Important 0, Minor 0. Внешние Sber/Диадок/заказы и фактическое бронирование не проверялись, backend не менялся; проверен существующий endpoint URL, intent и Dialog. Цена ошибочного предположения — ранее существовавшая неисправность зависимого сервиса. Публикация/remote/OP отложены reviewer до Task 2 и проверены отдельно.
 
