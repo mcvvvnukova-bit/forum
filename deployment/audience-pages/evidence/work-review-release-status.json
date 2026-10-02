@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-02T16:35:02.733717+00:00",
+  "review": {
+    "severe": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "audienceCodeCommit": "2e33680db482609e8aa8a5e8eb9ed2dc63f7a4f6",
+  "homepageCodeCommit": "96bfee47afa6794b1a55ade3dbffd39a08ee9a15",
+  "publication": "pending-ssh-connect-timeout",
+  "sshHost": "forum-prod",
+  "sshAddress": "84.47.165.130",
+  "sshPort": 15833,
+  "failedBeforeAuthentication": true,
+  "httpsStatus": 200,
+  "httpsDevGatePreserved": true,
+  "localRouteInterface": "utun4",
+  "causeNotYetEstablished": true
+}
