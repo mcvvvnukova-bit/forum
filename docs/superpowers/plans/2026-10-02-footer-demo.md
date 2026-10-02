@@ -20,5 +20,5 @@ Interface: SiteFooter({onDemo:(trigger:HTMLButtonElement)=>void}); App supplies 
 - [x] App supplies `trigger=>openDemo(trigger,path==='/customers/'?'Заказчик':path==='/suppliers/'?'Компания-исполнитель':undefined)`.
 - [x] Run typecheck/lint/25 existing tests/build/package, deployment tests, Primer validator. No new low-impact/mirror tests per developer instruction.
 - [x] iab: final customer block has only order action; footer item opens demo on Enter/Space, Escape returns focus; contexts correct on customer/supplier, generic on work; widths1679/768/390/320 fit. One independent final review (0 findings); browser-detected font mismatch corrected with existing Primer token and manually rechecked.
-- [ ] Commit PROJ-145 changes; upload/deploy with backup; verify served hashes/root/gate/production and live iab screenshot.
-- [ ] Push, update/attach PR11, verify OP GitHub links and local/remote/PR head equality; commit evidence and complete checklist.
+- [x] Commit PROJ-145 changes; upload/deploy with backup; verify served hashes/root/gate/production and live iab screenshot.
+- [x] Push, update/attach PR11, verify OP GitHub links and local/remote/PR head equality; commit evidence and complete checklist. Equality checked after final evidence push.

@@ -1,0 +1,12 @@
+{
+  "colorEqual": true,
+  "finalButtons": [
+    "Разместить заказ"
+  ],
+  "font": "\"Mona Sans VF\", -apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans Backtick Fix\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+  "fontEqual": true,
+  "footer": "Для участников\nЗаказчикам\nПоставщикам и подрядчикам\nРабота и подработка\nЗаписаться на демо",
+  "sizeEqual": true,
+  "iframe": "https://cal.astforum.ru/demo/60min?embed=true&layout=month_view&theme=light&audience=%D0%97%D0%B0%D0%BA%D0%B0%D0%B7%D1%87%D0%B8%D0%BA",
+  "focus": "Записаться на демо"
+}
