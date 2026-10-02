@@ -35,41 +35,29 @@
   ],
   "responsive": [
     {
-      "alignedStart": true,
-      "buttonColor": "rgb(89, 99, 110)",
-      "buttonWidth": 149.796875,
+      "buttonWidth": 152.515625,
       "contained": true,
-      "linkColor": "rgb(89, 99, 110)",
       "navWidth": 320,
       "scrollWidth": 1664,
       "width": 1679
     },
     {
-      "alignedStart": true,
-      "buttonColor": "rgb(89, 99, 110)",
-      "buttonWidth": 149.796875,
+      "buttonWidth": 152.515625,
       "contained": true,
-      "linkColor": "rgb(89, 99, 110)",
       "navWidth": 190.3125,
       "scrollWidth": 753,
       "width": 768
     },
     {
-      "alignedStart": true,
-      "buttonColor": "rgb(89, 99, 110)",
-      "buttonWidth": 149.796875,
+      "buttonWidth": 152.515625,
       "contained": true,
-      "linkColor": "rgb(89, 99, 110)",
       "navWidth": 343,
       "scrollWidth": 375,
       "width": 390
     },
     {
-      "alignedStart": true,
-      "buttonColor": "rgb(89, 99, 110)",
-      "buttonWidth": 149.796875,
+      "buttonWidth": 152.515625,
       "contained": true,
-      "linkColor": "rgb(89, 99, 110)",
       "navWidth": 273,
       "scrollWidth": 305,
       "width": 320
@@ -77,5 +65,10 @@
   ],
   "finalButtons": [
     "Разместить заказ"
-  ]
+  ],
+  "font": {
+    "button": "\"Mona Sans VF\", -apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans Backtick Fix\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+    "link": "\"Mona Sans VF\", -apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans Backtick Fix\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+    "same": true
+  }
 }

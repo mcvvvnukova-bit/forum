@@ -69,6 +69,7 @@ section { scroll-margin-top: var(--base-size-24); }
 .faq-answer { padding-top: var(--base-size-16); }
 .site-footer { border-top: var(--borderWidth-thin) solid var(--borderColor-default); background: var(--bgColor-muted); padding-top: var(--base-size-40); }
 .footer-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: var(--base-size-48); }
+.footer-demo-action { font-family: var(--BaseStyles-fontFamily, var(--fontStack-system)); }
 .footer-bottom { display: flex; align-items: start; justify-content: space-between; gap: var(--base-size-24); padding-block: var(--base-size-24); margin-top: var(--base-size-32); border-top: var(--borderWidth-thin) solid var(--borderColor-default); }
 .legal-links { display: flex; gap: var(--base-size-24); flex-wrap: wrap; }
 .booking-frame { display: block; width: 100%; min-height: 580px; border: none; }
