@@ -1,0 +1,24 @@
+{
+  "footerLogoVisibleLeft": 72.50001434326171,
+  "footerTextLeft": 72.5,
+  "nav": [
+    {
+      "href": "/customers/",
+      "text": "Заказчикам"
+    },
+    {
+      "href": "/suppliers/",
+      "text": "Поставщикам и подрядчикам"
+    },
+    {
+      "href": "/work/",
+      "text": "Работа и подработка"
+    },
+    {
+      "href": "/#rules",
+      "text": "О платформе"
+    }
+  ],
+  "overflow": false,
+  "resumeScriptCount": 1
+}
