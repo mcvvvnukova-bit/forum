@@ -21,7 +21,9 @@ function modeFromPath(): Mode | null {
   return path === '/login' ? 'login' : path === '/register' ? 'register' : null
 }
 function linkMode(anchor: HTMLAnchorElement): Mode | null {
-  const url = new URL(anchor.href, location.href)
+  const href = anchor.getAttribute('href')?.trim()
+  if (!href || href.startsWith('#') || href.startsWith('?')) return null
+  const url = new URL(href, location.origin+'/')
   if (url.origin !== location.origin || anchor.target && anchor.target !== '_self' || anchor.hasAttribute('download')) return null
   const path = url.pathname.replace(/\/$/, '')
   if (path === '/login' || path === '/register') return path.slice(1) as Mode
@@ -125,9 +127,9 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
   const body = <Stack gap="spacious" className="public-auth-content">
     {message && <Banner title="Вход не завершён" variant="warning"><span role="alert">{message}</span></Banner>}
     {session.kind === 'authenticated' ? <Text as="p" role="status">Вы уже вошли в аккаунт</Text> : <>
-      <Button variant="primary" size="large" block className="public-auth-sber" leadingVisual={() => <img src={sberMark} alt="" aria-hidden className="public-auth-mark" />}
+      <Button variant="primary" size="large" block className="public-auth-sber"
         disabled={session.kind !== 'guest' || redirecting || blocked || unavailable} onClick={start}>
-        {mode === 'register' ? 'Зарегистрироваться через Сбер ID' : 'Войти по Сбер ID'}
+        <span className="public-auth-label-layout"><img src={sberMark} alt="" aria-hidden className="public-auth-mark" /><span className="public-auth-label">{mode === 'register' ? 'Зарегистрироваться через Сбер ID' : 'Войти по Сбер ID'}</span></span>
       </Button>
       {session.kind === 'checking' && <Stack direction="horizontal" align="center" gap="normal"><Spinner size="small" /><Text role="status">Проверяем вход…</Text></Stack>}
       {redirecting && <Text role="status">Переходим к Сбер ID…</Text>}
@@ -138,7 +140,11 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
         {mode === 'login' ? 'Зарегистрироваться' : 'Войти'}
       </Link>
     </Text>}
-    {message && !blocked && <Button onClick={() => {setError(null); navigating.current=false; setRedirecting(false); setRetry(value => value+1)}}>Повторить</Button>}
+    {unavailable && <Link href="/#demo">Записаться на демо</Link>}
+    {message && !blocked && !unavailable && <Button disabled={redirecting || session.kind === 'checking'} onClick={() => {
+      if (session.kind === 'unknown') {setRetry(value => value+1)}
+      else start()
+    }}>Повторить</Button>}
     {!view.modal && <Link href="/">Вернуться на сайт</Link>}
   </Stack>
   if (view.modal) return <Dialog title={title} renderHeader={ModalHeader} returnFocusRef={returnFocusRef}

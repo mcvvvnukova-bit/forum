@@ -36,3 +36,15 @@ class DeployTests(unittest.TestCase):
         before=(self.target/'index.html').read_bytes()
         with self.assertRaises(ValueError): deploy(self.source,self.target,self.backups,'abc')
         self.assertEqual((self.target/'index.html').read_bytes(),before)
+    def test_preserves_a_concurrent_page_update_it_did_not_write(self):
+        from unittest.mock import patch
+        import deploy as module
+        original_write=module.atomic_write
+        other=self.target/'work/index.html'
+        def write_with_other_deployment(path,data):
+            original_write(path,data)
+            if path == self.target/'public-auth-assets/app.js': other.write_text('<html><head></head><body>Other deployment</body></html>')
+        with patch.object(module,'atomic_write',side_effect=write_with_other_deployment):
+            with self.assertRaises(RuntimeError): deploy(self.source,self.target,self.backups,'abc')
+        self.assertIn('Other deployment',other.read_text())
+        self.assertNotIn('public-auth:start',(self.target/'index.html').read_text())

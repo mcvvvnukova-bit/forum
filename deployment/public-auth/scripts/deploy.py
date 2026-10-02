@@ -48,6 +48,7 @@ def deploy(source, target, backups, commit, verifier=None):
     backup.mkdir(parents=True,mode=0o700)
     for path,data in originals.items():
         if data is not None: atomic_write(backup/path.relative_to(target),data)
+    written=[]
     report={'commit':commit,'backup':str(backup),'target':str(target),'files':{}}
     try:
         # Hashed assets are additive. Keep earlier hashes for pages already open.
@@ -56,16 +57,25 @@ def deploy(source, target, backups, commit, verifier=None):
         for path,data in changes.items():
             current=path.read_bytes() if path.exists() else None
             if current != originals[path]: raise RuntimeError('Concurrent page change: '+str(path))
-            atomic_write(path,data); report['files'][str(path.relative_to(target))]=sha(data)
+            atomic_write(path,data); written.append(path); report['files'][str(path.relative_to(target))]=sha(data)
         for path in (source/'public-auth-assets').rglob('*'):
             if path.is_file(): report['files'][str(path.relative_to(source))]=sha(path.read_bytes())
         if verifier: verifier(report)
         (backup/'deployment.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
         return report
-    except BaseException:
-        for path,data in originals.items():
+    except BaseException as error:
+        conflicts=[]
+        for path in reversed(written):
+            current=path.read_bytes() if path.exists() else None
+            # Never overwrite a parallel publisher during rollback.
+            if current != changes[path]:
+                conflicts.append(str(path.relative_to(target))); continue
+            data=originals[path]
             if data is not None: atomic_write(path,data)
             elif path.exists(): path.unlink()
+        if conflicts:
+            (backup/'rollback-conflicts.json').write_text(json.dumps(conflicts,ensure_ascii=False))
+            raise RuntimeError('Parallel changes preserved during rollback: '+', '.join(conflicts)) from error
         raise
 
 if __name__=='__main__':

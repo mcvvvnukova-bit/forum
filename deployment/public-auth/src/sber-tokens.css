@@ -1,11 +1,12 @@
 /* Sber provider tokens, not Forum brand mappings.
  * Official source: https://developers.sber.ru/docs/ru/sberid/guidebook
  * Rest/hover colors verified from official button state diagrams.
- * 24px label keeps white text over official green at the large-text contrast
+ * 20px bold label keeps white text over official green at the large-text contrast
  * threshold. The guide permits the service's typography and flexible geometry. */
 :root {
   --sber-button-rest: #21a038;
   --sber-button-hover: #1e9032;
   --sber-button-label: #fff;
-  --sber-button-label-size: 1.5rem;
+  --sber-button-label-size: 1.25rem;
+  --sber-button-label-weight: 700;
 }

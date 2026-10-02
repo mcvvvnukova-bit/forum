@@ -74,7 +74,7 @@ describe('public authentication', () => {
     history.replaceState(null, '', '/register?auth_error=sber_unavailable'); mount()
     expect(await screen.findByText('Регистрация через Сбер ID пока недоступна')).toBeInTheDocument()
     expect(screen.getByRole('button', {name:'Зарегистрироваться через Сбер ID'})).toBeDisabled()
-    expect(screen.getByRole('button', {name:'Повторить'})).toBeInTheDocument()
+    expect(screen.getByRole('link', {name:'Записаться на демо'})).toHaveAttribute('href', '/#demo')
   })
   it('closes a modal after Back and retains public content', async () => {
     const a=trigger(); mount(); fireEvent.click(a)
@@ -83,4 +83,20 @@ describe('public authentication', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(a).toBeInTheDocument()
   })
+})
+
+it('preserves page anchors while opening and switching the auth dialog', async () => {
+  const a=trigger(); const section=document.createElement('a'); section.href='#demo'; section.textContent='Демо'; a.append(section)
+  mount(); fireEvent.click(a); await screen.findByRole('dialog')
+  await act(async () => {await Promise.resolve()})
+  expect(section.getAttribute('href')).toBe('#demo')
+  fireEvent.click(screen.getByRole('link',{name:'Зарегистрироваться'}));
+  await act(async () => {await Promise.resolve()})
+  expect(section.getAttribute('href')).toBe('#demo')
+})
+it('retries a completed provider attempt on explicit retry exactly once', async () => {
+  history.replaceState(null, '', '/login?auth_error=access_denied'); const navigate=mount()
+  await waitFor(() => expect(screen.getByRole('button',{name:'Войти по Сбер ID'})).toBeEnabled())
+  const retry=screen.getByRole('button',{name:'Повторить'}); fireEvent.click(retry); fireEvent.click(retry)
+  expect(navigate).toHaveBeenCalledExactlyOnceWith('/auth/sber-id/start?intent=login')
 })
