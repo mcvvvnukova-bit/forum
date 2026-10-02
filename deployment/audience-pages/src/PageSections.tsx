@@ -27,7 +27,7 @@ export function Faq({title, items}: {title: string; items: {question: string; an
     </Details.Summary><Text as="p" className="faq-answer muted">{item.answer}</Text></Details>
   </Card>)}</Stack></Section>
 }
-export function PageHero({eyebrow, title, description, image, children}: {eyebrow: string; title: string; description: string; image: string; children: ReactNode}) {
+export function PageHero({eyebrow, title, description, image, children}: {eyebrow: string; title: ReactNode; description: string; image: string; children: ReactNode}) {
   return <section className="hero" aria-labelledby="hero-title"><div className="container hero-layout audience-hero">
     <Stack gap="spacious" className="hero-content"><Text size="medium" weight="semibold" className="muted">{eyebrow}</Text>
       <Heading as="h1" id="hero-title" className="hero-title">{title}</Heading><Text as="p" size="large" className="hero-description muted">{description}</Text>{children}

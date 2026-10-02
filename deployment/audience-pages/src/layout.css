@@ -83,6 +83,11 @@ section { scroll-margin-top: var(--base-size-24); }
 .step-number { min-width: var(--base-size-48); font: var(--text-title-shorthand-medium); color: var(--fgColor-muted); }
 .example-layout { align-items: start; }
 .example-facts { margin: var(--base-size-0); padding-inline-start: var(--base-size-20); }
+.desktop-title-break { display: none; }
+.final-action-card { --bgColor-default: var(--bgColor-muted); }
+.final-action-copy { max-width: 720px; }
+.final-action-buttons { flex-shrink: 0; }
+@media (min-width: 1024px) { .desktop-title-break { display: inline; } }
 @media (max-width: 1023px) { .audience-hero { grid-template-columns: minmax(0, 1fr); } .audience-illustration { max-height: 240px; } }
 @media (max-width: 767px) { .two-columns { grid-template-columns: minmax(0, 1fr); } .two-columns button { white-space: normal; height: auto; min-height: var(--base-size-32); } }
 @media (max-width: 1180px) {

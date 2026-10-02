@@ -4,7 +4,7 @@ import {ArrowRightIcon} from '@primer/octicons-react'
 import {audiences} from './content'
 import {destinations} from './config'
 
-export function SiteHeader({authorized = false}: {authorized?: boolean}) {
+export function SiteHeader() {
   const headerRef = useRef<HTMLElement>(null)
 
   useLayoutEffect(() => {
@@ -30,10 +30,10 @@ export function SiteHeader({authorized = false}: {authorized?: boolean}) {
         </Link>
         <nav aria-label="Основная навигация" className="header-navigation">
           {audiences.map(item => <Link key={item.key} href={destinations[item.key]} muted>{item.nav}</Link>)}
-          <Link href={['/customers', '/suppliers', '/work'].some(path => window.location.pathname === path || window.location.pathname === `${path}/`) ? '#how' : '/#rules'} muted>Как это работает</Link>
+          <Link href="/#rules" muted>Как это работает</Link>
         </nav>
-        <Button as="a" href={authorized ? destinations.cabinet : destinations.login} trailingVisual={ArrowRightIcon}>
-          {authorized ? 'В кабинет' : 'Войти'}
+        <Button as="a" href={destinations.login} trailingVisual={ArrowRightIcon}>
+          Войти
         </Button>
       </div>
     </header>
@@ -65,10 +65,10 @@ export function SiteFooter() {
       </div>
       <div className="container footer-bottom">
         <Text size="small" className="muted">© 2026 ООО «Форум»</Text>
-        <nav aria-label="Служебные ссылки" className="legal-links">
+        <Text as="nav" size="small" aria-label="Служебные ссылки" className="legal-links">
           <Link href={destinations.privacy} muted>Политика обработки персональных данных</Link>
           <Link href={destinations.cookies} muted>Использование cookies</Link>
-        </nav>
+        </Text>
       </div>
     </footer>
   )
