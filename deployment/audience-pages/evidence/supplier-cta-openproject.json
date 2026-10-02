@@ -1,0 +1,26 @@
+{
+  "account": "Ассистент Кузьмина",
+  "accountId": 8,
+  "links": [
+    {
+      "task": "PROJ-146",
+      "title": "US: PUB.01.01.03: Страница для поставщиков и подрядчиков (PROJ-146) | АСТ \"Форум\" | OpenProject",
+      "pr": "https://github.com/mcvvvnukova-bit/forum/pull/11"
+    },
+    {
+      "task": "PROJ-145",
+      "title": "US: PUB.01.01.02: Страница для заказчиков (PROJ-145) | АСТ \"Форум\" | OpenProject",
+      "pr": "https://github.com/mcvvvnukova-bit/forum/pull/11"
+    },
+    {
+      "task": "PROJ-147",
+      "title": "US: PUB.01.01.04: Страница для физических лиц: работа и подработка (PROJ-147) | АСТ \"Форум\" | OpenProject",
+      "pr": "https://github.com/mcvvvnukova-bit/forum/pull/11"
+    },
+    {
+      "task": "PROJ-29",
+      "title": "Фича: PUB.01.01: Главная страница и сценарии работы (PROJ-29) | АСТ \"Форум\" | OpenProject",
+      "pr": "https://github.com/mcvvvnukova-bit/forum/pull/11"
+    }
+  ]
+}

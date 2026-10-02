@@ -15,8 +15,8 @@ Spec: docs/superpowers/specs/2026-10-02-supplier-cta-design.md. Primer/Forum Lig
 Files: deployment/audience-pages/src/{AudiencePage.tsx,audience-content.json,layout.css,audience.test.tsx}; evidence/supplier-cta.md and JSON.
 Interfaces: existing per-card direction/onAction, intent validation/storage and final CTA unchanged; dist/site consumed by unchanged deploy.py.
 
-- [ ] Adapt existing goods and three-direction tests to `within(card).getByRole('button',{name:'Приступить к работе'})`, finding each card through its heading; run and observe four expected failures.
-- [ ] All four JSON action strings become «Приступить к работе»; supplier Card className=audience-card; extend existing flexible row rule to `.two-columns > .audience-card`.
-- [ ] Run typecheck/lint/25tests/build/package, 3 deployment tests, Primer validator; iab compare paired button top coordinates at1679/768, no overflow at390/320, correct directions on keyboard handoff. One independent review.
-- [ ] Commit PROJ-146, stage/deploy with backup, verify all served hashes/root/gate/production; inspect reload and save live screenshot.
+- [x] Adapt existing goods and three-direction tests to `within(card).getByRole('button',{name:'Приступить к работе'})`, finding each card through its heading; run and observe four expected failures.
+- [x] All four JSON action strings become «Приступить к работе»; supplier Card className=audience-card; extend existing flexible row rule to `.two-columns > .audience-card`.
+- [x] Run typecheck/lint/25tests/build/package, 3 deployment tests, Primer validator; iab compare paired button top coordinates at1679/768, no overflow at390/320, correct directions on keyboard handoff. One independent review.
+- [x] Commit PROJ-146, stage/deploy with backup, verify all served hashes/root/gate/production; inspect fresh page and save live screenshot.
 - [ ] Commit evidence, push/update/attach PR11, verify OP GitHub links and remote/local/PR HEAD equality.

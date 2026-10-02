@@ -15,4 +15,12 @@ The supplier cards now use the existing `audience-card` layout from the homepage
 - Activated each action with Enter; each registration dialog displayed its corresponding direction. No registration or booking submitted.
 - Browser measurements and dialog observations: `supplier-cta-local.json`. Temporary viewport emulation was cleared; the user's supplier tab and unsaved comment were preserved.
 
-Independent review and dev publication evidence will be recorded after completion. Production and the root homepage remain outside the publication scope.
+## Review and publication
+
+- Fresh independent review of `10a7e9a..337eac0` and relevant audience-app integration: zero severe/moderate/minor findings; no code fixes required.
+- Published the built package to dev with backup `/opt/outline/backups/audience-pages-20261002T140103102393Z`. `supplier-cta-deployment.json` records the server file hashes and unchanged root hash.
+- All 26 actual served files match the build by SHA-256. Anonymous dev requests still show the password gateway and noindex headers. Authenticated root homepage and public production SHA-256 equal their pre-release values; see `supplier-cta-served.json`.
+- A fresh Codex IAB tab shows four new labels and paired tops/bottoms equal at the actual 1280px viewport; see `supplier-cta-published.json` and local screenshot `supplier-cta-published.png`. The tab remains available for review. Existing supplier tab with an unsaved browser comment was preserved.
+- OpenProject was verified under Ассистент Кузьмина (user 8): PR #11 is present in the GitHub tabs of PROJ-145/146/147/29, recorded in `supplier-cta-openproject.json`.
+
+Implementation commit: `337eac0b3f43b7a8c23c008e2898b18b05718c51`. Evidence and completed plan are committed separately on the same PR branch. Source checks were not rerun after documentation-only changes.
