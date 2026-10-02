@@ -1,0 +1,26 @@
+{
+  "work-order-interface-v1.png": {
+    "size": [
+      1536,
+      1024
+    ],
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "cornerAlpha": 0
+  },
+  "work-vacancy-interface-v1.png": {
+    "size": [
+      1536,
+      1024
+    ],
+    "mode": "RGBA",
+    "alphaRange": [
+      0,
+      254
+    ],
+    "cornerAlpha": 0
+  }
+}

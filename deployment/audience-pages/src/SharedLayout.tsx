@@ -30,7 +30,7 @@ export function SiteHeader() {
         </Link>
         <nav aria-label="Основная навигация" className="header-navigation">
           {audiences.map(item => <Link key={item.key} href={destinations[item.key]} muted>{item.nav}</Link>)}
-          <Link href="/#rules" muted>Как это работает</Link>
+          <Link href="/#rules" muted>О платформе</Link>
         </nav>
         <Button as="a" href={destinations.login} trailingVisual={ArrowRightIcon}>
           Войти

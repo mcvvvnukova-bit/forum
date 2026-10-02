@@ -12,7 +12,7 @@ section { scroll-margin-top: var(--base-size-24); }
 .brand { display: inline-flex; flex-shrink: 0; }
 .brand img { width: 144px; height: 48px; object-fit: contain; }
 /* PNG alpha begins at x=163/1600; contain adds 8px in the 144x48 slot: 21.04px / 144. */
-.site-header .brand img { transform: translateX(-14.6111%); }
+.brand img { transform: translateX(-14.6111%); }
 .skip-link { position: absolute; left: -10000px; padding: var(--base-size-12); background: var(--bgColor-default); z-index: 10; }
 .skip-link:focus { top: var(--base-size-8); left: var(--base-size-8); }
 .hero { background: var(--bgColor-muted); border-bottom: var(--borderWidth-thin) solid var(--borderColor-default); padding-block: var(--base-size-64); }
@@ -82,7 +82,9 @@ section { scroll-margin-top: var(--base-size-24); }
 .section-note { margin-top: var(--base-size-24); }
 .procurement-steps { padding: var(--base-size-0); margin: var(--base-size-0); list-style: none; max-width: 880px; }
 .step-number { min-width: var(--base-size-48); font: var(--text-title-shorthand-medium); color: var(--fgColor-muted); }
-.example-layout { align-items: start; }
+.example-layout { align-items: center; }
+.example-figure { margin: var(--base-size-0); min-width: 0; }
+.example-illustration { display: block; width: 100%; height: auto; }
 .example-facts { margin: var(--base-size-0); padding-inline-start: var(--base-size-20); }
 .desktop-title-break { display: none; }
 .final-action-card { --bgColor-default: var(--bgColor-muted); }

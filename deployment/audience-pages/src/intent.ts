@@ -17,7 +17,11 @@ export function validIntent(value: unknown): value is Intent {
   const v = value as Record<string, unknown>
   if (v.audience === 'customer') return v.action === 'create-order' && v.returnTo === '/customers/' && v.direction === undefined
   if (v.audience === 'supplier') return v.action === 'find-orders' && v.returnTo === '/suppliers/' && (v.direction === undefined || isSupplierDirection(v.direction))
-  return v.audience === 'individual' && v.action === 'find-orders' && v.returnTo === '/work/' && v.direction === 'orders'
+  return v.audience === 'individual' && v.returnTo === '/work/' && (
+    (v.action === 'find-orders' && v.direction === 'orders') ||
+    (v.action === 'find-jobs' && v.direction === 'jobs') ||
+    (v.action === 'find-work' && v.direction === undefined)
+  )
 }
 export function saveIntent(intent: Intent) {if (validIntent(intent)) {try {sessionStorage.setItem(intentKey, JSON.stringify(intent))} catch { /* Keep the in-memory intent if browser storage is unavailable. */ }}}
 export function readIntent(): Intent | null {

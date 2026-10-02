@@ -36,3 +36,11 @@ export function PageHero({eyebrow, title, description, image, children}: {eyebro
 export function ActionButton({label, onClick}: {label: string; onClick: () => void}) {
   return <Button size="large" variant="primary" trailingVisual={ArrowRightIcon} onClick={onClick}>{label}</Button>
 }
+export function FinalAction({title, description, label, onAction}: {title: string; description: string; label: string; onAction: () => void}) {
+  return <section className="section container" aria-labelledby="final-title"><Card className="final-action-card">
+    <Stack gap="spacious" direction={{narrow:'vertical',regular:'horizontal'}} align={{narrow:'start',regular:'center'}} justify="space-between">
+      <Stack gap="normal" className="final-action-copy"><Heading as="h2" variant="large" id="final-title">{title}</Heading><Text as="p" size="large" className="muted">{description}</Text></Stack>
+      <Stack className="final-action-buttons"><ActionButton label={label} onClick={onAction} /></Stack>
+    </Stack>
+  </Card></section>
+}

@@ -8,6 +8,11 @@ function resume(value: unknown, search: string) {
   return redirect
 }
 it('resumes personal work after the actual Sber callback',()=>{expect(resume({audience:'individual',action:'find-orders',direction:'orders',returnTo:'/work/'},'?auth=success')).toBe('/participate/?resume=1')})
+it.each([
+  {action:'find-jobs',direction:'jobs'},
+  {action:'find-work'},
+])('resumes $action without losing the selected route',route=>{expect(resume({audience:'individual',returnTo:'/work/',...route},'?auth=success')).toBe('/participate/?resume=1')})
+it('does not resume a mismatched vacancy route',()=>{expect(resume({audience:'individual',action:'find-orders',direction:'jobs',returnTo:'/work/'},'?auth=success')).toBeNull()})
 it('keeps a cancellation visible without discarding the intent',()=>{expect(resume({audience:'individual',action:'find-orders',direction:'orders',returnTo:'/work/'},'?auth_error=access_denied')).toBe('/participate/?auth_error=access_denied&resume=1')})
 it('never navigates to a tampered return target',()=>{expect(resume({audience:'individual',action:'find-orders',direction:'orders',returnTo:'//external.example'},'?auth=success')).toBeNull()})
 it('does not interrupt an ordinary homepage visit',()=>{expect(resume({audience:'individual',action:'find-orders',direction:'orders',returnTo:'/work/'},'')).toBeNull()})

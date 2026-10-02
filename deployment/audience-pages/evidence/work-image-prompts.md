@@ -1,0 +1,12 @@
+# Built-in image_gen prompts
+
+Reference: hero-illustration-process-interface.png. Project outputs: public/audience-assets/media/work-order-interface-v1.png and work-vacancy-interface-v1.png; both1536×1024 RGBA. Built-in image_gen used; originals remain in Codex generated_images; no CLI fallback.
+
+## Order final prompt
+
+Use case: ui-mockup, illustrated marketing asset for AST Forum work landing. Input image is STYLE REFERENCE ONLY: match its slightly perspective white browser window, crisp black ink outlines, restrained gray surfaces, orange accents, soft shadows and clean technical illustration. Create a NEW illustration showing ONE detailed construction work order inside an interface composed of GitHub Primer Light patterns: simple top toolbar, narrow icon sidebar, bordered white Card, clear heading, fact rows, orange primary Button, muted secondary rows. Do not show the procurement flow or many floating cards from the reference. Main card exact Russian text: heading «Укладка плитки в помещении»; rows «Объём: 40 м²», «Район работ: Москва, САО», «Срок: две недели», «Материалы заказчика»; primary orange button «Откликнуться». A small line-art tile-grid icon reinforces subject. All Russian letters readable and verbatim, neutral sans-serif type, no other random text, no invented company/logo, no watermark. Landscape 3:2 composition with one cohesive slightly tilted browser panel completely visible, ample breathing room. Genuine transparent outside background, no checkerboard baked in. Focus on readable order details rather than large decorative objects. Match reference style, palette and outline weight closely.
+
+## Vacancy final prompt
+
+Edit this order-interface illustration into its matching JOB VACANCY illustration. Keep the entire browser window, perspective, dimensions, sidebar, toolbar, black outlines, white and gray Primer Light cards, orange accents, shadow, genuine transparent outside background and overall style unchanged. Change the main card subject only: replace tile icon with simple crossed construction tools, heading with exact Russian «Монтажник в строительную компанию». Fact rows must read exactly «Зарплата: 100 000–120 000 ₽», «График: 5/2», «Место работы: Москва», «Опыт: от одного года», «Трудовой договор». Fit five readable rows in the same card. Keep primary orange button label «Откликнуться». Readable neutral sans-serif Cyrillic, no spelling errors, no additional text, no watermark. Landscape3:2, entire panel visible. Preserve transparent alpha; do not add an opaque background.
+

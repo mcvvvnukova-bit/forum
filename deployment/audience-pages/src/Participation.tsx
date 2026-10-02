@@ -5,13 +5,13 @@ import type {Session} from './intent'
 export function Participation({intent, session, loading, unavailable, onDemo, onReturn}: {intent: Intent; session: Session | null; loading: boolean; unavailable: boolean; onDemo: (trigger: HTMLButtonElement, audience: string) => void; onReturn: () => void}) {
   const individual = intent.audience === 'individual'
   const context = sessionContext(session)
-  const direction = isSupplierDirection(intent.direction) ? supplierDirectionLabels[intent.direction] : intent.audience === 'customer' ? 'Размещение заказа' : 'Поиск подходящих заказов'
+  const direction = individual ? intent.direction === 'jobs' ? 'Поиск вакансий' : intent.direction === 'orders' ? 'Поиск подходящих заказов' : 'Поиск работы и подработки' : isSupplierDirection(intent.direction) ? supplierDirectionLabels[intent.direction] : intent.audience === 'customer' ? 'Размещение заказа' : 'Поиск подходящих заказов'
   const error = new URLSearchParams(window.location.search).get('auth_error')
   return <Stack gap="spacious">
     <Text as="p" weight="semibold">{direction}</Text>
     {error && <Banner title="Вход не завершён" variant="warning"><Text as="p">{error === 'access_denied' ? 'Вы отменили вход через Сбер ID.' : 'Не удалось завершить вход. Попробуйте ещё раз.'} Выбранное направление сохранено.</Text></Banner>}
     {loading ? <Stack direction="horizontal" gap="normal" align="center"><Spinner size="small" /><Text role="status">Проверяем вход…</Text></Stack> : individual && context === 'individual' ? <>
-      <Text as="p">Вы вошли как {session?.user.displayName}.</Text><Banner title="Поиск заказов готовится" variant="info"><Text as="p">Ваш следующий шаг — заполнение профиля исполнителя: навыки, опыт и география работы. Мы готовим этот раздел; выбранное направление сохранено.</Text></Banner>
+      <Text as="p">Вы вошли как {session?.user.displayName}.</Text><Text as="p">Ваш следующий шаг — заполнение профиля: навыки, опыт и география работы. Выбранное направление сохранено.</Text>
     </> : <>
       {context !== 'anonymous' && <Banner title="Выберите подходящий контекст" variant="info"><Text as="p">Вы уже вошли в аккаунт. Для этого действия нужен {individual ? 'личный профиль исполнителя' : intent.audience === 'customer' ? 'участник компании-заказчика' : 'участник компании-исполнителя'}. Текущий участник не переключается автоматически.</Text></Banner>}
       {unavailable && <Banner title="Не удалось проверить вход" variant="warning"><Text as="p">Попробуйте позже. Выбранное направление сохранено.</Text></Banner>}

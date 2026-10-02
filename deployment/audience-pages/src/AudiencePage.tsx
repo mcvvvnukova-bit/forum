@@ -1,13 +1,13 @@
-import {Button, Heading, Stack, Text} from '@primer/react'
+import {Button, Stack, Text} from '@primer/react'
 import {Card} from '@primer/react/experimental'
 import {BriefcaseIcon, PackageIcon, PencilIcon, ToolsIcon} from '@primer/octicons-react'
 import content from './audience-content.json'
-import {ActionButton, Faq, InfoCards, PageHero, Section, Steps} from './PageSections'
+import {ActionButton, Faq, FinalAction, InfoCards, PageHero, Section, Steps} from './PageSections'
 import {isSupplierDirection, readIntent} from './intent'
 import type {SupplierDirection} from './intent'
 import {DemoSection, RulesSection} from './StandardSections'
 
-export type Intent = {audience: 'customer'|'supplier'|'individual'; action: 'create-order'|'find-orders'; direction?: SupplierDirection|'orders'|'jobs'; returnTo: '/customers/'|'/suppliers/'|'/work/'}
+export type Intent = {audience: 'customer'|'supplier'|'individual'; action: 'create-order'|'find-orders'|'find-jobs'|'find-work'; direction?: SupplierDirection|'orders'|'jobs'; returnTo: '/customers/'|'/suppliers/'|'/work/'}
 const supplierIcons = {goods: PackageIcon, design: PencilIcon, construction: ToolsIcon, leasing: BriefcaseIcon, services: BriefcaseIcon}
 type Props = {kind: 'customers'|'suppliers'; onAction: (intent: Intent, trigger: HTMLButtonElement | null) => void; onDemo: (trigger: HTMLButtonElement, audience: string) => void}
 export function AudiencePage({kind, onAction, onDemo}: Props) {
@@ -41,9 +41,6 @@ export function AudiencePage({kind, onAction, onDemo}: Props) {
     <DemoSection onDemo={trigger => onDemo(trigger, audience)} />
     <RulesSection />
     <Faq title={isCustomer ? 'Часто задаваемые вопросы' : 'Вопросы поставщиков и подрядчиков'} items={c.faq} />
-    <section className="section container" aria-labelledby="final-title"><Card className={isCustomer ? 'final-action-card' : undefined}><Stack gap="spacious" direction={isCustomer ? {narrow:'vertical', regular:'horizontal'} : 'vertical'} align={isCustomer ? {narrow:'start', regular:'center'} : undefined} justify="space-between">
-      <Stack gap="normal" className={isCustomer ? 'final-action-copy' : undefined}><Heading as="h2" variant="large" id="final-title">{c.final[0]}</Heading><Text as="p" size="large" className="muted">{c.final[1]}</Text></Stack>
-      <Stack direction={isCustomer ? 'vertical' : 'horizontal'} gap="normal" wrap="wrap" className={isCustomer ? 'final-action-buttons' : 'hero-actions'}><ActionButton label={c.final[2]} onClick={() => act()} />{!isCustomer && <Button size="large" onClick={e => onDemo(e.currentTarget, audience)}>Записаться на демо</Button>}</Stack>
-    </Stack></Card></section>
+    <FinalAction title={c.final[0]} description={c.final[1]} label={c.final[2]} onAction={() => act()} />
   </main>
 }
