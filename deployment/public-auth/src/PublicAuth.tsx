@@ -127,7 +127,7 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
   const body = <Stack gap="spacious" className="public-auth-content">
     {message && <Banner title="Вход не завершён" variant="warning"><span role="alert">{message}</span></Banner>}
     {session.kind === 'authenticated' ? <Text as="p" role="status">Вы уже вошли в аккаунт</Text> : <>
-      <Button variant="primary" size="large" block className="public-auth-sber"
+      <Button variant="primary" size="large" className="public-auth-sber"
         disabled={session.kind !== 'guest' || redirecting || blocked || unavailable} onClick={start}>
         <span className="public-auth-label-layout"><img src={sberMark} alt="" aria-hidden className="public-auth-mark" /><span className="public-auth-label">{mode === 'register' ? 'Зарегистрироваться через Сбер ID' : 'Войти по Сбер ID'}</span></span>
       </Button>
@@ -145,7 +145,6 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
       if (session.kind === 'unknown') {setRetry(value => value+1)}
       else start()
     }}>Повторить</Button>}
-    {!view.modal && <Link href="/">Вернуться на сайт</Link>}
   </Stack>
   if (view.modal) return <Dialog title={title} renderHeader={ModalHeader} returnFocusRef={returnFocusRef}
     onClose={() => {setView(null); history.back()}} width="min(560px, calc(100vw - var(--base-size-32)))" position="center">{body}</Dialog>

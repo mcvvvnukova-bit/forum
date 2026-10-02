@@ -43,7 +43,7 @@ describe('public authentication', () => {
     mount()
     expect(screen.getByRole('heading', {name:'Создайте аккаунт'})).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', {name:'Вернуться на сайт'})).toHaveAttribute('href','/')
+    expect(screen.getByRole('link', {name:'АСТ Форум'})).toHaveAttribute('href','/')
     expect(location.search).toBe('')
     expect(await screen.findByRole('button', {name:'Зарегистрироваться через Сбер ID'})).toBeEnabled()
   })

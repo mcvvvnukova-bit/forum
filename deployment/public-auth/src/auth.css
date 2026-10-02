@@ -11,6 +11,7 @@
   --button-primary-iconColor-rest: var(--sber-button-label);
   min-width: 0;
   max-width: 100%;
+  align-self: center;
   min-height: var(--base-size-48);
   height: auto;
   padding: var(--base-size-12) var(--base-size-16);
@@ -29,4 +30,4 @@
 .public-auth-label {display: block; white-space: normal; overflow-wrap: anywhere;}
 .public-auth-panel {min-width: 0;}
 
-.public-auth-label-layout {display: grid; grid-template-columns: var(--base-size-24) minmax(0, 1fr); align-items: center; gap: var(--base-size-8); inline-size: min(24rem, calc(100vw - var(--base-size-96) - var(--base-size-16)));}
+.public-auth-label-layout {display: grid; grid-template-columns: var(--base-size-24) minmax(0, 1fr); align-items: center; gap: var(--base-size-8); inline-size: max-content; max-inline-size: min(20rem, calc(100vw - var(--base-size-96) - var(--base-size-16)));}

@@ -18,3 +18,5 @@ Live provider account creation and full VoiceOver not tested; IAM backend remain
 PR #13 создан в правильном репозитории mcvvvnukova-bit/forum, base main, ветка codex/PROJ-31-public-auth-form; commits и состав файлов проверены через gh. PR прикреплён к чату; после reload во вкладке GitHub PROJ-31 показан mcvvvnukova-bit/forum#13.
 
 Снимки: login-desktop.jpg, register-tablet.jpg, register-mobile.jpg. На 768 px panel x104..664, width560, scrollWidth768; на 360 px scrollWidth360. Клавиатура: Tab с крестика на provider внутри dialog; Escape закрывает и возвращает focus «Войти». VoiceOver не запускался.
+
+Уточнение владельца: кнопка стала компактнее и центрируется, ссылка «Вернуться на сайт» удалена. В IAB на 1280 px кнопка входа 233.38 px, регистрации 354 px; на мобильном 360 px кнопка регистрации 282 px, scrollWidth360, полный текст виден. Обновлены снимки; 17 frontend + 5 deployment tests, lint, typecheck/build прошли повторно. Повторное подключение SSH также завершилось timeout до каких-либо изменений на сервере.
