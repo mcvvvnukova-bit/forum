@@ -1,0 +1,28 @@
+{
+  "account": "Ассистент Кузьмина",
+  "userId": 8,
+  "verifiedIn": "IAB user menu and API users/me",
+  "links": [
+    {
+      "task": "PROJ-147",
+      "pr11": true,
+      "updated": "05.10.2026 20:18",
+      "title": "US: PUB.01.01.04: Страница для физических лиц: работа и подработка (PROJ-147) | АСТ \"Форум\" | OpenProject"
+    },
+    {
+      "task": "PROJ-29",
+      "pr11": true,
+      "title": "Фича: PUB.01.01: Главная страница и сценарии работы (PROJ-29) | АСТ \"Форум\" | OpenProject"
+    },
+    {
+      "task": "PROJ-145",
+      "pr11": true,
+      "title": "US: PUB.01.01.02: Страница для заказчиков (PROJ-145) | АСТ \"Форум\" | OpenProject"
+    },
+    {
+      "task": "PROJ-146",
+      "pr11": true,
+      "title": "US: PUB.01.01.03: Страница для поставщиков и подрядчиков (PROJ-146) | АСТ \"Форум\" | OpenProject"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "checked_at": "2026-10-05T17:22:08.991528+00:00",
+  "source_commit": "1c74a2bebd6894bf1777e3079b32d1782c35eb2a",
+  "frontend_implementation_commit": "cfad06490fa72324291bc46aed8ceda27633e733",
+  "source_pushed_pr_head_verified": true,
+  "pr": "https://github.com/mcvvvnukova-bit/forum/pull/11",
+  "task": "PROJ-147",
+  "parent": "PROJ-29",
+  "backup": "/opt/outline/backups/audience-pages-20261005T171635427782Z",
+  "https_files_matched": 28,
+  "root_and_123_unowned_files_unchanged": true,
+  "protected_files_unchanged": 30,
+  "production_unchanged": true,
+  "iap_browser": "Codex IAB",
+  "live_behavior": {
+    "both_auth_dialog_contexts": true,
+    "return_focus_on_original_card": true,
+    "one_current_slide": true,
+    "keyboard_manual_navigation": true,
+    "both_images_loaded": true,
+    "visible_captions_removed": true,
+    "first_intro_sentence_removed": true
+  },
+  "screenshots": [
+    "work-slider-published.png",
+    "work-slider-published-vacancy.png"
+  ],
+  "review": {
+    "base": "0078a76ccd173f630f45fa478694dac55e5e1071",
+    "head": "1c74a2bebd6894bf1777e3079b32d1782c35eb2a",
+    "critical": 0,
+    "important": 0,
+    "minor": 0,
+    "declined_to_judge": [
+      "Full VoiceOver announcement experience outside specified verification; native semantics and IAB AX checked",
+      "Real Sber registration/callback unchanged and outside edit scope; existing contract inspected",
+      "Publication initially pending in reviewer report; now verified via backup, byte hashes and live IAB"
+    ]
+  },
+  "limits": [
+    "Full VoiceOver and real Sber registration not run"
+  ]
+}
