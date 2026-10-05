@@ -16,7 +16,7 @@
 - All values are fictional; no real authentication or backend requests.
 - Raw data cannot bypass approvedScopes.
 - Ready/loading/error are distinct; no stale data in loading/error.
-- GitHub draft PR and verified OpenProject link are required; no web deployment.
+- GitHub draft PR and verified OpenProject link are required. The later explicit server-publication request authorizes the dev profile subtree described in Task 4.
 
 ### Task 1: data contract and profile UI
 
@@ -56,3 +56,16 @@
 - [ ] Render only work on `/profile/work#main`; share the cabinet shell and data source notice. Add «Работа и образование» under «Мой профиль» in both navigation modes; use native links so reload and Back/Forward work.
 - [ ] Run all tests, typecheck, lint, build and Primer validator. In iab verify direct work URL, return links, Back/Forward, title, keyboard/mobile menu, data placement and no horizontal overflow at 1626/768/320 px. Capture both pages.
 - [ ] Commit with PROJ-150, push, update PR №14, attach it and verify the OpenProject relationship under user 8.
+
+### Task 4: publish the approved profile to dev
+
+**Files:** Modify `local-previews/user-profile/src/ProfilePage.tsx`, `src/App.test.tsx`, `README.md`, `evidence/verification.md` and the existing specification. Record public hashes in `evidence/server-release.json`.
+
+**Interfaces:** Vite `import.meta.env.BASE_URL` controls profile-home links and the logo URL. The work route remains `/profile/work`. The existing gateway serves `/profile/` and `/profile/work` from the profile subtree, with its current dev-password protection.
+
+- [ ] Add a failing component test with `vi.stubEnv('BASE_URL', '/profile/')`; on `/profile/work#main`, expect the personal link `/profile/#personal` and logo `/profile/assets/forum-logo.png`. Run `npm test` and observe the wrong root URL before implementation.
+- [ ] Use BASE_URL for personal/header/logo URLs in ProfilePage and shared navigation. Run `npm test`, `npm run lint`, `npm run build -- --base=/profile/ --outDir=dist/server` and the Primer validator.
+- [ ] Prepare the direct work entry: `mkdir -p dist/server/work` and `cp dist/server/index.html dist/server/work/index.html`. Hash the five static files and commit the source/docs before upload.
+- [ ] Upload the built subtree through `ssh -o BindInterface=en0 forum-prod`; record protected-file hashes, preserve any existing profile directory in `/opt/outline/backups`, and replace only `/opt/outline/dev-astforum/landing/profile`. The existing gateway mount sees the new files without a restart. If verification fails, restore the profile backup or remove the newly created subtree.
+- [ ] Authenticate with the existing dev password without printing secrets. Compare every static file with its local SHA-256 through origin and HTTPS; check the unauthenticated login screen and unchanged protected files. In iab verify both routes, direct reload, desktop/mobile navigation, logo and layout; capture the deployed pages.
+- [ ] Record release evidence, commit with PROJ-150, push, update and attach PR №14, verify GitHub head and the OpenProject relationship under user 8.

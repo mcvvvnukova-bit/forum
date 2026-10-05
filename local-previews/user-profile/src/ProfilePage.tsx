@@ -7,10 +7,11 @@ type ProfileView = 'profile' | 'work'
 export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView}
 const icons = {personal: PersonIcon, identity: FileIcon, addresses: LocationIcon, tax: FileIcon, contacts: MailIcon, pension: ShieldLockIcon, work: BriefcaseIcon, education: BookIcon, 'self-employment': PersonIcon, 'international-passport': FileIcon, 'previous-passport': FileIcon}
 function ProfileNavigation({onNavigate, disabled = false, view}: {onNavigate?: () => void; disabled?: boolean; view: ProfileView}) {
+  const profileRoot = import.meta.env.BASE_URL
   return <NavList aria-label="Навигация личного кабинета">
     <NavList.Group>
       <NavList.GroupHeading>Мой профиль</NavList.GroupHeading>
-      <NavList.Item href={disabled ? '#main' : '/#personal'} onClick={onNavigate} aria-current={view === 'profile' ? 'page' : undefined}><NavList.LeadingVisual><PersonIcon/></NavList.LeadingVisual>Личные данные</NavList.Item>
+      <NavList.Item href={disabled ? '#main' : `${profileRoot}#personal`} onClick={onNavigate} aria-current={view === 'profile' ? 'page' : undefined}><NavList.LeadingVisual><PersonIcon/></NavList.LeadingVisual>Личные данные</NavList.Item>
       <NavList.Item href="/profile/work#main" onClick={onNavigate} aria-current={view === 'work' ? 'page' : undefined}><NavList.LeadingVisual><BriefcaseIcon/></NavList.LeadingVisual>Работа</NavList.Item>
     </NavList.Group>
     <NavList.Divider/>
@@ -29,6 +30,7 @@ function ProfileCard({section}: {section: ProfileSection}) {
   </section>
 }
 export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile'}: ProfilePageProps) {
+  const profileRoot = import.meta.env.BASE_URL
   const [dialog, setDialog] = useState<'edit' | 'menu' | 'support' | null>(null)
   const editRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLButtonElement>(null)
@@ -45,9 +47,9 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
     <header className="cabinet-header">
       <Link href="#main" className="skip-link">Перейти к содержанию</Link>
       <div className="header-brand"><IconButton ref={menuRef} className="mobile-menu" icon={ThreeBarsIcon} aria-label="Открыть меню профиля" onClick={() => setDialog('menu')}/>
-        <Link href="/#main" aria-label="АСТ Форум: личный кабинет" className="brand-link"><img src="/assets/forum-logo.png" width="144" height="48" alt="АСТ Форум"/></Link>
+        <Link href={`${profileRoot}#main`} aria-label="АСТ Форум: личный кабинет" className="brand-link"><img src={`${profileRoot}assets/forum-logo.png`} width="144" height="48" alt="АСТ Форум"/></Link>
       </div>
-      <Link href="/#main" className="account-link" aria-current={view === 'profile' ? 'page' : undefined}><PersonIcon/><Text>{accountName}</Text></Link>
+      <Link href={`${profileRoot}#main`} className="account-link" aria-current={view === 'profile' ? 'page' : undefined}><PersonIcon/><Text>{accountName}</Text></Link>
     </header>
     <div className="cabinet-body">
       <aside className="sidebar">
