@@ -1,0 +1,72 @@
+[
+  {
+    "path": "/",
+    "opened": {
+      "dialog": true,
+      "title": "Войти в аккаунт\nВойти по Сбер ID\n\nНет аккаунта? Зарегистрироваться",
+      "url": "/login"
+    },
+    "tabFocus": "Войти по Сбер ID",
+    "closed": {
+      "dialog": false,
+      "focus": "Войти",
+      "url": "/"
+    }
+  },
+  {
+    "path": "/customers/",
+    "opened": {
+      "dialog": true,
+      "title": "Войти в аккаунт\nВойти по Сбер ID\n\nНет аккаунта? Зарегистрироваться",
+      "url": "/login"
+    },
+    "tabFocus": "Войти по Сбер ID",
+    "closed": {
+      "dialog": false,
+      "focus": "Войти",
+      "url": "/customers/"
+    }
+  },
+  {
+    "path": "/suppliers/",
+    "opened": {
+      "dialog": true,
+      "title": "Войти в аккаунт\nВойти по Сбер ID\n\nНет аккаунта? Зарегистрироваться",
+      "url": "/login"
+    },
+    "tabFocus": "Войти по Сбер ID",
+    "closed": {
+      "dialog": false,
+      "focus": "Войти",
+      "url": "/suppliers/"
+    }
+  },
+  {
+    "path": "/work/",
+    "opened": {
+      "dialog": true,
+      "title": "Войти в аккаунт\nВойти по Сбер ID\n\nНет аккаунта? Зарегистрироваться",
+      "url": "/login"
+    },
+    "tabFocus": "Войти по Сбер ID",
+    "closed": {
+      "dialog": false,
+      "focus": "Войти",
+      "url": "/work/"
+    }
+  },
+  {
+    "path": "/participate/",
+    "opened": {
+      "dialog": true,
+      "title": "Войти в аккаунт\nВойти по Сбер ID\n\nНет аккаунта? Зарегистрироваться",
+      "url": "/login"
+    },
+    "tabFocus": "Войти по Сбер ID",
+    "closed": {
+      "dialog": false,
+      "focus": "Войти",
+      "url": "/participate/"
+    }
+  }
+]

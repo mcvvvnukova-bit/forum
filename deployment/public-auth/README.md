@@ -29,9 +29,13 @@ python3 /Users/vvv/.codex/skills/primer-design-system/scripts/validate_primer_ui
 ```sh
 release_commit=$(git rev-parse HEAD)
 release_dir="/home/testing-user/public-auth-${release_commit}"
-ssh forum-prod "mkdir -p '$release_dir'"
-COPYFILE_DISABLE=1 tar --no-xattrs -cf - dist scripts/deploy.py | ssh forum-prod "tar -C '$release_dir' -xf -"
-ssh forum-prod "sudo -n python3 '$release_dir/scripts/deploy.py' '$release_dir/dist' --commit '$release_commit'"
+ssh -o BindInterface=en0 forum-prod "mkdir -p '$release_dir'"
+COPYFILE_DISABLE=1 tar --no-xattrs -cf - dist scripts/deploy.py | ssh -o BindInterface=en0 forum-prod "tar -C '$release_dir' -xf -"
+ssh -o BindInterface=en0 forum-prod "sudo -n python3 '$release_dir/scripts/deploy.py' '$release_dir/dist' --commit '$release_commit'"
 ```
 
 После публикации другой версии публичного пакета снова выполнить этот сценарий, чтобы включение общей формы сохранилось; сами исходники независимых публичных приложений этот PR не меняет. Rollback: атомарно восстановить HTML из резервного каталога, удалить только новые login/register index, если их не было в backup; не удалять каталог landing целиком. Отчёт deployment.json содержит контрольные суммы всех опубликованных HTML и ресурсов. Production fingerprint и реальный origin/HTTPS проверяются отдельно; доказательства в evidence/verification.md.
+
+Публикация 05.10.2026 выполнена на dev из коммита `38420491fafcfe85f5931f7964400120b190e143`. Backup: `/opt/outline/backups/public-auth-20261005T170414402072Z`. Перезапуск не требовался. В текущей локальной сети SSH работает с per-process `BindInterface=en0`; настройки сети не менялись. Сценарий пропускает служебные AppleDouble / __MACOSX файлы старых загрузок. Отдельный identifierPrefix общего React root предотвращает совпадение aria-labelledby с элементами независимо собранных страниц.
+
+Origin и HTTPS подтвердили SHA256 11 файлов, сохранность 31 защищённого файла и dev-шлюза. IAB подтвердил окна на пяти публичных страницах, самостоятельные формы, переключение и закрытие, клавиатуру и восемь однострочных layouts. Проверочный переход достиг Сбер ID и вернулся на dev с ошибкой «Не удалось завершить вход. Попробуйте ещё раз»; успешный OAuth не подтверждён. Callback существующего IAM указывает на `https://astforum.ru/authorization`; конфигурация IAM не изменялась. Доказательства публикации: `evidence/live-*` и `evidence/protected-before.json`.

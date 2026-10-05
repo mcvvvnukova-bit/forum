@@ -1,0 +1,32 @@
+[
+  {
+    "action": "backAfterSwitch",
+    "dialog": false,
+    "focus": "Войти",
+    "path": "/"
+  },
+  {
+    "action": "closeButton",
+    "dialog": false,
+    "focus": "Войти",
+    "path": "/"
+  },
+  {
+    "action": "backdrop",
+    "dialog": false,
+    "focus": "Войти",
+    "path": "/"
+  },
+  {
+    "action": "keyboard",
+    "focus": "Зарегистрироваться по Сбер ID",
+    "focusInsideDialog": true,
+    "width": 360
+  },
+  {
+    "action": "keyboard",
+    "focus": "Зарегистрироваться по Сбер ID",
+    "focusInsideDialog": true,
+    "width": 768
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "commit": "38420491fafcfe85f5931f7964400120b190e143",
+  "backup": "/opt/outline/backups/public-auth-20261005T170414402072Z",
+  "target": "/opt/outline/dev-astforum/landing",
+  "files": {
+    "customers/index.html": "1e8acab44ca27c07bb3952f57105d24d703598ce78a90c0fb4f246fbc1ecfc56",
+    "index.html": "f507c9e60dbd83a543a2cc7fc23930401b8107cc17c4f3870e4648669dce10a9",
+    "participate/index.html": "c41bab56f1a99d7bebdde274ef7da7723cbaea14beb4ff271cf0cb6bf12208b2",
+    "suppliers/index.html": "177b976b834d64f03e7feabdbacb9148ae2f48b7a4f9c956fd31f48a4922d5e0",
+    "work/index.html": "ff69fd680f46bd9c49e21e306db44ebb6f6d92a1b743b5a03a8fc21a04989538",
+    "login/index.html": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
+    "register/index.html": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
+    "public-auth-assets/noto-sans-bold-condensed-latin-5IGi-XSh.woff2": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082",
+    "public-auth-assets/index-B01eD4XL.css": "1823706c1eedaea0fcef950b3c6c086c7323d0420a9649dcff66080ea1a26342",
+    "public-auth-assets/index-7gFu9Cpr.js": "85e21ea9fc5c04e40f3c50ca89966eeadf6f884c5a0ae0550f44d0842af255ad",
+    "public-auth-assets/noto-sans-bold-condensed-cyrillic-SPamaKX4.woff2": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3"
+  }
+}

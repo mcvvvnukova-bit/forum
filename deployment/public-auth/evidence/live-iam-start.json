@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-05T17:08:01.655Z",
+  "providerRedirectObserved": "https://id-sb.sber.ru/CSAFront/oidc/authorize.do",
+  "configuredCallback": "https://astforum.ru/authorization",
+  "final": {
+    "alert": "Не удалось завершить вход. Попробуйте ещё раз",
+    "completedAuthentication": false,
+    "origin": "https://dev.astforum.ru",
+    "path": "/login"
+  }
+}

@@ -1,4 +1,24 @@
-# PROJ-31: проверка формы, 02.10.2026
+# PROJ-31: проверка формы и публикации
+
+## Проверенная публикация 05.10.2026
+
+Опубликованный коммит: `38420491fafcfe85f5931f7964400120b190e143`; target `/opt/outline/dev-astforum/landing`. Backup: `/opt/outline/backups/public-auth-20261005T170414402072Z`. SSH: `forum-prod`, per-process `-o BindInterface=en0`. Production и сетевые настройки не менялись; перезапуск не требовался.
+
+Перед публикацией выявлены два дефекта интеграции. Служебный `._index.html` macOS вызывал UnicodeDecodeError: регрессия RED→GREEN, исключаются AppleDouble и __MACOSX. На /participate независимо собранное React-приложение имело тот же useId, что tooltip крестика: регрессия RED→GREEN, public-auth root теперь имеет identifierPrefix. Оба исправления отправлены в PR13 до финальной публикации.
+
+Финальная проверка: 18 Vitest + 6 Python, ESLint, TypeScript/build прошли. Primer validator: 0 ошибок, 5 ранее описанных предупреждений. Vite предупреждает о module-level `use no memo` в react-compiler-runtime; сборка завершилась успешно.
+
+- Все 11 HTML/JS/CSS/WOFF2 файлов дали 200 и совпадающий SHA256 через origin http://127.0.0.1 (Host dev.astforum.ru) и https://dev.astforum.ru. Отчёты: live-deployment.json и live-verification.json.
+- Анонимная сессия 401, парольный dev-шлюз защищает страницу, вход шлюза 303, health ok, robots Disallow: /. Секреты и cookie в доказательства не записывались.
+- 31 production / auth / gateway / Caddy / Compose файл совпал по SHA256 с protected-before.json.
+- IAB: /, /customers/, /suppliers/, /work/, /participate/ открывают общий Dialog; Tab переходит на provider, Escape закрывает и возвращает фокус «Войти». Back после переключения, крестик и фон закрывают окно и возвращают исходный URL. Прямые /login и /register проверены с reload.
+- Финальная сборка: по четыре modal/standalone проверки при 320/360/768/1280 px, 19px/700, одна строка, текст внутри кнопки, кнопка внутри viewport, scrollWidth == viewport. «Вернуться на сайт» отсутствует. Точные измерения в live-button-layout.json. На 360 и 768 px Tab остаётся внутри диалога.
+- Проверочный переход кнопки входа достиг authorize страницы Сбер ID; затем браузер вернулся на dev /login с alert «Не удалось завершить вход. Попробуйте ещё раз». Полная авторизация и создание аккаунта не подтверждены; существующий IAM и его callback https://astforum.ru/authorization не менялись. live-iam-start.json содержит только адреса без OAuth state/nonce/code.
+- Подтверждена учётная запись «Ассистент Кузьмина» и ссылка mcvvvnukova-bit/forum#13 во вкладке GitHub PROJ-31: live-openproject.txt.
+
+Снимки текущей публикации: live-register-modal-desktop.jpg, live-register-320.jpg. live-iam-error.jpg фиксирует реальный незавершённый переход IAM. Полный VoiceOver не проверялся.
+
+## Локальная проверка и попытки публикации 02.10.2026
 
 Требования прочитаны из текущего Outline API под Кузьмина, id 667e07ed-3c9f-4c1b-ad8e-5755f022a668, updatedAt 2026-10-02T14:29:50.285Z. Задача PROJ-31 проверена через /api/v3/work_packages/PROJ-31 под пользователем 8: фактический API id 68. В OpenProject старое название PUB.01.03; принадлежность подтверждена ссылкой на тот же Outline документ.
 
