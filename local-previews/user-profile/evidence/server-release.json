@@ -1,0 +1,280 @@
+{
+  "sourceCommit": "78e2f864287136a837f161d0b8386c48dc477eec",
+  "host": "dev.astforum.ru",
+  "base": "/profile/",
+  "files": [
+    {
+      "path": "assets/forum-logo.png",
+      "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "size": 23529
+    },
+    {
+      "path": "assets/index-Ck34N4wN.js",
+      "sha256": "2bb6f12848ca2ee14ba4fca798b6c2aac553b0137a0457b0dbecde39699fa10f",
+      "size": 643954
+    },
+    {
+      "path": "assets/index-CqynsdSr.css",
+      "sha256": "b631836aef21ef8ca70263f0735e5dc4ccc958bacce0bab1cf2afe3beff4d85b",
+      "size": 191299
+    },
+    {
+      "path": "index.html",
+      "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+      "size": 439
+    },
+    {
+      "path": "work/index.html",
+      "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+      "size": 439
+    }
+  ],
+  "publishedAt": "2026-10-05T20:24:50.964767+00:00",
+  "serverHostname": "test-debian",
+  "target": "/opt/outline/dev-astforum/landing/profile",
+  "backup": "/opt/outline/backups/proj150-profile-20261005T202450Z-78e2f86",
+  "protectedFileCount": 244,
+  "protectedFilesUnchanged": true,
+  "restartedServices": [],
+  "httpChecks": [
+    {
+      "surface": "origin",
+      "path": "/profile/assets/forum-logo.png",
+      "status": 200,
+      "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "matches": true
+    },
+    {
+      "surface": "origin",
+      "path": "/profile/assets/index-Ck34N4wN.js",
+      "status": 200,
+      "sha256": "2bb6f12848ca2ee14ba4fca798b6c2aac553b0137a0457b0dbecde39699fa10f",
+      "matches": true
+    },
+    {
+      "surface": "origin",
+      "path": "/profile/assets/index-CqynsdSr.css",
+      "status": 200,
+      "sha256": "b631836aef21ef8ca70263f0735e5dc4ccc958bacce0bab1cf2afe3beff4d85b",
+      "matches": true
+    },
+    {
+      "surface": "origin",
+      "path": "/profile/index.html",
+      "status": 200,
+      "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+      "matches": true
+    },
+    {
+      "surface": "origin",
+      "path": "/profile/work/index.html",
+      "status": 200,
+      "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+      "matches": true
+    },
+    {
+      "surface": "origin",
+      "path": "/profile/work",
+      "status": 200,
+      "matches": true
+    },
+    {
+      "surface": "https",
+      "path": "/profile/assets/forum-logo.png",
+      "status": 200,
+      "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "matches": true
+    },
+    {
+      "surface": "https",
+      "path": "/profile/assets/index-Ck34N4wN.js",
+      "status": 200,
+      "sha256": "2bb6f12848ca2ee14ba4fca798b6c2aac553b0137a0457b0dbecde39699fa10f",
+      "matches": true
+    },
+    {
+      "surface": "https",
+      "path": "/profile/assets/index-CqynsdSr.css",
+      "status": 200,
+      "sha256": "b631836aef21ef8ca70263f0735e5dc4ccc958bacce0bab1cf2afe3beff4d85b",
+      "matches": true
+    },
+    {
+      "surface": "https",
+      "path": "/profile/index.html",
+      "status": 200,
+      "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+      "matches": true
+    },
+    {
+      "surface": "https",
+      "path": "/profile/work/index.html",
+      "status": 200,
+      "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+      "matches": true
+    },
+    {
+      "surface": "https",
+      "path": "/profile/work",
+      "status": 200,
+      "matches": true
+    }
+  ],
+  "unauthenticatedChecks": [
+    {
+      "path": "/profile/",
+      "requiresDevPassword": true
+    },
+    {
+      "path": "/profile/work",
+      "requiresDevPassword": true
+    },
+    {
+      "path": "/profile/assets/index-Ck34N4wN.js",
+      "requiresDevPassword": true
+    }
+  ],
+  "browser": {
+    "checks": [
+      {
+        "cardIds": [
+          "personal",
+          "identity",
+          "addresses",
+          "tax",
+          "contacts",
+          "pension",
+          "international-passport",
+          "previous-passport",
+          "extra-documents",
+          "education"
+        ],
+        "h1": "Личные данные",
+        "logoLoaded": true,
+        "scrollWidth": 1457,
+        "title": "Личные данные | АСТ Форум",
+        "url": "https://dev.astforum.ru/profile/",
+        "width": 1472
+      },
+      {
+        "cardIds": [
+          "work",
+          "self-employment"
+        ],
+        "h1": "Работа",
+        "logoLoaded": true,
+        "personalLink": "/profile/#personal",
+        "scrollWidth": 1457,
+        "title": "Работа | АСТ Форум",
+        "url": "https://dev.astforum.ru/profile/work#main",
+        "width": 1472
+      },
+      {
+        "cardIds": [
+          "work",
+          "self-employment"
+        ],
+        "h1": "Работа",
+        "scrollWidth": 753,
+        "title": "Работа | АСТ Форум",
+        "url": "https://dev.astforum.ru/profile/work#main",
+        "width": 768
+      },
+      {
+        "cardIds": [
+          "work",
+          "self-employment"
+        ],
+        "h1": "Работа",
+        "scrollWidth": 390,
+        "title": "Работа | АСТ Форум",
+        "url": "https://dev.astforum.ru/profile/work#main",
+        "width": 390
+      },
+      {
+        "cardIds": [
+          "work",
+          "self-employment"
+        ],
+        "h1": "Работа",
+        "scrollWidth": 305,
+        "title": "Работа | АСТ Форум",
+        "url": "https://dev.astforum.ru/profile/work#main",
+        "width": 320
+      },
+      {
+        "cardIds": [
+          "personal",
+          "identity",
+          "addresses",
+          "tax",
+          "contacts",
+          "pension",
+          "international-passport",
+          "previous-passport",
+          "extra-documents",
+          "education"
+        ],
+        "h1": "Личные данные",
+        "scrollWidth": 305,
+        "title": "Личные данные | АСТ Форум",
+        "url": "https://dev.astforum.ru/profile/#personal",
+        "width": 320
+      },
+      {
+        "cardIds": [
+          "personal",
+          "identity",
+          "addresses",
+          "tax",
+          "contacts",
+          "pension",
+          "international-passport",
+          "previous-passport",
+          "extra-documents",
+          "education"
+        ],
+        "h1": "Личные данные",
+        "scrollWidth": 375,
+        "title": "Личные данные | АСТ Форум",
+        "url": "https://dev.astforum.ru/profile/#personal",
+        "width": 390
+      },
+      {
+        "cardIds": [
+          "personal",
+          "identity",
+          "addresses",
+          "tax",
+          "contacts",
+          "pension",
+          "international-passport",
+          "previous-passport",
+          "extra-documents",
+          "education"
+        ],
+        "h1": "Личные данные",
+        "scrollWidth": 753,
+        "title": "Личные данные | АСТ Форум",
+        "url": "https://dev.astforum.ru/profile/#personal",
+        "width": 768
+      }
+    ],
+    "mobileDialogCloses": true,
+    "escapeReturnsFocus": true,
+    "directWorkReload": true,
+    "backForward": true,
+    "personalReload": true,
+    "consoleWarningsAndErrors": 0
+  },
+  "urls": [
+    "https://dev.astforum.ru/profile/",
+    "https://dev.astforum.ru/profile/work#main"
+  ],
+  "review": {
+    "critical": 0,
+    "important": 0,
+    "minor": 0,
+    "freshReviewer": true
+  }
+}
