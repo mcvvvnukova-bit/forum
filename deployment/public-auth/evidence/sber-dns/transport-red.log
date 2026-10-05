@@ -1,0 +1,21 @@
+✖ Sber backchannel resolves through container DNS and authenticates TLS (5016.631688ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5030.111535
+
+✖ failing tests:
+
+test at [eval1]:8:1
+✖ Sber backchannel resolves through container DNS and authenticates TLS (5016.631688ms)
+  Error: getaddrinfo EAI_AGAIN oauth-sb.sber.ru
+      at GetAddrInfoReqWrap.onlookup [as oncomplete] (node:internal/dns/promises:89:17) {
+    errno: -3001,
+    code: 'EAI_AGAIN',
+    syscall: 'getaddrinfo',
+    hostname: 'oauth-sb.sber.ru'
+  }

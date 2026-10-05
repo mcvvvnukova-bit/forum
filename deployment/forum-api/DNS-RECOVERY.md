@@ -43,3 +43,31 @@ sudo docker exec -i forum-api-forum_api-1 node --input-type=module \
 Откат: выполнить ту же команду Compose без `-f /opt/forum-api/sber-dns.override.yaml`.
 Это восстановит прежнюю конфигурацию сервиса; overlay и backup можно сохранить.
 Другие сервисы и данные не удаляются.
+
+## Проверенная публикация 05.10.2026
+
+Применён override из коммита `8026178601a36f4385314b853aa3b13a5764aa67`:
+`/opt/forum-api/sber-dns.override.yaml`, SHA256
+`c554835f1a99b6e76dd7ce4752db3c1bc1e0720d98419c4a857a96aafffa4ee5`.
+Backup: `/opt/forum-api/backups/dns-20261005T173858Z`.
+Пересоздан только `forum-api-forum_api-1`, health — healthy.
+Resolved Compose до и после отличается только `forum_api.dns`.
+Образ остался `astforum/forum-api:20261001-sber-dns` с прежним image ID.
+Значения переменных среды совпали с объединением defaults этого образа и
+неизменённого base Compose. Сравнение выполняется по ключам и значениям:
+порядок массива `Config.Env` при пересоздании изменился и не является
+доказательством изменения переменных. 19 остальных контейнеров сохранили ID,
+31 защищённый production / auth / gateway / Caddy / Compose файл — SHA256.
+
+Тот же транспортный тест после исправления прошёл: DNS разрешается,
+ответ API 400 на диагностический запрос, сертификат проверен, TLS 1.3.
+В IAB выполнен настоящий вход через существующую сессию Сбер ID.
+На `/login` после reload видно «Вы уже вошли в аккаунт», alert отсутствует.
+БД `forum_sber_sandbox` содержит прежнего одного пользователя и одну внешнюю
+идентичность; событие `UserAuthenticated` записано 05.10 в 17:42:36.716 UTC.
+Это подтверждает повторный вход в существующий аккаунт.
+
+Безопасные доказательства: `../public-auth/evidence/sber-dns/` —
+RED/GREEN транспортного теста, server-verification.json, browser-proof.json,
+auth-audit.json и login-success.jpg. OAuth-коды, cookie, токены и персональные
+данные в эти файлы не сохраняются.

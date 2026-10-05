@@ -1,0 +1,22 @@
+{
+  "verifiedAt": "2026-10-05T17:49:29.440677+00:00",
+  "sourceCommit": "8026178601a36f4385314b853aa3b13a5764aa67",
+  "backup": "/opt/forum-api/backups/dns-20261005T173858Z",
+  "apiHealthy": true,
+  "apiContainerRecreated": true,
+  "apiContainerId": "50813f03b1c90f480818269e15f32ab3eb6dca8b45960d1d239fa7c68d2cccf2",
+  "imageUnchanged": true,
+  "imageId": "sha256:05845ef24741384bda793f4c67709c74b8b6fa4a58272637019479c986dd9865",
+  "imageName": "astforum/forum-api:20261001-sber-dns",
+  "onlyResolvedComposeChange": "forum_api.dns",
+  "dns": [
+    "172.16.160.1"
+  ],
+  "environmentMatchesExistingRelease": true,
+  "environmentComparison": "image defaults merged with unchanged base Compose, semantic key/value comparison",
+  "canonicalEnvironmentSha256": "1b99476c2f418f3feeea49daba20ef3ea12225a81db14355cb6c4216780d3156",
+  "oldEnvironmentArrayFingerprintNote": "Array order changed during Compose recreation; key/value map is verified instead.",
+  "otherContainersUnchanged": 19,
+  "protectedFilesUnchanged": 31,
+  "overlaySha256": "c554835f1a99b6e76dd7ce4752db3c1bc1e0720d98419c4a857a96aafffa4ee5"
+}

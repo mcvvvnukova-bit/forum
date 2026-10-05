@@ -1,0 +1,11 @@
+✔ Sber backchannel resolves through container DNS and authenticates TLS (63.880084ms)
+ℹ {"host":"oauth-sb.sber.ru","dnsResolved":true}
+ℹ {"status":400,"tlsAuthorized":true,"tlsProtocol":"TLSv1.3"}
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 77.641929

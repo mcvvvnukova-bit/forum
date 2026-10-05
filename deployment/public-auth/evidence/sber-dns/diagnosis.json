@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-05",
+  "target": "dev.astforum.ru",
+  "callbackError": "provider_unavailable",
+  "failingHostname": "oauth-sb.sber.ru",
+  "containerLookupError": "EAI_AGAIN",
+  "containerResolver": "127.0.0.11",
+  "containerResolvConfDiagnostic": "NO EXTERNAL NAMESERVERS DEFINED",
+  "containerStartedBeforeHostResolverFileUpdated": true,
+  "startupTimingInterpretation": "Consistent with API starting before host DNS was populated; timing alone does not prove the cause.",
+  "hostDnsAndDirectContainerQueryToVpsResolverSucceeded": true,
+  "workingVpsResolver": "172.16.160.1",
+  "fix": "Explicit DNS only for forum_api; hostname, strict TLS, existing image, environment and isolated database retained.",
+  "beforeUsers": 1,
+  "beforeLastAuthenticatedAt": "2026-10-02T20:59:01.949Z"
+}
