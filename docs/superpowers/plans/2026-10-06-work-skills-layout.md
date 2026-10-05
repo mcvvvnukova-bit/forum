@@ -15,7 +15,7 @@ Interface: unchanged WorkExamples() state/effect, WorkExample(image,title,items)
 - [x] Group shared heading/subtitle and active-slide h3/body in the left column. Move controls beneath text, keep illustration right and legacy ids. Remove obsolete header spacing rule.
 - [x] Run existing 37 tests, typecheck/lint/build/package, Primer validator, four deploy tests. No new copy-mirroring tests for this reversible layout/text edit; existing tests verify behavior.
 - [x] IAB local: desktop/mobile, cyclic arrows, keyboard focus, hashes, card auth dialog; source/render combined visual QA, save passed report and evidence.
-- [ ] Commit intended changes with PROJ-147; one fresh read-only reviewer, resolve material findings.
+- [x] Commit intended changes with PROJ-147; one fresh read-only reviewer, resolve material findings.
 
 ## Task 2: Publish and prove
 
