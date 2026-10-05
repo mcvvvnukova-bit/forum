@@ -14,7 +14,7 @@ export type SberProfile = {
   education?: Description; place_of_work?: string; job_title?: string; marital_status?: Description; is_self_employed?: boolean;
 }
 export type ProfileField = {id: string; label: string; value: string; status: 'provided' | 'missing' | 'not-requested'}
-export type ProfileSection = {id: string; title: string; additional: boolean; fields: ProfileField[]}
+export type ProfileSection = {id: string; title: string; fields: ProfileField[]}
 
 function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
@@ -50,7 +50,7 @@ export function buildProfileSections(p: SberProfile, approvedScopes: readonly st
   const primary = hasMain ? p.identification : scopes.has('priority_doc') ? p.priority_doc : undefined
   const primaryScope = hasMain || !scopes.has('priority_doc') ? 'maindoc' : 'priority_doc'
   const identityTitle = hasMain ? 'Паспорт' : primary ? documentTitles[primary.type ?? -1] ?? 'Документ, удостоверяющий личность' : 'Паспорт'
-  const section = (id: string, title: string, fields: ProfileField[], additional = false): ProfileSection => ({id, title, fields, additional})
+  const section = (id: string, title: string, fields: ProfileField[]): ProfileSection => ({id, title, fields})
   return [
     section('personal', 'Личные данные', [
       f('full_name', 'Фамилия, имя, отчество', 'name', name(p.family_name, p.given_name, p.middle_name)),
@@ -58,6 +58,8 @@ export function buildProfileSections(p: SberProfile, approvedScopes: readonly st
       f('gender', 'Пол', 'gender', p.gender === 1 ? 'Мужской' : p.gender === 2 ? 'Женский' : undefined),
       f('place_of_birth', 'Место рождения', 'place_of_birth', p.place_of_birth),
       f('citizenship', 'Гражданство', 'citizenship', p.citizenship?.country_name),
+      f('previous_name', 'Предыдущие ФИО', 'previous_name', name(p.previous_family_name, p.previous_given_name, p.previous_middle_name)),
+      f('marital_status', 'Семейное положение', 'marital_status', p.marital_status?.description),
     ]),
     section('identity', identityTitle, [
       f('document_number', 'Серия и номер', primaryScope, name(primary?.series, primary?.number)),
@@ -77,7 +79,7 @@ export function buildProfileSections(p: SberProfile, approvedScopes: readonly st
       f('job_title', 'Должность', 'job_title', p.job_title),
       f('education', 'Образование', 'education', p.education?.description),
       f('is_self_employed', 'Самозанятость', 'is_self_employed', typeof p.is_self_employed === 'boolean' ? p.is_self_employed ? 'Да' : 'Нет' : undefined),
-    ], true),
+    ]),
     section('extra-documents', 'Дополнительные документы', [
       f('driving_license', 'Водительское удостоверение', 'driving_license', p.driving_license?.number),
       f('international_passport', 'Заграничный паспорт', 'international_passport', name(p.international_passport?.series, p.international_passport?.number)),
@@ -89,11 +91,7 @@ export function buildProfileSections(p: SberProfile, approvedScopes: readonly st
       f('previous_identification', 'Предыдущий паспорт', 'previous_identification', name(p.previous_identification?.series, p.previous_identification?.number)),
       f('previous_issued_by', 'Предыдущий паспорт: кем выдан', 'previous_identification', p.previous_identification?.issued_by),
       f('previous_issued_date', 'Предыдущий паспорт: дата выдачи', 'previous_identification', date(p.previous_identification?.issued_date)),
-    ], true),
-    section('extra-addresses', 'Другие адреса', [f('work_address', 'Рабочий адрес', 'work_address', address(p.work_address)), f('delivery_address', 'Адрес доставки', 'delivery_address', address(p.delivery_address))], true),
-    section('other', 'Другие сведения', [
-      f('previous_name', 'Предыдущие ФИО', 'previous_name', name(p.previous_family_name, p.previous_given_name, p.previous_middle_name)),
-      f('marital_status', 'Семейное положение', 'marital_status', p.marital_status?.description),
-    ], true),
+    ]),
+    section('extra-addresses', 'Другие адреса', [f('work_address', 'Рабочий адрес', 'work_address', address(p.work_address)), f('delivery_address', 'Адрес доставки', 'delivery_address', address(p.delivery_address))]),
   ]
 }

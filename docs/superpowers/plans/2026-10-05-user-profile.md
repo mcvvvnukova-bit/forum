@@ -43,3 +43,16 @@
 - [ ] Run the existing 12 tests, typecheck, lint, build and Primer validator. These reversible presentation changes require no new tests mirroring the markup.
 - [ ] In iab verify all seven targets are absent, both new items appear on desktop and in the mobile menu, the profile anchors and Dialog focus still work, and no horizontal overflow appears at 320/768/1846 px. Capture the resulting page.
 - [ ] Commit with PROJ-150, push, update PR №14 and verify its new head and persisted OpenProject relationship as user 8.
+
+### Task 3: profile grouping and work page
+
+**Files:** Modify `src/profile.ts`, `src/ProfilePage.tsx`, `src/ProfilePage.test.tsx`, `src/App.tsx`, `src/layout.css`, `README.md` and `evidence/verification.md`; create `src/App.test.tsx`.
+
+**Interfaces:** `ProfilePage` gains optional `view: 'profile' | 'work'`, defaulting to profile. `App` selects work for exact pathname `/profile/work`. `ProfileSection` contains id, title and fields; the additional flag is removed because there is no collapsible group.
+
+- [ ] Replace the obsolete disclosure test with initially visible document/address cards and the work link. Add behavior tests for previous name/marital status inside the personal card, and direct work URL displaying work data with a return link. Run npm test and observe the failures before implementation.
+- [ ] Move previous_name and marital_status into personal; remove other. Preserve each field's scope and formatting.
+- [ ] Render eight profile cards immediately. Remove showExtra, the toggle, enclosing extra-section and its unused CSS.
+- [ ] Render only work on `/profile/work#main`; share the cabinet shell and data source notice. Add «Работа и образование» under «Мой профиль» in both navigation modes; use native links so reload and Back/Forward work.
+- [ ] Run all tests, typecheck, lint, build and Primer validator. In iab verify direct work URL, return links, Back/Forward, title, keyboard/mobile menu, data placement and no horizontal overflow at 1626/768/320 px. Capture both pages.
+- [ ] Commit with PROJ-150, push, update PR №14, attach it and verify the OpenProject relationship under user 8.
