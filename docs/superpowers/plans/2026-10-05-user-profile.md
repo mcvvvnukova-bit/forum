@@ -4,7 +4,7 @@
 
 **Goal:** Build the local read-only profile described by `docs/superpowers/specs/2026-10-05-user-profile-design.md`.
 
-**Architecture:** A pure scope-aware adapter maps Sber userinfo into semantic read-only fields. Primer compositions render the profile; a separate demo wrapper selects fixtures and page states. No backend calls or personal-data persistence.
+**Architecture:** A pure scope-aware adapter maps Sber userinfo into semantic read-only fields. Primer compositions render the profile; the app wrapper supplies fictional ready-state data. Component tests exercise the other page states. No backend calls or personal-data persistence.
 
 **Tech Stack:** React 19.2.8, TypeScript 5.9.2, Primer React 38.37.0, Primitives 11.10.0, Octicons 19.33.0, Vite 8.2.2, Vitest 4.1.11.
 
@@ -31,3 +31,15 @@
 - [ ] Run `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, and the Primer validator. Expected: all pass.
 - [ ] Inspect the local app in iab at desktop/tablet/mobile, test Dialog/Escape and section anchors; fix actual findings and record evidence in README.
 - [ ] Commit only this application's files and the spec/plan with PROJ-150 in the message; push, create a draft PR, attach it, and verify the OpenProject GitHub relationship.
+
+### Task 2: browser comment refinements
+
+**Files:** Modify `src/ProfilePage.tsx`, `src/App.tsx`, `src/layout.css`, `README.md`, `evidence/verification.md`, and the existing design specification.
+
+**Interfaces:** Preserve the data adapter and ProfilePage props; reuse ProfileNavigation for desktop and mobile.
+
+- [ ] Remove the seven annotated text/block targets; remove CSS and imports used only by the deleted preview controls and captions.
+- [ ] Add a NavList divider followed by items «Настройки» (GearIcon) and «Добавить компанию» (OrganizationIcon). Use `inactiveText="Раздел пока недоступен"`; do not add routes or separate screens.
+- [ ] Run the existing 12 tests, typecheck, lint, build and Primer validator. These reversible presentation changes require no new tests mirroring the markup.
+- [ ] In iab verify all seven targets are absent, both new items appear on desktop and in the mobile menu, the profile anchors and Dialog focus still work, and no horizontal overflow appears at 320/768/1846 px. Capture the resulting page.
+- [ ] Commit with PROJ-150, push, update PR №14 and verify its new head and persisted OpenProject relationship as user 8.

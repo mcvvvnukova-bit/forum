@@ -5,17 +5,15 @@ body {margin: 0; background: var(--bgColor-default);}
 p, h1, h2, dl, dd {margin: 0;}
 .muted {color: var(--fgColor-muted);}
 .cabinet-header {height: var(--profile-header-height); display: flex; justify-content: space-between; align-items: center; gap: var(--base-size-24); padding: 0 var(--base-size-32); border-bottom: var(--borderWidth-thin) solid var(--borderColor-default); background: var(--bgColor-default); position: sticky; top: 0; z-index: 10;}
-.header-brand, .account-link, .workspace-heading, .card-heading, .preview-summary {display: flex; align-items: center; gap: var(--base-size-12);}
+.header-brand, .account-link, .workspace-heading, .card-heading {display: flex; align-items: center; gap: var(--base-size-12);}
 .header-brand {gap: var(--base-size-24); min-width: 0;}
 .brand-link {display: flex; flex-shrink: 0;}
 .brand-link img {object-fit: contain;}
-.cabinet-caption {border-left: var(--borderWidth-thin) solid var(--borderColor-default); padding-left: var(--base-size-24);}
 .account-link {color: var(--fgColor-default); white-space: nowrap;}
 .cabinet-body {display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: calc(100vh - var(--profile-header-height));}
 .sidebar {display: flex; flex-direction: column; gap: var(--base-size-24); padding: var(--base-size-32) var(--base-size-16) var(--base-size-24); border-right: var(--borderWidth-thin) solid var(--borderColor-default); background: var(--bgColor-muted); position: sticky; top: var(--profile-header-height); align-self: start; min-height: calc(100vh - var(--profile-header-height));}
 .workspace-heading {padding: 0 var(--base-size-12); color: var(--fgColor-default);}
 .sidebar-bottom {margin-top: auto; padding-top: var(--base-size-32);}
-.sidebar-bottom p {padding: var(--base-size-12);}
 .profile-main {max-width: 1250px; width: 100%; padding: var(--base-size-40) var(--base-size-40) var(--base-size-24); margin: 0 auto; min-width: 0; outline: none;}
 .page-heading {display: flex; align-items: center; justify-content: space-between; gap: var(--base-size-24); margin-bottom: var(--base-size-32);}
 .eyebrow {margin-bottom: var(--base-size-8);}
@@ -37,14 +35,8 @@ p, h1, h2, dl, dd {margin: 0;}
 .extra-heading {display: flex; justify-content: space-between; align-items: center; gap: var(--base-size-16); padding: var(--base-size-20) var(--base-size-24);}
 .extra-heading p {margin-top: var(--base-size-4);}
 .additional-grid {padding: 0 var(--base-size-20) var(--base-size-20);}
-.data-explanation {margin-top: var(--base-size-20);}
-.data-explanation svg {flex-shrink: 0; color: var(--fgColor-muted);}
 .profile-footer {display: flex; align-items: start; justify-content: space-between; gap: var(--base-size-24); margin-top: var(--base-size-40); padding-top: var(--base-size-24); border-top: var(--borderWidth-thin) solid var(--borderColor-muted);}
 .state-content {min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--base-size-16);}
-.preview-panel {padding: var(--base-size-20) var(--base-size-32); border-top: var(--borderWidth-thin) dashed var(--borderColor-default); background: var(--bgColor-muted);}
-.preview-summary {justify-content: space-between; align-items: center;}
-.preview-summary p {margin-top: var(--base-size-4);}
-.preview-controls {max-width: 480px; margin-top: var(--base-size-24); display: flex; flex-direction: column; gap: var(--base-size-16);}
 .skip-link {position: absolute; top: -100px; left: var(--base-size-16); padding: var(--base-size-12); background: var(--bgColor-default); border: var(--borderWidth-thin) solid var(--borderColor-default); z-index: 20;}
 .skip-link:focus {top: var(--base-size-8);}
 .mobile-menu {display: none;}
@@ -63,7 +55,7 @@ p, h1, h2, dl, dd {margin: 0;}
   :root {--profile-header-height: 72px;}
   .cabinet-header {padding: 0 var(--base-size-16); gap: var(--base-size-12);}
   .cabinet-body {display: block;}
-  .sidebar, .cabinet-caption {display: none;}
+  .sidebar {display: none;}
   .mobile-menu {display: inline-flex;}
   .header-brand {gap: var(--base-size-8);}
   .account-link {white-space: normal; gap: var(--base-size-4); max-width: 100px;}
@@ -77,6 +69,5 @@ p, h1, h2, dl, dd {margin: 0;}
   .profile-card {padding: var(--base-size-20);}
   .extra-heading {padding: var(--base-size-20);}
   .additional-grid {padding: 0 var(--base-size-12) var(--base-size-12);}
-  .profile-footer, .preview-summary {flex-direction: column; align-items: start; gap: var(--base-size-12);}
-  .preview-panel {padding: var(--base-size-20) var(--base-size-16);}
+  .profile-footer {flex-direction: column; align-items: start; gap: var(--base-size-12);}
 }
