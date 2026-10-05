@@ -9,7 +9,8 @@ function page(props: Partial<ProfilePageProps> = {}) {
 
 describe('profile page behavior', () => {
   it('renders only read-only data and distinguishes missing fields', () => {
-    page()
+    page({profile: {given_name: 'Анна', family_name: 'Тестова', email: 'anna@example.test', education: {description: 'Высшее'}}, approvedScopes: ['name', 'email', 'inn', 'education']})
+    expect(within(screen.getByRole('region', {name: 'Образование'})).getByText('Высшее')).toBeVisible()
     expect(screen.getByText('anna@example.test')).toBeVisible()
     expect(screen.getAllByText('Не передано').length).toBeGreaterThan(0)
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
@@ -25,8 +26,8 @@ describe('profile page behavior', () => {
     const previous = within(screen.getByRole('region', {name: 'Предыдущий паспорт'}))
     for (const value of ['45 04 987654', 'УВД', '20 мая 2004']) expect(previous.getByText(value)).toBeVisible()
     expect(screen.queryByRole('button', {name: /Дополнительные сведения/})).not.toBeInTheDocument()
-    expect(screen.queryByRole('heading', {name: 'Работа и образование'})).not.toBeInTheDocument()
-    expect(screen.getByRole('link', {name: 'Работа и образование'})).toHaveAttribute('href', '/profile/work#main')
+    expect(screen.queryByRole('region', {name: 'Самозанятость'})).not.toBeInTheDocument()
+    expect(screen.getByRole('link', {name: 'Работа'})).toHaveAttribute('href', '/profile/work#main')
   })
   it('keeps previous name and marital status inside the personal card', () => {
     page({profile: {previous_family_name: 'Прежняя', previous_given_name: 'Анна', marital_status: {description: 'Замужем'}}, approvedScopes: ['previous_name', 'marital_status']})

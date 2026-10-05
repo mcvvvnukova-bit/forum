@@ -17,7 +17,6 @@ p, h1, h2, dl, dd {margin: 0;}
 .profile-main {max-width: 1250px; width: 100%; padding: var(--base-size-40) var(--base-size-40) var(--base-size-24); margin: 0 auto; min-width: 0; outline: none;}
 .page-heading {display: flex; align-items: center; justify-content: space-between; gap: var(--base-size-24); margin-bottom: var(--base-size-32);}
 .eyebrow {margin-bottom: var(--base-size-8);}
-.page-description {margin-top: var(--base-size-8);}
 .profile-grid {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--base-size-20); align-items: stretch;}
 .work-grid {grid-template-columns: minmax(0, 1fr); max-width: 760px;}
 .profile-card {border: var(--borderWidth-thin) solid var(--borderColor-default); border-radius: var(--borderRadius-medium); background: var(--bgColor-default); padding: var(--base-size-24); scroll-margin-top: var(--base-size-16); min-width: 0;}
@@ -27,7 +26,6 @@ p, h1, h2, dl, dd {margin: 0;}
 .data-row {min-width: 0;}
 .field-value {display: block; margin-top: var(--base-size-4); color: var(--fgColor-default); overflow-wrap: anywhere;}
 .missing-value {color: var(--fgColor-muted);}
-.card-note {border-top: var(--borderWidth-thin) solid var(--borderColor-muted); padding-top: var(--base-size-16); margin-top: var(--base-size-24);}
 .profile-footer {display: flex; align-items: start; justify-content: space-between; gap: var(--base-size-24); margin-top: var(--base-size-40); padding-top: var(--base-size-24); border-top: var(--borderWidth-thin) solid var(--borderColor-muted);}
 .state-content {min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--base-size-16);}
 .skip-link {position: absolute; top: -100px; left: var(--base-size-16); padding: var(--base-size-12); background: var(--bgColor-default); border: var(--borderWidth-thin) solid var(--borderColor-default); z-index: 20;}

@@ -75,11 +75,12 @@ export function buildProfileSections(p: SberProfile, approvedScopes: readonly st
     section('tax', 'ИНН', [f('inn', 'ИНН физического лица', 'inn', p.inn?.number)]),
     section('contacts', 'Контакты', [f('phone', 'Номер телефона', 'mobile', p.phone_number), f('email', 'Электронная почта', 'email', p.email)]),
     section('pension', 'СНИЛС', [f('snils', 'Страховой номер', 'snils', p.snils?.number)]),
-    section('work', 'Работа и образование', [
+    section('work', 'Текущее место работы', [
       f('place_of_work', 'Место работы', 'place_of_work', p.place_of_work),
       f('work_address', 'Рабочий адрес', 'work_address', address(p.work_address)),
       f('job_title', 'Должность', 'job_title', p.job_title),
-      f('education', 'Образование', 'education', p.education?.description),
+    ]),
+    section('self-employment', 'Самозанятость', [
       f('is_self_employed', 'Самозанятость', 'is_self_employed', typeof p.is_self_employed === 'boolean' ? p.is_self_employed ? 'Да' : 'Нет' : undefined),
     ]),
     section('international-passport', 'Заграничный паспорт', [
@@ -98,5 +99,6 @@ export function buildProfileSections(p: SberProfile, approvedScopes: readonly st
       f('driving_license', 'Водительское удостоверение', 'driving_license', p.driving_license?.number),
       f('sts', 'Свидетельство о регистрации ТС', 'sts', p.sts?.number),
     ]),
+    section('education', 'Образование', [f('education', 'Образование', 'education', p.education?.description)]),
   ]
 }
