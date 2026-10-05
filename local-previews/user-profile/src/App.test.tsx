@@ -14,6 +14,7 @@ it('opens the work page directly with its own content and a link back to persona
   expect(work.getByText('Специалист по закупкам')).toBeVisible()
   expect(work.getByText('Высшее')).toBeVisible()
   expect(work.getByText('Нет')).toBeVisible()
+  expect(work.getByText('г. Москва, ул. Садовая, д. 8')).toBeVisible()
   expect(screen.queryByRole('region', {name: 'Личные данные'})).not.toBeInTheDocument()
   expect(screen.queryByRole('region', {name: 'Дополнительные документы'})).not.toBeInTheDocument()
   expect(screen.getByRole('link', {name: 'Личные данные'})).toHaveAttribute('href', '/#personal')

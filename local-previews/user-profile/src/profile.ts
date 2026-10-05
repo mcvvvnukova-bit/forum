@@ -70,28 +70,33 @@ export function buildProfileSections(p: SberProfile, approvedScopes: readonly st
     section('addresses', 'Адреса', [
       f('address_reg', 'Адрес регистрации', 'address_reg', address(p.address_reg)),
       f('address_of_actual_residence', 'Адрес проживания', 'address_of_actual_residence', address(p.address_of_actual_residence)),
+      f('delivery_address', 'Адрес доставки', 'delivery_address', address(p.delivery_address)),
     ]),
     section('tax', 'ИНН', [f('inn', 'ИНН физического лица', 'inn', p.inn?.number)]),
     section('contacts', 'Контакты', [f('phone', 'Номер телефона', 'mobile', p.phone_number), f('email', 'Электронная почта', 'email', p.email)]),
     section('pension', 'СНИЛС', [f('snils', 'Страховой номер', 'snils', p.snils?.number)]),
     section('work', 'Работа и образование', [
       f('place_of_work', 'Место работы', 'place_of_work', p.place_of_work),
+      f('work_address', 'Рабочий адрес', 'work_address', address(p.work_address)),
       f('job_title', 'Должность', 'job_title', p.job_title),
       f('education', 'Образование', 'education', p.education?.description),
       f('is_self_employed', 'Самозанятость', 'is_self_employed', typeof p.is_self_employed === 'boolean' ? p.is_self_employed ? 'Да' : 'Нет' : undefined),
     ]),
+    section('international-passport', 'Заграничный паспорт', [
+      f('international_passport', 'Серия и номер', 'international_passport', name(p.international_passport?.series, p.international_passport?.number)),
+      f('international_issued_by', 'Кем выдан', 'international_passport', p.international_passport?.issued_by),
+      f('international_issued_date', 'Дата выдачи', 'international_passport', date(p.international_passport?.issued_date)),
+      f('international_end', 'Действует до', 'international_passport', date(p.international_passport?.planned_end_date)),
+      f('international_name', 'Имя в загранпаспорте', 'international_passport', name(p.international_passport?.surname, p.international_passport?.name)),
+    ]),
+    section('previous-passport', 'Предыдущий паспорт', [
+      f('previous_identification', 'Серия и номер', 'previous_identification', name(p.previous_identification?.series, p.previous_identification?.number)),
+      f('previous_issued_by', 'Кем выдан', 'previous_identification', p.previous_identification?.issued_by),
+      f('previous_issued_date', 'Дата выдачи', 'previous_identification', date(p.previous_identification?.issued_date)),
+    ]),
     section('extra-documents', 'Дополнительные документы', [
       f('driving_license', 'Водительское удостоверение', 'driving_license', p.driving_license?.number),
-      f('international_passport', 'Заграничный паспорт', 'international_passport', name(p.international_passport?.series, p.international_passport?.number)),
-      f('international_issued_by', 'Загранпаспорт: кем выдан', 'international_passport', p.international_passport?.issued_by),
-      f('international_issued_date', 'Загранпаспорт: дата выдачи', 'international_passport', date(p.international_passport?.issued_date)),
-      f('international_end', 'Загранпаспорт: действует до', 'international_passport', date(p.international_passport?.planned_end_date)),
-      f('international_name', 'Имя в загранпаспорте', 'international_passport', name(p.international_passport?.surname, p.international_passport?.name)),
       f('sts', 'Свидетельство о регистрации ТС', 'sts', p.sts?.number),
-      f('previous_identification', 'Предыдущий паспорт', 'previous_identification', name(p.previous_identification?.series, p.previous_identification?.number)),
-      f('previous_issued_by', 'Предыдущий паспорт: кем выдан', 'previous_identification', p.previous_identification?.issued_by),
-      f('previous_issued_date', 'Предыдущий паспорт: дата выдачи', 'previous_identification', date(p.previous_identification?.issued_date)),
     ]),
-    section('extra-addresses', 'Другие адреса', [f('work_address', 'Рабочий адрес', 'work_address', address(p.work_address)), f('delivery_address', 'Адрес доставки', 'delivery_address', address(p.delivery_address))]),
   ]
 }

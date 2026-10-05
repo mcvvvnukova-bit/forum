@@ -5,15 +5,12 @@ import {buildProfileSections, type ProfileSection, type SberProfile} from './pro
 
 type ProfileView = 'profile' | 'work'
 export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView}
-const icons = {personal: PersonIcon, identity: FileIcon, addresses: LocationIcon, tax: FileIcon, contacts: MailIcon, pension: ShieldLockIcon, work: BriefcaseIcon}
-const navItems = [{id: 'personal', name: 'Личные данные', icon: PersonIcon}, {id: 'identity', name: 'Документ', icon: FileIcon}, {id: 'addresses', name: 'Адреса', icon: LocationIcon}, {id: 'tax', name: 'ИНН и СНИЛС', icon: ShieldLockIcon}, {id: 'contacts', name: 'Контакты', icon: MailIcon}]
+const icons = {personal: PersonIcon, identity: FileIcon, addresses: LocationIcon, tax: FileIcon, contacts: MailIcon, pension: ShieldLockIcon, work: BriefcaseIcon, 'international-passport': FileIcon, 'previous-passport': FileIcon}
 function ProfileNavigation({onNavigate, disabled = false, view}: {onNavigate?: () => void; disabled?: boolean; view: ProfileView}) {
   return <NavList aria-label="Навигация личного кабинета">
     <NavList.Group>
       <NavList.GroupHeading>Мой профиль</NavList.GroupHeading>
-      {navItems.map(item => <NavList.Item key={item.id} href={disabled ? '#main' : `/#${item.id}`} onClick={onNavigate}>
-        <NavList.LeadingVisual><item.icon/></NavList.LeadingVisual>{item.name}
-      </NavList.Item>)}
+      <NavList.Item href={disabled ? '#main' : '/#personal'} onClick={onNavigate} aria-current={view === 'profile' ? 'page' : undefined}><NavList.LeadingVisual><PersonIcon/></NavList.LeadingVisual>Личные данные</NavList.Item>
       <NavList.Item href="/profile/work#main" onClick={onNavigate} aria-current={view === 'work' ? 'page' : undefined}><NavList.LeadingVisual><BriefcaseIcon/></NavList.LeadingVisual>Работа и образование</NavList.Item>
     </NavList.Group>
     <NavList.Divider/>
@@ -58,7 +55,7 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
       </aside>
       <main className="profile-main" id="main" tabIndex={-1}>
         <div className="page-heading">
-          <div><Text as="p" size="small" className="eyebrow muted">УЧЁТНАЯ ЗАПИСЬ</Text><Heading as="h1" variant="large">{view === 'work' ? 'Работа и образование' : 'Профиль'}</Heading><Text as="p" className="page-description muted">{view === 'work' ? 'Ваши сведения о работе, образовании и самозанятости.' : 'Ваши личные данные и документы в АСТ Форум.'}</Text></div>
+          <div><Text as="p" size="small" className="eyebrow muted">Мой профиль</Text><Heading as="h1" variant="large">{view === 'work' ? 'Работа и образование' : 'Личные данные'}</Heading>{view === 'work' && <Text as="p" className="page-description muted">Ваши сведения о работе, образовании и самозанятости.</Text>}</div>
           <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>
         </div>
         {state === 'loading' && <div className="state-content" role="status"><Spinner size="medium"/><Heading as="h2" variant="small">Загружаем профиль</Heading><Text className="muted">Подготавливаем ваши данные.</Text></div>}

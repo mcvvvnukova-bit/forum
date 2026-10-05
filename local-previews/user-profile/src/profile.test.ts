@@ -10,7 +10,7 @@ describe('Sber data at the profile boundary', () => {
   it('keeps absent values distinct from unapproved scopes', () => {
     expect(field({}, 'inn')).toMatchObject({value: 'Не передано', status: 'missing'})
     expect(field({inn: {number: '770123456789'}}, 'inn', [])).toMatchObject({value: 'Не запрошено', status: 'not-requested'})
-    expect(JSON.stringify(buildProfileSections({inn: {number: '770123456789'}, given_name: 'Секрет'}, []))).not.toMatch(/770123456789|Секрет/)
+    expect(JSON.stringify(buildProfileSections({inn: {number: '770123456789'}, given_name: 'Секрет', work_address: {full_address: 'Рабочий секрет'}, delivery_address: {full_address: 'Доставка секрет'}, international_passport: {number: '7654321', issued_by: 'Секретный орган', name: 'PRIVATE'}, previous_identification: {number: '654321', issued_by: 'Прежний орган'}}, []))).not.toMatch(/770123456789|Секрет|секрет|7654321|PRIVATE|654321|Прежний орган/)
   })
   it('does not lose a false self-employment flag', () => {
     expect(field({is_self_employed: false}, 'is_self_employed')?.value).toBe('Нет')
