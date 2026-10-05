@@ -82,6 +82,7 @@ section { scroll-margin-top: var(--base-size-24); }
 .section-note { margin-top: var(--base-size-24); }
 .procurement-steps { padding: var(--base-size-0); margin: var(--base-size-0); list-style: none; max-width: 880px; }
 .step-number { min-width: var(--base-size-48); font: var(--text-title-shorthand-medium); color: var(--fgColor-muted); }
+.work-examples-header { margin-bottom: var(--base-size-24); }
 .example-layout { align-items: center; }
 .example-figure { margin: var(--base-size-0); min-width: 0; }
 .example-illustration { display: block; width: 100%; height: auto; }
