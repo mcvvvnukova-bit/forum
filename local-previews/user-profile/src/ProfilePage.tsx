@@ -14,8 +14,8 @@ function ProfileNavigation({onNavigate, disabled = false, view}: {onNavigate?: (
       <NavList.Item href="/profile/work#main" onClick={onNavigate} aria-current={view === 'work' ? 'page' : undefined}><NavList.LeadingVisual><BriefcaseIcon/></NavList.LeadingVisual>Работа и образование</NavList.Item>
     </NavList.Group>
     <NavList.Divider/>
-    <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><GearIcon/></NavList.LeadingVisual>Настройки</NavList.Item>
     <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><OrganizationIcon/></NavList.LeadingVisual>Добавить компанию</NavList.Item>
+    <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><GearIcon/></NavList.LeadingVisual>Настройки</NavList.Item>
   </NavList>
 }
 function ProfileCard({section}: {section: ProfileSection}) {
