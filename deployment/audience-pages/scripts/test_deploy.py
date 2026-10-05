@@ -31,6 +31,15 @@ class DeploymentScope(unittest.TestCase):
         module.deploy(self.source,self.target,self.root/'backups')
         module.deploy(self.source,self.target,self.root/'backups')
         self.assertEqual((self.target/'index.html').read_text().count(module.MARKER),1)
+    def test_can_publish_routes_without_changing_homepage_callback_owner(self):
+        original=b'<head><!-- public-auth:start --><script src="/public-auth-assets/auth.js"></script></head><body>home<!-- audience-pages:resume -->\n\n<!-- /audience-pages:resume --></body>'
+        (self.target/'index.html').write_bytes(original)
+        result=module.deploy(self.source,self.target,self.root/'backups',preserve_homepage=True)
+        self.assertEqual((self.target/'index.html').read_bytes(),original)
+        self.assertEqual((Path(result['backup'])/'index.html').read_bytes(),original)
+        self.assertEqual((self.target/'work/index.html').read_text(),'new')
+        self.assertEqual((self.target/'auth/keep').read_text(),'protected')
+        self.assertEqual(result['homepage_before'],result['homepage_after'])
     def test_partial_failure_restores_previous_route_and_homepage(self):
         rename=Path.rename
         def fail(path,dest):

@@ -12,7 +12,7 @@ NAMES = ('customers', 'suppliers', 'work', 'participate', 'audience-assets')
 MARKER = '<!-- audience-pages:resume -->\n<script src="/audience-assets/resume.js" defer></script>\n<!-- /audience-pages:resume -->'
 
 
-def deploy(source, target, backups):
+def deploy(source, target, backups, preserve_homepage=False):
     source, target, backups = Path(source), Path(target), Path(backups)
     for name in NAMES:
         assert (source / name).is_dir(), f'Missing package directory: {name}'
@@ -39,7 +39,7 @@ def deploy(source, target, backups):
             if dest.exists(): dest.rename(backup / name)
             changed.append(name)
             (staging / name).rename(dest)
-        updated = original if MARKER.encode() in original else original.replace(b'</body>', MARKER.encode() + b'\n</body>', 1)
+        updated = original if preserve_homepage or MARKER.encode() in original else original.replace(b'</body>', MARKER.encode() + b'\n</body>', 1)
         temp_main = target / '.index-audience.tmp'
         temp_main.write_bytes(updated)
         temp_main.chmod(0o644)
@@ -67,5 +67,6 @@ if __name__ == '__main__':
     p.add_argument('source')
     p.add_argument('--target', default='/opt/outline/dev-astforum/landing')
     p.add_argument('--backups', default='/opt/outline/backups')
+    p.add_argument('--preserve-homepage', action='store_true', help='Keep an independently managed homepage and its callback unchanged')
     args = p.parse_args()
-    print(json.dumps(deploy(args.source, args.target, args.backups), indent=2))
+    print(json.dumps(deploy(args.source, args.target, args.backups, preserve_homepage=args.preserve_homepage), indent=2))

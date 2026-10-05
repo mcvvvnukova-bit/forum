@@ -15,7 +15,8 @@
     "vite_build": "passed",
     "package": "four routes and isolated audience-assets",
     "deployment_tests": {
-      "passed": 3
+      "passed": 4,
+      "red_expected_missing_preserve_mode": 1
     },
     "primer": {
       "errors": 0,
@@ -42,5 +43,6 @@
   },
   "warnings": [
     "Existing bundle chunk-size warning and react-compiler-runtime module directive warning"
-  ]
+  ],
+  "deployment_adjustment": "Current server root uses separately managed public-auth assets and an empty legacy marker. Added explicit --preserve-homepage so only owned audience routes/assets change; default legacy deployment behavior retained."
 }
