@@ -16,4 +16,4 @@ import './auth.css'
 import {PublicAuth} from './PublicAuth'
 let root = document.getElementById('public-auth-root')
 if (!root) {root=document.createElement('div'); root.id='public-auth-root'; document.body.append(root)}
-createRoot(root).render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><StrictMode><PublicAuth /></StrictMode></BaseStyles></ThemeProvider>)
+createRoot(root,{identifierPrefix:'public-auth-'}).render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><StrictMode><PublicAuth /></StrictMode></BaseStyles></ThemeProvider>)
