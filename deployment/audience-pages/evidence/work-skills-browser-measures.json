@@ -1,0 +1,158 @@
+{
+  "desktop": {
+    "clientWidth": 1593,
+    "group": {
+      "bottom": 526.328125,
+      "height": 365.328125,
+      "left": 236.5,
+      "right": 1356.5,
+      "top": 161,
+      "width": 1120,
+      "x": 236.5,
+      "y": 161
+    },
+    "scrollWidth": 1593,
+    "section": {
+      "bottom": 574.328125,
+      "height": 461.328125,
+      "left": 236.5,
+      "right": 1356.5,
+      "top": 113,
+      "width": 1120,
+      "x": 236.5,
+      "y": 113
+    },
+    "typography": [
+      {
+        "color": "rgb(31, 35, 40)",
+        "family": "\"Mona Sans VF\", -apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans Backtick Fix\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+        "lineHeight": "48px",
+        "rect": {
+          "bottom": 267.4140625,
+          "height": 96,
+          "left": 236.5,
+          "right": 784.5,
+          "top": 171.4140625,
+          "width": 548,
+          "x": 236.5,
+          "y": 171.4140625
+        },
+        "size": "32px",
+        "tag": "H2"
+      },
+      {
+        "color": "rgb(89, 99, 110)",
+        "family": "\"Mona Sans VF\", -apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans Backtick Fix\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+        "lineHeight": "24px",
+        "rect": {
+          "bottom": 331.4140625,
+          "height": 48,
+          "left": 236.5,
+          "right": 784.5,
+          "top": 283.4140625,
+          "width": 548,
+          "x": 236.5,
+          "y": 283.4140625
+        },
+        "size": "16px",
+        "tag": "P"
+      },
+      {
+        "color": "rgb(31, 35, 40)",
+        "family": "\"Mona Sans VF\", -apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans Backtick Fix\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+        "lineHeight": "32.5px",
+        "rect": {
+          "bottom": 387.9140625,
+          "height": 32.5,
+          "left": 236.5,
+          "right": 784.5,
+          "top": 355.4140625,
+          "width": 548,
+          "x": 236.5,
+          "y": 355.4140625
+        },
+        "size": "20px",
+        "tag": "H3"
+      },
+      {
+        "color": "rgb(89, 99, 110)",
+        "family": "\"Mona Sans VF\", -apple-system, \"system-ui\", \"Segoe UI\", \"Noto Sans Backtick Fix\", \"Noto Sans\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\"",
+        "lineHeight": "24px",
+        "rect": {
+          "bottom": 451.9140625,
+          "height": 48,
+          "left": 236.5,
+          "right": 784.5,
+          "top": 403.9140625,
+          "width": 548,
+          "x": 236.5,
+          "y": 403.9140625
+        },
+        "size": "16px",
+        "tag": "P"
+      }
+    ],
+    "width": 1608
+  },
+  "mobile390": {
+    "clientWidth": 390,
+    "columns": "358px",
+    "controls": [
+      {
+        "height": 40,
+        "width": 40
+      },
+      {
+        "height": 40,
+        "width": 40
+      }
+    ],
+    "group": {
+      "bottom": 1396.1640625,
+      "height": 695.1640625,
+      "left": 16,
+      "right": 374,
+      "top": 701,
+      "width": 358,
+      "x": 16,
+      "y": 701
+    },
+    "image": 1536,
+    "scrollWidth": 390,
+    "width": 390
+  },
+  "mobile320": {
+    "clientWidth": 320,
+    "columns": "288px",
+    "controls": [
+      {
+        "height": 40,
+        "width": 40
+      },
+      {
+        "height": 40,
+        "width": 40
+      }
+    ],
+    "current": "1 из 2: Заказы и подработка",
+    "scrollWidth": 320,
+    "width": 320
+  },
+  "tablet": {
+    "clientWidth": 753,
+    "columns": "340.5px 340.5px",
+    "controls": [
+      {
+        "height": 40,
+        "width": 40
+      },
+      {
+        "height": 40,
+        "width": 40
+      }
+    ],
+    "current": "2 из 2: Работа в штате",
+    "scrollWidth": 753,
+    "width": 768
+  }
+}

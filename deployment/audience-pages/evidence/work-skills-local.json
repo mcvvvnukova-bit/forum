@@ -1,0 +1,47 @@
+{
+  "task": "PROJ-147",
+  "baseline": "33f9064c641fe62f332cda9c84b03f8d26c83142",
+  "verification": {
+    "vitest": {
+      "passed": 37,
+      "failed": 0
+    },
+    "typecheck": "passed",
+    "eslint": "passed",
+    "build": "passed",
+    "package": "four audience routes and isolated assets",
+    "deployment_tests": 4,
+    "primer_errors": 0,
+    "primer_warning_audit": "Heading levels/native dimensions and existing layout literals; semantic tokens retained"
+  },
+  "browser": {
+    "viewports": [
+      1608,
+      768,
+      390,
+      320
+    ],
+    "arrows_css_size": [
+      40,
+      40
+    ],
+    "one_current_slide": true,
+    "keyboard": "Enter and Space cycle, focus retained",
+    "hashes": [
+      "skills",
+      "order-example",
+      "job-example"
+    ],
+    "auth_dialogs": [
+      "Поиск подходящих заказов",
+      "Поиск вакансий"
+    ],
+    "return_focus": true,
+    "console_errors": []
+  },
+  "design_qa": "design-qa.md passed",
+  "warnings": [
+    "Existing bundle chunk size warning",
+    "Existing react-compiler-runtime use no memo directive warning"
+  ]
+}
