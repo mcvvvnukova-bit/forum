@@ -25,6 +25,17 @@ class DeployTests(unittest.TestCase):
     def test_repeated_publication_does_not_duplicate_loader(self):
         deploy(self.source,self.target,self.backups,'abc'); deploy(self.source,self.target,self.backups,'def')
         self.assertEqual((self.target/'index.html').read_text().count('/public-auth-assets/app.js'),1)
+    def test_ignores_macos_metadata_without_modifying_it(self):
+        metadata=self.target/'._index.html'
+        metadata.write_bytes(b'\x00\x05\x16\x07Mac OS X\xa3')
+        archived=self.target/'__MACOSX'/'index.html'
+        archived.parent.mkdir(); archived.write_bytes(b'\xffmetadata')
+        before={p:p.read_bytes() for p in [metadata,archived]}
+        report=deploy(self.source,self.target,self.backups,'abc')
+        self.assertIn('public-auth:start',(self.target/'index.html').read_text())
+        for path,data in before.items():
+            self.assertEqual(path.read_bytes(),data)
+            self.assertNotIn(str(path.relative_to(self.target)),report['files'])
     def test_restores_existing_html_on_failed_verification(self):
         before=(self.target/'index.html').read_bytes()
         def fail(_): raise RuntimeError('failed verification')

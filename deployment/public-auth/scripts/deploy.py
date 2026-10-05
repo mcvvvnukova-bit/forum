@@ -31,6 +31,8 @@ def deploy(source, target, backups, commit, verifier=None):
     snippet='\n<!-- public-auth:start -->\n'+'\n'.join(loaders)+'\n<!-- public-auth:end -->\n'
     changes={}; originals={}
     for path in sorted(target.rglob('*.html')):
+        # AppleDouble files from older macOS uploads are binary metadata.
+        if any(part.startswith('._') or part == '__MACOSX' for part in path.relative_to(target).parts): continue
         if any(part.endswith('assets') for part in path.relative_to(target).parts): continue
         if path.relative_to(target).as_posix() in ['login/index.html','register/index.html']: continue
         original=path.read_bytes(); body=original.decode()
