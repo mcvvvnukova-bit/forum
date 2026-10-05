@@ -1,5 +1,5 @@
 import {useRef, useState} from 'react'
-import {Banner, Button, Dialog, Heading, Label, Link, IconButton, NavList, Spinner, Stack, Text} from '@primer/react'
+import {Banner, Button, Dialog, Heading, Link, IconButton, NavList, Spinner, Stack, Text} from '@primer/react'
 import {ArrowUpRightIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PersonIcon, QuestionIcon, ShieldLockIcon, ThreeBarsIcon} from '@primer/octicons-react'
 import {buildProfileSections, type ProfileSection, type SberProfile} from './profile'
 
@@ -61,7 +61,6 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
           <div><Text as="p" size="small" className="eyebrow muted">УЧЁТНАЯ ЗАПИСЬ</Text><Heading as="h1" variant="large">{view === 'work' ? 'Работа и образование' : 'Профиль'}</Heading><Text as="p" className="page-description muted">{view === 'work' ? 'Ваши сведения о работе, образовании и самозанятости.' : 'Ваши личные данные и документы в АСТ Форум.'}</Text></div>
           <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>
         </div>
-        <div className="source-notice"><ShieldLockIcon size={20}/><div><Text weight="semibold">Данные из Сбер ID</Text><Text as="p" size="small" className="muted">Доступны только для просмотра. Состав данных зависит от вашего согласия на передачу.</Text></div><Label variant="secondary">Только просмотр</Label></div>
         {state === 'loading' && <div className="state-content" role="status"><Spinner size="medium"/><Heading as="h2" variant="small">Загружаем профиль</Heading><Text className="muted">Подготавливаем ваши данные.</Text></div>}
         {state === 'error' && <div className="state-content"><Banner variant="critical" title="Не удалось загрузить профиль" description="Попробуйте ещё раз. Если ошибка повторится, обратитесь в поддержку." primaryAction={<Button onClick={onRetry}>Повторить</Button>}/></div>}
         {state === 'ready' && <div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>}

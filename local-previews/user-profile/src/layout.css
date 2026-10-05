@@ -18,10 +18,6 @@ p, h1, h2, dl, dd {margin: 0;}
 .page-heading {display: flex; align-items: center; justify-content: space-between; gap: var(--base-size-24); margin-bottom: var(--base-size-32);}
 .eyebrow {margin-bottom: var(--base-size-8);}
 .page-description {margin-top: var(--base-size-8);}
-.source-notice {display: flex; align-items: flex-start; gap: var(--base-size-12); background: var(--bgColor-muted); border: var(--borderWidth-thin) solid var(--borderColor-muted); border-radius: var(--borderRadius-medium); padding: var(--base-size-16) var(--base-size-20); margin-bottom: var(--base-size-24);}
-.source-notice > svg {color: var(--fgColor-muted); flex-shrink: 0; margin-top: var(--base-size-2);}
-.source-notice > div {flex: 1;}
-.source-notice p {margin-top: var(--base-size-4);}
 .profile-grid {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--base-size-20); align-items: stretch;}
 .work-grid {grid-template-columns: minmax(0, 1fr); max-width: 760px;}
 .profile-card {border: var(--borderWidth-thin) solid var(--borderColor-default); border-radius: var(--borderRadius-medium); background: var(--bgColor-default); padding: var(--base-size-24); scroll-margin-top: var(--base-size-16); min-width: 0;}
@@ -59,9 +55,6 @@ p, h1, h2, dl, dd {margin: 0;}
   .account-link svg {display: none;}
   .profile-main {padding: var(--base-size-24) var(--base-size-16);}
   .page-heading {margin-bottom: var(--base-size-24); gap: var(--base-size-16);}
-  .source-notice {padding: var(--base-size-16); flex-wrap: wrap;}
-  .source-notice > div {min-width: 180px;}
-  .source-notice > span {margin-left: var(--base-size-32);}
   .profile-card {padding: var(--base-size-20);}
   .profile-footer {flex-direction: column; align-items: start; gap: var(--base-size-12);}
 }
