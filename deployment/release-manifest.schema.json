@@ -1,0 +1,939 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "environment": {
+      "enum": [
+        "dev",
+        "production",
+        "shared"
+      ]
+    },
+    "recordKind": {
+      "enum": [
+        "observed",
+        "release"
+      ]
+    },
+    "reconciliationStatus": {
+      "enum": [
+        "observed-unreconciled",
+        "verified"
+      ]
+    },
+    "observedOn": {
+      "type": "string",
+      "format": "date"
+    },
+    "recordedAt": {
+      "$ref": "#/$defs/time"
+    },
+    "host": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/component"
+      },
+      "minItems": 1
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/route"
+      },
+      "minItems": 0
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 0
+    },
+    "proxyProof": {
+      "$ref": "#/$defs/proxyProof"
+    },
+    "databaseBoundary": {
+      "$ref": "#/$defs/databaseBoundary"
+    },
+    "backupProofs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/backup"
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "environment",
+    "recordKind",
+    "reconciliationStatus",
+    "observedOn",
+    "recordedAt",
+    "host",
+    "evidence",
+    "components",
+    "routes",
+    "limitations"
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mcvvvnukova-bit/forum/deployment/release-manifest.schema.json",
+  "title": "Forum environment observation and release manifest",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://[^/@?#]+(?::[0-9]+)?(?:/[^?#]*)?$"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "const": "git"
+            },
+            "repository": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https://github.com/"
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+            },
+            "verification": {
+              "enum": [
+                "candidate",
+                "file-byte-match",
+                "release-chain"
+              ]
+            },
+            "provenance": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "repository",
+            "commit",
+            "path",
+            "verification",
+            "provenance"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "const": "vendor"
+            },
+            "image": {
+              "type": "string",
+              "minLength": 1
+            },
+            "imageId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "provenance": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "image",
+            "imageId",
+            "provenance"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "const": "unknown"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provenance": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "reason",
+            "provenance"
+          ]
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "source",
+            "config",
+            "site",
+            "build",
+            "image"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provenance": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "sourceId",
+        "provenance"
+      ]
+    },
+    "http": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://[^/@?#]+(?::[0-9]+)?(?:/[^?#]*)?$"
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "matchesMountedBytes": {
+          "type": "boolean"
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+          },
+          "minItems": 0
+        },
+        "authLoader": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "url",
+        "status",
+        "sha256"
+      ]
+    },
+    "mount": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+        },
+        "writable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "destination",
+        "writable"
+      ]
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "container": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "imageId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "composeProject": {
+          "type": "string",
+          "minLength": 1
+        },
+        "composeService": {
+          "type": "string",
+          "minLength": 1
+        },
+        "composeFiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+          },
+          "minItems": 1
+        },
+        "networks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "codeConfigSiteMounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mount"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "container",
+        "image",
+        "imageId",
+        "composeProject",
+        "composeService",
+        "composeFiles",
+        "networks",
+        "codeConfigSiteMounts"
+      ]
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "mode": {
+          "enum": [
+            "clean-build",
+            "static-copy",
+            "vendor-image"
+          ]
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at": {
+          "$ref": "#/$defs/time"
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "sourceIds",
+        "mode",
+        "command",
+        "runtime",
+        "at",
+        "outputs"
+      ]
+    },
+    "deploy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/time"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "at",
+        "target",
+        "operationId",
+        "artifacts"
+      ]
+    },
+    "served": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/time"
+        },
+        "runtimeImageId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          },
+          "minItems": 0
+        },
+        "originHttp": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/http"
+          },
+          "minItems": 0
+        },
+        "publicHttp": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/http"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "at",
+        "artifacts",
+        "originHttp",
+        "publicHttp"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "runtimeImageId"
+          ]
+        },
+        {
+          "properties": {
+            "artifacts": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "originHttp": {
+              "minItems": 1
+            },
+            "publicHttp": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    },
+    "releaseProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "build": {
+          "$ref": "#/$defs/build"
+        },
+        "deploy": {
+          "$ref": "#/$defs/deploy"
+        },
+        "served": {
+          "$ref": "#/$defs/served"
+        }
+      },
+      "required": [
+        "build",
+        "deploy",
+        "served"
+      ]
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "service",
+            "site",
+            "api",
+            "gateway"
+          ]
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source"
+          },
+          "minItems": 1
+        },
+        "runtime": {
+          "$ref": "#/$defs/runtime"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          },
+          "minItems": 0
+        },
+        "originHttp": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/http"
+          },
+          "minItems": 0
+        },
+        "publicHttp": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/http"
+          },
+          "minItems": 0
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "releaseProof": {
+          "$ref": "#/$defs/releaseProof"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "sources",
+        "artifacts",
+        "originHttp",
+        "publicHttp",
+        "limitations"
+      ]
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+          },
+          "minItems": 1
+        },
+        "upstreams": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "siteRoot": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!.*(?:^|/)(?:\\.\\.?|secrets?|uploads?|userdata)(?:/|$))(?!.*(?:password|token|credential|access\\.private|\\.env))(?:/?[^\\\\\\u0000]+)$"
+        },
+        "componentIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "host",
+        "paths",
+        "upstreams",
+        "componentIds"
+      ]
+    },
+    "proxyProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtimeCanonicalSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "mountedCanonicalSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "matches": {
+          "type": "boolean"
+        },
+        "provenance": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "runtimeCanonicalSha256",
+        "mountedCanonicalSha256",
+        "matches",
+        "provenance"
+      ]
+    },
+    "databaseBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtimeDatabase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtimeSchemas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "separateDatabase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "separateSchema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "migrationAuthorized": {
+          "const": false
+        }
+      },
+      "required": [
+        "runtimeDatabase",
+        "runtimeSchemas",
+        "separateDatabase",
+        "separateSchema",
+        "migrationAuthorized"
+      ]
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "type": "string",
+          "minLength": 1
+        },
+        "restored": {
+          "type": "boolean"
+        },
+        "tableCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "engine": {
+          "type": "string",
+          "minLength": 1
+        },
+        "isolation": {
+          "const": "network-none"
+        },
+        "restoreOptions": {
+          "const": [
+            "--no-owner",
+            "--no-privileges"
+          ]
+        },
+        "grantsProof": {
+          "const": "preserved-privately-not-restored"
+        }
+      },
+      "required": [
+        "database",
+        "restored",
+        "tableCount",
+        "engine",
+        "isolation",
+        "restoreOptions",
+        "grantsProof"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "recordKind": {
+            "const": "observed"
+          }
+        },
+        "required": [
+          "recordKind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reconciliationStatus": {
+            "const": "observed-unreconciled"
+          },
+          "components": {
+            "items": {
+              "not": {
+                "required": [
+                  "releaseProof"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "recordKind": {
+            "const": "release"
+          }
+        },
+        "required": [
+          "recordKind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reconciliationStatus": {
+            "const": "verified"
+          },
+          "components": {
+            "items": {
+              "required": [
+                "releaseProof"
+              ],
+              "properties": {
+                "limitations": {
+                  "maxItems": 0
+                },
+                "sources": {
+                  "items": {
+                    "not": {
+                      "properties": {
+                        "kind": {
+                          "const": "unknown"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ]
+                    },
+                    "if": {
+                      "properties": {
+                        "kind": {
+                          "const": "git"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "verification": {
+                          "const": "release-chain"
+                        }
+                      }
+                    }
+                  }
+                },
+                "releaseProof": {
+                  "properties": {
+                    "served": {
+                      "properties": {
+                        "originHttp": {
+                          "items": {
+                            "properties": {
+                              "matchesMountedBytes": {
+                                "const": true
+                              }
+                            },
+                            "required": [
+                              "matchesMountedBytes"
+                            ]
+                          }
+                        },
+                        "publicHttp": {
+                          "items": {
+                            "properties": {
+                              "matchesMountedBytes": {
+                                "const": true
+                              }
+                            },
+                            "required": [
+                              "matchesMountedBytes"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "if": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "site",
+                      "api",
+                      "gateway"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "releaseProof": {
+                    "properties": {
+                      "served": {
+                        "properties": {
+                          "originHttp": {
+                            "minItems": 1
+                          },
+                          "publicHttp": {
+                            "minItems": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "limitations": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "environment": "production",
+  "recordKind": "observed",
+  "reconciliationStatus": "observed-unreconciled",
+  "observedOn": "2026-10-06",
+  "recordedAt": "2026-10-06T21:59:10.086144Z",
+  "host": "test-debian",
+  "evidence": [
+    "E1 Docker runtime metadata",
+    "E2 config/static Git-byte comparison",
+    "E3 API source-byte comparison",
+    "E4 active Caddy comparison",
+    "E5 origin/API output metadata",
+    "E6 public HTTP hashes",
+    "E7 whitelisted source snapshot",
+    "E8 ACL/restore metadata"
+  ],
+  "components": [
+    {
+      "id": "production-static-site",
+      "kind": "site",
+      "sources": [
+        {
+          "id": "static-source",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "19120a8fb11b3251ea636d122ba09bf93af4e87d",
+          "path": "deployment/astforum-static",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "site",
+          "path": "/opt/outline/astforum/index.html",
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "sourceId": "static-source",
+          "provenance": "E2 Git blob match; unchanged original static production content."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/astforum/forum-hard-hat.png",
+          "sha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+          "sourceId": "static-source",
+          "provenance": "E2 Git blob match; unchanged original static production content."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/astforum/favicon.png",
+          "sha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+          "sourceId": "static-source",
+          "provenance": "E2 Git blob match; unchanged original static production content."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/astforum/fonts/golos-text-cyrillic.woff2",
+          "sha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+          "sourceId": "static-source",
+          "provenance": "E2 Git blob match; unchanged original static production content."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/astforum/fonts/unbounded-latin.woff2",
+          "sha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+          "sourceId": "static-source",
+          "provenance": "E2 Git blob match; unchanged original static production content."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/astforum/fonts/golos-text-latin.woff2",
+          "sha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+          "sourceId": "static-source",
+          "provenance": "E2 Git blob match; unchanged original static production content."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/astforum/fonts/unbounded-cyrillic.woff2",
+          "sha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+          "sourceId": "static-source",
+          "provenance": "E2 Git blob match; unchanged original static production content."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [
+        {
+          "url": "https://astforum.ru",
+          "status": 200,
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "matchesMountedBytes": true
+        }
+      ],
+      "limitations": [
+        "Byte matches identify content, not a unique deployed source SHA or deployment action."
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "host": "astforum.ru",
+      "paths": [
+        "/"
+      ],
+      "upstreams": [],
+      "siteRoot": "/srv/astforum",
+      "componentIds": [
+        "outline-caddy-1",
+        "production-static-site"
+      ]
+    }
+  ],
+  "limitations": [
+    "Read-only observation acquired 2026-10-06, sanitized/documented 2026-10-07. Not a verified release; no runtime change or deployment performed.",
+    "Config/data/secret contents, credentials, environment values and upload inventories omitted. Only code/config/site mount paths are listed."
+  ]
+}

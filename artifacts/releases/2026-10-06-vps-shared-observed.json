@@ -1,0 +1,1129 @@
+{
+  "schemaVersion": 1,
+  "environment": "shared",
+  "recordKind": "observed",
+  "reconciliationStatus": "observed-unreconciled",
+  "observedOn": "2026-10-06",
+  "recordedAt": "2026-10-06T21:59:10.086271Z",
+  "host": "test-debian",
+  "evidence": [
+    "E1 Docker runtime metadata",
+    "E2 config/static Git-byte comparison",
+    "E3 API source-byte comparison",
+    "E4 active Caddy comparison",
+    "E5 origin/API output metadata",
+    "E6 public HTTP hashes",
+    "E7 whitelisted source snapshot",
+    "E8 ACL/restore metadata"
+  ],
+  "components": [
+    {
+      "id": "pgadmin-pgadmin-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "dpage/pgadmin4:9.17",
+          "imageId": "2f4ce946ddf8360680d7eff4eaba1d91859eb6b4003e6623bad5c63a322c2f4d",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+          "path": "deployment/pgadmin/servers.json",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        },
+        {
+          "id": "config-2",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+          "path": "deployment/pgadmin/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "pgadmin-pgadmin-1",
+        "image": "dpage/pgadmin4:9.17",
+        "imageId": "2f4ce946ddf8360680d7eff4eaba1d91859eb6b4003e6623bad5c63a322c2f4d",
+        "composeProject": "pgadmin",
+        "composeService": "pgadmin",
+        "composeFiles": [
+          "/opt/pgadmin/compose.yaml"
+        ],
+        "networks": [
+          "astforum-cal-diy_backend",
+          "astforum-mail_backend",
+          "astforum-openproject_backend",
+          "outline_backend",
+          "outline_frontend",
+          "pgadmin_pgadmin-access"
+        ],
+        "codeConfigSiteMounts": [
+          {
+            "source": "/opt/pgadmin/servers.json",
+            "destination": "/pgadmin4/servers.json",
+            "writable": false
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/pgadmin/servers.json",
+          "sha256": "cb05f30b908c714668a183740a1a20bd8de578d36140583a0211f344a6268f3a",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        },
+        {
+          "kind": "config",
+          "path": "/opt/pgadmin/compose.yaml",
+          "sha256": "148dd0e80ed6fa131fa6e2138ffb912491b75654b8129dc1785b049d72b02535",
+          "sourceId": "config-2",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-cal-diy-reminder-worker-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "runtime-source",
+          "kind": "unknown",
+          "reason": "Custom image source/build/deploy chain is not recorded; image tag alone is not a Git source proof.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        },
+        {
+          "id": "compose-source",
+          "kind": "unknown",
+          "reason": "Compose release path names 8b6088261b096d94d0304512b2df4ea32d4cb8ed; actual bytes were not compared to that checkout.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-cal-diy-reminder-worker-1",
+        "image": "astforum/cal-diy:8b6088261b09",
+        "imageId": "5d831afb41cb4c0051ea60985e0dee57a6eca77db7ef01074b75810f900720ed",
+        "composeProject": "astforum-cal-diy",
+        "composeService": "reminder-worker",
+        "composeFiles": [
+          "/opt/astforum-cal-diy/releases/8b6088261b096d94d0304512b2df4ea32d4cb8ed/source/deployment/astforum/compose.yaml",
+          "/opt/astforum-cal-diy/releases/8b6088261b096d94d0304512b2df4ea32d4cb8ed/web-command.override.yaml"
+        ],
+        "networks": [
+          "astforum-cal-diy_backend"
+        ],
+        "codeConfigSiteMounts": [
+          {
+            "source": "/opt/astforum-cal-diy/releases/8b6088261b096d94d0304512b2df4ea32d4cb8ed/source/deployment/astforum/reminder-worker.mjs",
+            "destination": "/reminder-worker.mjs",
+            "writable": false
+          }
+        ]
+      },
+      "artifacts": [],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-cal-diy-web-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "runtime-source",
+          "kind": "unknown",
+          "reason": "Custom image source/build/deploy chain is not recorded; image tag alone is not a Git source proof.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        },
+        {
+          "id": "compose-source",
+          "kind": "unknown",
+          "reason": "Compose release path names 8b6088261b096d94d0304512b2df4ea32d4cb8ed; actual bytes were not compared to that checkout.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-cal-diy-web-1",
+        "image": "astforum/cal-diy:8b6088261b09",
+        "imageId": "5d831afb41cb4c0051ea60985e0dee57a6eca77db7ef01074b75810f900720ed",
+        "composeProject": "astforum-cal-diy",
+        "composeService": "web",
+        "composeFiles": [
+          "/opt/astforum-cal-diy/releases/8b6088261b096d94d0304512b2df4ea32d4cb8ed/source/deployment/astforum/compose.yaml",
+          "/opt/astforum-cal-diy/releases/8b6088261b096d94d0304512b2df4ea32d4cb8ed/web-command.override.yaml"
+        ],
+        "networks": [
+          "astforum-cal-diy_backend",
+          "astforum-cal-diy_outbound",
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-openproject-worker-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "openproject/openproject:17.8.0-slim",
+          "imageId": "48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/openproject/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        },
+        {
+          "id": "mounted-patches",
+          "kind": "unknown",
+          "reason": "Mounted query-sums Ruby patches have no source/hash comparison in the whitelisted evidence.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-openproject-worker-1",
+        "image": "openproject/openproject:17.8.0-slim",
+        "imageId": "48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+        "composeProject": "astforum-openproject",
+        "composeService": "worker",
+        "composeFiles": [
+          "/opt/openproject/compose.yaml"
+        ],
+        "networks": [
+          "astforum-mail_mail",
+          "astforum-openproject_backend",
+          "astforum-openproject_outbound"
+        ],
+        "codeConfigSiteMounts": [
+          {
+            "source": "/opt/openproject/patches/query-sums/query_currency_select.rb",
+            "destination": "/app/modules/costs/lib/costs/query_currency_select.rb",
+            "writable": false
+          },
+          {
+            "source": "/opt/openproject/patches/query-sums/custom_field_select.rb",
+            "destination": "/app/app/models/queries/work_packages/selects/custom_field_select.rb",
+            "writable": false
+          },
+          {
+            "source": "/opt/openproject/patches/query-sums/sums.rb",
+            "destination": "/app/app/models/query/results/sums.rb",
+            "writable": false
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/openproject/compose.yaml",
+          "sha256": "609b445d43b43584943692715f79e1add410aaaa2ed30318a8d141812fde33cc",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-openproject-web-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "openproject/openproject:17.8.0-slim",
+          "imageId": "48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/openproject/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        },
+        {
+          "id": "mounted-patches",
+          "kind": "unknown",
+          "reason": "Mounted query-sums Ruby patches have no source/hash comparison in the whitelisted evidence.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-openproject-web-1",
+        "image": "openproject/openproject:17.8.0-slim",
+        "imageId": "48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+        "composeProject": "astforum-openproject",
+        "composeService": "web",
+        "composeFiles": [
+          "/opt/openproject/compose.yaml"
+        ],
+        "networks": [
+          "astforum-mail_mail",
+          "astforum-openproject_backend",
+          "astforum-openproject_outbound",
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": [
+          {
+            "source": "/opt/openproject/patches/query-sums/query_currency_select.rb",
+            "destination": "/app/modules/costs/lib/costs/query_currency_select.rb",
+            "writable": false
+          },
+          {
+            "source": "/opt/openproject/patches/query-sums/custom_field_select.rb",
+            "destination": "/app/app/models/queries/work_packages/selects/custom_field_select.rb",
+            "writable": false
+          },
+          {
+            "source": "/opt/openproject/patches/query-sums/sums.rb",
+            "destination": "/app/app/models/query/results/sums.rb",
+            "writable": false
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/openproject/compose.yaml",
+          "sha256": "609b445d43b43584943692715f79e1add410aaaa2ed30318a8d141812fde33cc",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [
+        {
+          "url": "https://roadmap.astforum.ru",
+          "status": 200,
+          "sha256": "223095900432e1bf23a95730954f7f4c0765843bda5e0502b477d6c3598ace4a"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "astforum-openproject-collaboration-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "openproject/hocuspocus:17.8.0",
+          "imageId": "f37a8d647d172f4206308bdbf4910bbec0c19433b8870c7431fe0dc45a5a7682",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/openproject/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-openproject-collaboration-1",
+        "image": "openproject/hocuspocus:17.8.0",
+        "imageId": "f37a8d647d172f4206308bdbf4910bbec0c19433b8870c7431fe0dc45a5a7682",
+        "composeProject": "astforum-openproject",
+        "composeService": "collaboration",
+        "composeFiles": [
+          "/opt/openproject/compose.yaml"
+        ],
+        "networks": [
+          "astforum-openproject_backend",
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/openproject/compose.yaml",
+          "sha256": "609b445d43b43584943692715f79e1add410aaaa2ed30318a8d141812fde33cc",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-openproject-db-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "postgres:17-alpine",
+          "imageId": "f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/openproject/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-openproject-db-1",
+        "image": "postgres:17-alpine",
+        "imageId": "f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995",
+        "composeProject": "astforum-openproject",
+        "composeService": "db",
+        "composeFiles": [
+          "/opt/openproject/compose.yaml"
+        ],
+        "networks": [
+          "astforum-openproject_backend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/openproject/compose.yaml",
+          "sha256": "609b445d43b43584943692715f79e1add410aaaa2ed30318a8d141812fde33cc",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-openproject-cache-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "memcached:1.6-alpine",
+          "imageId": "69ecd3c5701cebbe51f9fca15c1f9bd3b8773fd57cdb215adb6e1fa844bb0ea2",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/openproject/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-openproject-cache-1",
+        "image": "memcached:1.6-alpine",
+        "imageId": "69ecd3c5701cebbe51f9fca15c1f9bd3b8773fd57cdb215adb6e1fa844bb0ea2",
+        "composeProject": "astforum-openproject",
+        "composeService": "cache",
+        "composeFiles": [
+          "/opt/openproject/compose.yaml"
+        ],
+        "networks": [
+          "astforum-openproject_backend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/openproject/compose.yaml",
+          "sha256": "609b445d43b43584943692715f79e1add410aaaa2ed30318a8d141812fde33cc",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "outline-outline-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "outlinewiki/outline:1.9.2",
+          "imageId": "32d76719c378931dd65d93945930ca380d8376a0337d98a991fcc12b266f33cf",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/vps/outline/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "outline-outline-1",
+        "image": "outlinewiki/outline:1.9.2",
+        "imageId": "32d76719c378931dd65d93945930ca380d8376a0337d98a991fcc12b266f33cf",
+        "composeProject": "outline",
+        "composeService": "outline",
+        "composeFiles": [
+          "/opt/outline/docker-compose.yml"
+        ],
+        "networks": [
+          "astforum-mail_mail",
+          "outline_backend",
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/outline/docker-compose.yml",
+          "sha256": "fb1ed6e7dd6ddae7b9b76b43f88e9985b478d5a967c34e36c273cfd27047367a",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [
+        {
+          "url": "https://docs.astforum.ru",
+          "status": 200,
+          "sha256": "67a591ee132978c48481d96b8e301054ae317977286f0e484d3a5cdb5fc9912c"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "astforum-mail-tmail-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "linagora/tmail-web:v0.36.0",
+          "imageId": "7a4f6c7c0f7d921e947324fada11848e6417d35cfc261839b31456d535cb52f7",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/mail/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-mail-tmail-1",
+        "image": "linagora/tmail-web:v0.36.0",
+        "imageId": "7a4f6c7c0f7d921e947324fada11848e6417d35cfc261839b31456d535cb52f7",
+        "composeProject": "astforum-mail",
+        "composeService": "tmail",
+        "composeFiles": [
+          "/opt/astforum-mail/compose.yaml"
+        ],
+        "networks": [
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/astforum-mail/compose.yaml",
+          "sha256": "0fa613a30ee043f02da48bbc2d82a462b5b646cf0083b29db4124cba8a43c22d",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-mail-listmonk-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "listmonk/listmonk:v6.2.0",
+          "imageId": "f535d59e14991337a9f2d570273685378ae86b0d7698c3e00da444e3bc205286",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/mail/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-mail-listmonk-1",
+        "image": "listmonk/listmonk:v6.2.0",
+        "imageId": "f535d59e14991337a9f2d570273685378ae86b0d7698c3e00da444e3bc205286",
+        "composeProject": "astforum-mail",
+        "composeService": "listmonk",
+        "composeFiles": [
+          "/opt/astforum-mail/compose.yaml"
+        ],
+        "networks": [
+          "astforum-mail_backend",
+          "astforum-mail_mail",
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/astforum-mail/compose.yaml",
+          "sha256": "0fa613a30ee043f02da48bbc2d82a462b5b646cf0083b29db4124cba8a43c22d",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-mail-stalwart-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "stalwartlabs/stalwart:v0.16.21",
+          "imageId": "93c574e52249c1ebf90061da2c4c0756a7b72abfcc1fec34506a03c2e38b5977",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/mail/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-mail-stalwart-1",
+        "image": "stalwartlabs/stalwart:v0.16.21",
+        "imageId": "93c574e52249c1ebf90061da2c4c0756a7b72abfcc1fec34506a03c2e38b5977",
+        "composeProject": "astforum-mail",
+        "composeService": "stalwart",
+        "composeFiles": [
+          "/opt/astforum-mail/compose.yaml"
+        ],
+        "networks": [
+          "astforum-mail_mail",
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/astforum-mail/compose.yaml",
+          "sha256": "0fa613a30ee043f02da48bbc2d82a462b5b646cf0083b29db4124cba8a43c22d",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-mail-database-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "postgres:17-alpine",
+          "imageId": "18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/mail/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-mail-database-1",
+        "image": "postgres:17-alpine",
+        "imageId": "18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+        "composeProject": "astforum-mail",
+        "composeService": "database",
+        "composeFiles": [
+          "/opt/astforum-mail/compose.yaml"
+        ],
+        "networks": [
+          "astforum-mail_backend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/astforum-mail/compose.yaml",
+          "sha256": "0fa613a30ee043f02da48bbc2d82a462b5b646cf0083b29db4124cba8a43c22d",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-cal-diy-database-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "postgres:16-alpine",
+          "imageId": "cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "compose-source",
+          "kind": "unknown",
+          "reason": "Compose release path names 8b6088261b096d94d0304512b2df4ea32d4cb8ed; actual bytes were not compared to that checkout.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-cal-diy-database-1",
+        "image": "postgres:16-alpine",
+        "imageId": "cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+        "composeProject": "astforum-cal-diy",
+        "composeService": "database",
+        "composeFiles": [
+          "/opt/astforum-cal-diy/source/deployment/astforum/compose.yaml"
+        ],
+        "networks": [
+          "astforum-cal-diy_backend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "astforum-cal-diy-redis-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "redis:8-alpine",
+          "imageId": "becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "compose-source",
+          "kind": "unknown",
+          "reason": "Compose release path names 8b6088261b096d94d0304512b2df4ea32d4cb8ed; actual bytes were not compared to that checkout.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        }
+      ],
+      "runtime": {
+        "container": "astforum-cal-diy-redis-1",
+        "image": "redis:8-alpine",
+        "imageId": "becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+        "composeProject": "astforum-cal-diy",
+        "composeService": "redis",
+        "composeFiles": [
+          "/opt/astforum-cal-diy/source/deployment/astforum/compose.yaml"
+        ],
+        "networks": [
+          "astforum-cal-diy_backend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "outline-caddy-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "caddy:2.10-alpine",
+          "imageId": "4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/vps/outline/Caddyfile.example",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        },
+        {
+          "id": "config-2",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/vps/outline/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "outline-caddy-1",
+        "image": "caddy:2.10-alpine",
+        "imageId": "4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+        "composeProject": "outline",
+        "composeService": "caddy",
+        "composeFiles": [
+          "/opt/outline/docker-compose.yml"
+        ],
+        "networks": [
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": [
+          {
+            "source": "/opt/outline/Caddyfile",
+            "destination": "/etc/caddy/Caddyfile",
+            "writable": false
+          },
+          {
+            "source": "/opt/outline/astforum",
+            "destination": "/srv/astforum",
+            "writable": false
+          },
+          {
+            "source": "/opt/outline/dev-astforum",
+            "destination": "/srv/dev-astforum",
+            "writable": false
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/outline/Caddyfile",
+          "sha256": "57901b5c185a16045f8353563bc39243963833e6ee940a94e98ebf365f50d139",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        },
+        {
+          "kind": "config",
+          "path": "/opt/outline/docker-compose.yml",
+          "sha256": "fb1ed6e7dd6ddae7b9b76b43f88e9985b478d5a967c34e36c273cfd27047367a",
+          "sourceId": "config-2",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "outline-postgres-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "postgres:18-alpine",
+          "imageId": "d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/vps/outline/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "outline-postgres-1",
+        "image": "postgres:18-alpine",
+        "imageId": "d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
+        "composeProject": "outline",
+        "composeService": "postgres",
+        "composeFiles": [
+          "/opt/outline/docker-compose.yml"
+        ],
+        "networks": [
+          "outline_backend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/outline/docker-compose.yml",
+          "sha256": "fb1ed6e7dd6ddae7b9b76b43f88e9985b478d5a967c34e36c273cfd27047367a",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    },
+    {
+      "id": "outline-redis-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "redis:8-alpine",
+          "imageId": "becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/vps/outline/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "outline-redis-1",
+        "image": "redis:8-alpine",
+        "imageId": "becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+        "composeProject": "outline",
+        "composeService": "redis",
+        "composeFiles": [
+          "/opt/outline/docker-compose.yml"
+        ],
+        "networks": [
+          "outline_backend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/outline/docker-compose.yml",
+          "sha256": "fb1ed6e7dd6ddae7b9b76b43f88e9985b478d5a967c34e36c273cfd27047367a",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": []
+    }
+  ],
+  "routes": [
+    {
+      "host": "cal.astforum.ru",
+      "paths": [
+        "/"
+      ],
+      "upstreams": [
+        "astforum-cal-diy-web-1:3000"
+      ],
+      "componentIds": [
+        "outline-caddy-1",
+        "astforum-cal-diy-web-1"
+      ]
+    },
+    {
+      "host": "campaigns.astforum.ru",
+      "paths": [
+        "/"
+      ],
+      "upstreams": [
+        "astforum-mail-listmonk-1:9000"
+      ],
+      "componentIds": [
+        "outline-caddy-1",
+        "astforum-mail-listmonk-1"
+      ]
+    },
+    {
+      "host": "docs.astforum.ru",
+      "paths": [
+        "/"
+      ],
+      "upstreams": [
+        "outline:3000"
+      ],
+      "componentIds": [
+        "outline-caddy-1",
+        "outline-outline-1"
+      ]
+    },
+    {
+      "host": "mail.astforum.ru",
+      "paths": [
+        "/"
+      ],
+      "upstreams": [
+        "astforum-stalwart:8080"
+      ],
+      "componentIds": [
+        "outline-caddy-1",
+        "astforum-mail-stalwart-1"
+      ]
+    },
+    {
+      "host": "pg.astforum.ru",
+      "paths": [
+        "/"
+      ],
+      "upstreams": [
+        "pgadmin:5050"
+      ],
+      "componentIds": [
+        "outline-caddy-1",
+        "pgadmin-pgadmin-1"
+      ]
+    },
+    {
+      "host": "roadmap.astforum.ru",
+      "paths": [
+        "/",
+        "/hocuspocus*"
+      ],
+      "upstreams": [
+        "astforum-openproject-web:8080",
+        "astforum-openproject-collaboration:1234"
+      ],
+      "componentIds": [
+        "outline-caddy-1",
+        "astforum-openproject-web-1",
+        "astforum-openproject-collaboration-1"
+      ]
+    },
+    {
+      "host": "webmail.astforum.ru",
+      "paths": [
+        "/"
+      ],
+      "upstreams": [
+        "astforum-tmail:80"
+      ],
+      "componentIds": [
+        "outline-caddy-1",
+        "astforum-mail-tmail-1"
+      ]
+    }
+  ],
+  "limitations": [
+    "Read-only observation acquired 2026-10-06, sanitized/documented 2026-10-07. Not a verified release; no runtime change or deployment performed.",
+    "Config/data/secret contents, credentials, environment values and upload inventories omitted. Only code/config/site mount paths are listed."
+  ],
+  "proxyProof": {
+    "runtimeCanonicalSha256": "4c25782266ea149aa1b5e5d01b0f6af0388e7c93b98c6d60611594e12e544db8",
+    "mountedCanonicalSha256": "4c25782266ea149aa1b5e5d01b0f6af0388e7c93b98c6d60611594e12e544db8",
+    "matches": true,
+    "provenance": "E4 active JSON and mounted Caddyfile adapted JSON canonical hashes match."
+  },
+  "databaseBoundary": {
+    "runtimeDatabase": "forum_sber_sandbox",
+    "runtimeSchemas": [
+      "iam",
+      "party"
+    ],
+    "separateDatabase": "forum",
+    "separateSchema": "public",
+    "migrationAuthorized": false
+  },
+  "backupProofs": [
+    {
+      "database": "forum",
+      "restored": true,
+      "tableCount": 21,
+      "engine": "PostgreSQL 18.6",
+      "isolation": "network-none",
+      "restoreOptions": [
+        "--no-owner",
+        "--no-privileges"
+      ],
+      "grantsProof": "preserved-privately-not-restored"
+    },
+    {
+      "database": "forum_sber_sandbox",
+      "restored": true,
+      "tableCount": 9,
+      "engine": "PostgreSQL 18.6",
+      "isolation": "network-none",
+      "restoreOptions": [
+        "--no-owner",
+        "--no-privileges"
+      ],
+      "grantsProof": "preserved-privately-not-restored"
+    },
+    {
+      "database": "outline",
+      "restored": true,
+      "tableCount": 42,
+      "engine": "PostgreSQL 18.6",
+      "isolation": "network-none",
+      "restoreOptions": [
+        "--no-owner",
+        "--no-privileges"
+      ],
+      "grantsProof": "preserved-privately-not-restored"
+    }
+  ]
+}

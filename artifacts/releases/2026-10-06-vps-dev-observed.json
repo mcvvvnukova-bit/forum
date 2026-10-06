@@ -1,0 +1,953 @@
+{
+  "schemaVersion": 1,
+  "environment": "dev",
+  "recordKind": "observed",
+  "reconciliationStatus": "observed-unreconciled",
+  "observedOn": "2026-10-06",
+  "recordedAt": "2026-10-06T21:59:10.085305Z",
+  "host": "test-debian",
+  "evidence": [
+    "E1 Docker runtime metadata",
+    "E2 config/static Git-byte comparison",
+    "E3 API source-byte comparison",
+    "E4 active Caddy comparison",
+    "E5 origin/API output metadata",
+    "E6 public HTTP hashes",
+    "E7 whitelisted source snapshot",
+    "E8 ACL/restore metadata"
+  ],
+  "components": [
+    {
+      "id": "forum-api-forum_api-1",
+      "kind": "api",
+      "sources": [
+        {
+          "id": "api-source",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "5084b30b0be5c3939870be8fdadd9643cd9af0a0",
+          "path": "apps/api",
+          "verification": "file-byte-match",
+          "provenance": "E3: apps/api source/build-input files match PR5; candidate dependencies and test scaffolding evolved separately."
+        },
+        {
+          "id": "api-deployment",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "5084b30b0be5c3939870be8fdadd9643cd9af0a0",
+          "path": "deployment/forum-api",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        },
+        {
+          "id": "image-build",
+          "kind": "unknown",
+          "reason": "The image source/build/deploy receipt and installed dependency tree were not measured; 13 output hashes do not prove dependency parity.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+          "path": "deployment/forum-api/sber-dns.override.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "forum-api-forum_api-1",
+        "image": "astforum/forum-api:20261001-sber-dns",
+        "imageId": "05845ef24741384bda793f4c67709c74b8b6fa4a58272637019479c986dd9865",
+        "composeProject": "forum-api",
+        "composeService": "forum_api",
+        "composeFiles": [
+          "/opt/forum-api/releases/20261001-sber-dns/deployment/forum-api/compose.yaml",
+          "/opt/forum-api/sber-dns.override.yaml"
+        ],
+        "networks": [
+          "outline_backend",
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": []
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/forum-api/sber-dns.override.yaml",
+          "sha256": "c554835f1a99b6e76dd7ce4752db3c1bc1e0720d98419c4a857a96aafffa4ee5",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        },
+        {
+          "kind": "source",
+          "path": "deployment/forum-api/sber-callback-relay.caddy",
+          "sha256": "91edaee1a3d8b92d9793ee9b6c4458caca4d7b7bda0db3568a3168552f2723fa",
+          "sourceId": "api-deployment",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "deployment/forum-api/test-callback-relay.mjs",
+          "sha256": "ba3607996679c60866a505dfe111b4597a839d87e17262a9b9577f396ce35d14",
+          "sourceId": "api-deployment",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "deployment/forum-api/README.md",
+          "sha256": "4bd2e985b199ecad8734fcca5613ead523e68a783e2ec8a71f41aa21f1157c24",
+          "sourceId": "api-deployment",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "deployment/forum-api/DEV-DEPLOYMENT.md",
+          "sha256": "d04fa00ae05e5774a0f9fde751ceb2109d499acf37e94d25640c1553956b6978",
+          "sourceId": "api-deployment",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "deployment/forum-api/compose.yaml",
+          "sha256": "71f2d2cdad7802c97fa14066b11957cc5614fe692ab5b565b8a4b7247be2ca05",
+          "sourceId": "api-deployment",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/Dockerfile",
+          "sha256": "fd078fe1717c80b16c50380dae808d15f12f8b12d059a27b0625f638dccb256f",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/README.md",
+          "sha256": "d7a623944602eb09b5e02e8b57d54fa3be1db842d404c21133dd0a129c292a21",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/tsconfig.test.json",
+          "sha256": "da29454c9e1c4b8721e319a43cd2ddffc6e54086d0fe92466807a888840827ca",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/.dockerignore",
+          "sha256": "6149f6f51981ed5de920f976380ef0c493d55f0fc9189664db41326147d500e9",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/package-lock.json",
+          "sha256": "94937f5c378b68922ec29c28ce6a07142c70ba337f7b0cb493a8a79339909001",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/package.json",
+          "sha256": "aa2043eaf86a98d0db0105881cdba64b12d89b6a5c25d66f9bac0f7291120515",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/tsconfig.json",
+          "sha256": "c39c725e4d3243579b323feda28e9f5918aa1cc3e1e17ec167bdf3eca9692765",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/migrations/003_public_schema.sql",
+          "sha256": "8fe879b923a85b9e5331a84a473e45e1bd2901db7ee40463072653a30136cd8f",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/migrations/001_sber_identity.sql",
+          "sha256": "d45f8b6da7da162d1091ae378d8dee0eb299e5bbcd808418cec9396f09c13d3f",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/migrations/002_profiles.sql",
+          "sha256": "890208666c3ce3312d208390b54340c4b7f77193778f13352c3c1513cae56998",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/test/migrate.test.ts",
+          "sha256": "6f224d2ec4d2e96ad330ea937901a3943ed52cc7275697ff9dbddb8dec04df52",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/test/provider-fixture.ts",
+          "sha256": "66d57d15f96342dd630520f60ce7cbab4dd4868b03a8ffdfd936c47383023e1b",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/test/auth.test.ts",
+          "sha256": "0985702dd2a0edfda5322c619a83f8277facfd24afa4d8db08f5779b84eee74d",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/test/browser-smoke.mjs",
+          "sha256": "e4c983b9c0ecf84535b97c913c754ba063ee12b0f7d406e9ba9d9fd01086140d",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/test/tls.test.ts",
+          "sha256": "525e1bacfb358333ec371178b03f1ef156fd22d57a3f5cf85baa59c47a0b5161",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/test/config.test.ts",
+          "sha256": "28ccaefefaad2ef79a305c3648cea040b6ecf9b2d7cfd36199af6b9c1eabf436",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/diagnostics/issuer-probe.test.mjs",
+          "sha256": "fe63be706fb09e332e64e770f835e1f420e65ffdba6eea3bccd82b35f1c7c4f7",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/diagnostics/issuer-probe.mjs",
+          "sha256": "c3201117208730d368708ebcbe4f3b95e81549629f2ac147e9feadf40ef3168f",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/migrate.ts",
+          "sha256": "256772e1b9299ddc94ef2a3ac50d9554096b162bfd87fa9767f906aed53e9316",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/main.ts",
+          "sha256": "0020df542d41b2a7ed018980d2100d362f7517211f1da7e4f7c86f71704b0332",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/app.ts",
+          "sha256": "ce1b222c87830245d82178deea625f357cb9655674754e9d15449a9761d6ccc9",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/config.ts",
+          "sha256": "5f06290c92a8eb53ca7bccf908b1da3fe0421f43b9d20b2bb1795df319fd449b",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/party/individual-participant.ts",
+          "sha256": "1c084c9fc90293710a0c914292825bcc10dba1db6cf7574c65a29b94e658cc74",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/iam/auth.controller.ts",
+          "sha256": "5225826ec257b5c54c3f5ec0bb1f9bfe542d0c63869c3da1e585d27e6444082e",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/iam/crypto.ts",
+          "sha256": "cef61d3fde03fbb1953379e164b0b278d946e00d467c20225c2de25c59fc3f4b",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/iam/auth-store.ts",
+          "sha256": "a1e2ec7c71419adb3cd83dfb69ca53abd347f16971f680fafc71a68e83193223",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/iam/auth-error.ts",
+          "sha256": "062a4cc1de17539eb8fe24359d1a19e49795d95d03ff4933ab490ddcf48d8501",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "source",
+          "path": "apps/api/src/iam/sber-client.ts",
+          "sha256": "b7079506bb6354585d6133ca904037b0314e3fe2071ffe33f737b58a2e2ad57a",
+          "sourceId": "api-source",
+          "provenance": "E3 API file-byte match."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/app.js",
+          "sha256": "64855b8206ea88be4cc96d27e2e8e2a49845a22b656c243d5b6c222f380d280f",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/config.js",
+          "sha256": "7d96e9522981ffc610d983c6a58684fef860b80b0297bde0e95caea3414df7ba",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/iam/auth-error.js",
+          "sha256": "aced0945251f16f2349b76d7c20e0d8eaad040999b3dc784a2c9a3a8367602e5",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/iam/auth-store.js",
+          "sha256": "278cf9fe4525b8ce9a8c64292f7372c62f7ccbdc1785915ec49f9c6965b0da54",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/iam/auth.controller.js",
+          "sha256": "7b17d6b9092a3c9d741722ef3d357e690cdaac91b05d390477df961a33720281",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/iam/crypto.js",
+          "sha256": "d6bc563aba79c8d2774bef306baeddb2c27fc055c65ccace25823a14f387055f",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/iam/sber-client.js",
+          "sha256": "0e3a66b39be8c155dd86505d99947849ee730362b304ea20138ab7ad3d551690",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/main.js",
+          "sha256": "42f127098b88e8162cfec71b2b8b2fb171db283f4acac4bad704c9b645c2f7d3",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/migrate.js",
+          "sha256": "11b794194c563e3a445779a35276debd3bd371799f14dd29ff5297d6a58c19ce",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/dist/party/individual-participant.js",
+          "sha256": "caed71f6d42d83dd3220536b9c9279cd0df65049f3394590702b1494f0ac4a3e",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/migrations/001_sber_identity.sql",
+          "sha256": "d45f8b6da7da162d1091ae378d8dee0eb299e5bbcd808418cec9396f09c13d3f",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/migrations/002_profiles.sql",
+          "sha256": "890208666c3ce3312d208390b54340c4b7f77193778f13352c3c1513cae56998",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        },
+        {
+          "kind": "build",
+          "path": "/app/migrations/003_public_schema.sql",
+          "sha256": "8fe879b923a85b9e5331a84a473e45e1bd2901db7ee40463072653a30136cd8f",
+          "sourceId": "api-source",
+          "provenance": "E5 runtime file hash; Task2c clean build also matched all 13 recorded hashes."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "No image build/deploy receipt. API process points to forum_sber_sandbox/iam/party; public consolidation is separate."
+      ]
+    },
+    {
+      "id": "outline-dev_landing_auth-1",
+      "kind": "gateway",
+      "sources": [
+        {
+          "id": "vendor-image",
+          "kind": "vendor",
+          "image": "python:3.13-alpine",
+          "imageId": "62e80a1ff2a4af41c6fe72a629e5729463a4fd05ae89ecc9c812a6c1457f2cc7",
+          "provenance": "Docker inspected local image ID; not a registry manifest digest or upstream Git commit."
+        },
+        {
+          "id": "config-1",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "5084b30b0be5c3939870be8fdadd9643cd9af0a0",
+          "path": "deployment/forum-api/dev-landing-api.override.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        },
+        {
+          "id": "config-2",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "a75924cb7b715f9bd0d958bc812438389d090094",
+          "path": "deployment/vps/outline/compose.yaml",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        },
+        {
+          "id": "gateway-source",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "8833c8604e96a437ff4a8b8294e038567544ebec",
+          "path": "deployment/dev-landing/auth-gateway/forum_dev_auth.py",
+          "verification": "file-byte-match",
+          "provenance": "Snapshot file bytes match Git blob; does not identify the deployed checkout."
+        }
+      ],
+      "runtime": {
+        "container": "outline-dev_landing_auth-1",
+        "image": "python:3.13-alpine",
+        "imageId": "62e80a1ff2a4af41c6fe72a629e5729463a4fd05ae89ecc9c812a6c1457f2cc7",
+        "composeProject": "outline",
+        "composeService": "dev_landing_auth",
+        "composeFiles": [
+          "/opt/outline/docker-compose.yml",
+          "/opt/outline/dev-landing-api.override.yaml"
+        ],
+        "networks": [
+          "outline_frontend"
+        ],
+        "codeConfigSiteMounts": [
+          {
+            "source": "/opt/outline/dev-landing-auth",
+            "destination": "/app",
+            "writable": false
+          },
+          {
+            "source": "/opt/outline/dev-astforum",
+            "destination": "/srv/dev-astforum",
+            "writable": false
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "kind": "config",
+          "path": "/opt/outline/dev-landing-api.override.yaml",
+          "sha256": "0189ae89b370fe744cb91157d9a388fa53005b113886901c3294ffbcf4ce0002",
+          "sourceId": "config-1",
+          "provenance": "E2 file-byte comparison."
+        },
+        {
+          "kind": "config",
+          "path": "/opt/outline/docker-compose.yml",
+          "sha256": "fb1ed6e7dd6ddae7b9b76b43f88e9985b478d5a967c34e36c273cfd27047367a",
+          "sourceId": "config-2",
+          "provenance": "E2 file-byte comparison."
+        },
+        {
+          "kind": "source",
+          "path": "/opt/outline/dev-landing-auth/forum_dev_auth.py",
+          "sha256": "6d45b1ce43fbd8405d58de052dc5e5c5d152d2434351d9baf1629ae97eead1c3",
+          "sourceId": "gateway-source",
+          "provenance": "E7 source bytes equal PR4 Git blob."
+        }
+      ],
+      "originHttp": [
+        {
+          "url": "http://dev_landing_auth:8080/",
+          "status": 200,
+          "sha256": "f507c9e60dbd83a543a2cc7fc23930401b8107cc17c4f3870e4648669dce10a9",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/assets/index-UMyiJWQV.js",
+            "/assets/index-R8NEe7JF.css",
+            "/public-auth-assets/index-7gFu9Cpr.js",
+            "/public-auth-assets/index-B01eD4XL.css"
+          ],
+          "authLoader": true
+        },
+        {
+          "url": "http://dev_landing_auth:8080/customers/",
+          "status": 200,
+          "sha256": "6e06c2701c68db50c5d73c783c68420662cad5b921cd12306a9ed35524858d26",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/audience-assets/bundles/index--ICSSAvH.js",
+            "/audience-assets/bundles/index-C8sTABoA.css"
+          ],
+          "authLoader": false
+        },
+        {
+          "url": "http://dev_landing_auth:8080/suppliers/",
+          "status": 200,
+          "sha256": "1c213ccd6229ffefcd915ad56605eb7bb712d092ec5fb229fa062558d9004a9d",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/audience-assets/bundles/index--ICSSAvH.js",
+            "/audience-assets/bundles/index-C8sTABoA.css"
+          ],
+          "authLoader": false
+        },
+        {
+          "url": "http://dev_landing_auth:8080/work/",
+          "status": 200,
+          "sha256": "a2ecb243a95fdcf23037631408adafc129c9b4bcc372ba7684155bdb812b37f9",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/audience-assets/bundles/index--ICSSAvH.js",
+            "/audience-assets/bundles/index-C8sTABoA.css"
+          ],
+          "authLoader": false
+        },
+        {
+          "url": "http://dev_landing_auth:8080/participate/",
+          "status": 200,
+          "sha256": "d5dcd64a0128a27959fb8ec3c936d23ae6c10e3d7963684366c1572436cc1f15",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/audience-assets/bundles/index--ICSSAvH.js",
+            "/audience-assets/bundles/index-C8sTABoA.css"
+          ],
+          "authLoader": false
+        },
+        {
+          "url": "http://dev_landing_auth:8080/login/",
+          "status": 200,
+          "sha256": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/public-auth-assets/index-7gFu9Cpr.js",
+            "/public-auth-assets/index-B01eD4XL.css"
+          ],
+          "authLoader": true
+        },
+        {
+          "url": "http://dev_landing_auth:8080/register/",
+          "status": 200,
+          "sha256": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/public-auth-assets/index-7gFu9Cpr.js",
+            "/public-auth-assets/index-B01eD4XL.css"
+          ],
+          "authLoader": true
+        },
+        {
+          "url": "http://dev_landing_auth:8080/profile/",
+          "status": 200,
+          "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/profile/assets/index-Ck34N4wN.js",
+            "/profile/assets/index-CqynsdSr.css"
+          ],
+          "authLoader": false
+        },
+        {
+          "url": "http://dev_landing_auth:8080/profile/work/",
+          "status": 200,
+          "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+          "matchesMountedBytes": true,
+          "assets": [
+            "/profile/assets/index-Ck34N4wN.js",
+            "/profile/assets/index-CqynsdSr.css"
+          ],
+          "authLoader": false
+        }
+      ],
+      "publicHttp": [],
+      "limitations": [
+        "Origin HTTP was sampled with an authorized gateway session; no cookie or user response is published."
+      ]
+    },
+    {
+      "id": "dev-composed-site",
+      "kind": "site",
+      "sources": [
+        {
+          "id": "home",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "b332db9dc9666c2110403e447d2b46c30675a5dc",
+          "path": "deployment/primer-home",
+          "verification": "candidate",
+          "provenance": "PR candidate only; built site source SHA awaits a clean reproducible rebuild."
+        },
+        {
+          "id": "audience",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "2b85a4162bbd1a64703dab6da6ab787e469516fb",
+          "path": "deployment/audience-pages",
+          "verification": "candidate",
+          "provenance": "PR candidate only; built site source SHA awaits a clean reproducible rebuild."
+        },
+        {
+          "id": "auth",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+          "path": "deployment/public-auth",
+          "verification": "candidate",
+          "provenance": "PR candidate only; built site source SHA awaits a clean reproducible rebuild."
+        },
+        {
+          "id": "profile",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "acd3583c369752107b158b317545e17c966588e9",
+          "path": "local-previews/user-profile",
+          "verification": "candidate",
+          "provenance": "PR candidate only; built site source SHA awaits a clean reproducible rebuild."
+        },
+        {
+          "id": "deployed-build",
+          "kind": "unknown",
+          "reason": "Source-to-built-assets and deployment receipt absent for multi-source dev site.",
+          "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/index.html",
+          "sha256": "f507c9e60dbd83a543a2cc7fc23930401b8107cc17c4f3870e4648669dce10a9",
+          "sourceId": "home",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/customers/index.html",
+          "sha256": "6e06c2701c68db50c5d73c783c68420662cad5b921cd12306a9ed35524858d26",
+          "sourceId": "audience",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/suppliers/index.html",
+          "sha256": "1c213ccd6229ffefcd915ad56605eb7bb712d092ec5fb229fa062558d9004a9d",
+          "sourceId": "audience",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/work/index.html",
+          "sha256": "a2ecb243a95fdcf23037631408adafc129c9b4bcc372ba7684155bdb812b37f9",
+          "sourceId": "audience",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/participate/index.html",
+          "sha256": "d5dcd64a0128a27959fb8ec3c936d23ae6c10e3d7963684366c1572436cc1f15",
+          "sourceId": "audience",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/login/index.html",
+          "sha256": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
+          "sourceId": "home",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/register/index.html",
+          "sha256": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
+          "sourceId": "home",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/profile/index.html",
+          "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+          "sourceId": "profile",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/profile/work/index.html",
+          "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+          "sourceId": "profile",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/assets/index-R8NEe7JF.css",
+          "sha256": "b204b4bb23b28a0256a269344a2638d2da43b699be760eee9e6bdf3757e14b8c",
+          "sourceId": "home",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/assets/index-UMyiJWQV.js",
+          "sha256": "05f41e30f62cafe8b6edd1564a18000b3cb3299a0b78e2523a14a51f75cda551",
+          "sourceId": "home",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/audience-assets/bundles/index--ICSSAvH.js",
+          "sha256": "bc39d975ac79e62a39fb2159c0bacbc56b64f6d427163378b9abcb72c7a68571",
+          "sourceId": "audience",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/audience-assets/bundles/index-C8sTABoA.css",
+          "sha256": "eb9e07f4f4c4ddda349525f9928409eb7432f90c061d7143ed03a9c72c94048b",
+          "sourceId": "audience",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/profile/assets/index-Ck34N4wN.js",
+          "sha256": "2bb6f12848ca2ee14ba4fca798b6c2aac553b0137a0457b0dbecde39699fa10f",
+          "sourceId": "profile",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/profile/assets/index-CqynsdSr.css",
+          "sha256": "b631836aef21ef8ca70263f0735e5dc4ccc958bacce0bab1cf2afe3beff4d85b",
+          "sourceId": "profile",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/public-auth-assets/index-7gFu9Cpr.js",
+          "sha256": "85e21ea9fc5c04e40f3c50ca89966eeadf6f884c5a0ae0550f44d0842af255ad",
+          "sourceId": "auth",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        },
+        {
+          "kind": "site",
+          "path": "/opt/outline/dev-astforum/landing/public-auth-assets/index-B01eD4XL.css",
+          "sha256": "1823706c1eedaea0fcef950b3c6c086c7323d0420a9649dcff66080ea1a26342",
+          "sourceId": "auth",
+          "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [
+        {
+          "url": "https://dev.astforum.ru/",
+          "status": 200,
+          "sha256": "f507c9e60dbd83a543a2cc7fc23930401b8107cc17c4f3870e4648669dce10a9",
+          "assets": [
+            "/assets/index-UMyiJWQV.js",
+            "/assets/index-R8NEe7JF.css",
+            "/public-auth-assets/index-7gFu9Cpr.js",
+            "/public-auth-assets/index-B01eD4XL.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": true
+        },
+        {
+          "url": "https://dev.astforum.ru/customers/",
+          "status": 200,
+          "sha256": "6e06c2701c68db50c5d73c783c68420662cad5b921cd12306a9ed35524858d26",
+          "assets": [
+            "/audience-assets/bundles/index--ICSSAvH.js",
+            "/audience-assets/bundles/index-C8sTABoA.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": false
+        },
+        {
+          "url": "https://dev.astforum.ru/suppliers/",
+          "status": 200,
+          "sha256": "1c213ccd6229ffefcd915ad56605eb7bb712d092ec5fb229fa062558d9004a9d",
+          "assets": [
+            "/audience-assets/bundles/index--ICSSAvH.js",
+            "/audience-assets/bundles/index-C8sTABoA.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": false
+        },
+        {
+          "url": "https://dev.astforum.ru/work/",
+          "status": 200,
+          "sha256": "a2ecb243a95fdcf23037631408adafc129c9b4bcc372ba7684155bdb812b37f9",
+          "assets": [
+            "/audience-assets/bundles/index--ICSSAvH.js",
+            "/audience-assets/bundles/index-C8sTABoA.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": false
+        },
+        {
+          "url": "https://dev.astforum.ru/participate/",
+          "status": 200,
+          "sha256": "d5dcd64a0128a27959fb8ec3c936d23ae6c10e3d7963684366c1572436cc1f15",
+          "assets": [
+            "/audience-assets/bundles/index--ICSSAvH.js",
+            "/audience-assets/bundles/index-C8sTABoA.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": false
+        },
+        {
+          "url": "https://dev.astforum.ru/login/",
+          "status": 200,
+          "sha256": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
+          "assets": [
+            "/public-auth-assets/index-7gFu9Cpr.js",
+            "/public-auth-assets/index-B01eD4XL.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": true
+        },
+        {
+          "url": "https://dev.astforum.ru/register/",
+          "status": 200,
+          "sha256": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
+          "assets": [
+            "/public-auth-assets/index-7gFu9Cpr.js",
+            "/public-auth-assets/index-B01eD4XL.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": true
+        },
+        {
+          "url": "https://dev.astforum.ru/profile/",
+          "status": 200,
+          "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+          "assets": [
+            "/profile/assets/index-Ck34N4wN.js",
+            "/profile/assets/index-CqynsdSr.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": false
+        },
+        {
+          "url": "https://dev.astforum.ru/profile/work/",
+          "status": 200,
+          "sha256": "3e15394709ee92aa339ab1c045b955fccef852893b29cb4e4918f89645c94ef7",
+          "assets": [
+            "/profile/assets/index-Ck34N4wN.js",
+            "/profile/assets/index-CqynsdSr.css"
+          ],
+          "matchesMountedBytes": true,
+          "authLoader": false
+        },
+        {
+          "url": "https://dev.astforum.ru/assets/index-R8NEe7JF.css",
+          "status": 200,
+          "sha256": "b204b4bb23b28a0256a269344a2638d2da43b699be760eee9e6bdf3757e14b8c",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/assets/index-UMyiJWQV.js",
+          "status": 200,
+          "sha256": "05f41e30f62cafe8b6edd1564a18000b3cb3299a0b78e2523a14a51f75cda551",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/audience-assets/bundles/index--ICSSAvH.js",
+          "status": 200,
+          "sha256": "bc39d975ac79e62a39fb2159c0bacbc56b64f6d427163378b9abcb72c7a68571",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/audience-assets/bundles/index-C8sTABoA.css",
+          "status": 200,
+          "sha256": "eb9e07f4f4c4ddda349525f9928409eb7432f90c061d7143ed03a9c72c94048b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/profile/assets/index-Ck34N4wN.js",
+          "status": 200,
+          "sha256": "2bb6f12848ca2ee14ba4fca798b6c2aac553b0137a0457b0dbecde39699fa10f",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/profile/assets/index-CqynsdSr.css",
+          "status": 200,
+          "sha256": "b631836aef21ef8ca70263f0735e5dc4ccc958bacce0bab1cf2afe3beff4d85b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/public-auth-assets/index-7gFu9Cpr.js",
+          "status": 200,
+          "sha256": "85e21ea9fc5c04e40f3c50ca89966eeadf6f884c5a0ae0550f44d0842af255ad",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/public-auth-assets/index-B01eD4XL.css",
+          "status": 200,
+          "sha256": "1823706c1eedaea0fcef950b3c6c086c7323d0420a9649dcff66080ea1a26342",
+          "matchesMountedBytes": true
+        }
+      ],
+      "limitations": [
+        "F6: auth loader is present on home/login/register; absent on audience/profile routes. Profile is a fixture. Clean candidate Task2 improvements were not deployed in this observation."
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "host": "dev.astforum.ru",
+      "paths": [
+        "/"
+      ],
+      "upstreams": [
+        "dev_landing_auth:8080"
+      ],
+      "componentIds": [
+        "outline-caddy-1",
+        "outline-dev_landing_auth-1",
+        "forum-api-forum_api-1",
+        "dev-composed-site"
+      ]
+    }
+  ],
+  "limitations": [
+    "Read-only observation acquired 2026-10-06, sanitized/documented 2026-10-07. Not a verified release; no runtime change or deployment performed.",
+    "Config/data/secret contents, credentials, environment values and upload inventories omitted. Only code/config/site mount paths are listed."
+  ]
+}
