@@ -12,7 +12,7 @@ import time
 
 
 INSTALL = Path('/opt/pgadmin')
-SOURCE = Path(__file__).resolve().parent
+SOURCE = Path(__file__).resolve().parents[3] / 'deployment' / 'pgadmin'
 EMAIL = 'admin@astforum.ru'
 CONTAINER = 'pgadmin-pgadmin-1'
 DATABASES = {

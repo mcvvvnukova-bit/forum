@@ -14,7 +14,8 @@ PGADMIN_WAIT_SECONDS="${PGADMIN_WAIT_SECONDS:-120}"
 PGADMIN_DIR="${PGADMIN_DIR:-/opt/pgadmin}"
 BACKUP_ROOT="${BACKUP_ROOT:-/opt/backups/forum-app-role}"
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-runtime_grants="${script_dir}/../forum-api/grant-runtime.sql"
+repo_root="$(cd -- "${script_dir}/../../.." && pwd)"
+runtime_grants="${repo_root}/deployment/forum-api/grant-runtime.sql"
 
 # These identifiers are also inserted into pg_hba.conf and role DDL below.
 for identifier in "$DB_NAME" "$APP_USER" "$APP_ROLE"; do

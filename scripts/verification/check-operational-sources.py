@@ -65,7 +65,9 @@ def main():
     count = verify_provenance()
     run("python3", str(ROOT / "scripts/verification/check-mail-resources.py"))
     owners = ['deployment/mail', 'deployment/openproject', 'deployment/pgadmin', 'deployment/vps/outline']
-    for owner in owners:
+    tool_owners = ['scripts/deployment/forum-db', 'scripts/deployment/pgadmin', 'scripts/deployment/mail',
+                   'scripts/verification/mail', 'scripts/maintenance/mail', 'scripts/maintenance/openproject']
+    for owner in owners + tool_owners:
         for path in (ROOT / owner).rglob('*'):
             if path.suffix == '.py':
                 ast.parse(path.read_text(), filename=str(path))
@@ -73,6 +75,26 @@ def main():
                 run('bash', '-n', str(path))
             elif path.suffix == '.rb':
                 run('docker', 'run', '--rm', '--network', 'none', '--read-only', '--entrypoint', 'ruby', '-v', f'{path}:/candidate.rb:ro', RUBY, '-c', '/candidate.rb')
+    # Resolve administrative source contracts without importing or running any
+    # administrator (install-caddy-routes has deliberate top-level side effects).
+    mail = ROOT / 'scripts/deployment/mail'
+    helper = ast.parse((mail / 'stalwart_api.py').read_text())
+    exported = {node.name for node in helper.body if isinstance(node, ast.FunctionDef)}
+    exported |= {target.id for node in helper.body if isinstance(node, ast.Assign)
+                 for target in node.targets if isinstance(target, ast.Name)}
+    for name in ['configure_acme.py', 'deploy-certificate.py']:
+        imports = [node for node in ast.walk(ast.parse((mail / name).read_text()))
+                   if isinstance(node, ast.ImportFrom) and node.module == 'stalwart_api']
+        assert len(imports) == 1 and imports[0].level == 0, name
+        assert {alias.name for alias in imports[0].names} <= exported, name
+    pgadmin = ast.parse((ROOT / 'scripts/deployment/pgadmin/configure-admin.py').read_text())
+    source = next(node.value for node in pgadmin.body if isinstance(node, ast.Assign)
+                  and any(isinstance(target, ast.Name) and target.id == 'SOURCE' for target in node.targets))
+    expected = ast.parse("Path(__file__).resolve().parents[3] / 'deployment' / 'pgadmin'", mode='eval').body
+    assert ast.dump(source) == ast.dump(expected), 'pgAdmin configuration owner'
+    for name in ['servers.json', 'compose.yaml']:
+        assert (ROOT / 'deployment/pgadmin' / name).is_file(), name
+    run('node', '--check', str(ROOT / 'scripts/verification/forum-api/test-callback-relay.mjs'))
     templates = sorted((ROOT / 'deployment/mail/templates').rglob('*.html'))
     assert len(templates) == 8
     for path in templates:
@@ -112,7 +134,7 @@ def main():
     source = ROOT / 'deployment/vps/outline/Caddyfile.example'
     adapted = json.loads(run('docker', 'run', '--rm', '--network', 'none', '--read-only', '-v', f'{source}:/candidate/Caddyfile:ro', CADDY, 'caddy', 'adapt', '--config', '/candidate/Caddyfile', '--adapter', 'caddyfile'))
     assert adapted['apps']['http']['servers']
-    print(f'Operational sources: {count} provenance entries, 4 Compose owners, 2 overrides, Caddy adaptation, 8 HTML templates and Python/shell/Ruby syntax passed')
+    print(f'Operational sources: {count} provenance entries, 4 Compose owners, 2 overrides, Caddy adaptation, 8 HTML templates, administrative resource/import closure and Python/shell/Ruby/Node syntax passed')
 
 
 if __name__ == '__main__':

@@ -15,7 +15,7 @@ import unittest
 import uuid
 
 ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = ROOT / 'deployment/forum-db/configure_forum_app_role.sh'
+SCRIPT = ROOT / 'scripts/deployment/forum-db/configure_forum_app_role.sh'
 GRANTS = ROOT / 'deployment/forum-api/grant-runtime.sql'
 DOCKER = shutil.which('docker')
 IMAGE = os.environ.get('FORUM_TEST_POSTGRES_IMAGE', 'postgres:18-alpine')

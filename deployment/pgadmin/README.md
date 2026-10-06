@@ -20,8 +20,9 @@ existing registrations in place so their IDs and new saved query tabs survive
 container restarts. `servers.json` seeds a fresh installation; it does not
 replace the registrations of an initialized installation.
 
-To apply, copy these files to a restricted staging directory on the Forum
-server, then run `sudo python3 /path/to/staging/configure-admin.py`.
+To apply, preserve the repository layout in a restricted staging directory on
+the Forum server: copy `scripts/deployment/pgadmin/configure-admin.py` and
+`deployment/pgadmin/{compose.yaml,servers.json}` to those relative paths, then run `sudo python3 /path/to/staging/scripts/deployment/pgadmin/configure-admin.py`.
 The script validates the candidate Compose configuration, takes a private
 SQLite/configuration/password-file backup under
 `/opt/backups/pgadmin-admin-connections`, recreates only pgAdmin, and probes

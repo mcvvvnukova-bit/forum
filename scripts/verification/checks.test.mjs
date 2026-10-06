@@ -29,7 +29,7 @@ test('actual candidate layout passes, while strict docs policy remains explicit'
   assert.notEqual(strict.status, 0)
   assert.match(strict.stderr, /Strict docs\/plans-only/)
 })
-for (const missing of ['apps/legacy-landing/package.json', 'package-lock.json', 'apps/public-auth/src/PublicAuth.test.tsx', 'apps/profile-preview/package.json', 'apps/profile-preview/src/profile.test.ts', 'apps/web/production-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml']) {
+for (const missing of ['apps/legacy-landing/package.json', 'package-lock.json', 'apps/public-auth/src/PublicAuth.test.tsx', 'apps/profile-preview/package.json', 'apps/profile-preview/src/profile.test.ts', 'apps/web/production-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml', 'scripts/deployment/forum-db/bootstrap_forum_db.sh', 'scripts/deployment/forum-db/configure_forum_app_role.sh', 'scripts/deployment/pgadmin/configure-admin.py', 'scripts/deployment/mail/stalwart_api.py', 'scripts/maintenance/mail/backup.sh', 'scripts/maintenance/openproject/backup.sh', 'scripts/verification/mail/verify.py', 'scripts/verification/forum-api/test-callback-relay.mjs']) {
   test(`required source cannot be skipped: ${missing}`, t => {
     const path = fixture(t)
     rmSync(join(path, missing))

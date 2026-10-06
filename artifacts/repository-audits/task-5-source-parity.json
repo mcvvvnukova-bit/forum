@@ -169,7 +169,7 @@
       "previousMode": "100644",
       "newMode": "100644",
       "previousSha256": "a138e9747ee12dd3063f520291b4e01b55c9d79471df3d5fdf0a09f935bfa461",
-      "newSha256": "e848044b6996806d89c816122b41d8e4171ed7e0904a51a45b7a3ad2fffa93c1",
+      "newSha256": "e7b90f4243a4a9bc886c9527c9902aedf85e534661d277dcb4fb274f17dd1b93",
       "unchanged": false,
       "classification": "provenance-reference-update"
     },
@@ -1944,6 +1944,166 @@
       "classification": "path-reference-update"
     },
     {
+      "previousPath": "deployment/forum-api/test-callback-relay.mjs",
+      "newPath": "scripts/verification/forum-api/test-callback-relay.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ba3607996679c60866a505dfe111b4597a839d87e17262a9b9577f396ce35d14",
+      "newSha256": "e2096e67337308014d0f89fde532d6d8fcd521ce87f6b8b96963bc67fd9ae6e8",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/forum-db/bootstrap_forum_db.sh",
+      "newPath": "scripts/deployment/forum-db/bootstrap_forum_db.sh",
+      "previousMode": "100755",
+      "newMode": "100755",
+      "previousSha256": "05364c39c1eab343130303b494ceea771279899f5daef400cd5e7ec281218b90",
+      "newSha256": "05364c39c1eab343130303b494ceea771279899f5daef400cd5e7ec281218b90",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/forum-db/configure_forum_app_role.sh",
+      "newPath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
+      "previousMode": "100755",
+      "newMode": "100755",
+      "previousSha256": "51dac73fff4d5ac8bdce399595f214077bd0ad5c8f26d591141e27c02ca3dd91",
+      "newSha256": "43ded821bb9d2bb6e47aa7ac0122aedf26809790ed5abc8f4b7aed2869e5ea90",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "newPath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7e8e200798e5594a257f6b5f946db80cebd52421d46656fd7f92d34baf2b2462",
+      "newSha256": "d53d633f1be92590341fd1e28b41f8fd3849fd943105314c99b5dd8bd484bb37",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/mail/README.md",
+      "newPath": "deployment/mail/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "91aa2b136db85abbd8537ee35f8f9cb78528eba47d556f2c81add3e403e88e4f",
+      "newSha256": "38be3623ec0e51c293025b47b2135d64cc742093f10dce4db2cb9e79ea3fa68c",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/mail/backup.sh",
+      "newPath": "scripts/maintenance/mail/backup.sh",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "9a57f46a345a12307d317584c0848339b264d7ec1d379d0020b97b33d35423e0",
+      "newSha256": "9a57f46a345a12307d317584c0848339b264d7ec1d379d0020b97b33d35423e0",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/configure_acme.py",
+      "newPath": "scripts/deployment/mail/configure_acme.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "bbd2ba942024d12609cb0dc614ad17017f69f6dcc93a2190ced9982273dcfc44",
+      "newSha256": "bbd2ba942024d12609cb0dc614ad17017f69f6dcc93a2190ced9982273dcfc44",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/deploy-certificate.py",
+      "newPath": "scripts/deployment/mail/deploy-certificate.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "efa3781fe50fbd1d32ed803d1a6913ddfc7d9e885a677eb4509b63f10e175082",
+      "newSha256": "efa3781fe50fbd1d32ed803d1a6913ddfc7d9e885a677eb4509b63f10e175082",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/install-caddy-routes.py",
+      "newPath": "scripts/deployment/mail/install-caddy-routes.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "465ab69ef5d2b72fb6332e315862dc10e5876911e6e2be8a00175f6fd14cc623",
+      "newSha256": "465ab69ef5d2b72fb6332e315862dc10e5876911e6e2be8a00175f6fd14cc623",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/listmonk_setup.py",
+      "newPath": "scripts/deployment/mail/listmonk_setup.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "adce7731f99fb89a58ec21a31b0244c4bed712638dc35a69ed99b02db72021c2",
+      "newSha256": "adce7731f99fb89a58ec21a31b0244c4bed712638dc35a69ed99b02db72021c2",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/stalwart_api.py",
+      "newPath": "scripts/deployment/mail/stalwart_api.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "47d9aa6071ac7ceb2d92ff73592ebfc35515928bd664f884e964c00d5f14ad95",
+      "newSha256": "47d9aa6071ac7ceb2d92ff73592ebfc35515928bd664f884e964c00d5f14ad95",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/verify.py",
+      "newPath": "scripts/verification/mail/verify.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7829b92b668cd0cf36c03adf1401d7e9e14e518d8e42aaac71b059bafda885e6",
+      "newSha256": "7829b92b668cd0cf36c03adf1401d7e9e14e518d8e42aaac71b059bafda885e6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/openproject/README.md",
+      "newPath": "deployment/openproject/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3215bb20fe927bc3c014c2c6fcc4764501cdf7c8ab588526cb3e090f2205dca1",
+      "newSha256": "b755954b64036d332e361607f0ee767753cf4d25d018c426734a3db71da5db92",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/openproject/backup.sh",
+      "newPath": "scripts/maintenance/openproject/backup.sh",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ad4c78b0e6cb9bbbad096257586ed19b6e3ea7e2791d977e9326bd6584f7aee5",
+      "newSha256": "ad4c78b0e6cb9bbbad096257586ed19b6e3ea7e2791d977e9326bd6584f7aee5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/pgadmin/README.md",
+      "newPath": "deployment/pgadmin/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "564dd09a2478ed8b27ed07610c0dd863425d80690e0bdc55c31134903c3724e0",
+      "newSha256": "49b2043feedf72d24b863797802281f405bfb3bae98a04f91633a255bd88f08f",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/pgadmin/configure-admin.py",
+      "newPath": "scripts/deployment/pgadmin/configure-admin.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1c7daad73af5252212a1233c1d0986b17ca1b9a9d14a44dd9f713d4fa3e743b1",
+      "newSha256": "4311298435ecc5990ac65d45d8dc119ceff6645c2b36ff0274aed38cf345beb7",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
       "previousPath": "deployment/primer-home/.gitignore",
       "newPath": "apps/primer-home/.gitignore",
       "previousMode": "100644",
@@ -2829,7 +2989,17 @@
       "previousMode": "100644",
       "newMode": "100644",
       "previousSha256": "bf1bf16f69409f1e453f4049e365c1e3a0f20bbeecc9024242224ae9bf944bcd",
-      "newSha256": "6c1811527ea738dcfc2b74402daca95192d4bf70931ff91e6d4c267391a777b7",
+      "newSha256": "0b54bbaaa678b17c80b6430790d12297b928a315da90abd6b36affa7bf0ec773",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "scripts/verification/check-api.sh",
+      "newPath": "scripts/verification/check-api.sh",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "d4d90e8845a55990464a470177d0c708b626291179410cc9eb8e6ece38ecfa9d",
+      "newSha256": "44255908ab14debdc66ca2ba836b6e226ad6c33b743bace384be4e42334c9a0f",
       "unchanged": false,
       "classification": "path-reference-update"
     },
@@ -2849,7 +3019,7 @@
       "previousMode": "100644",
       "newMode": "100644",
       "previousSha256": "4610f65810510e015391dff7caf8e7af4f2d5275e869b928ee1de08922f75208",
-      "newSha256": "c9b8ee00f00900db736c11af289d4ab24cffcd49ea1cb6f153946892f871a4fb",
+      "newSha256": "900410235db178cfe710d5bbd310f1b7868dc915c333e596e8fd7a0269102057",
       "unchanged": false,
       "classification": "path-reference-update"
     },
@@ -2869,7 +3039,7 @@
       "previousMode": "100644",
       "newMode": "100644",
       "previousSha256": "475dcf9e6fa3737ef0fe9ca4229fa863950ecdc338d4293edcf2a79ce935a940",
-      "newSha256": "256c6270fe178a2aaa2a28968b73bc18fdafd21cdc21d49af80adef59ab88781",
+      "newSha256": "daad083884cfcb081dd25470d39ff1074ac265598ec675ff8b75c318e8dbabc1",
       "unchanged": false,
       "classification": "path-reference-update"
     },
@@ -2879,7 +3049,7 @@
       "previousMode": "100644",
       "newMode": "100644",
       "previousSha256": "5d2be07319bd86101e6efa585aa53286e792c36744e7905ca354a2726a1510a6",
-      "newSha256": "d47f20ed8b2b09158ce7b5c96abb5662ad1da959703740e56bc067195ff3d4c7",
+      "newSha256": "7ff3de7cc224d52ca5fff4698eee9fb533cdead35fb565850dc0147c2f1c6e40",
       "unchanged": false,
       "classification": "path-reference-update"
     },

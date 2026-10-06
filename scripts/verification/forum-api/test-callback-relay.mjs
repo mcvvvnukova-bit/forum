@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {request} from 'node:http';
 
 const dir = mkdtempSync(join(tmpdir(), 'forum-caddy-relay-'));
-const fragment = readFileSync(new URL('./sber-callback-relay.caddy', import.meta.url), 'utf8');
+const fragment = readFileSync(new URL('../../../deployment/forum-api/sber-callback-relay.caddy', import.meta.url), 'utf8');
 writeFileSync(join(dir, 'Caddyfile'), `{
   admin off
 }

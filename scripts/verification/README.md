@@ -66,3 +66,5 @@ network-none/read-only container with the `ruby` entrypoint; host Ruby may be
 older and cannot parse the deployed Ruby language. This runs syntax checks only.
 
 Task5 consolidates all six npm app workspaces into one root lock, relocates publishers to `scripts/deployment/<owner>` and retains source-only Python/static owners. All eight HTML templates pass offline local resource closure and local Chromium rendering through `npm run test:mail`; no email is sent. Dated deployment observations retain original paths and semantics.
+
+Infrastructure administration lives in `scripts/deployment/forum-db/`, `scripts/deployment/pgadmin/` and `scripts/deployment/mail/`; backup tools live in `scripts/maintenance/{mail,openproject}/`. Their SQL, Compose, Caddy, templates and patches remain under `deployment/`. API callback relay verification runs from `scripts/verification/forum-api/test-callback-relay.mjs` in the API quality job against its disposable local Caddy fixture. Operational checks parse administrators and validate their resource/import paths without executing them.

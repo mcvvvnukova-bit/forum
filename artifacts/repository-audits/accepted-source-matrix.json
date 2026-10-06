@@ -3059,11 +3059,19 @@
           "sourceSha256": "ba3607996679c60866a505dfe111b4597a839d87e17262a9b9577f396ce35d14",
           "decision": "accepted",
           "reason": "Reviewed existing runtime/fixes retained",
-          "candidatePath": "deployment/forum-api/test-callback-relay.mjs",
+          "candidatePath": "scripts/verification/forum-api/test-callback-relay.mjs",
           "candidateMode": "100644",
-          "candidateGitBlob": "9371c0995ee01b29edfd5a0349ff95dfe2540e5a",
-          "candidateSha256": "ba3607996679c60866a505dfe111b4597a839d87e17262a9b9577f396ce35d14",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "37166b38bd72bc26e684827278e03ca9dbf7b759",
+          "candidateSha256": "e2096e67337308014d0f89fde532d6d8fcd521ce87f6b8b96963bc67fd9ae6e8",
+          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/forum-api/test-callback-relay.mjs",
+            "candidateMode": "100644",
+            "candidateGitBlob": "9371c0995ee01b29edfd5a0349ff95dfe2540e5a",
+            "candidateSha256": "ba3607996679c60866a505dfe111b4597a839d87e17262a9b9577f396ce35d14",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/forum-db/PROFILES-DEPLOYMENT.md",
@@ -3124,11 +3132,19 @@
           "sourceSha256": "05364c39c1eab343130303b494ceea771279899f5daef400cd5e7ec281218b90",
           "decision": "accepted",
           "reason": "Reviewed existing runtime/fixes retained",
-          "candidatePath": "deployment/forum-db/bootstrap_forum_db.sh",
+          "candidatePath": "scripts/deployment/forum-db/bootstrap_forum_db.sh",
           "candidateMode": "100755",
           "candidateGitBlob": "6907497262ac7e15a59d68ab4c1a3809d9e11a03",
           "candidateSha256": "05364c39c1eab343130303b494ceea771279899f5daef400cd5e7ec281218b90",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/forum-db/bootstrap_forum_db.sh",
+            "candidateMode": "100755",
+            "candidateGitBlob": "6907497262ac7e15a59d68ab4c1a3809d9e11a03",
+            "candidateSha256": "05364c39c1eab343130303b494ceea771279899f5daef400cd5e7ec281218b90",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/forum-db/configure_forum_app_role.sh",
@@ -3137,12 +3153,19 @@
           "sourceSha256": "e44f5b482c018539f0619162f8b201c1e6e4142c8a0a36b2ca3c7949f9942983",
           "decision": "accepted",
           "reason": "Reviewed existing runtime/fixes retained",
-          "candidatePath": "deployment/forum-db/configure_forum_app_role.sh",
+          "candidatePath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
           "candidateMode": "100755",
-          "candidateGitBlob": "10d8f2f0efdea067e19b623309a46f87b3a3b072",
-          "candidateSha256": "51dac73fff4d5ac8bdce399595f214077bd0ad5c8f26d591141e27c02ca3dd91",
-          "sourceRelativeDelta": "reviewed-candidate-delta",
-          "deltaExplanation": "Approved Task2 F1-F6 and Task3 provenance/auth corrections; current candidate wins over old source"
+          "candidateGitBlob": "66265e1ab2fbef2b70c7ab9600206f1d2cd21b76",
+          "candidateSha256": "43ded821bb9d2bb6e47aa7ac0122aedf26809790ed5abc8f4b7aed2869e5ea90",
+          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
+          "deltaExplanation": "Approved Task2 F1-F6 and Task3 provenance/auth corrections; current candidate wins over old source; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json.",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/forum-db/configure_forum_app_role.sh",
+            "candidateMode": "100755",
+            "candidateGitBlob": "10d8f2f0efdea067e19b623309a46f87b3a3b072",
+            "candidateSha256": "51dac73fff4d5ac8bdce399595f214077bd0ad5c8f26d591141e27c02ca3dd91",
+            "sourceRelativeDelta": "reviewed-candidate-delta"
+          }
         },
         {
           "sourcePath": "deployment/forum-db/public-schema-review.md",
@@ -3438,10 +3461,17 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "deployment/mail/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "3e82c22e01b9695b180ea782f3ffa80b8131f826",
-          "candidateSha256": "91aa2b136db85abbd8537ee35f8f9cb78528eba47d556f2c81add3e403e88e4f",
-          "sourceRelativeDelta": "reviewed-candidate-delta",
-          "deltaExplanation": "Task4 review I1: reserved recipient examples; personal delivery IDs/mailbox evidence and specific historical backup evidence removed; generic operational instructions retained; originals preserved in pinned PR6/history/private backup"
+          "candidateGitBlob": "d8fc7dd443c4bd799eb725e12187e6807b599fe1",
+          "candidateSha256": "38be3623ec0e51c293025b47b2135d64cc742093f10dce4db2cb9e79ea3fa68c",
+          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
+          "deltaExplanation": "Task4 review I1: reserved recipient examples; personal delivery IDs/mailbox evidence and specific historical backup evidence removed; generic operational instructions retained; originals preserved in pinned PR6/history/private backup; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json.",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/mail/README.md",
+            "candidateMode": "100644",
+            "candidateGitBlob": "3e82c22e01b9695b180ea782f3ffa80b8131f826",
+            "candidateSha256": "91aa2b136db85abbd8537ee35f8f9cb78528eba47d556f2c81add3e403e88e4f",
+            "sourceRelativeDelta": "reviewed-candidate-delta"
+          }
         },
         {
           "sourcePath": "deployment/mail/backup.sh",
@@ -3450,11 +3480,19 @@
           "sourceSha256": "9a57f46a345a12307d317584c0848339b264d7ec1d379d0020b97b33d35423e0",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/mail/backup.sh",
+          "candidatePath": "scripts/maintenance/mail/backup.sh",
           "candidateMode": "100644",
           "candidateGitBlob": "8658232b28991177719eb2aeb62f34af65717886",
           "candidateSha256": "9a57f46a345a12307d317584c0848339b264d7ec1d379d0020b97b33d35423e0",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/mail/backup.sh",
+            "candidateMode": "100644",
+            "candidateGitBlob": "8658232b28991177719eb2aeb62f34af65717886",
+            "candidateSha256": "9a57f46a345a12307d317584c0848339b264d7ec1d379d0020b97b33d35423e0",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/mail/caddy.fragment",
@@ -3495,11 +3533,19 @@
           "sourceSha256": "bbd2ba942024d12609cb0dc614ad17017f69f6dcc93a2190ced9982273dcfc44",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/mail/configure_acme.py",
+          "candidatePath": "scripts/deployment/mail/configure_acme.py",
           "candidateMode": "100644",
           "candidateGitBlob": "83b4e2f1356cbf0b0f5ee6137010ac541c9d23cc",
           "candidateSha256": "bbd2ba942024d12609cb0dc614ad17017f69f6dcc93a2190ced9982273dcfc44",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/mail/configure_acme.py",
+            "candidateMode": "100644",
+            "candidateGitBlob": "83b4e2f1356cbf0b0f5ee6137010ac541c9d23cc",
+            "candidateSha256": "bbd2ba942024d12609cb0dc614ad17017f69f6dcc93a2190ced9982273dcfc44",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/mail/deploy-certificate.py",
@@ -3508,11 +3554,19 @@
           "sourceSha256": "efa3781fe50fbd1d32ed803d1a6913ddfc7d9e885a677eb4509b63f10e175082",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/mail/deploy-certificate.py",
+          "candidatePath": "scripts/deployment/mail/deploy-certificate.py",
           "candidateMode": "100644",
           "candidateGitBlob": "15ef4a4c3d748f1f3a6a417c161d93072ae5ec75",
           "candidateSha256": "efa3781fe50fbd1d32ed803d1a6913ddfc7d9e885a677eb4509b63f10e175082",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/mail/deploy-certificate.py",
+            "candidateMode": "100644",
+            "candidateGitBlob": "15ef4a4c3d748f1f3a6a417c161d93072ae5ec75",
+            "candidateSha256": "efa3781fe50fbd1d32ed803d1a6913ddfc7d9e885a677eb4509b63f10e175082",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/mail/dns-records.txt",
@@ -3534,11 +3588,19 @@
           "sourceSha256": "465ab69ef5d2b72fb6332e315862dc10e5876911e6e2be8a00175f6fd14cc623",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/mail/install-caddy-routes.py",
+          "candidatePath": "scripts/deployment/mail/install-caddy-routes.py",
           "candidateMode": "100644",
           "candidateGitBlob": "4793ac9d0cb909e077b1d012a3eb4976a184008b",
           "candidateSha256": "465ab69ef5d2b72fb6332e315862dc10e5876911e6e2be8a00175f6fd14cc623",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/mail/install-caddy-routes.py",
+            "candidateMode": "100644",
+            "candidateGitBlob": "4793ac9d0cb909e077b1d012a3eb4976a184008b",
+            "candidateSha256": "465ab69ef5d2b72fb6332e315862dc10e5876911e6e2be8a00175f6fd14cc623",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/mail/listmonk_setup.py",
@@ -3547,11 +3609,19 @@
           "sourceSha256": "adce7731f99fb89a58ec21a31b0244c4bed712638dc35a69ed99b02db72021c2",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/mail/listmonk_setup.py",
+          "candidatePath": "scripts/deployment/mail/listmonk_setup.py",
           "candidateMode": "100644",
           "candidateGitBlob": "61c7e707bdd07baff4e3ba3b9151ab2596af48fe",
           "candidateSha256": "adce7731f99fb89a58ec21a31b0244c4bed712638dc35a69ed99b02db72021c2",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/mail/listmonk_setup.py",
+            "candidateMode": "100644",
+            "candidateGitBlob": "61c7e707bdd07baff4e3ba3b9151ab2596af48fe",
+            "candidateSha256": "adce7731f99fb89a58ec21a31b0244c4bed712638dc35a69ed99b02db72021c2",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/mail/stalwart_api.py",
@@ -3560,11 +3630,19 @@
           "sourceSha256": "47d9aa6071ac7ceb2d92ff73592ebfc35515928bd664f884e964c00d5f14ad95",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/mail/stalwart_api.py",
+          "candidatePath": "scripts/deployment/mail/stalwart_api.py",
           "candidateMode": "100644",
           "candidateGitBlob": "8451c9d1112df7a61b38c8f413f0f87d4cbe8d99",
           "candidateSha256": "47d9aa6071ac7ceb2d92ff73592ebfc35515928bd664f884e964c00d5f14ad95",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/mail/stalwart_api.py",
+            "candidateMode": "100644",
+            "candidateGitBlob": "8451c9d1112df7a61b38c8f413f0f87d4cbe8d99",
+            "candidateSha256": "47d9aa6071ac7ceb2d92ff73592ebfc35515928bd664f884e964c00d5f14ad95",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/mail/tmail/env.file",
@@ -3586,11 +3664,19 @@
           "sourceSha256": "7829b92b668cd0cf36c03adf1401d7e9e14e518d8e42aaac71b059bafda885e6",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/mail/verify.py",
+          "candidatePath": "scripts/verification/mail/verify.py",
           "candidateMode": "100644",
           "candidateGitBlob": "baf974748b29e80975a19235b10dabeeb7eede98",
           "candidateSha256": "7829b92b668cd0cf36c03adf1401d7e9e14e518d8e42aaac71b059bafda885e6",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/mail/verify.py",
+            "candidateMode": "100644",
+            "candidateGitBlob": "baf974748b29e80975a19235b10dabeeb7eede98",
+            "candidateSha256": "7829b92b668cd0cf36c03adf1401d7e9e14e518d8e42aaac71b059bafda885e6",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/openproject/.gitignore",
@@ -3627,10 +3713,17 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "deployment/openproject/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "a155e0fae5404358c6a595d1af15c712a01b1969",
-          "candidateSha256": "3215bb20fe927bc3c014c2c6fcc4764501cdf7c8ab588526cb3e090f2205dca1",
-          "sourceRelativeDelta": "reviewed-candidate-delta",
-          "deltaExplanation": "Task4 review I1: user-specific credential location and historical message/backup evidence removed; generic private-access/SMTP/backup/restore instructions retained; original pinned PR6/history/private backup preserved"
+          "candidateGitBlob": "1f9b1a2e5f5ff71055f706dd32f4e3a90c574aa6",
+          "candidateSha256": "b755954b64036d332e361607f0ee767753cf4d25d018c426734a3db71da5db92",
+          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
+          "deltaExplanation": "Task4 review I1: user-specific credential location and historical message/backup evidence removed; generic private-access/SMTP/backup/restore instructions retained; original pinned PR6/history/private backup preserved; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json.",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/openproject/README.md",
+            "candidateMode": "100644",
+            "candidateGitBlob": "a155e0fae5404358c6a595d1af15c712a01b1969",
+            "candidateSha256": "3215bb20fe927bc3c014c2c6fcc4764501cdf7c8ab588526cb3e090f2205dca1",
+            "sourceRelativeDelta": "reviewed-candidate-delta"
+          }
         },
         {
           "sourcePath": "deployment/openproject/backup.sh",
@@ -3639,11 +3732,19 @@
           "sourceSha256": "ad4c78b0e6cb9bbbad096257586ed19b6e3ea7e2791d977e9326bd6584f7aee5",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/openproject/backup.sh",
+          "candidatePath": "scripts/maintenance/openproject/backup.sh",
           "candidateMode": "100644",
           "candidateGitBlob": "46be73845cb167ac4275d105ced994770dcb8f57",
           "candidateSha256": "ad4c78b0e6cb9bbbad096257586ed19b6e3ea7e2791d977e9326bd6584f7aee5",
-          "sourceRelativeDelta": "unchanged"
+          "sourceRelativeDelta": "task5-owner-move",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/openproject/backup.sh",
+            "candidateMode": "100644",
+            "candidateGitBlob": "46be73845cb167ac4275d105ced994770dcb8f57",
+            "candidateSha256": "ad4c78b0e6cb9bbbad096257586ed19b6e3ea7e2791d977e9326bd6584f7aee5",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/openproject/compose.yaml",
@@ -10186,9 +10287,17 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "deployment/pgadmin/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "4b3036019f880b74bd68416a6e6fae4f25a9a927",
-          "candidateSha256": "564dd09a2478ed8b27ed07610c0dd863425d80690e0bdc55c31134903c3724e0",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "4c726bbdb10f324f16958e22d74ae924f309cbb7",
+          "candidateSha256": "49b2043feedf72d24b863797802281f405bfb3bae98a04f91633a255bd88f08f",
+          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/pgadmin/README.md",
+            "candidateMode": "100644",
+            "candidateGitBlob": "4b3036019f880b74bd68416a6e6fae4f25a9a927",
+            "candidateSha256": "564dd09a2478ed8b27ed07610c0dd863425d80690e0bdc55c31134903c3724e0",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/pgadmin/compose.yaml",
@@ -10216,11 +10325,19 @@
           "sourceSha256": "1c7daad73af5252212a1233c1d0986b17ca1b9a9d14a44dd9f713d4fa3e743b1",
           "decision": "accepted",
           "reason": "Selected pinned runtime source; no branch ancestry imported",
-          "candidatePath": "deployment/pgadmin/configure-admin.py",
+          "candidatePath": "scripts/deployment/pgadmin/configure-admin.py",
           "candidateMode": "100644",
-          "candidateGitBlob": "82247a176271f876a7c5541a6d9c9a54f42cc4da",
-          "candidateSha256": "1c7daad73af5252212a1233c1d0986b17ca1b9a9d14a44dd9f713d4fa3e743b1",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "03d1e70261d951c5493c21cca29babe39f72a6f8",
+          "candidateSha256": "4311298435ecc5990ac65d45d8dc119ceff6645c2b36ff0274aed38cf345beb7",
+          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
+          "task5PreviousCandidate": {
+            "candidatePath": "deployment/pgadmin/configure-admin.py",
+            "candidateMode": "100644",
+            "candidateGitBlob": "82247a176271f876a7c5541a6d9c9a54f42cc4da",
+            "candidateSha256": "1c7daad73af5252212a1233c1d0986b17ca1b9a9d14a44dd9f713d4fa3e743b1",
+            "sourceRelativeDelta": "unchanged"
+          },
+          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
         },
         {
           "sourcePath": "deployment/pgadmin/servers.json",

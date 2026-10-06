@@ -226,3 +226,5 @@ Origin Caddy: `/opt/outline/Caddyfile`. Блок почтовых маршрут
 `verify.py` не запускается автоматически. Перед ручным запуском адаптируйте получателя под текущую согласованную проверку: исходник рассчитан на исторический тестовый ящик. Скрипт сохраняет проверку TLS и имени mail.astforum.ru, а TCP-соединение направляет на loopback VM.
 
 Исторические персональные адреса, идентификаторы сообщений, журналы доставки и расположение конкретных приватных копий сохранены в закреплённой истории исходников и приватном backup. Они не являются доказательством текущего состояния.
+
+Current repository tools live in `scripts/deployment/mail/` (administration and shared `stalwart_api.py`), `scripts/verification/mail/verify.py` (delivery probe), and `scripts/maintenance/mail/backup.sh` (backup). Deploy these sources explicitly to the documented `/opt/astforum-mail` runtime locations; repository relocation does not change installed server paths or renewal hooks. Deployment configuration and templates remain here.
