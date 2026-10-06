@@ -2,3 +2,8 @@
 .DS_Store
 .secrets/
 .worktrees/
+
+node_modules/
+dist/
+.test-build/
+__pycache__/
