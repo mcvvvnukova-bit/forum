@@ -92,6 +92,79 @@ class PublicSiteReleaseTests(unittest.TestCase):
                 for ref in re.findall(r'(?:src|href)="(/[^\"]+)"', body):
                     self.assertTrue((self.target / ref.lstrip('/')).is_file(), ref)
 
+    def restore_fixture_site(self, original):
+        shutil.rmtree(self.target)
+        for name, data in original.items():
+            path = self.target / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        if self.backups.exists():
+            shutil.rmtree(self.backups)
+
+    def assert_rejected_without_mutation(self, operation):
+        before = snapshot(self.target)
+        sources = {path: snapshot(path) for path in (self.home, self.audience, self.auth)}
+        backups = snapshot(self.backups)
+        with self.assertRaisesRegex(ValueError, 'executable.*enabled stylesheet'):
+            operation()
+        self.assertEqual(snapshot(self.target), before)
+        self.assertEqual(snapshot(self.backups), backups)
+        for path, original in sources.items():
+            self.assertEqual(snapshot(path), original)
+
+    def invalid_loaders(self):
+        script = '<script src="/public-auth-assets/auth-a.js"></script>'
+        style = '<link rel="stylesheet" href="/public-auth-assets/auth-a.css">'
+        return {
+            'json-script': script.replace('<script ', '<script type="application/json" ') + style,
+            'nomodule-classic': script.replace('<script ', '<script nomodule ') + style,
+            'disabled-style': script + style.replace('<link ', '<link disabled '),
+            'nomodule-false': script.replace('<script ', '<script nomodule=false ') + style,
+            'disabled-false': script + style.replace('<link ', '<link disabled=false '),
+            'duplicate-inert-type': script.replace('<script ', '<script type=application/json type=module ') + style,
+        }
+
+    def test_first_install_rejects_inert_loader_without_source_site_or_backup_writes(self):
+        original = snapshot(self.target)
+        for case, loaders in self.invalid_loaders().items():
+            with self.subTest(case=case):
+                self.restore_fixture_site(original)
+                write(self.auth, 'index.html', html('<div id="public-auth-root"></div>', loaders))
+                self.assert_rejected_without_mutation(self.publish_auth)
+
+    def test_all_publishers_reject_inert_legacy_auth_without_mutation(self):
+        original = snapshot(self.target)
+        for case, loaders in self.invalid_loaders().items():
+            for operation in (self.publish_home, self.publish_audience, self.publish_auth):
+                with self.subTest(case=case, publisher=operation.__name__):
+                    self.restore_fixture_site(original)
+                    for route in ('login', 'register'):
+                        write(self.target, route + '/index.html', html('legacy auth', loaders))
+                    for asset in (self.auth / 'public-auth-assets').iterdir():
+                        write(self.target, 'public-auth-assets/' + asset.name, asset.read_text())
+                    self.assert_rejected_without_mutation(operation)
+
+    def test_supported_module_classic_and_ordinary_attributes_remain_executable(self):
+        original = snapshot(self.target)
+        variants = (
+            '<script src="/public-auth-assets/auth-a.js"></script>',
+            '<script type="text/javascript" src="/public-auth-assets/auth-a.js"></script>',
+            '<script type="application/javascript; charset=utf-8" src="/public-auth-assets/auth-a.js"></script>',
+            '<SCRIPT TYPE = module SRC = /public-auth-assets/auth-a.js></SCRIPT>',
+            "<script type='module' nomodule src='/public-auth-assets/auth-a.js'></script>",
+        )
+        for script in variants:
+            with self.subTest(script=script):
+                self.restore_fixture_site(original)
+                loaders = script + "<LINK REL = 'preload stylesheet' HREF = /public-auth-assets/auth-a.css>"
+                write(self.auth, 'index.html', html('<div id="public-auth-root"></div>', loaders))
+                for operation in (self.publish_auth, self.publish_home, self.publish_audience, self.publish_auth):
+                    operation()
+                    for page in self.target.rglob('*.html'):
+                        body = page.read_text()
+                        self.assertEqual(body.count('/public-auth-assets/auth-a.js'), 1)
+                        self.assertEqual(body.count('/public-auth-assets/auth-a.css'), 1)
+
     def test_auth_then_home_keeps_active_loader_on_every_page(self):
         self.publish_auth()
         self.publish_home()

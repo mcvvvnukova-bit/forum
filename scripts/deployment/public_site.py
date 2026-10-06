@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import fcntl
 import hashlib
+from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -16,7 +17,6 @@ import re
 import tempfile
 
 AUTH_STATE = '.public-auth.json'
-AUTH_TAG = re.compile(r'<(?:script\b[^>]*\bsrc|link\b[^>]*\bhref)=[\"\'](/public-auth-assets/[^\"\']+)[\"\'][^>]*(?:>\s*</script>|>)', re.I)
 AUTH_BLOCK = re.compile(r'\n?<!-- public-auth:start -->.*?<!-- public-auth:end -->\n?', re.S)
 RESUME_BLOCK = re.compile(r'<!-- audience-pages:resume -->.*?<!-- /audience-pages:resume -->\s*', re.S)
 RESUME_TAG = re.compile(r'<script\b[^>]*\bsrc=[\"\']/audience-assets/resume\.js[\"\'][^>]*>\s*</script>', re.I)
@@ -100,26 +100,82 @@ def public_pages(target):
     return result
 
 
+class AuthLoaderParser(HTMLParser):
+    """Collect auth loader spans/attributes using ordinary HTML parsing rules."""
+    def __init__(self, body):
+        super().__init__(convert_charrefs=True)
+        self.body = body
+        self.offsets = [0]
+        for line in body.split('\n')[:-1]:
+            self.offsets.append(self.offsets[-1] + len(line) + 1)
+        self.loaders = []
+
+    def source_offset(self):
+        line, column = self.getpos()
+        return self.offsets[line - 1] + column
+
+    def handle_starttag(self, tag, attributes):
+        if tag not in ('script', 'link'):
+            return
+        # Browsers honor the first duplicate attribute, not the last one.
+        attrs = {}
+        for name, value in attributes:
+            attrs.setdefault(name, value)
+        ref = attrs.get('src' if tag == 'script' else 'href')
+        if not ref or not ref.startswith('/public-auth-assets/'):
+            return
+        start = self.source_offset()
+        end = start + len(self.get_starttag_text()) if tag == 'link' else None
+        self.loaders.append({'tag': tag, 'attrs': attrs, 'ref': relative(ref[1:]),
+                             'start': start, 'end': end})
+
+    def handle_startendtag(self, tag, attributes):
+        self.handle_starttag(tag, attributes)
+
+    def handle_endtag(self, tag):
+        if tag == 'script' and self.loaders and self.loaders[-1]['end'] is None:
+            self.loaders[-1]['end'] = self.body.index('>', self.source_offset()) + 1
+
+
+def auth_loaders(body):
+    parser = AuthLoaderParser(body)
+    parser.feed(body)
+    parser.close()
+    for loader in parser.loaders:
+        if loader['end'] is None:
+            raise ValueError('Shared auth script closing tag missing')
+        loader['raw'] = body[loader['start']:loader['end']]
+    return parser.loaders
+
+
 def auth_contract(index, assets):
     """Require complete script/style loaders and their exact available bytes."""
     body = index.decode('utf-8')
     if '</head>' not in body:
         raise ValueError('Auth build is missing head')
-    tags = list(AUTH_TAG.finditer(body))
-    refs = [relative(match.group(1).lstrip('/')) for match in tags]
+    tags = auth_loaders(body)
+    refs = [loader['ref'] for loader in tags]
     if len(refs) != len(set(refs)) or not any(r.endswith('.js') for r in refs) or not any(r.endswith('.css') for r in refs):
         raise ValueError('Shared auth script/style missing or duplicated')
     for ref in refs:
         if ref not in assets:
             raise ValueError('Active auth asset missing: ' + ref)
-    script = any(match.group(0).lower().startswith('<script') and ref.endswith('.js')
-                 for match, ref in zip(tags, refs))
-    stylesheet = any(match.group(0).lower().startswith('<link') and ref.endswith('.css')
-                     and re.search(r'\brel=[\"\']stylesheet[\"\']', match.group(0), re.I)
-                     for match, ref in zip(tags, refs))
+    javascript_types = {'text/javascript', 'application/javascript',
+                        'text/ecmascript', 'application/ecmascript'}
+    script = False
+    stylesheet = False
+    for loader in tags:
+        attrs, ref = loader['attrs'], loader['ref']
+        if loader['tag'] == 'script' and ref.endswith('.js'):
+            script_type = (attrs.get('type') or '').strip().lower()
+            classic = not script_type or script_type.split(';', 1)[0].strip() in javascript_types
+            script = script or script_type == 'module' or (classic and 'nomodule' not in attrs)
+        elif loader['tag'] == 'link' and ref.endswith('.css'):
+            rel = (attrs.get('rel') or '').lower().split()
+            stylesheet = stylesheet or ('stylesheet' in rel and 'alternate' not in rel and 'disabled' not in attrs)
     if not script or not stylesheet:
-        raise ValueError('Shared auth requires an executable script and stylesheet')
-    return {'version': 1, 'loaders': [match.group(0) for match in tags],
+        raise ValueError('Shared auth requires an executable script and enabled stylesheet')
+    return {'version': 1, 'loaders': [loader['raw'] for loader in tags],
             'assets': {ref: sha(assets[ref]) for ref in refs}}
 
 
@@ -157,7 +213,8 @@ def compose(page, contract):
     if body.count('<!-- public-auth:start -->') != body.count('<!-- public-auth:end -->'):
         raise ValueError('Public HTML has an incomplete auth block')
     body = AUTH_BLOCK.sub('', body)
-    body = AUTH_TAG.sub('', body)
+    for loader in reversed(auth_loaders(body)):
+        body = body[:loader['start']] + body[loader['end']:]
     body = RESUME_BLOCK.sub('', body)
     body = RESUME_TAG.sub('', body)
     snippet = '\n<!-- public-auth:start -->\n' + '\n'.join(contract['loaders']) + '\n<!-- public-auth:end -->\n'
