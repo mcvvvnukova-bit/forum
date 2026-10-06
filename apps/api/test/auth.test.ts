@@ -5,6 +5,7 @@ import {Pool} from 'pg';
 import type {NestFastifyApplication} from '@nestjs/platform-fastify';
 import {createApp} from '../src/app.js';
 import {migrate} from '../src/migrate.js';
+import {testDatabaseUrl} from './test-database.js';
 import {providerFixture} from './provider-fixture.js';
 
 let pool: Pool;
@@ -12,8 +13,7 @@ let provider: Awaited<ReturnType<typeof providerFixture>>;
 let app: NestFastifyApplication;
 
 before(async () => {
-  const connectionString = process.env.TEST_DATABASE_URL ?? 'postgres://postgres:local-auth-tests@127.0.0.1:55432/forum_auth_test';
-  if (!new URL(connectionString).pathname.endsWith('_test')) throw new Error('Use a dedicated database ending in _test');
+  const connectionString = testDatabaseUrl(process.env.TEST_DATABASE_URL ?? 'postgres://postgres:local-auth-tests@127.0.0.1:55432/forum_auth_test');
   pool = new Pool({connectionString});
   await migrate(pool);
   provider = await providerFixture();

@@ -9,7 +9,10 @@ import {createServer} from 'vite';
 import {Pool} from 'pg';
 import {createApp} from '../.test-build/src/app.js';
 import {migrate} from '../.test-build/src/migrate.js';
+import {testDatabaseUrl} from '../.test-build/test/test-database.js';
 import {providerFixture} from '../.test-build/test/provider-fixture.js';
+
+const connectionString = testDatabaseUrl(process.env.TEST_DATABASE_URL);
 
 // The API owns the runner; the existing landing remains a separately installed composition.
 const landingRoot = fileURLToPath(new URL('../../../deployment/dev-landing/', import.meta.url));
@@ -24,11 +27,6 @@ try {
 } catch (cause) {
   throw new Error('Browser acceptance requires tracked deployment/dev-landing sources and its own dependencies. Run npm ci --prefix deployment/dev-landing from the repository root.', {cause});
 }
-const connectionString = process.env.TEST_DATABASE_URL;
-assert.ok(connectionString, 'Set TEST_DATABASE_URL to a dedicated local PostgreSQL database ending in _test');
-const database = new URL(connectionString);
-assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(database.hostname) && database.pathname.endsWith('_test'),
-  'Browser acceptance only permits a loopback database ending in _test');
 const screenshots = await mkdtemp(join(tmpdir(), 'forum-sber-browser-'));
 const pool = new Pool({connectionString});
 const provider = await providerFixture();

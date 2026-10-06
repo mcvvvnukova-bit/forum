@@ -187,7 +187,9 @@ npm run build
 ```
 
 The browser runner is owned by this API package: its locked dev dependencies
-include Playwright and Vite. It composes the existing frontend in
+include Playwright and Vite. The Fastify override keeps the adapter and direct
+Fastify dependency on the same patched version rather than its older nested pin.
+It composes the existing frontend in
 `deployment/dev-landing`, which needs its separate locked install (React, Primer,
 and its Vite config/plugin). From a clean checkout at the repository root:
 
@@ -200,7 +202,9 @@ TEST_DATABASE_URL=postgres://postgres:local-auth-tests@127.0.0.1:55432/forum_aut
 ```
 
 Provide a disposable PostgreSQL 18.6 instance before the last command. The browser
-test accepts only a loopback URL whose database name ends in `_test`; it applies
+test accepts only a `postgres:`/`postgresql:` loopback URL with a valid decoded
+ASCII database name ending in `_test` and no URL query options or fragments.
+The destructive API auth suite uses the same test-only validation. The browser applies
 only legacy migration 001 itself, so it can run independently of `npm test`.
 Use a fresh empty database for each browser run. No deployed database, provider
 credentials or production dump is needed. Missing frontend sources or dependencies
