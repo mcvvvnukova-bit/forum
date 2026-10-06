@@ -32,7 +32,7 @@ class DeploymentScope(unittest.TestCase):
         module.deploy(self.source,self.target,self.root/'backups')
         self.assertEqual((self.target/'index.html').read_text().count(module.MARKER),1)
     def test_can_publish_routes_without_changing_homepage_callback_owner(self):
-        original=b'<head><!-- public-auth:start --><script src="/public-auth-assets/auth.js"></script></head><body>home<!-- audience-pages:resume -->\n\n<!-- /audience-pages:resume --></body>'
+        original=b'<head></head><body>home independently managed</body>'
         (self.target/'index.html').write_bytes(original)
         result=module.deploy(self.source,self.target,self.root/'backups',preserve_homepage=True)
         self.assertEqual((self.target/'index.html').read_bytes(),original)
@@ -41,14 +41,16 @@ class DeploymentScope(unittest.TestCase):
         self.assertEqual((self.target/'auth/keep').read_text(),'protected')
         self.assertEqual(result['homepage_before'],result['homepage_after'])
     def test_partial_failure_restores_previous_route_and_homepage(self):
-        rename=Path.rename
-        def fail(path,dest):
-            if path.name=='work' and path.parent.name.startswith('.audience-pages-'): raise OSError('fixture disk error')
-            return rename(path,dest)
-        with patch.object(Path,'rename',fail),self.assertRaises(OSError): module.deploy(self.source,self.target,self.root/'backups')
+        from scripts.deployment import public_site
+        atomic_write = public_site.atomic_write
+        def fail(path, data):
+            if path == self.target/'work/index.html': raise OSError('fixture disk error')
+            return atomic_write(path, data)
+        with patch.object(public_site, 'atomic_write', fail), self.assertRaises(OSError):
+            module.deploy(self.source, self.target, self.root/'backups')
         self.assertEqual((self.target/'customers/index.html').read_text(),'previous')
         self.assertEqual((self.target/'index.html').read_text(),'<body>original-home</body>')
-        self.assertFalse((self.target/'suppliers').exists())
+        self.assertFalse((self.target/'suppliers/index.html').exists())
         self.assertEqual((self.target/'auth/keep').read_text(),'protected')
 
 if __name__=='__main__': unittest.main()

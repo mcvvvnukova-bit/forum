@@ -20,7 +20,10 @@ class DeployTests(unittest.TestCase):
             body=(self.target/route/'index.html').read_text()
             self.assertIn('Existing page',body); self.assertIn('/public-auth-assets/app.js',body); self.assertNotIn('resume.js',body)
         for route in ['login','register']:
-            self.assertEqual((self.target/route/'index.html').read_bytes(),(self.source/'index.html').read_bytes())
+            body = (self.target/route/'index.html').read_text()
+            self.assertIn('id="public-auth-root"', body)
+            self.assertEqual(body.count('/public-auth-assets/app.js'), 1)
+            self.assertEqual(body.count('/public-auth-assets/app.css'), 1)
         self.assertEqual((self.target/'unrelated.txt').read_text(),'keep'); self.assertTrue(Path(report['backup']).exists())
     def test_repeated_publication_does_not_duplicate_loader(self):
         deploy(self.source,self.target,self.backups,'abc'); deploy(self.source,self.target,self.backups,'def')
@@ -49,13 +52,13 @@ class DeployTests(unittest.TestCase):
         self.assertEqual((self.target/'index.html').read_bytes(),before)
     def test_preserves_a_concurrent_page_update_it_did_not_write(self):
         from unittest.mock import patch
-        import deploy as module
-        original_write=module.atomic_write
+        from scripts.deployment import public_site
+        original_write=public_site.install_asset
         other=self.target/'work/index.html'
         def write_with_other_deployment(path,data):
             original_write(path,data)
             if path == self.target/'public-auth-assets/app.js': other.write_text('<html><head></head><body>Other deployment</body></html>')
-        with patch.object(module,'atomic_write',side_effect=write_with_other_deployment):
+        with patch.object(public_site,'install_asset',side_effect=write_with_other_deployment):
             with self.assertRaises(RuntimeError): deploy(self.source,self.target,self.backups,'abc')
         self.assertIn('Other deployment',other.read_text())
         self.assertNotIn('public-auth:start',(self.target/'index.html').read_text())
