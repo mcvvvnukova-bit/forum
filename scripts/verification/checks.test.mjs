@@ -74,3 +74,11 @@ test('every checkout uses the explicit candidate head expression', () => {
   assert.equal(checkouts.length, 9)
   for (const [, block] of checkouts) assert.match(block, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/)
 })
+
+test('operational READMEs retain examples without personal delivery/access evidence', () => {
+  for (const owner of ['mail', 'openproject']) {
+    const readme = readFileSync(join(root, `deployment/${owner}/README.md`), 'utf8')
+    assert.doesNotMatch(readme, /@gmail\.com|queueId|Message-ID:|\/Users\/|\/backups\/[^`\s]*\d{8}T\d{6}/)
+  }
+  assert.match(readFileSync(join(root, 'deployment/mail/README.md'), 'utf8'), /recipient@example\.invalid/)
+})

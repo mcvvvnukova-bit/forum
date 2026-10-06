@@ -2460,9 +2460,10 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "deployment/mail/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "6b0ca5941fb06c228a6eabb54cf92c6a32f7c7ea",
-          "candidateSha256": "c943bccd3fe844af56588344949d195c0a3bf4074103a264524fb42768ba42d0",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "3e82c22e01b9695b180ea782f3ffa80b8131f826",
+          "candidateSha256": "91aa2b136db85abbd8537ee35f8f9cb78528eba47d556f2c81add3e403e88e4f",
+          "sourceRelativeDelta": "reviewed-candidate-delta",
+          "deltaExplanation": "Task4 review I1: reserved recipient examples; personal delivery IDs/mailbox evidence and specific historical backup evidence removed; generic operational instructions retained; originals preserved in pinned PR6/history/private backup"
         },
         {
           "sourcePath": "deployment/mail/backup.sh",
@@ -2648,9 +2649,10 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "deployment/openproject/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "5453a894b56159bd5d9389998c1726a477f11215",
-          "candidateSha256": "52afc3d4e1a880c4117f705ff23c33b8979c1caff12a3eacd69d122c4b4ab395",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "a155e0fae5404358c6a595d1af15c712a01b1969",
+          "candidateSha256": "3215bb20fe927bc3c014c2c6fcc4764501cdf7c8ab588526cb3e090f2205dca1",
+          "sourceRelativeDelta": "reviewed-candidate-delta",
+          "deltaExplanation": "Task4 review I1: user-specific credential location and historical message/backup evidence removed; generic private-access/SMTP/backup/restore instructions retained; original pinned PR6/history/private backup preserved"
         },
         {
           "sourcePath": "deployment/openproject/backup.sh",
@@ -7860,9 +7862,10 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "local-previews/user-profile/src/ProfilePage.test.tsx",
           "candidateMode": "100644",
-          "candidateGitBlob": "3a959c7bff104a86604629a67ba55742769e247c",
-          "candidateSha256": "da6d1b399c41cb0163a8f055f299495bfd4c5e558f9e4d3dc019eb5db6d9cef8",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "2ada9b8dc732ec4a17e7f8676314c17bc42c32ac",
+          "candidateSha256": "67b4860d58afbef6e7e35608241eef21849114854034268d6749aacfc076a409",
+          "sourceRelativeDelta": "reviewed-candidate-delta",
+          "deltaExplanation": "Task4 review I2: focused both-view visible fixture/dialog assertions plus loading/error fixture marking; read-only/functional states retained"
         },
         {
           "sourcePath": "local-previews/user-profile/src/ProfilePage.tsx",
@@ -7873,9 +7876,10 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "local-previews/user-profile/src/ProfilePage.tsx",
           "candidateMode": "100644",
-          "candidateGitBlob": "048957c2408fc6520f4061e8202f209735d5872c",
-          "candidateSha256": "6828fb02d2d9d606602bdda8dccd780cda4bff84c0e0fe7dc911070b7e595a0f",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "771291ac4d991231ef804b849c5fbd5bdd8dfea5",
+          "candidateSha256": "6ff286610858bdd8154acc71d4382411ccf4bff6e4560bb4a286b043dfcbe180",
+          "sourceRelativeDelta": "reviewed-candidate-delta",
+          "deltaExplanation": "Task4 review I2: persistent Primer fixture/example-data Banner in both views and all states; edit/support dialog explicitly preview-only, no provider-data/backend claim"
         },
         {
           "sourcePath": "local-previews/user-profile/src/fixtures.ts",
@@ -8099,5 +8103,16 @@
     "Parent push/PR/OpenProject/remote CI/job checkout verification and merge",
     "Task7 deployment and served artifact proof",
     "Task8 source closure only after all gates"
+  ],
+  "integrationFixes": [
+    {
+      "round": 1,
+      "reviewedBaseSha": "8e21485c72b46f60d15b36528c74d25c49debd6c",
+      "issues": [
+        "I1",
+        "I2"
+      ],
+      "scope": "Sanitized operational README evidence and visibly marked profile fixture; observed source snapshots remain historical and are not amended deployment proof"
+    }
   ]
 }

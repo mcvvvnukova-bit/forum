@@ -1,6 +1,6 @@
 import {useRef, useState} from 'react'
 import {Banner, Button, Dialog, Heading, Link, IconButton, NavList, Spinner, Stack, Text} from '@primer/react'
-import {ArrowUpRightIcon, BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PersonIcon, QuestionIcon, ShieldLockIcon, ThreeBarsIcon} from '@primer/octicons-react'
+import {BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PersonIcon, QuestionIcon, ShieldLockIcon, ThreeBarsIcon} from '@primer/octicons-react'
 import {buildProfileSections, type ProfileSection, type SberProfile} from './profile'
 
 type ProfileView = 'profile' | 'work'
@@ -58,10 +58,13 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
         <div className="sidebar-bottom"><Button ref={supportRef} variant="invisible" leadingVisual={QuestionIcon} onClick={() => setDialog('support')}>Связаться с поддержкой</Button></div>
       </aside>
       <main className="profile-main" id="main" tabIndex={-1}>
-        <div className="page-heading">
+        <Stack>
+          <Banner title="Демонстрационный профиль" description="Все показанные данные вымышлены. Подключение к Сбер ID отсутствует."/>
+          <div className="page-heading">
           <div><Text as="p" size="small" className="eyebrow muted">Мой профиль</Text><Heading as="h1" variant="large">{view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
           <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>
-        </div>
+          </div>
+        </Stack>
         {state === 'loading' && <div className="state-content" role="status"><Spinner size="medium"/><Heading as="h2" variant="small">Загружаем профиль</Heading><Text className="muted">Подготавливаем ваши данные.</Text></div>}
         {state === 'error' && <div className="state-content"><Banner variant="critical" title="Не удалось загрузить профиль" description="Попробуйте ещё раз. Если ошибка повторится, обратитесь в поддержку." primaryAction={<Button onClick={onRetry}>Повторить</Button>}/></div>}
         {state === 'ready' && <div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>}
@@ -69,9 +72,9 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
       </main>
     </div>
     {dialog === 'edit' && <Dialog title="Изменение данных профиля" onClose={close} returnFocusRef={editRef} width="large" footerButtons={[{content: 'Понятно', onClick: close}]}>
-      <Stack gap="normal"><Text as="p">Личные данные поступают из Сбер ID. Если в них есть ошибка, измените сведения в своём профиле Сбера или обратитесь в поддержку банка.</Text><Link href="https://online.sberbank.ru/" target="_blank" rel="noopener noreferrer">Открыть СберБанк Онлайн <ArrowUpRightIcon/></Link></Stack>
+      <Stack gap="normal"><Text as="p">Это макет с вымышленными данными. Изменение данных в макете недоступно; подключение к Сбер ID отсутствует.</Text></Stack>
     </Dialog>}
     {dialog === 'menu' && <Dialog title="Разделы профиля" onClose={close} returnFocusRef={menuRef} position={{narrow: 'bottom', regular: 'center', wide: 'center'}} width="large"><ProfileNavigation onNavigate={close} disabled={state !== 'ready'} view={view}/></Dialog>}
-    {dialog === 'support' && <Dialog title="Поддержка АСТ Форум" onClose={close} returnFocusRef={supportRef} width="large" footerButtons={[{content: 'Закрыть', onClick: close}]}><Stack gap="normal"><Text as="p">По вопросам работы с профилем напишите в поддержку площадки.</Text><Link href="mailto:info@astforum.ru">info@astforum.ru</Link><Text as="p" className="muted">Изменения в данных Сбер ID выполняются в Сбере.</Text></Stack></Dialog>}
+    {dialog === 'support' && <Dialog title="Поддержка АСТ Форум" onClose={close} returnFocusRef={supportRef} width="large" footerButtons={[{content: 'Закрыть', onClick: close}]}><Stack gap="normal"><Text as="p">По вопросам работы с профилем напишите в поддержку площадки.</Text><Link href="mailto:info@astforum.ru">info@astforum.ru</Link><Text as="p" className="muted">В этом макете используются только вымышленные данные.</Text></Stack></Dialog>}
   </div>
 }
