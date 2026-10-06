@@ -122,6 +122,12 @@ class PublicSiteReleaseTests(unittest.TestCase):
             'nomodule-false': script.replace('<script ', '<script nomodule=false ') + style,
             'disabled-false': script + style.replace('<link ', '<link disabled=false '),
             'duplicate-inert-type': script.replace('<script ', '<script type=application/json type=module ') + style,
+            'mime-parameters': script.replace('<script ', '<script type="application/javascript; charset=utf-8" ') + style,
+            'padded-module': script.replace('<script ', '<script type=" module " ') + style,
+            'whitespace-type': script.replace('<script ', '<script type=" \t\n" ') + style,
+            'language-vbscript': script.replace('<script ', '<script language=vbscript ') + style,
+            'padded-language': script.replace('<script ', '<script language=" javascript " ') + style,
+            'non-ascii-whitespace-type': script.replace('<script ', '<script type="\u00a0text/javascript\u00a0" ') + style,
         }
 
     def test_first_install_rejects_inert_loader_without_source_site_or_backup_writes(self):
@@ -149,7 +155,16 @@ class PublicSiteReleaseTests(unittest.TestCase):
         variants = (
             '<script src="/public-auth-assets/auth-a.js"></script>',
             '<script type="text/javascript" src="/public-auth-assets/auth-a.js"></script>',
-            '<script type="application/javascript; charset=utf-8" src="/public-auth-assets/auth-a.js"></script>',
+            '<script type="application/javascript" charset="utf-8" src="/public-auth-assets/auth-a.js"></script>',
+            '<script type=" \tTEXT/JAVASCRIPT\n" src="/public-auth-assets/auth-a.js"></script>',
+            '<script type="" language=vbscript src="/public-auth-assets/auth-a.js"></script>',
+            '<script language=javascript src="/public-auth-assets/auth-a.js"></script>',
+            '<script language="" src="/public-auth-assets/auth-a.js"></script>',
+            '<script type="text/javascript1.5" src="/public-auth-assets/auth-a.js"></script>',
+            '<script type="application/x-javascript" src="/public-auth-assets/auth-a.js"></script>',
+            '<script language=jscript src="/public-auth-assets/auth-a.js"></script>',
+            '<script type=MoDuLe src="/public-auth-assets/auth-a.js"></script>',
+            '<script type=module language=vbscript src="/public-auth-assets/auth-a.js"></script>',
             '<SCRIPT TYPE = module SRC = /public-auth-assets/auth-a.js></SCRIPT>',
             "<script type='module' nomodule src='/public-auth-assets/auth-a.js'></script>",
         )

@@ -160,15 +160,28 @@ def auth_contract(index, assets):
     for ref in refs:
         if ref not in assets:
             raise ValueError('Active auth asset missing: ' + ref)
-    javascript_types = {'text/javascript', 'application/javascript',
-                        'text/ecmascript', 'application/ecmascript'}
+    javascript_types = {'application/ecmascript', 'application/javascript',
+                        'application/x-ecmascript', 'application/x-javascript',
+                        'text/ecmascript', 'text/javascript', 'text/javascript1.0',
+                        'text/javascript1.1', 'text/javascript1.2', 'text/javascript1.3',
+                        'text/javascript1.4', 'text/javascript1.5', 'text/jscript',
+                        'text/livescript', 'text/x-ecmascript', 'text/x-javascript'}
+    ascii_lower = str.maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')
     script = False
     stylesheet = False
     for loader in tags:
         attrs, ref = loader['attrs'], loader['ref']
         if loader['tag'] == 'script' and ref.endswith('.js'):
-            script_type = (attrs.get('type') or '').strip().lower()
-            classic = not script_type or script_type.split(';', 1)[0].strip() in javascript_types
+            # HTML's effective script type is not a parsed MIME header: parameters
+            # are inert, and only classic type attributes allow ASCII whitespace.
+            if 'type' in attrs:
+                script_type = attrs['type'] or 'text/javascript'
+            else:
+                language = attrs.get('language') or ''
+                script_type = 'text/' + language if language else 'text/javascript'
+            script_type = script_type.translate(ascii_lower)
+            classic = script_type in javascript_types or (
+                'type' in attrs and script_type.strip('\t\n\f\r ') in javascript_types)
             script = script or script_type == 'module' or (classic and 'nomodule' not in attrs)
         elif loader['tag'] == 'link' and ref.endswith('.css'):
             rel = (attrs.get('rel') or '').lower().split()
