@@ -1,0 +1,51 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "AST Forum / PostgreSQL (admin)",
+      "Group": "AST Forum",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "postgres",
+      "Username": "outline",
+      "ConnectionParameters": {"sslmode": "prefer", "connect_timeout": 10, "passfile": ".pgpass"}
+    },
+    "2": {
+      "Name": "AST Forum / Forum PostgreSQL",
+      "Group": "AST Forum",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "forum",
+      "Username": "forum_app",
+      "DBRestriction": "forum",
+      "DBRestrictionType": "databases",
+      "ConnectionParameters": {"sslmode": "prefer", "connect_timeout": 10, "passfile": "forum_app.pgpass"}
+    },
+    "3": {
+      "Name": "AST Forum / OpenProject PostgreSQL",
+      "Group": "AST Forum",
+      "Host": "astforum-openproject-db-1",
+      "Port": 5432,
+      "MaintenanceDB": "openproject",
+      "Username": "openproject",
+      "ConnectionParameters": {"sslmode": "prefer", "connect_timeout": 10, "passfile": ".pgpass"}
+    },
+    "4": {
+      "Name": "AST Forum / Cal.diy PostgreSQL",
+      "Group": "AST Forum",
+      "Host": "astforum-cal-diy-database-1",
+      "Port": 5432,
+      "MaintenanceDB": "caldiy",
+      "Username": "caldiy",
+      "ConnectionParameters": {"sslmode": "prefer", "connect_timeout": 10, "passfile": ".pgpass"}
+    },
+    "5": {
+      "Name": "AST Forum / Listmonk PostgreSQL",
+      "Group": "AST Forum",
+      "Host": "astforum-mail-database-1",
+      "Port": 5432,
+      "MaintenanceDB": "listmonk",
+      "Username": "listmonk",
+      "ConnectionParameters": {"sslmode": "prefer", "connect_timeout": 10, "passfile": ".pgpass"}
+    }
+  }
+}
