@@ -691,14 +691,14 @@
           "kind": "site",
           "path": "/opt/outline/dev-astforum/landing/login/index.html",
           "sha256": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
-          "sourceId": "home",
+          "sourceId": "auth",
           "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
         },
         {
           "kind": "site",
           "path": "/opt/outline/dev-astforum/landing/register/index.html",
           "sha256": "8465937b829babfbe7b1db6e9b92ac06d296bff6e94d6140ddfb4d3b968540df",
-          "sourceId": "home",
+          "sourceId": "auth",
           "provenance": "E6 public response equals mounted snapshot; source is a candidate, not proven build input."
         },
         {

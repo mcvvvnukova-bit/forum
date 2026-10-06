@@ -735,7 +735,7 @@
         {
           "id": "compose-source",
           "kind": "unknown",
-          "reason": "Compose release path names 8b6088261b096d94d0304512b2df4ea32d4cb8ed; actual bytes were not compared to that checkout.",
+          "reason": "Compose path /opt/astforum-cal-diy/source/deployment/astforum/compose.yaml does not identify a source commit; actual bytes were not compared to Git.",
           "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
         }
       ],
@@ -772,7 +772,7 @@
         {
           "id": "compose-source",
           "kind": "unknown",
-          "reason": "Compose release path names 8b6088261b096d94d0304512b2df4ea32d4cb8ed; actual bytes were not compared to that checkout.",
+          "reason": "Compose path /opt/astforum-cal-diy/source/deployment/astforum/compose.yaml does not identify a source commit; actual bytes were not compared to Git.",
           "provenance": "Read-only VPS metadata snapshot of 2026-10-06."
         }
       ],
