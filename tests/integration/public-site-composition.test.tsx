@@ -2,6 +2,7 @@ import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/
 import {BaseStyles, ThemeProvider} from '@primer/react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {App} from '../../deployment/audience-pages/src/App'
+import {App as HomeApp} from '../../deployment/primer-home/src/App'
 import {PublicAuth} from '../../deployment/public-auth/src/PublicAuth'
 
 const customerTitle = 'Находите поставщиков и подрядчиков для ваших строительных объектов'
@@ -49,7 +50,7 @@ beforeEach(() => {
   vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
   Object.defineProperty(window, 'scrollY', {configurable:true, value:640})
 })
-afterEach(() => {vi.restoreAllMocks(); vi.unstubAllGlobals()})
+afterEach(() => {vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs()})
 
 describe('actual audience + public authentication composition', () => {
   it('retains the customer DOM, title, focus and scroll when both pending session checks return 401, including Close, Back and Forward', async () => {
@@ -217,5 +218,114 @@ describe('standalone and history validation', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', {name:'Войти в аккаунт'})).toBeInTheDocument()
     expect(history.state.foreign).toBe('keep')
+  })
+})
+
+
+describe('actual homepage + public authentication composition', () => {
+  const homeTitle = 'Заказы, исполнители и работа в строительстве'
+  const background = '/?campaign=fixture#rules'
+  function mountHome() {
+    return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles>
+      <HomeApp /><PublicAuth navigate={navigate} />
+    </BaseStyles></ThemeProvider>)
+  }
+  function homeHeading() {return screen.getByText(homeTitle, {selector:'h1'})}
+  function retainedHome(heading: HTMLElement) {
+    expect(homeHeading()).toBe(heading)
+    expect(screen.queryByText('Страница не найдена')).not.toBeInTheDocument()
+    expect(history.state.publicAuthBackground).toBe(background)
+  }
+  beforeEach(() => {
+    vi.stubEnv('VITE_FORUM_SESSION', 'true')
+    history.replaceState({foreign:{retained:42}}, '', background)
+  })
+  it.each([
+    ['login', 'Close'], ['login', 'Back'], ['register', 'Close'], ['register', 'Back'],
+  ])('retains the homepage through pending successful session, %s modal, %s and Forward', async (mode, action) => {
+    mountHome(); const heading=homeHeading()
+    expect(requests).toHaveLength(1)
+    if (mode==='login') await openLogin()
+    else {
+      fireEvent.click(screen.getByRole('link', {name:'Начать работу'}))
+      await screen.findByRole('dialog', {name:'Создайте аккаунт'})
+    }
+    expect(location.pathname).toBe('/'+mode)
+    retainedHome(heading)
+    await settle(0,200)
+    retainedHome(heading)
+    // The independent auth session stays guest, so provider controls remain testable.
+    await settle(1)
+    expect(screen.getByRole('button', {name:mode==='login'?'Войти по Сбер ID':'Зарегистрироваться по Сбер ID'})).toBeEnabled()
+    if (action==='Close') {
+      fireEvent.click(screen.getByRole('button', {name:'Закрыть окно'}))
+      await waitFor(() => expect(location.pathname+location.search+location.hash).toBe(background))
+    } else await traverse('back', '/')
+    expect(location.pathname+location.search+location.hash).toBe(background)
+    expect(homeHeading()).toBe(heading)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await traverse('forward', '/'+mode)
+    retainedHome(heading)
+    expect(screen.getByRole('dialog', {name:mode==='login'?'Войти в аккаунт':'Создайте аккаунт'})).toBeInTheDocument()
+    await settle(2)
+    await traverse('back', '/')
+    expect(homeHeading()).toBe(heading)
+    expect(location.pathname+location.search+location.hash).toBe(background)
+    expect(navigate).not.toHaveBeenCalled()
+  })
+  it('retains the homepage when switching modes before its successful session resolves', async () => {
+    mountHome(); const heading=homeHeading(); await openLogin()
+    const length=history.length
+    fireEvent.click(screen.getByRole('link', {name:'Зарегистрироваться'}))
+    expect(location.pathname).toBe('/register')
+    expect(history.length).toBe(length)
+    await settle(0,200); await settle(2)
+    retainedHome(heading)
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('link', {name:'Войти'}))
+    expect(location.pathname).toBe('/login')
+    await settle(3)
+    retainedHome(heading)
+    expect(history.state.foreign).toEqual({retained:42})
+    await traverse('back', '/')
+    expect(homeHeading()).toBe(heading)
+    await traverse('forward', '/login')
+    retainedHome(heading)
+    expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
+  })
+  it.each([401,500])('retains guest/error homepage behavior when both sessions return %s', async status => {
+    mountHome(); const heading=homeHeading(); await openLogin()
+    await settle(0,status); await settle(1,status)
+    retainedHome(heading)
+    expect(within(screen.getByRole('banner', {hidden:true})).getByRole('link', {name:'Войти', hidden:true})).toBeInTheDocument()
+    expect(screen.getByRole('button', {name:'Войти по Сбер ID'})).toHaveProperty('disabled',status!==401)
+  })
+  it.each(['/login','/register'])('restores the saved homepage background on remount at %s', async path => {
+    history.replaceState({publicAuth:true,publicAuthBackground:background}, '', path)
+    mountHome(); const heading=homeHeading()
+    await settle(0,200); await settle(1)
+    retainedHome(heading)
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+  it('uses the effective background query for the documented local preview state', async () => {
+    vi.stubEnv('VITE_FORUM_SESSION', 'false')
+    history.replaceState({publicAuth:true,publicAuthBackground:'/?previewSession=authorized'}, '', '/login')
+    mountHome(); await settle(0)
+    expect(homeHeading()).toBeInTheDocument()
+    expect(within(screen.getByRole('banner', {hidden:true})).getByRole('link', {name:'В кабинет', hidden:true})).toBeInTheDocument()
+    expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
+  })
+  it('updates genuine homepage destinations on popstate without a session rerender', async () => {
+    mountHome(); await settle(0)
+    history.pushState({foreign:'destination'}, '', '/privacy/')
+    await act(async () => window.dispatchEvent(new PopStateEvent('popstate', {state:history.state})))
+    expect(screen.getByRole('heading', {level:1, name:'Политика обработки персональных данных'})).toBeInTheDocument()
+    await traverse('back', '/')
+    expect(homeHeading()).toBeInTheDocument()
+  })
+  it.each(['/authorization/','/unknown/'])('preserves genuine standalone destination %s', async path => {
+    history.replaceState({foreign:'destination'}, '', path)
+    mountHome(); await settle(0,200)
+    expect(screen.getByRole('heading', {level:1})).toHaveTextContent(path==='/authorization/'?'Вход и регистрация':'Страница не найдена')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

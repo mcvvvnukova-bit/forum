@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {Banner, Button, Heading, Link, Stack, Text} from '@primer/react'
 import {Card} from '@primer/react/experimental'
 import {HomePage} from './HomePage'
@@ -8,6 +8,7 @@ import {audiences} from './content'
 import {destinations} from './config'
 import {useForumSession} from './useForumSession'
 import {AuthNotice} from './AuthNotice'
+import {publicNavigationEvent, publicPageUrl} from '../../public-navigation'
 
 function DestinationPreview({path}: {path: string}) {
   const audience = audiences.find(item => item.path === path)
@@ -60,10 +61,18 @@ export function App() {
     demoTriggerRef.current = trigger
     setDemoOpen(true)
   }
-  const pathname = window.location.pathname
+  const [pageUrl, setPageUrl] = useState(publicPageUrl)
+  useEffect(() => {
+    const update = () => setPageUrl(publicPageUrl())
+    window.addEventListener('popstate', update)
+    window.addEventListener(publicNavigationEvent, update)
+    return () => {window.removeEventListener('popstate', update); window.removeEventListener(publicNavigationEvent, update)}
+  }, [])
+  const page = new URL(pageUrl, window.location.origin)
+  const pathname = page.pathname
   const path = pathname.endsWith('/') ? pathname : `${pathname}/`
   // A documented, read-only preview state. This never asserts a real session.
-  const authorizedPreview = import.meta.env.VITE_FORUM_SESSION !== 'true' && new URLSearchParams(window.location.search).get('previewSession') === 'authorized'
+  const authorizedPreview = import.meta.env.VITE_FORUM_SESSION !== 'true' && page.searchParams.get('previewSession') === 'authorized'
   return (
     <>
       <SiteHeader authorized={authorized || authorizedPreview} />

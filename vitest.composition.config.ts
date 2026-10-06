@@ -12,6 +12,8 @@ export default defineConfig({
   ]},
   ssr: {noExternal: [/@primer\/.*/]},
   test: {
+    // Match the real live-home registration destination without contacting providers.
+    env: {VITE_START_URL: '/auth/sber-id/start?intent=register&subject=individual'},
     include: ['tests/integration/public-site-composition.test.tsx'],
     server: {deps: {inline: [/@primer\/.*/]}},
     environment: 'jsdom',

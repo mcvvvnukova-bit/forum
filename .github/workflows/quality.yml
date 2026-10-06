@@ -149,6 +149,7 @@ jobs:
           npm ci
           npm ci --prefix deployment/audience-pages
           npm ci --prefix deployment/public-auth
+          npm ci --prefix deployment/primer-home
       - name: Actual public-site component composition
         run: npm run test:composition
       # Only a status receipt is uploaded. Raw application logs, environment,

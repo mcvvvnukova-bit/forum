@@ -6901,9 +6901,10 @@
           "reason": "Reviewed existing runtime/fixes retained",
           "candidatePath": "deployment/primer-home/src/App.tsx",
           "candidateMode": "100644",
-          "candidateGitBlob": "d9a33a17041c23606f0f073f73da7a0230a483b6",
-          "candidateSha256": "c84b6e13820d3d334219f6092c61962fe82dca9c9d5232ab4e9848d5d5aa6fe9",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "c8be6e88d4b24caa7105778d367217200ec8e160",
+          "candidateSha256": "8af92246f439a95bbc74cd2dfa8bc3826b75128b98aa8241594b408fbea7495e",
+          "sourceRelativeDelta": "reviewed-candidate-delta",
+          "deltaExplanation": "Accepted-baseline I1 fix: homepage consumes the existing effective public background URL and history events, preserving its DOM through delayed session success and shared auth modal history; real standalone destinations and preview-query behavior remain explicit"
         },
         {
           "sourcePath": "deployment/primer-home/src/AuthNotice.tsx",

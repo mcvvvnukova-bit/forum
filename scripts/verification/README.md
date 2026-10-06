@@ -17,7 +17,7 @@ The workflow uses Node 24.18.1 and Python 3 stdlib on Ubuntu 24.04. Every owner
 is installed from its own lock with `npm ci`. API and dev-landing install their
 own Playwright Chromium. The frontend jobs run declared lint where present,
 typecheck, tests and builds; the landing test already includes its build/layout
-and gateway/rollback tests. Root composition installs root, audience and auth.
+and gateway/rollback tests. Root composition installs root, homepage, audience and auth.
 Publisher integration runs the actual three entrypoints plus home/audience
 unit regressions; auth's Python suite is already part of its frontend script.
 Fresh builds additionally exercise auth → home → audience → auth across eight
