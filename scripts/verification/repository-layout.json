@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "documentation": {
+    "root": "docs",
+    "strictPlansOnly": false
+  },
+  "packages": [
+    {
+      "path": ".",
+      "name": "astforum-repository-checks",
+      "scripts": {
+        "test:composition": "vitest run --config vitest.composition.config.ts"
+      },
+      "entrypoints": [
+        "vitest.composition.config.ts"
+      ],
+      "tests": [
+        "tests/integration/public-site-composition.test.tsx"
+      ]
+    },
+    {
+      "path": "apps/api",
+      "name": "@astforum/api",
+      "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "typecheck": "tsc -p tsconfig.test.json --noEmit",
+        "test": "tsc -p tsconfig.test.json && node --test --test-concurrency=1 .test-build/test/*.test.js",
+        "test:browser": "tsc -p tsconfig.test.json && node test/browser-smoke.mjs",
+        "start": "node --env-file-if-exists=.env dist/main.js",
+        "migrate": "node --env-file-if-exists=.env dist/migrate.js"
+      },
+      "entrypoints": [
+        "src/main.ts",
+        "src/migrate.ts",
+        "test/browser-smoke.mjs",
+        "diagnostics/issuer-probe.mjs"
+      ],
+      "tests": [
+        "diagnostics/issuer-probe.test.mjs",
+        "test/auth.test.ts",
+        "test/browser-smoke.mjs",
+        "test/config.test.ts",
+        "test/migrate.test.ts",
+        "test/test-database.test.ts",
+        "test/tls.test.ts"
+      ]
+    },
+    {
+      "path": "deployment/dev-landing",
+      "name": "astforum-dev-landing",
+      "scripts": {
+        "build": "node scripts/prepare-runtime.mjs && vite build && vite build --config vite.landing.config.ts && node scripts/finalize-landing-build.mjs",
+        "typecheck": "tsc --noEmit",
+        "test": "npm run test:frontend && npm run test:gateway && npm run test:layout",
+        "test:frontend": "vitest run src",
+        "test:gateway": "python3 -m unittest discover -s tests -p 'test_*.py'",
+        "test:layout": "npm run build && node scripts/check_landing_layout.mjs"
+      },
+      "entrypoints": [
+        "index.html",
+        "landing.html",
+        "vite.landing.config.ts",
+        "src/main.tsx",
+        "src/landing/LandingApp.tsx"
+      ],
+      "tests": [
+        "scripts/check_landing_layout.mjs",
+        "src/AuthScreen.test.tsx",
+        "src/customers/CustomerLanding.test.tsx",
+        "src/customers/customer-intent.test.ts",
+        "src/landing/LandingApp.test.tsx",
+        "src/landing/cal-diy-embed.test.ts",
+        "src/landing/landing-screen.test.tsx",
+        "tests/test_auth_gateway.py",
+        "tests/test_deploy_rollback.py",
+        "tests/test_origin_login_check.py"
+      ]
+    },
+    {
+      "path": "deployment/primer-home",
+      "name": "astforum-primer-home-local",
+      "scripts": {
+        "build": "tsc --noEmit && vite build",
+        "build:dev": "tsc --noEmit && VITE_FORUM_SESSION=true VITE_LOGIN_URL='/auth/sber-id/start?intent=login' VITE_START_URL='/auth/sber-id/start?intent=register&subject=individual' vite build",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "lint": "eslint src"
+      },
+      "entrypoints": [
+        "index.html",
+        "src/main.tsx",
+        "scripts/deploy-dev-home.py"
+      ],
+      "tests": [
+        "scripts/test_deploy.py",
+        "src/home.test.tsx",
+        "src/useForumSession.test.tsx"
+      ]
+    },
+    {
+      "path": "deployment/audience-pages",
+      "name": "astforum-audience-pages",
+      "scripts": {
+        "build": "tsc --noEmit && vite build",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "lint": "eslint src"
+      },
+      "entrypoints": [
+        "index.html",
+        "src/main.tsx",
+        "scripts/deploy.py",
+        "scripts/package-site.mjs"
+      ],
+      "tests": [
+        "scripts/test_deploy.py",
+        "src/audience.test.tsx",
+        "src/intent.test.ts",
+        "src/resume.test.ts"
+      ]
+    },
+    {
+      "path": "deployment/public-auth",
+      "name": "astforum-public-auth",
+      "scripts": {
+        "build": "tsc --noEmit && vite build",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run && python3 -m unittest discover -s scripts -p 'test_*.py'",
+        "lint": "eslint src"
+      },
+      "entrypoints": [
+        "index.html",
+        "src/main.tsx",
+        "scripts/deploy.py"
+      ],
+      "tests": [
+        "scripts/test_deploy.py",
+        "src/PublicAuth.test.tsx",
+        "src/main.test.tsx",
+        "src/session.test.ts"
+      ]
+    }
+  ],
+  "requiredFiles": [
+    "scripts/deployment/public_site.py",
+    "tests/integration/test_public_site_release.py",
+    "deployment/forum-db/tests/test_configure_role_contract.py"
+  ],
+  "ignoredSourceDirectories": [
+    ".superpowers",
+    "node_modules",
+    "dist",
+    ".test-build",
+    "backups",
+    ".secrets"
+  ],
+  "ignoredPrivateSuffix": ".private.json"
+}

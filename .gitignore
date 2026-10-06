@@ -7,3 +7,6 @@ node_modules/
 dist/
 .test-build/
 __pycache__/
+.quality/
+backups/
+*.private.json
