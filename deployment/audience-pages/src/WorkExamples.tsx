@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {Heading, IconButton, Stack, Text} from '@primer/react'
 import {ChevronLeftIcon, ChevronRightIcon} from '@primer/octicons-react'
 import {WorkExample} from './WorkExample'
+import {publicPageUrl} from '../../public-navigation'
 
 type Slide = 'orders'|'jobs'
 function slideForHash(hash: string): Slide|null {
@@ -11,13 +12,20 @@ function slideForHash(hash: string): Slide|null {
 }
 
 export function WorkExamples() {
-  const [slide, setSlide] = useState<Slide>(() => slideForHash(window.location.hash) || 'orders')
+  const effectiveHash = () => new URL(publicPageUrl(), window.location.origin).hash
+  const [slide, setSlide] = useState<Slide>(() => slideForHash(effectiveHash()) || 'orders')
   const rootRef = useRef<HTMLElement>(null)
   useEffect(() => {
     const scrollToExamples = () => rootRef.current?.scrollIntoView?.({block:'start'})
-    if (slideForHash(window.location.hash)) scrollToExamples()
+    let previousHash = effectiveHash()
+    if (slideForHash(previousHash)) scrollToExamples()
     const handleHash = () => {
-      const next = slideForHash(window.location.hash)
+      const hash = effectiveHash()
+      // Modal history restores the same background hash; it must preserve both
+      // the scroll position and a slide chosen independently with the controls.
+      if (hash === previousHash) return
+      previousHash = hash
+      const next = slideForHash(hash)
       if (next) {setSlide(next); scrollToExamples()}
     }
     window.addEventListener('hashchange', handleHash)

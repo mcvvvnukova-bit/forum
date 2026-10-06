@@ -23,7 +23,10 @@ popstate handling reads that background instead of reinterpreting `/login` as
 an audience route. Mode switches replace the existing entry; Back/Close return
 to its predecessor, and Forward restores the modal. Direct auth URLs remain
 standalone when there is no valid background. Primer continues to own dialog
-focus and scroll handling.
+focus and scroll handling. The work carousel compares the effective background
+hash before handling anchor navigation, so modal history restoration preserves
+scroll and the independently selected slide while real anchor changes still
+select and scroll to their example.
 
 Keep the existing checks as well:
 

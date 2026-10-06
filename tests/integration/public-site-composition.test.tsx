@@ -133,6 +133,72 @@ describe('actual audience + public authentication composition', () => {
   })
 })
 
+describe('work examples and modal hash restoration', () => {
+  const originalScroll = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'scrollIntoView')
+  let scroll: ReturnType<typeof vi.fn>
+  beforeEach(() => {
+    scroll=vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {configurable:true, value:scroll})
+    history.replaceState({foreign:'work-fixture'}, '', '/work/#order-example')
+  })
+  afterEach(() => {
+    if (originalScroll) Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', originalScroll)
+    else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView')
+  })
+  it.each(['Close','Back'])('keeps scroll and the independently selected carousel slide through %s and Forward', async action => {
+    mount(); await settle(0)
+    expect(scroll).toHaveBeenCalledExactlyOnceWith({block:'start'})
+    const slide=document.getElementById('work-example-slide')!
+    fireEvent.click(screen.getByRole('button', {name:'Следующий пример'}))
+    expect(slide).toHaveAttribute('aria-label', '2 из 2: Работа в штате')
+    scroll.mockClear()
+    const opener=await openLogin(); await settle(1)
+    expect(scroll).not.toHaveBeenCalled()
+    if (action==='Close') {
+      await act(async () => {
+        const restored=new Promise<void>(resolve => window.addEventListener('hashchange', () => resolve(), {once:true}))
+        fireEvent.click(screen.getByRole('button', {name:'Закрыть окно'}))
+        await restored
+      })
+    } else await traverse('back', '/work/')
+    expect(location.hash).toBe('#order-example')
+    expect(document.getElementById('work-example-slide')).toBe(slide)
+    expect(scroll).not.toHaveBeenCalled()
+    expect(slide).toHaveAttribute('aria-label', '2 из 2: Работа в штате')
+    await waitFor(() => expect(opener).toHaveFocus())
+    await traverse('forward', '/login')
+    expect(scroll).not.toHaveBeenCalled()
+    expect(slide).toHaveAttribute('aria-label', '2 из 2: Работа в штате')
+    await settle(2)
+    await traverse('back', '/work/')
+    expect(location.hash).toBe('#order-example')
+    expect(scroll).not.toHaveBeenCalled()
+    expect(slide).toHaveAttribute('aria-label', '2 из 2: Работа в штате')
+  })
+  it('keeps normal #job-example, #order-example and #skills navigation and carousel controls', async () => {
+    history.replaceState(null, '', '/work/')
+    mount(); await settle(0)
+    expect(scroll).not.toHaveBeenCalled()
+    for (const [hash, label] of [['#job-example','2 из 2: Работа в штате'], ['#order-example','1 из 2: Заказы и подработка'], ['#skills','1 из 2: Заказы и подработка']]) {
+      scroll.mockClear()
+      await act(async () => {
+        const changed=new Promise<void>(resolve => window.addEventListener('hashchange', () => resolve(), {once:true}))
+        location.hash=hash
+        await changed
+      })
+      expect(location.hash).toBe(hash)
+      expect(document.getElementById('work-example-slide')).toHaveAttribute('aria-label', label)
+      expect(scroll).toHaveBeenCalledExactlyOnceWith({block:'start'})
+    }
+    scroll.mockClear()
+    fireEvent.click(screen.getByRole('button', {name:'Следующий пример'}))
+    expect(document.getElementById('work-example-slide')).toHaveAttribute('aria-label', '2 из 2: Работа в штате')
+    fireEvent.click(screen.getByRole('button', {name:'Предыдущий пример'}))
+    expect(document.getElementById('work-example-slide')).toHaveAttribute('aria-label', '1 из 2: Заказы и подработка')
+    expect(scroll).not.toHaveBeenCalled()
+  })
+})
+
 describe('standalone and history validation', () => {
   it.each(['/login','/register'])('keeps direct %s standalone and foreign history fields during mode switches', async path => {
     history.replaceState({foreign:'keep'}, '', path+'?returnTo=https://outside.invalid')
