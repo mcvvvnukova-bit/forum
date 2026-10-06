@@ -35,4 +35,8 @@ A stale tooltip extended past mobile bounds when resizing a focused desktop cont
 
 Residual test gaps: full VoiceOver, actual Sber login and backend employment/search are outside this public layout/copy change.
 
+## Published follow-up
+
+Live URL: https://dev.astforum.ru/work/#skills. Evidence `deployment/audience-pages/evidence/work-skills-live-desktop.png` (1280×867), `work-skills-live-mobile.png` (375×812 pixels). Native IAB390×844 CSS viewport avoids CDP sticky-header capture artifacts; browser override reset afterward. Header bottom205px, heading top261px: full heading visible. The earlier local-mobile capture had a clipped heading due capture/scroll state and is superseded by this live capture; it does not represent accepted mobile composition. Mobile no overflow, both controls40×40. Live jobs copy and Enter/Space verified; original order image loaded1536px; console error log empty. All28 HTTPS file hashes match the local package, backed-up dev publication confirmed.
+
 final result: passed

@@ -21,6 +21,6 @@ Interface: unchanged WorkExamples() state/effect, WorkExample(image,title,items)
 
 Interface: dist/site owns four audience routes plus audience-assets. Existing deploy.py --preserve-homepage preserves independently managed root. Per-process SSH BindInterface=en0.
 
-- [ ] Push existing branch and update PR11 with all existing OP# refs; attach PR.
-- [ ] Capture fresh before fingerprints; upload unique release stage and match all bytes. Deploy with backup and --preserve-homepage. Verify all 28 served files over authenticated HTTPS; root/protected maps unchanged, gate/robots/health/session checks.
-- [ ] Live IAB screenshots and behavior; OpenProject GitHub links under Kuzmina. Commit evidence, push; verify local/remote/PR head equality and clean tree. Remove only this plan's ignored scratch.
+- [x] Push existing branch and update PR11 with all existing OP# refs; attach PR.
+- [x] Capture fresh before fingerprints; upload unique release stage and match all bytes. Deploy with backup and --preserve-homepage. Verify all 28 served files over authenticated HTTPS; root/protected maps unchanged, gate/robots/health/session checks.
+- [x] Live IAB screenshots and behavior; OpenProject GitHub links under Kuzmina. Commit evidence, push; verify local/remote/PR head equality and clean tree. Remove only this plan's ignored scratch.
