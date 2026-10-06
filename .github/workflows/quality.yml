@@ -1,0 +1,294 @@
+name: Candidate quality
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORUM_TEST_POSTGRES_IMAGE: postgres@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+
+jobs:
+  layout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+      - name: Candidate layout and verification regressions
+        run: |
+          node scripts/verification/check-repository-layout.mjs
+          node --test scripts/verification/checks.test.mjs
+      # Only a status receipt is uploaded. Raw application logs, environment,
+      # generated sites and private worktree contents stay out of artifacts.
+      - name: Sanitized failure receipt
+        if: failure()
+        env:
+          QUALITY_JOB: layout
+        run: |
+          mkdir -p .quality
+          python3 -c 'import json,os,pathlib; pathlib.Path(".quality/failure.json").write_text(json.dumps({"job":os.environ["QUALITY_JOB"],"status":"failure","diagnostics":"See failed command in Actions log"}))'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: failure-layout
+          path: .quality/failure.json
+          if-no-files-found: error
+          retention-days: 7
+
+  api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+      - name: Clean install of API and its landing composition
+        run: |
+          npm ci --prefix apps/api
+          npm ci --prefix deployment/dev-landing
+      - name: Install API-owned Chromium
+        working-directory: apps/api
+        run: npx --no-install playwright install --with-deps chromium
+      - name: API, diagnostics and browser acceptance on disposable PostgreSQL
+        run: bash scripts/verification/check-api.sh
+      # Only a status receipt is uploaded. Raw application logs, environment,
+      # generated sites and private worktree contents stay out of artifacts.
+      - name: Sanitized failure receipt
+        if: failure()
+        env:
+          QUALITY_JOB: api
+        run: |
+          mkdir -p .quality
+          python3 -c 'import json,os,pathlib; pathlib.Path(".quality/failure.json").write_text(json.dumps({"job":os.environ["QUALITY_JOB"],"status":"failure","diagnostics":"See failed command in Actions log"}))'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: failure-api
+          path: .quality/failure.json
+          if-no-files-found: error
+          retention-days: 7
+
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [dev-landing, primer-home, audience-pages, public-auth]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+      - name: Clean install
+        run: npm ci --prefix deployment/${{ matrix.package }}
+      - name: Install landing-owned Chromium for its layout test
+        if: matrix.package == 'dev-landing'
+        working-directory: deployment/dev-landing
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Declared frontend checks
+        working-directory: deployment/${{ matrix.package }}
+        env:
+          FRONTEND_PACKAGE: ${{ matrix.package }}
+        run: |
+          npm run typecheck
+          if [ "$FRONTEND_PACKAGE" != dev-landing ]; then npm run lint; fi
+          npm test
+          # dev-landing's declared test:layout already builds both entrypoints.
+          if [ "$FRONTEND_PACKAGE" != dev-landing ]; then npm run build; fi
+      # Only a status receipt is uploaded. Raw application logs, environment,
+      # generated sites and private worktree contents stay out of artifacts.
+      - name: Sanitized failure receipt
+        if: failure()
+        env:
+          QUALITY_JOB: frontend-${{ matrix.package }}
+        run: |
+          mkdir -p .quality
+          python3 -c 'import json,os,pathlib; pathlib.Path(".quality/failure.json").write_text(json.dumps({"job":os.environ["QUALITY_JOB"],"status":"failure","diagnostics":"See failed command in Actions log"}))'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: failure-frontend-${{ matrix.package }}
+          path: .quality/failure.json
+          if-no-files-found: error
+          retention-days: 7
+
+  composition:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+      - name: Clean install all composition owners
+        run: |
+          npm ci
+          npm ci --prefix deployment/audience-pages
+          npm ci --prefix deployment/public-auth
+          npm ci --prefix deployment/primer-home
+      - name: Actual public-site component composition
+        run: npm run test:composition
+      # Only a status receipt is uploaded. Raw application logs, environment,
+      # generated sites and private worktree contents stay out of artifacts.
+      - name: Sanitized failure receipt
+        if: failure()
+        env:
+          QUALITY_JOB: composition
+        run: |
+          mkdir -p .quality
+          python3 -c 'import json,os,pathlib; pathlib.Path(".quality/failure.json").write_text(json.dumps({"job":os.environ["QUALITY_JOB"],"status":"failure","diagnostics":"See failed command in Actions log"}))'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: failure-composition
+          path: .quality/failure.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publishers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+      - name: Actual three-publisher regression suites
+        run: |
+          python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v
+          python3 -m unittest discover -s deployment/primer-home/scripts -p 'test_*.py' -v
+          python3 -m unittest discover -s deployment/audience-pages/scripts -p 'test_*.py' -v
+          # Auth's six Python regressions run through its declared frontend npm test.
+      - name: Fresh owned output for release composition
+        run: |
+          for package in primer-home audience-pages public-auth; do
+            npm ci --prefix deployment/"$package"
+            npm run build --prefix deployment/"$package"
+          done
+          node deployment/audience-pages/scripts/package-site.mjs
+          python3 scripts/verification/check-built-public-site.py
+      # Only a status receipt is uploaded. Raw application logs, environment,
+      # generated sites and private worktree contents stay out of artifacts.
+      - name: Sanitized failure receipt
+        if: failure()
+        env:
+          QUALITY_JOB: publishers
+        run: |
+          mkdir -p .quality
+          python3 -c 'import json,os,pathlib; pathlib.Path(".quality/failure.json").write_text(json.dumps({"job":os.environ["QUALITY_JOB"],"status":"failure","diagnostics":"See failed command in Actions log"}))'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: failure-publishers
+          path: .quality/failure.json
+          if-no-files-found: error
+          retention-days: 7
+
+  database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+      - name: Network-isolated disposable PostgreSQL ACL regressions
+        run: |
+          docker pull --platform linux/amd64 "$FORUM_TEST_POSTGRES_IMAGE"
+          python3 -m unittest discover -s deployment/forum-db/tests -p 'test_*.py' -v
+      # Only a status receipt is uploaded. Raw application logs, environment,
+      # generated sites and private worktree contents stay out of artifacts.
+      - name: Sanitized failure receipt
+        if: failure()
+        env:
+          QUALITY_JOB: database
+        run: |
+          mkdir -p .quality
+          python3 -c 'import json,os,pathlib; pathlib.Path(".quality/failure.json").write_text(json.dumps({"job":os.environ["QUALITY_JOB"],"status":"failure","diagnostics":"See failed command in Actions log"}))'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: failure-database
+          path: .quality/failure.json
+          if-no-files-found: error
+          retention-days: 7
+
+  profile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+      - name: Profile fixture checks from its exact lock
+        working-directory: local-previews/user-profile
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+          npm test
+          npm run build
+
+  operational:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Sanitized operational syntax and source contracts
+        run: python3 scripts/verification/check-operational-sources.py
+
+  quality:
+    name: quality
+    if: always()
+    needs: [layout, api, frontend, composition, publishers, database, profile, operational]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+      - name: Require every prerequisite to succeed
+        env:
+          QUALITY_RESULTS: ${{ toJSON(needs) }}
+        run: node scripts/verification/quality-gate.mjs

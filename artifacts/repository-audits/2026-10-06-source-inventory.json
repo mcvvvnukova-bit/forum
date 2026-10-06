@@ -1,0 +1,1315 @@
+{
+  "schema_version": 1,
+  "captured_at_utc": "2026-10-06T18:48:12.689321+00:00",
+  "repository": "https://github.com/mcvvvnukova-bit/forum",
+  "task": {
+    "code": "PROJ-152",
+    "id": 190,
+    "url": "https://roadmap.astforum.ru/work_packages/PROJ-152",
+    "identity": "kuzmina (id 8), verified by parent before task creation"
+  },
+  "baseline": {
+    "origin_main_sha": "19120a8fb11b3251ea636d122ba09bf93af4e87d",
+    "execution_branch": "codex/PROJ-152-repository-order",
+    "execution_head_sha": "19120a8fb11b3251ea636d122ba09bf93af4e87d",
+    "execution_checkout_excluded_from_preserved_counts": true
+  },
+  "preservation": {
+    "backup_id": "20261006-214033",
+    "created_as_recorded": "2026-10-06T21:41:27.262368",
+    "timestamp_timezone": "not recorded in private inventory",
+    "whole_primary_including_ignored": true,
+    "external_copy_count_excluding_primary": 4,
+    "nested_worktree_count_within_primary": 3,
+    "saved_refs_count": 72,
+    "saved_refs_sha256": "a0bde28a3fdebf50ddee41d684ca2db3e21b3a4319c2d8e6e3531cc7d72b8674",
+    "all_refs_bundle_and_restored_clone": "verified by parent before Task 1; no backup operation repeated",
+    "private_inventory_patches_secrets_and_full_backup": "outside Git; never copied into this inventory",
+    "technical_plan_sha256": "f6706bfe6f01608730d888af75ddce179579419ac6f77d549af1486bb59fd472",
+    "technical_plan_matches_preserved_bytes": true
+  },
+  "count_semantics": {
+    "preexisting_local_branches": 19,
+    "preexisting_worktrees": 8,
+    "standalone_nested_repositories": 2,
+    "working_tree_records": "git porcelain --untracked-files=all; nested repositories collapse to one record; not physical file counts",
+    "ignored_file_records": "git ls-files --others --ignored --exclude-standard; nested repositories inventoried separately",
+    "status_sha256": "hash of raw porcelain -z bytes; no paths or patch contents disclosed"
+  },
+  "branches": [
+    {
+      "ref": "codex/019fec0f4e817422964cd00291a991d3",
+      "sha": "2ad8fc712f6d27f6b9c8bc98b3ca60b3ef12cd3a",
+      "upstream": null,
+      "backup_ref_sha": "2ad8fc712f6d27f6b9c8bc98b3ca60b3ef12cd3a",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 0,
+      "behind_origin_main": 36,
+      "pull_request": null,
+      "open_pr_heads_containing_commit": [
+        16,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-143-sync-email-templates",
+      "sha": "465496e308f53821a0969f063290e61dc38936dc",
+      "upstream": "origin/codex/PROJ-143-sync-email-templates",
+      "backup_ref_sha": "465496e308f53821a0969f063290e61dc38936dc",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 1,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 8,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/8",
+        "head_sha": "465496e308f53821a0969f063290e61dc38936dc",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-142",
+          "PROJ-143",
+          "PROJ-34"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        8
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-144-primer-home",
+      "sha": "b332db9dc9666c2110403e447d2b46c30675a5dc",
+      "upstream": "origin/codex/PROJ-144-primer-home",
+      "backup_ref_sha": "b332db9dc9666c2110403e447d2b46c30675a5dc",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 18,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 12,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/12",
+        "head_sha": "b332db9dc9666c2110403e447d2b46c30675a5dc",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-1",
+          "PROJ-144",
+          "PROJ-29"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        12
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-144-sync-landings",
+      "sha": "8833c8604e96a437ff4a8b8294e038567544ebec",
+      "upstream": "origin/codex/PROJ-144-sync-landings",
+      "backup_ref_sha": "8833c8604e96a437ff4a8b8294e038567544ebec",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 30,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 4,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/4",
+        "head_sha": "8833c8604e96a437ff4a8b8294e038567544ebec",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-1",
+          "PROJ-142",
+          "PROJ-144",
+          "PROJ-145",
+          "PROJ-2",
+          "PROJ-29",
+          "PROJ-31",
+          "PROJ-32",
+          "PROJ-38",
+          "PROJ-4"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        4
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-144-vps-staging-archive",
+      "sha": "00a47c2acdfd1e6e3f92ce4fb00b1046a40f3b45",
+      "upstream": null,
+      "backup_ref_sha": "00a47c2acdfd1e6e3f92ce4fb00b1046a40f3b45",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 28,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 10,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/10",
+        "head_sha": "00a47c2acdfd1e6e3f92ce4fb00b1046a40f3b45",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-1",
+          "PROJ-144",
+          "PROJ-2",
+          "PROJ-29",
+          "PROJ-31",
+          "PROJ-38",
+          "PROJ-4"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        10
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-145-audience-pages",
+      "sha": "2b85a4162bbd1a64703dab6da6ab787e469516fb",
+      "upstream": "origin/codex/PROJ-145-audience-pages",
+      "backup_ref_sha": "2b85a4162bbd1a64703dab6da6ab787e469516fb",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 26,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 11,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/11",
+        "head_sha": "2b85a4162bbd1a64703dab6da6ab787e469516fb",
+        "state": "OPEN",
+        "draft": false,
+        "declared_task_codes": [
+          "PROJ-145",
+          "PROJ-146",
+          "PROJ-147",
+          "PROJ-29"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        11
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-150-user-profile",
+      "sha": "acd3583c369752107b158b317545e17c966588e9",
+      "upstream": "origin/codex/PROJ-150-user-profile",
+      "backup_ref_sha": "acd3583c369752107b158b317545e17c966588e9",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 11,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 14,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/14",
+        "head_sha": "acd3583c369752107b158b317545e17c966588e9",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-150"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        14
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-151-pgadmin-admin-connections",
+      "sha": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+      "upstream": "origin/codex/PROJ-151-pgadmin-admin-connections",
+      "backup_ref_sha": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 1,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 16,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/16",
+        "head_sha": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+        "state": "OPEN",
+        "draft": false,
+        "declared_task_codes": [
+          "PROJ-151"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        16
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-31-public-auth-form",
+      "sha": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+      "upstream": "origin/codex/PROJ-31-public-auth-form",
+      "backup_ref_sha": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 14,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 13,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/13",
+        "head_sha": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-31"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        13
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/PROJ-35-sync-api-db",
+      "sha": "5084b30b0be5c3939870be8fdadd9643cd9af0a0",
+      "upstream": "origin/codex/PROJ-35-sync-api-db",
+      "backup_ref_sha": "5084b30b0be5c3939870be8fdadd9643cd9af0a0",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 1,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 5,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/5",
+        "head_sha": "5084b30b0be5c3939870be8fdadd9643cd9af0a0",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-3",
+          "PROJ-35",
+          "PROJ-38",
+          "PROJ-4",
+          "PROJ-41",
+          "PROJ-42",
+          "PROJ-5"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        5
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/dev-landing-cal-diy-embed",
+      "sha": "0dd7dd2eb5f1a6a7fa5a7d3e8991072934d39692",
+      "upstream": null,
+      "backup_ref_sha": "0dd7dd2eb5f1a6a7fa5a7d3e8991072934d39692",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 25,
+      "behind_origin_main": 0,
+      "pull_request": null,
+      "open_pr_heads_containing_commit": [
+        10,
+        4
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/events-docx-export",
+      "sha": "62c48f35bc072ee2b22e061d93c3e3da720177fe",
+      "upstream": "origin/codex/events-docx-export",
+      "backup_ref_sha": "62c48f35bc072ee2b22e061d93c3e3da720177fe",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 0,
+      "behind_origin_main": 30,
+      "pull_request": {
+        "number": 1,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/1",
+        "head_sha": "32471dad0a383a7200b77542439b2369736562e9",
+        "state": "MERGED",
+        "draft": false,
+        "declared_task_codes": [],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        16,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/forum-primer-reskin-foundations",
+      "sha": "9aeca5dffa9a54984927229bc106be70cd49b4c0",
+      "upstream": null,
+      "backup_ref_sha": "9aeca5dffa9a54984927229bc106be70cd49b4c0",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 0,
+      "behind_origin_main": 27,
+      "pull_request": null,
+      "open_pr_heads_containing_commit": [
+        16,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/individual-account-primer",
+      "sha": "ae5e86cd808126e08d4eed53ea95cb51c8df686b",
+      "upstream": null,
+      "backup_ref_sha": "ae5e86cd808126e08d4eed53ea95cb51c8df686b",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 0,
+      "behind_origin_main": 25,
+      "pull_request": null,
+      "open_pr_heads_containing_commit": [
+        16,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/pgadmin-publication",
+      "sha": "5dccb94b3366b09eac4afd70b9a4bec3ac580efc",
+      "upstream": null,
+      "backup_ref_sha": "5dccb94b3366b09eac4afd70b9a4bec3ac580efc",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 29,
+      "behind_origin_main": 0,
+      "pull_request": null,
+      "open_pr_heads_containing_commit": [
+        7
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/sync-pgadmin-vps",
+      "sha": "a07a9a0d475d06e391a2c635b572237f33b76a71",
+      "upstream": "origin/codex/sync-pgadmin-vps",
+      "backup_ref_sha": "a07a9a0d475d06e391a2c635b572237f33b76a71",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 31,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 7,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/7",
+        "head_sha": "a07a9a0d475d06e391a2c635b572237f33b76a71",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-149"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        7
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/sync-project-maintenance-tools",
+      "sha": "8b8d14886fb7709938ad46976e21a1c1206c9466",
+      "upstream": "origin/codex/sync-project-maintenance-tools",
+      "backup_ref_sha": "8b8d14886fb7709938ad46976e21a1c1206c9466",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 1,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 9,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/9",
+        "head_sha": "8b8d14886fb7709938ad46976e21a1c1206c9466",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        9
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "codex/sync-server-infrastructure",
+      "sha": "a75924cb7b715f9bd0d958bc812438389d090094",
+      "upstream": "origin/codex/sync-server-infrastructure",
+      "backup_ref_sha": "a75924cb7b715f9bd0d958bc812438389d090094",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 5,
+      "behind_origin_main": 0,
+      "pull_request": {
+        "number": 6,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/6",
+        "head_sha": "a75924cb7b715f9bd0d958bc812438389d090094",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-149"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "open_pr_heads_containing_commit": [
+        6
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    },
+    {
+      "ref": "main",
+      "sha": "cb0fe3b2cfb72eb49d9cb1a510f36d52d25cd455",
+      "upstream": "origin/main",
+      "backup_ref_sha": "cb0fe3b2cfb72eb49d9cb1a510f36d52d25cd455",
+      "matches_backup_ref": true,
+      "commits_absent_from_fetched_origin": 0,
+      "ahead_of_origin_main": 21,
+      "behind_origin_main": 0,
+      "pull_request": null,
+      "open_pr_heads_containing_commit": [
+        10,
+        4
+      ],
+      "intended_state": "retain history pending accepted-base reconciliation",
+      "accepted_runtime_version": false,
+      "local_delta": "see worktrees for checked-out state; non-checked-out branch has no independent worktree delta"
+    }
+  ],
+  "worktrees": [
+    {
+      "id": "primary",
+      "ref": "codex/dev-landing-cal-diy-embed",
+      "sha": "0dd7dd2eb5f1a6a7fa5a7d3e8991072934d39692",
+      "local_delta": {
+        "tracked_changed_records": 18,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 18,
+        "untracked_records": 882,
+        "ignored_file_records": 12517,
+        "tracked_file_records": 222
+      },
+      "status_sha256": "49e83dc487b53693a986e091acab7f4eae76a60b0d59428202c9be5b23634b34",
+      "pull_request": null,
+      "preservation": {
+        "backup_member": "primary",
+        "method": "whole tree including ignored and Git metadata",
+        "tracked_untracked_files_verified": 1102,
+        "verification_scope": "parent backup restore and file checks; nested worktrees included in primary copy"
+      },
+      "intended_state": "retain until preservation, PR resolution and active-chat checks permit archive",
+      "live_runtime_state": "unknown; worktree presence is not deployment evidence"
+    },
+    {
+      "id": "managed/pgadmin-admin-connections",
+      "ref": "codex/PROJ-151-pgadmin-admin-connections",
+      "sha": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 0,
+        "tracked_file_records": 190
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pull_request": {
+        "number": 16,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/16",
+        "head_sha": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+        "state": "OPEN",
+        "draft": false,
+        "declared_task_codes": [
+          "PROJ-151"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "preservation": {
+        "backup_member": "worktree-1",
+        "method": "whole tree including ignored and Git metadata",
+        "tracked_untracked_files_verified": 190,
+        "verification_scope": "parent backup restore and file checks; nested worktrees included in primary copy"
+      },
+      "intended_state": "retain until preservation, PR resolution and active-chat checks permit archive",
+      "live_runtime_state": "unknown; worktree presence is not deployment evidence"
+    },
+    {
+      "id": "managed/pub0202-auth-form",
+      "ref": "codex/PROJ-31-public-auth-form",
+      "sha": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 8583,
+        "tracked_file_records": 244
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pull_request": {
+        "number": 13,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/13",
+        "head_sha": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-31"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "preservation": {
+        "backup_member": "worktree-2",
+        "method": "whole tree including ignored and Git metadata",
+        "tracked_untracked_files_verified": 244,
+        "verification_scope": "parent backup restore and file checks; nested worktrees included in primary copy"
+      },
+      "intended_state": "retain until preservation, PR resolution and active-chat checks permit archive",
+      "live_runtime_state": "unknown; worktree presence is not deployment evidence"
+    },
+    {
+      "id": "managed/sber-professional-profile",
+      "ref": "codex/PROJ-150-user-profile",
+      "sha": "acd3583c369752107b158b317545e17c966588e9",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 8471,
+        "tracked_file_records": 210
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pull_request": {
+        "number": 14,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/14",
+        "head_sha": "acd3583c369752107b158b317545e17c966588e9",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-150"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "preservation": {
+        "backup_member": "worktree-3",
+        "method": "whole tree including ignored and Git metadata",
+        "tracked_untracked_files_verified": 210,
+        "verification_scope": "parent backup restore and file checks; nested worktrees included in primary copy"
+      },
+      "intended_state": "retain until preservation, PR resolution and active-chat checks permit archive",
+      "live_runtime_state": "unknown; worktree presence is not deployment evidence"
+    },
+    {
+      "id": "managed/work-skills-layout",
+      "ref": "codex/PROJ-145-audience-pages",
+      "sha": "2b85a4162bbd1a64703dab6da6ab787e469516fb",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 8617,
+        "tracked_file_records": 331
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pull_request": {
+        "number": 11,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/11",
+        "head_sha": "2b85a4162bbd1a64703dab6da6ab787e469516fb",
+        "state": "OPEN",
+        "draft": false,
+        "declared_task_codes": [
+          "PROJ-145",
+          "PROJ-146",
+          "PROJ-147",
+          "PROJ-29"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "preservation": {
+        "backup_member": "worktree-4",
+        "method": "whole tree including ignored and Git metadata",
+        "tracked_untracked_files_verified": 331,
+        "verification_scope": "parent backup restore and file checks; nested worktrees included in primary copy"
+      },
+      "intended_state": "retain until preservation, PR resolution and active-chat checks permit archive",
+      "live_runtime_state": "unknown; worktree presence is not deployment evidence"
+    },
+    {
+      "id": ".worktrees/forum-primer-reskin-foundations",
+      "ref": "codex/forum-primer-reskin-foundations",
+      "sha": "9aeca5dffa9a54984927229bc106be70cd49b4c0",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 0,
+        "tracked_file_records": 110
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pull_request": null,
+      "preservation": {
+        "backup_member": "primary/.worktrees/forum-primer-reskin-foundations",
+        "method": "whole tree including ignored and Git metadata",
+        "tracked_untracked_files_verified": null,
+        "verification_scope": "parent backup restore and file checks; nested worktrees included in primary copy"
+      },
+      "intended_state": "retain until preservation, PR resolution and active-chat checks permit archive",
+      "live_runtime_state": "unknown; worktree presence is not deployment evidence"
+    },
+    {
+      "id": ".worktrees/individual-account-primer",
+      "ref": "codex/individual-account-primer",
+      "sha": "ae5e86cd808126e08d4eed53ea95cb51c8df686b",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 0,
+        "tracked_file_records": 112
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pull_request": null,
+      "preservation": {
+        "backup_member": "primary/.worktrees/individual-account-primer",
+        "method": "whole tree including ignored and Git metadata",
+        "tracked_untracked_files_verified": null,
+        "verification_scope": "parent backup restore and file checks; nested worktrees included in primary copy"
+      },
+      "intended_state": "retain until preservation, PR resolution and active-chat checks permit archive",
+      "live_runtime_state": "unknown; worktree presence is not deployment evidence"
+    },
+    {
+      "id": ".worktrees/pgadmin-publication",
+      "ref": "codex/pgadmin-publication",
+      "sha": "5dccb94b3366b09eac4afd70b9a4bec3ac580efc",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 49,
+        "tracked_file_records": 203
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pull_request": null,
+      "preservation": {
+        "backup_member": "primary/.worktrees/pgadmin-publication",
+        "method": "whole tree including ignored and Git metadata",
+        "tracked_untracked_files_verified": null,
+        "verification_scope": "parent backup restore and file checks; nested worktrees included in primary copy"
+      },
+      "intended_state": "retain until preservation, PR resolution and active-chat checks permit archive",
+      "live_runtime_state": "unknown; worktree presence is not deployment evidence"
+    }
+  ],
+  "nested_repositories": [
+    {
+      "path": "cal-diy-astforum",
+      "sha": "4bd67735895f539ad99c8037cf7a808306fb9139",
+      "ref": "codex/smtp-booking-reminders",
+      "backup_sha": "4bd67735895f539ad99c8037cf7a808306fb9139",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 266352,
+        "tracked_file_records": 7753
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "remotes": {
+        "origin": "https://github.com/mcvvvnukova-bit/astforum-cal-diy",
+        "upstream": "https://github.com/calcom/cal.diy"
+      },
+      "pull_request": null,
+      "related_forum_pull_request": null,
+      "task_codes": [],
+      "task_evidence": "unknown in this inventory",
+      "intended_state": "keep separate repository and release history",
+      "accepted_runtime_version": false,
+      "live_runtime_state": "unknown",
+      "preservation": "whole primary copy includes standalone .git; nested history connectivity verified by parent"
+    },
+    {
+      "path": "local-previews/primer-home",
+      "sha": "2110356123b6283fcce67db101f5d3f387af7c39",
+      "ref": "codex/PROJ-144-primer-home",
+      "backup_sha": "2110356123b6283fcce67db101f5d3f387af7c39",
+      "local_delta": {
+        "tracked_changed_records": 0,
+        "staged_changed_records": 0,
+        "unstaged_changed_records": 0,
+        "untracked_records": 0,
+        "ignored_file_records": 8482,
+        "tracked_file_records": 82
+      },
+      "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "remotes": {},
+      "pull_request": null,
+      "related_forum_pull_request": 12,
+      "task_codes": [
+        "PROJ-144"
+      ],
+      "task_evidence": "related Forum PR body",
+      "intended_state": "preserve standalone history; compare with PR 12 before retirement",
+      "accepted_runtime_version": false,
+      "live_runtime_state": "unknown",
+      "preservation": "whole primary copy includes standalone .git; nested history connectivity verified by parent"
+    }
+  ],
+  "components": [
+    {
+      "id": "repository-policy",
+      "source_ref": "codex/PROJ-148-openproject-github",
+      "source_sha": "4c76633c0a424e94752bc5fbdfcb832b6a13449b",
+      "source_paths": [
+        "AGENTS.md"
+      ],
+      "declared_path_candidates": [
+        "AGENTS.md"
+      ],
+      "pull_request": {
+        "number": 3,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/3",
+        "head_sha": "4c76633c0a424e94752bc5fbdfcb832b6a13449b",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-148"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "retain current owner instructions",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "legacy-landing-gateway",
+      "source_ref": "codex/PROJ-144-sync-landings",
+      "source_sha": "8833c8604e96a437ff4a8b8294e038567544ebec",
+      "source_paths": [
+        "deployment/dev-landing"
+      ],
+      "declared_path_candidates": [
+        "deployment/dev-landing"
+      ],
+      "pull_request": {
+        "number": 4,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/4",
+        "head_sha": "8833c8604e96a437ff4a8b8294e038567544ebec",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-1",
+          "PROJ-142",
+          "PROJ-144",
+          "PROJ-145",
+          "PROJ-2",
+          "PROJ-29",
+          "PROJ-31",
+          "PROJ-32",
+          "PROJ-38",
+          "PROJ-4"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "candidate: retain necessary gateway/build seams after F1 correction; no automatic legacy full-site deployment",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "api-db",
+      "source_ref": "codex/PROJ-35-sync-api-db",
+      "source_sha": "5084b30b0be5c3939870be8fdadd9643cd9af0a0",
+      "source_paths": [
+        "apps/api",
+        "deployment/forum-api",
+        "deployment/forum-db"
+      ],
+      "declared_path_candidates": [
+        "apps/api",
+        "deployment/forum-api",
+        "deployment/forum-db"
+      ],
+      "pull_request": {
+        "number": 5,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/5",
+        "head_sha": "5084b30b0be5c3939870be8fdadd9643cd9af0a0",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-3",
+          "PROJ-35",
+          "PROJ-38",
+          "PROJ-4",
+          "PROJ-41",
+          "PROJ-42",
+          "PROJ-5"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "candidate after F2-F4 corrections; sandbox IAM remains a separate boundary",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "server-infrastructure",
+      "source_ref": "codex/sync-server-infrastructure",
+      "source_sha": "a75924cb7b715f9bd0d958bc812438389d090094",
+      "source_paths": [
+        "deployment/mail",
+        "deployment/openproject",
+        "deployment/server-access",
+        "deployment/vps"
+      ],
+      "declared_path_candidates": [
+        "deployment/mail",
+        "deployment/openproject",
+        "deployment/server-access",
+        "deployment/vps"
+      ],
+      "pull_request": {
+        "number": 6,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/6",
+        "head_sha": "a75924cb7b715f9bd0d958bc812438389d090094",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-149"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "candidate baseline pending live VPS reconciliation; archives excluded from runtime",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "pgadmin-baseline",
+      "source_ref": "codex/sync-pgadmin-vps",
+      "source_sha": "a07a9a0d475d06e391a2c635b572237f33b76a71",
+      "source_paths": [
+        "deployment/pgadmin",
+        "deployment/pgadmin-publication",
+        "deployment/vps"
+      ],
+      "declared_path_candidates": [
+        "deployment/pgadmin",
+        "deployment/pgadmin-publication",
+        "deployment/vps"
+      ],
+      "pull_request": {
+        "number": 7,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/7",
+        "head_sha": "a07a9a0d475d06e391a2c635b572237f33b76a71",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-149"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "candidate baseline with PR 16 overlaid after reconciliation",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "email-templates",
+      "source_ref": "codex/PROJ-143-sync-email-templates",
+      "source_sha": "465496e308f53821a0969f063290e61dc38936dc",
+      "source_paths": [
+        "artifacts/email-previews/2026-09-29-request-received"
+      ],
+      "declared_path_candidates": [
+        "artifacts/email-previews/2026-09-29-request-received"
+      ],
+      "pull_request": {
+        "number": 8,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/8",
+        "head_sha": "465496e308f53821a0969f063290e61dc38936dc",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-142",
+          "PROJ-143",
+          "PROJ-34"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "preserve templates independently; no confirmed Cal.diy runtime replacement",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "maintenance-tools",
+      "source_ref": "codex/sync-project-maintenance-tools",
+      "source_sha": "8b8d14886fb7709938ad46976e21a1c1206c9466",
+      "source_paths": [
+        "artifacts/diagrams",
+        "artifacts/frontend",
+        "artifacts/planning",
+        "artifacts/requirements"
+      ],
+      "declared_path_candidates": [
+        "artifacts/diagrams",
+        "artifacts/frontend",
+        "artifacts/planning",
+        "artifacts/requirements"
+      ],
+      "pull_request": {
+        "number": 9,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/9",
+        "head_sha": "8b8d14886fb7709938ad46976e21a1c1206c9466",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "historical tools; verified task still required before execution",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "vps-staging-archive",
+      "source_ref": "codex/PROJ-144-vps-staging-archive",
+      "source_sha": "00a47c2acdfd1e6e3f92ce4fb00b1046a40f3b45",
+      "source_paths": [
+        "deployment/vps/staging-tools"
+      ],
+      "declared_path_candidates": [
+        "deployment/vps/staging-tools"
+      ],
+      "pull_request": {
+        "number": 10,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/10",
+        "head_sha": "00a47c2acdfd1e6e3f92ce4fb00b1046a40f3b45",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-1",
+          "PROJ-144",
+          "PROJ-2",
+          "PROJ-29",
+          "PROJ-31",
+          "PROJ-38",
+          "PROJ-4"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "select historical additions only; reject stale active-source replacements",
+      "known_source_boundary": "historical/candidate mix",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "audience-pages",
+      "source_ref": "codex/PROJ-145-audience-pages",
+      "source_sha": "2b85a4162bbd1a64703dab6da6ab787e469516fb",
+      "source_paths": [
+        "deployment/audience-pages"
+      ],
+      "declared_path_candidates": [
+        "deployment/audience-pages"
+      ],
+      "pull_request": {
+        "number": 11,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/11",
+        "head_sha": "2b85a4162bbd1a64703dab6da6ab787e469516fb",
+        "state": "OPEN",
+        "draft": false,
+        "declared_task_codes": [
+          "PROJ-145",
+          "PROJ-146",
+          "PROJ-147",
+          "PROJ-29"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [
+        "managed/work-skills-layout"
+      ],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "candidate with homepage/auth after F5-F6 corrections",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "primer-home",
+      "source_ref": "codex/PROJ-144-primer-home",
+      "source_sha": "b332db9dc9666c2110403e447d2b46c30675a5dc",
+      "source_paths": [
+        "deployment/primer-home"
+      ],
+      "declared_path_candidates": [
+        "deployment/primer-home"
+      ],
+      "pull_request": {
+        "number": 12,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/12",
+        "head_sha": "b332db9dc9666c2110403e447d2b46c30675a5dc",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-1",
+          "PROJ-144",
+          "PROJ-29"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "candidate with audience/auth under one release owner",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "public-auth",
+      "source_ref": "codex/PROJ-31-public-auth-form",
+      "source_sha": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+      "source_paths": [
+        "deployment/public-auth"
+      ],
+      "declared_path_candidates": [
+        "deployment/public-auth"
+      ],
+      "pull_request": {
+        "number": 13,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/13",
+        "head_sha": "e9b9331d32c2a11fe7da6391fe01b6cfba8f9f60",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-31"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [
+        "managed/pub0202-auth-form"
+      ],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "candidate with homepage/audience after F5-F6 corrections",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "profile-preview",
+      "source_ref": "codex/PROJ-150-user-profile",
+      "source_sha": "acd3583c369752107b158b317545e17c966588e9",
+      "source_paths": [
+        "local-previews/user-profile"
+      ],
+      "declared_path_candidates": [
+        "local-previews/user-profile"
+      ],
+      "pull_request": {
+        "number": 14,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/14",
+        "head_sha": "acd3583c369752107b158b317545e17c966588e9",
+        "state": "OPEN",
+        "draft": true,
+        "declared_task_codes": [
+          "PROJ-150"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [
+        "managed/sber-professional-profile"
+      ],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "fixture only; no claim of real OAuth, provider data or persistence",
+      "known_source_boundary": "fixture",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    },
+    {
+      "id": "pgadmin-connections",
+      "source_ref": "codex/PROJ-151-pgadmin-admin-connections",
+      "source_sha": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+      "source_paths": [
+        "deployment/pgadmin"
+      ],
+      "declared_path_candidates": [
+        "deployment/pgadmin"
+      ],
+      "pull_request": {
+        "number": 16,
+        "url": "https://github.com/mcvvvnukova-bit/forum/pull/16",
+        "head_sha": "9e4666fbd5cddef9d3d4a6b24c286f7a75557ac6",
+        "state": "OPEN",
+        "draft": false,
+        "declared_task_codes": [
+          "PROJ-151"
+        ],
+        "task_link_evidence": "PR body OP# codes; OpenProject GitHub tab not rechecked in this inventory"
+      },
+      "local_delta_worktree_ids": [
+        "managed/pgadmin-admin-connections"
+      ],
+      "primary_checkout_delta": "mixed-source dirty checkout; counts in worktrees, not an accepted component version",
+      "intended_state": "candidate over selected PR 7 baseline",
+      "known_source_boundary": "PR source candidate",
+      "live_runtime_state": {
+        "status": "unknown",
+        "reason": "no current VPS mounts/images/served-hash comparison available; PR deployment claims are historical evidence"
+      }
+    }
+  ],
+  "excluded_functionality": {
+    "closed_pull_request": 2,
+    "state": "owner cancelled organization/finance OKVED parser; exclude its code, tests, migrations and runtime configuration from accepted base; historical text is not a development instruction",
+    "general_okved_directory": "separate scope"
+  },
+  "documentation_boundary": {
+    "product_source": "https://docs.astforum.ru",
+    "repository_docs": "technical implementation plans in docs/plans only; migration is later task and has not occurred",
+    "no_product_content_copied": true
+  },
+  "limitations": [
+    "Snapshot of local metadata and fetched origin; inventory does not accept branches or deploy artifacts.",
+    "Only PR body task references extracted; OpenProject GitHub tabs belong to external delivery verification.",
+    "Live dev/production containers, overrides, database contents and served build hashes remain unknown until read-only VPS audit.",
+    "Branches and worktrees remain intact; any future relocation requires drift and active-chat checks.",
+    "Historical audit counts are retained verbatim; this JSON uses fresh counts."
+  ]
+}

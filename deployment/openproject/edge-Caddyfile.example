@@ -1,0 +1,7 @@
+# Add this site to the existing external Caddy gateway after publishing DNS.
+# This belongs on the gateway, not in /opt/outline/Caddyfile on the origin VM.
+roadmap.astforum.ru {
+    reverse_proxy 172.16.160.16:80 {
+        header_up X-Real-IP {remote_host}
+    }
+}

@@ -1,0 +1,21 @@
+import {StrictMode} from 'react'
+import {createRoot} from 'react-dom/client'
+import {BaseStyles, ThemeProvider} from '@primer/react'
+import '@primer/primitives/dist/css/base/size/size.css'
+import '@primer/primitives/dist/css/base/typography/typography.css'
+import '@primer/primitives/dist/css/base/motion/motion.css'
+import '@primer/primitives/dist/css/functional/size/border.css'
+import '@primer/primitives/dist/css/functional/size/radius.css'
+import '@primer/primitives/dist/css/functional/spacing/space.css'
+import '@primer/primitives/dist/css/functional/typography/typography.css'
+import '@primer/primitives/dist/css/functional/motion/motion.css'
+import '@primer/primitives/dist/css/functional/themes/light.css'
+import './forum-tokens.css'
+import './layout.css'
+import {App} from './App'
+
+createRoot(document.getElementById('root')!).render(
+  <ThemeProvider colorMode="light" dayScheme="light">
+    <BaseStyles><StrictMode><App /></StrictMode></BaseStyles>
+  </ThemeProvider>,
+)
