@@ -1,0 +1,39 @@
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+SET LOCAL statement_timeout = '60s';
+SELECT pg_advisory_xact_lock(hashtext('forum-auth-migrations'));
+DO $$ BEGIN
+  IF to_regclass('public.schema_migrations') IS NOT NULL AND to_regclass('iam.schema_migrations') IS NOT NULL THEN
+    RAISE EXCEPTION 'Both public and legacy migration ledgers exist; inspect before proceeding';
+  END IF;
+END $$;
+SELECT to_regclass('public.schema_migrations') IS NOT NULL AS consolidated \gset
+\if :consolidated
+  DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='003_public_schema') THEN
+      RAISE EXCEPTION 'Public migration ledger exists without the consolidation marker';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname IN ('iam','profiles','audit','integration','party')) THEN
+      RAISE EXCEPTION 'Legacy schemas remain despite consolidation marker';
+    END IF;
+  END $$;
+\else
+  CREATE SCHEMA IF NOT EXISTS iam;
+  CREATE TABLE IF NOT EXISTS iam.schema_migrations (
+    name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now()
+  );
+  SELECT NOT EXISTS (SELECT 1 FROM iam.schema_migrations WHERE name='001_sber_identity') AS apply_identity \gset
+  \if :apply_identity
+    \ir ../../apps/api/migrations/001_sber_identity.sql
+    INSERT INTO iam.schema_migrations(name) VALUES ('001_sber_identity');
+  \endif
+  SELECT NOT EXISTS (SELECT 1 FROM iam.schema_migrations WHERE name='002_profiles') AS apply_profiles \gset
+  \if :apply_profiles
+    \ir ../../apps/api/migrations/002_profiles.sql
+    INSERT INTO iam.schema_migrations(name) VALUES ('002_profiles');
+  \endif
+  \ir ../../apps/api/migrations/003_public_schema.sql
+  INSERT INTO public.schema_migrations(name) VALUES ('003_public_schema');
+\endif
+COMMIT;
