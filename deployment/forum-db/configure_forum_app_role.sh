@@ -60,8 +60,10 @@ pgadmin_id="$(dc_pgadmin ps -q pgadmin)"
 test -n "$postgres_id" || { printf '[forum-app] postgres container is not running\n' >&2; exit 1; }
 test -n "$pgadmin_id" || { printf '[forum-app] pgAdmin container is not running\n' >&2; exit 1; }
 
-# Fail before changing roles, files or registrations for an unknown/legacy schema.
-dc_outline exec -T postgres psql -U outline -d "$DB_NAME" -v ON_ERROR_STOP=1 -X <<'SQL'
+# Fail before changing roles, files or registrations for an unknown schema or
+# effective global defaults that cannot be revoked only within public.
+dc_outline exec -T postgres psql -U outline -d "$DB_NAME" \
+  -v ON_ERROR_STOP=1 -v app_role="$APP_ROLE" -X <<'SQL'
 DO $$ BEGIN
   IF to_regclass('public.schema_migrations') IS NULL THEN
     RAISE EXCEPTION 'Apply the public-schema migration before granting runtime access';
@@ -70,6 +72,19 @@ DO $$ BEGIN
     RAISE EXCEPTION 'Apply the public-schema migration before granting runtime access';
   END IF;
 END $$;
+SELECT EXISTS (
+  SELECT 1 FROM pg_default_acl d, LATERAL aclexplode(d.defaclacl) acl
+  WHERE d.defaclnamespace=0 AND d.defaclobjtype IN ('r','S')
+    AND CASE WHEN acl.grantee=0 THEN true ELSE EXISTS (
+      SELECT 1 FROM pg_roles runtime WHERE runtime.rolname=:'app_role'
+        AND pg_has_role(runtime.oid,acl.grantee,'USAGE')
+    ) END
+) AS runtime_has_global_defaults \gset
+\if :runtime_has_global_defaults
+  DO $$ BEGIN
+    RAISE EXCEPTION 'Global default privileges grant future tables/sequences to the runtime role; inspect owner defaults before configuring access';
+  END $$;
+\endif
 SQL
 
 backup_dir="${BACKUP_ROOT}/$(date -u +%Y%m%dT%H%M%SZ)"

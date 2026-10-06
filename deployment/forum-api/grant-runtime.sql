@@ -15,6 +15,22 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Schema REVOKE cannot undo global grants. Reject effective direct, PUBLIC or
+-- inherited defaults without changing unrelated global/non-public policies.
+SELECT EXISTS (
+  SELECT 1 FROM pg_default_acl d, LATERAL aclexplode(d.defaclacl) acl
+  WHERE d.defaclnamespace=0 AND d.defaclobjtype IN ('r','S')
+    AND CASE WHEN acl.grantee=0 THEN true ELSE EXISTS (
+      SELECT 1 FROM pg_roles runtime WHERE runtime.rolname=:'app_role'
+        AND pg_has_role(runtime.oid,acl.grantee,'USAGE')
+    ) END
+) AS runtime_has_global_defaults \gset
+\if :runtime_has_global_defaults
+  DO $$ BEGIN
+    RAISE EXCEPTION 'Global default privileges grant future tables/sequences to the runtime role; inspect owner defaults before configuring access';
+  END $$;
+\endif
+
 -- Reconcile previous blanket grants before reapplying the allowlist. Limit
 -- revocation to this runtime role in public; other roles/schemas are untouched.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

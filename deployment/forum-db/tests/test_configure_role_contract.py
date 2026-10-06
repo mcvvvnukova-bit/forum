@@ -4,6 +4,7 @@ The command harness models pgAdmin recreation/registrations, not its web server.
 All database SQL is executed inside a disposable network-none Docker container.
 Run: python3 -m unittest discover -s deployment/forum-db/tests -p 'test_*.py' -v
 """
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -282,6 +283,76 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.assertIn('public-schema migration', result.stderr)
         # The precondition aborts the transaction without a partial ACL rewrite.
         self.assertEqual(self.sql("SELECT has_table_privilege('forum_app','public.persons','DELETE');").stdout.strip(), 't')
+
+    def privilege_snapshot(self):
+        # Include role/password state without exporting password hashes.
+        return self.sql("""
+SELECT json_build_object(
+  'roles', (SELECT json_agg(r ORDER BY rolname) FROM (
+    SELECT rolname,rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,rolinherit,rolreplication
+    FROM pg_roles WHERE rolname IN ('forum_app','forum_app_role')) r),
+  'password_state', (SELECT md5(string_agg(coalesce(rolpassword,''),',' ORDER BY rolname))
+    FROM pg_authid WHERE rolname IN ('forum_app','forum_app_role')),
+  'memberships', (SELECT json_agg(m ORDER BY roleid,member) FROM pg_auth_members m),
+  'database_acl', (SELECT datacl FROM pg_database WHERE datname=current_database()),
+  'schema_acls', (SELECT json_agg(n ORDER BY nspname) FROM (
+    SELECT nspname,nspacl FROM pg_namespace WHERE nspname IN ('public','other')) n),
+  'relation_acls', (SELECT json_agg(c ORDER BY relnamespace,relname) FROM (
+    SELECT relnamespace,relname,relacl FROM pg_class
+    WHERE relnamespace IN ('public'::regnamespace,'other'::regnamespace)) c),
+  'column_acls', (SELECT json_agg(a ORDER BY attrelid,attnum) FROM (
+    SELECT attrelid,attnum,attacl FROM pg_attribute WHERE attacl IS NOT NULL) a),
+  'default_acls', (SELECT json_agg(d ORDER BY defaclrole,defaclnamespace,defaclobjtype)
+    FROM pg_default_acl d)
+);
+""").stdout
+
+    def filesystem_snapshot(self):
+        return {str(p.relative_to(self.path)): hashlib.sha256(p.read_bytes()).hexdigest()
+                if p.is_file() else None for p in self.path.rglob('*')
+                if p.name != 'commands.jsonl'}
+
+    def assert_global_defaults_rejected(self, object_type, grantee='forum_app_role', standalone=False):
+        self.sql(f'ALTER DEFAULT PRIVILEGES FOR ROLE outline GRANT SELECT ON {object_type} TO {grantee};')
+        before_db = self.privilege_snapshot()
+        before_files = self.filesystem_snapshot()
+        result = self.sql(GRANTS.read_text(), check=False) if standalone else self.configure()
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn('Global default privileges', result.stderr)
+        self.assertIn('runtime role', result.stderr)
+        self.assertEqual(self.privilege_snapshot(), before_db, 'Partial role/ACL mutations on rejected defaults')
+        self.assertEqual(self.filesystem_snapshot(), before_files, 'Partial backup/HBA/pgAdmin/password mutations')
+        self.sql(f'ALTER DEFAULT PRIVILEGES FOR ROLE outline REVOKE SELECT ON {object_type} FROM {grantee};')
+
+    def test_global_table_defaults_reject_configuration_without_mutation(self):
+        self.assert_global_defaults_rejected('TABLES')
+
+    def test_global_sequence_defaults_reject_configuration_without_mutation(self):
+        self.assert_global_defaults_rejected('SEQUENCES')
+
+    def test_global_table_defaults_reject_standalone_transaction_without_mutation(self):
+        self.assert_global_defaults_rejected('TABLES', standalone=True)
+
+    def test_global_sequence_defaults_reject_standalone_transaction_without_mutation(self):
+        self.assert_global_defaults_rejected('SEQUENCES', standalone=True)
+
+    def test_effective_public_and_inherited_global_defaults_are_rejected(self):
+        self.sql('GRANT unrelated_role TO forum_app_role;')
+        self.addCleanup(self.sql, 'REVOKE unrelated_role FROM forum_app_role;', 'postgres')
+        for object_type in ['TABLES', 'SEQUENCES']:
+            for grantee in ['PUBLIC', 'unrelated_role']:
+                for standalone in [False, True]:
+                    with self.subTest(object_type=object_type, grantee=grantee, standalone=standalone):
+                        self.assert_global_defaults_rejected(object_type, grantee, standalone)
+
+    def test_unrelated_global_defaults_survive_successful_configuration(self):
+        self.sql('ALTER DEFAULT PRIVILEGES FOR ROLE outline GRANT SELECT ON TABLES TO unrelated_role;'
+                 'ALTER DEFAULT PRIVILEGES FOR ROLE outline GRANT SELECT ON SEQUENCES TO unrelated_role;')
+        result = self.configure()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assert_grants()
+        self.sql('CREATE TABLE public.future_unrelated(id bigserial PRIMARY KEY);')
+        self.assertEqual(self.sql("SELECT has_table_privilege('unrelated_role','public.future_unrelated','SELECT') AND has_sequence_privilege('unrelated_role','public.future_unrelated_id_seq','SELECT') AND NOT has_table_privilege('forum_app','public.future_unrelated','SELECT') AND NOT has_sequence_privilege('forum_app','public.future_unrelated_id_seq','SELECT');").stdout.strip(), 't')
 
 
 if __name__ == '__main__':
