@@ -379,6 +379,97 @@ os.execv({curl!r}, ["curl", *args])
         self.assertIn("Rollback failed", output)
         self.assertEqual(self.request()[1]["X-Caddy-Version"], "new")
 
+    def reject_unsafe_secret(self, name, kind, set_password=False):
+        self.previous()
+        path = self.app / "secrets" / name
+        path.unlink()
+        referent = self.root / "server-owned-secret"
+        if kind == "symlink":
+            referent.write_bytes(b"previous fixture secret\n")
+            referent.chmod(0o640)
+            path.symlink_to(referent)
+        elif kind == "broken-symlink":
+            path.symlink_to(referent)
+        elif kind == "directory":
+            path.mkdir()
+        else:
+            raise AssertionError("unknown secret fixture kind")
+
+        def snapshot(root):
+            # lstat also captures broken links; bytes stay out of failure output.
+            result = {}
+            for item in (root, *sorted(root.rglob("*"))):
+                info = item.lstat()
+                payload = os.readlink(item) if item.is_symlink() else item.read_bytes() if item.is_file() else None
+                result[str(item.relative_to(root))] = (info.st_ino, info.st_mode, info.st_uid, info.st_gid, info.st_mtime_ns, payload)
+            return result
+
+        before = snapshot(self.app)
+        referent_before = referent.read_bytes() if referent.exists() else None
+        gateway = self.runtime.gateway
+        env = dict(self.env, DEV_LANDING_PASSWORD="replacement-password")
+        if set_password:
+            master, slave = pty.openpty()
+            process = subprocess.Popen(["sh", str(self.script), "--set-password"], env=env, stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            os.close(slave)
+            output = ""
+            deadline = time.monotonic() + 10
+            try:
+                while process.poll() is None and "Shared dev landing password:" not in output:
+                    self.assertLess(time.monotonic(), deadline)
+                    if select.select([process.stderr], [], [], 0.2)[0]:
+                        output += os.read(process.stderr.fileno(), 4096).decode()
+                if "Shared dev landing password:" in output:
+                    import termios
+                    while termios.tcgetattr(master)[3] & termios.ECHO:
+                        self.assertLess(time.monotonic(), deadline)
+                        time.sleep(0.01)
+                    os.write(master, b"replacement-password\n")
+                stdout, stderr = process.communicate(timeout=20)
+                output += stdout.decode() + stderr.decode()
+                code = process.returncode
+            finally:
+                os.close(master)
+        else:
+            result = subprocess.run(["sh", str(self.script)], env=env, capture_output=True, text=True, timeout=20)
+            output = result.stdout + result.stderr
+            code = result.returncode
+        self.assertNotEqual(code, 0)
+        self.assertTrue((referent.read_bytes() if referent.exists() else None) == referent_before, "unsafe secret path changed its referent")
+        self.assertTrue(snapshot(self.app) == before, "unsafe secret path changed deployment files or metadata")
+        self.assertIs(self.runtime.gateway, gateway)
+        self.assertEqual((self.runtime.starts, self.runtime.caddy_starts), (0, 0))
+        self.assertIn("Secret path must be a regular file", output)
+        self.assertIn(str(path), output)
+        self.assertNotIn("replacement-password", output)
+        self.assertNotIn("previous fixture secret", output)
+        self.assertEqual(self.request()[2], "OLD LOGIN")
+        self.assertFalse((self.app / "backups").exists())
+
+    def test_symlink_password_is_rejected_before_deployment_mutation(self):
+        self.reject_unsafe_secret("dev_landing_password", "symlink")
+
+    def test_symlink_session_secret_is_rejected_before_deployment_mutation(self):
+        self.reject_unsafe_secret("dev_landing_session_secret", "symlink")
+
+    def test_broken_symlink_password_is_rejected_before_deployment_mutation(self):
+        self.reject_unsafe_secret("dev_landing_password", "broken-symlink")
+
+    def test_broken_symlink_session_secret_is_rejected_before_deployment_mutation(self):
+        self.reject_unsafe_secret("dev_landing_session_secret", "broken-symlink")
+
+    def test_directory_password_is_rejected_before_deployment_mutation(self):
+        self.reject_unsafe_secret("dev_landing_password", "directory")
+
+    def test_directory_session_secret_is_rejected_before_deployment_mutation(self):
+        self.reject_unsafe_secret("dev_landing_session_secret", "directory")
+
+    def test_symlink_password_set_password_is_rejected_before_deployment_mutation(self):
+        self.reject_unsafe_secret("dev_landing_password", "symlink", set_password=True)
+
+    def test_broken_session_link_set_password_is_rejected_before_deployment_mutation(self):
+        self.reject_unsafe_secret("dev_landing_session_secret", "broken-symlink", set_password=True)
+
 
 if __name__ == "__main__":
     unittest.main()

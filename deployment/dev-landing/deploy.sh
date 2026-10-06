@@ -50,6 +50,15 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# cp -a preserves symlinks, while writing a secret follows them. Reject such
+# paths (including broken links) before prompting or changing deployment state.
+for secret_file in "$password_secret_file" "$session_secret_file"; do
+  if [ -L "$secret_file" ] || { [ -e "$secret_file" ] && [ ! -f "$secret_file" ]; }; then
+    printf '%s\n' "Secret path must be a regular file, not a symlink: $secret_file" >&2
+    exit 1
+  fi
+done
+
 if [ "$set_password" -eq 1 ]; then
   if [ ! -t 0 ]; then
     printf '%s\n' "--set-password requires an interactive terminal." >&2
