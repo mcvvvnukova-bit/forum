@@ -1,0 +1,42 @@
+[
+  {
+    "tags": [
+      "openproject/openproject:17.8.0-slim"
+    ],
+    "digests": [
+      "openproject/openproject@sha256:48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2"
+    ],
+    "architecture": "amd64",
+    "id": "sha256:48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2"
+  },
+  {
+    "tags": [
+      "openproject/hocuspocus:17.8.0"
+    ],
+    "digests": [
+      "openproject/hocuspocus@sha256:f37a8d647d172f4206308bdbf4910bbec0c19433b8870c7431fe0dc45a5a7682"
+    ],
+    "architecture": "amd64",
+    "id": "sha256:f37a8d647d172f4206308bdbf4910bbec0c19433b8870c7431fe0dc45a5a7682"
+  },
+  {
+    "tags": [
+      "postgres:17-alpine"
+    ],
+    "digests": [
+      "postgres@sha256:f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995"
+    ],
+    "architecture": "amd64",
+    "id": "sha256:f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995"
+  },
+  {
+    "tags": [
+      "memcached:1.6-alpine"
+    ],
+    "digests": [
+      "memcached@sha256:69ecd3c5701cebbe51f9fca15c1f9bd3b8773fd57cdb215adb6e1fa844bb0ea2"
+    ],
+    "architecture": "amd64",
+    "id": "sha256:69ecd3c5701cebbe51f9fca15c1f9bd3b8773fd57cdb215adb6e1fa844bb0ea2"
+  }
+]

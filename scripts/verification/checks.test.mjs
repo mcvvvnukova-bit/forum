@@ -29,7 +29,7 @@ test('actual candidate layout passes, while strict docs policy remains explicit'
   assert.notEqual(strict.status, 0)
   assert.match(strict.stderr, /Strict docs\/plans-only/)
 })
-for (const missing of ['deployment/dev-landing/package.json', 'apps/api/package-lock.json', 'deployment/public-auth/src/PublicAuth.test.tsx']) {
+for (const missing of ['deployment/dev-landing/package.json', 'apps/api/package-lock.json', 'deployment/public-auth/src/PublicAuth.test.tsx', 'local-previews/user-profile/package-lock.json', 'local-previews/user-profile/src/profile.test.ts', 'deployment/astforum-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml']) {
   test(`required source cannot be skipped: ${missing}`, t => {
     const path = fixture(t)
     rmSync(join(path, missing))
@@ -54,7 +54,7 @@ test('ignored dependency and private source cannot enter the tracked layout', t 
   assert.match(run(path).stderr, /Private\/generated/)
 })
 test('final quality check requires every exact result to be success', () => {
-  const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database']
+  const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database', 'profile', 'operational']
   const results = Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))
   const gate = data => spawnSync(process.execPath, [join(root, 'scripts/verification/quality-gate.mjs')], {
     env: {...process.env, QUALITY_RESULTS: JSON.stringify(data)}, encoding: 'utf8',
@@ -66,4 +66,11 @@ test('final quality check requires every exact result to be success', () => {
   const missing = {...results}
   delete missing.api
   assert.notEqual(gate(missing).status, 0)
+})
+
+test('every checkout uses the explicit candidate head expression', () => {
+  const workflow = readFileSync(join(root, '.github/workflows/quality.yml'), 'utf8')
+  const checkouts = [...workflow.matchAll(/- uses: actions\/checkout@[^\n]+\n([\s\S]*?)(?=      - |\n  \w|$)/g)]
+  assert.equal(checkouts.length, 9)
+  for (const [, block] of checkouts) assert.match(block, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/)
 })

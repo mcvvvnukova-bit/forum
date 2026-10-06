@@ -1,0 +1,61 @@
+    # astforum-mail:start
+    @astforum_mail host mail.astforum.ru
+    handle @astforum_mail {
+        @webmail_origin header Origin https://webmail.astforum.ru
+        header @webmail_origin {
+            defer
+            Access-Control-Allow-Origin https://webmail.astforum.ru
+            Access-Control-Allow-Credentials true
+            Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Authorization, Content-Type, Accept, X-JMAP-Session, Cache-Control, X-Requested-With"
+            Access-Control-Expose-Headers "Content-Disposition, Content-Length, Location"
+            +Vary Origin
+        }
+        @mail_preflight {
+            method OPTIONS
+            header Origin https://webmail.astforum.ru
+        }
+        respond @mail_preflight 204
+        route {
+            # Public challenge files only; certificates and keys are stored elsewhere.
+            @mail_acme path /.well-known/acme-challenge/*
+            handle @mail_acme {
+                root * /srv/astforum
+                file_server
+            }
+            # Only this observed edge may supply the original client's address.
+            vars mail_client_socket {http.request.remote.host}
+            @mail_edge remote_ip 172.16.160.13
+            vars @mail_edge mail_client_socket {http.request.header.X-Real-IP}
+            map {vars.mail_client_socket} {mail_client_ip} {
+                ~^([0-9.]+):[0-9]+$ ${1}
+                ~^\[([0-9a-fA-F:]+)\]:[0-9]+$ ${1}
+                default {vars.mail_client_socket}
+            }
+            reverse_proxy astforum-stalwart:8080 {
+                header_up -Forwarded
+                header_up X-Forwarded-For {mail_client_ip}
+                header_up X-Forwarded-Proto https
+                header_up X-Forwarded-Host {http.request.host}
+            }
+        }
+    }
+
+    @astforum_webmail host webmail.astforum.ru
+    handle @astforum_webmail {
+        encode zstd gzip
+        reverse_proxy astforum-tmail:80 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+
+    @astforum_campaigns host campaigns.astforum.ru
+    handle @astforum_campaigns {
+        encode zstd gzip
+        reverse_proxy astforum-mail-listmonk-1:9000 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+    # astforum-mail:end

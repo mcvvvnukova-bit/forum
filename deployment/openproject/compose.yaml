@@ -1,0 +1,147 @@
+name: astforum-openproject
+
+x-app: &app
+  image: openproject/openproject:17.8.0-slim
+  restart: unless-stopped
+  stop_grace_period: 60s
+  env_file: .env
+  environment:
+    OPENPROJECT_HOST__NAME: roadmap.astforum.ru
+    OPENPROJECT_ADDITIONAL__HOST__NAMES: web
+    OPENPROJECT_HTTPS: "true"
+    OPENPROJECT_HSTS: "true"
+    OPENPROJECT_DEFAULT__LANGUAGE: ru
+    OPENPROJECT_LOGIN__REQUIRED: "true"
+    OPENPROJECT_SELF__REGISTRATION: "0"
+    OPENPROJECT_EMAIL__DELIVERY__METHOD: smtp
+    OPENPROJECT_MAIL__FROM: notifications@astforum.ru
+    OPENPROJECT_SMTP__ADDRESS: mail.astforum.ru
+    OPENPROJECT_SMTP__PORT: "465"
+    OPENPROJECT_SMTP__DOMAIN: roadmap.astforum.ru
+    OPENPROJECT_SMTP__AUTHENTICATION: login
+    OPENPROJECT_SMTP__USER__NAME: notifications@astforum.ru
+    OPENPROJECT_SMTP__PASSWORD: ${OPENPROJECT_SMTP__PASSWORD:?Required}
+    OPENPROJECT_SMTP__SSL: "true"
+    OPENPROJECT_SMTP__ENABLE__STARTTLS__AUTO: "false"
+    OPENPROJECT_SMTP__OPENSSL__VERIFY__MODE: peer
+    OPENPROJECT_SMTP__TIMEOUT: "30"
+    OPENPROJECT_RAILS__CACHE__STORE: memcache
+    OPENPROJECT_CACHE__MEMCACHE__SERVER: cache:11211
+    OPENPROJECT_COLLABORATIVE__EDITING__HOCUSPOCUS__URL: wss://roadmap.astforum.ru/hocuspocus
+    OPENPROJECT_COLLABORATIVE__EDITING__HOCUSPOCUS__SECRET: ${COLLABORATIVE_SERVER_SECRET:?Required}
+    OPENPROJECT_WEB__WORKERS: "1"
+    RAILS_MIN_THREADS: "2"
+    RAILS_MAX_THREADS: "8"
+    OPENPROJECT_GOOD_JOB_MAX_THREADS: "5"
+    TZ: Europe/Moscow
+  volumes:
+    - assets:/var/openproject/assets
+    - ./patches/query-sums/sums.rb:/app/app/models/query/results/sums.rb:ro
+    - ./patches/query-sums/custom_field_select.rb:/app/app/models/queries/work_packages/selects/custom_field_select.rb:ro
+    - ./patches/query-sums/query_currency_select.rb:/app/modules/costs/lib/costs/query_currency_select.rb:ro
+  networks:
+    - backend
+    - outbound
+  logging: &logging
+    driver: local
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      POSTGRES_DB: openproject
+      POSTGRES_USER: openproject
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U openproject -d openproject"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  cache:
+    image: memcached:1.6-alpine
+    restart: unless-stopped
+    command: [memcached, -m, "128", -I, "16m"]
+    networks:
+      - backend
+    logging: *logging
+
+  seeder:
+    <<: *app
+    command: ./docker/prod/seeder
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+
+  web:
+    <<: *app
+    command: ./docker/prod/web
+    depends_on:
+      seeder:
+        condition: service_completed_successfully
+    networks:
+      backend:
+      outbound:
+      mail:
+      ingress:
+        aliases:
+          - astforum-openproject-web
+    healthcheck:
+      test: [CMD, curl, -fsS, "http://localhost:8080/health_checks/default"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  worker:
+    <<: *app
+    command: ./docker/prod/worker
+    networks:
+      - backend
+      - outbound
+      - mail
+    depends_on:
+      seeder:
+        condition: service_completed_successfully
+
+  collaboration:
+    image: openproject/hocuspocus:17.8.0
+    restart: unless-stopped
+    environment:
+      SECRET: ${COLLABORATIVE_SERVER_SECRET:?Required}
+      OPENPROJECT_URL: http://web:8080
+      OPENPROJECT_HTTPS: "true"
+    networks:
+      backend:
+      ingress:
+        aliases:
+          - astforum-openproject-collaboration
+    logging: *logging
+
+networks:
+  backend:
+    internal: true
+  outbound:
+  mail:
+    external: true
+    name: astforum-mail_mail
+  ingress:
+    external: true
+    name: outline_frontend
+
+volumes:
+  pgdata:
+  assets:

@@ -1,0 +1,20 @@
+    # astforum-openproject:start
+    @astforum_roadmap host roadmap.astforum.ru
+    handle @astforum_roadmap {
+        encode zstd gzip
+        header {
+            -Server
+            X-Content-Type-Options nosniff
+            Referrer-Policy strict-origin-when-cross-origin
+        }
+        reverse_proxy /hocuspocus* astforum-openproject-collaboration:1234 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+        reverse_proxy astforum-openproject-web:8080 {
+            header_up -Forwarded
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Host {http.request.host}
+        }
+    }
+    # astforum-openproject:end

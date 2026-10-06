@@ -139,12 +139,82 @@
         "src/main.test.tsx",
         "src/session.test.ts"
       ]
+    },
+    {
+      "path": "local-previews/user-profile",
+      "name": "astforum-user-profile-local",
+      "scripts": {
+        "build": "tsc --noEmit && vite build",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "lint": "eslint src"
+      },
+      "entrypoints": [
+        "index.html",
+        "src/main.tsx",
+        "src/ProfilePage.tsx"
+      ],
+      "tests": [
+        "src/App.test.tsx",
+        "src/ProfilePage.test.tsx",
+        "src/profile.test.ts"
+      ]
     }
   ],
   "requiredFiles": [
     "scripts/deployment/public_site.py",
     "tests/integration/test_public_site_release.py",
-    "deployment/forum-db/tests/test_configure_role_contract.py"
+    "deployment/forum-db/tests/test_configure_role_contract.py",
+    "deployment/mail/.gitignore",
+    "deployment/mail/README.md",
+    "deployment/mail/backup.sh",
+    "deployment/mail/caddy.fragment",
+    "deployment/mail/compose.yaml",
+    "deployment/mail/configure_acme.py",
+    "deployment/mail/deploy-certificate.py",
+    "deployment/mail/dns-records.txt",
+    "deployment/mail/install-caddy-routes.py",
+    "deployment/mail/listmonk_setup.py",
+    "deployment/mail/stalwart_api.py",
+    "deployment/mail/tmail/env.file",
+    "deployment/mail/verify.py",
+    "deployment/openproject/.gitignore",
+    "deployment/openproject/Caddy.route",
+    "deployment/openproject/README.md",
+    "deployment/openproject/backup.sh",
+    "deployment/openproject/compose.yaml",
+    "deployment/openproject/edge-Caddyfile.example",
+    "deployment/openproject/images.lock.json",
+    "deployment/openproject/patches/query-sums/custom_field_select.rb",
+    "deployment/openproject/patches/query-sums/query_currency_select.rb",
+    "deployment/openproject/patches/query-sums/sums.rb",
+    "deployment/vps/outline/Caddyfile.example",
+    "deployment/vps/outline/compose.yaml",
+    "deployment/vps/outline/dev-landing-api.override.yaml",
+    "deployment/astforum-static/favicon.png",
+    "deployment/astforum-static/fonts/golos-text-cyrillic.woff2",
+    "deployment/astforum-static/fonts/golos-text-latin.woff2",
+    "deployment/astforum-static/fonts/unbounded-cyrillic.woff2",
+    "deployment/astforum-static/fonts/unbounded-latin.woff2",
+    "deployment/astforum-static/forum-hard-hat.png",
+    "deployment/astforum-static/index.html",
+    "deployment/pgadmin/README.md",
+    "deployment/pgadmin/compose.yaml",
+    "deployment/pgadmin/configure-admin.py",
+    "deployment/pgadmin/servers.json",
+    "artifacts/email-previews/2026-09-29-request-received/README.md",
+    "artifacts/email-previews/2026-09-29-request-received/email.html",
+    "artifacts/email-previews/2026-09-29-request-received/index.html",
+    "artifacts/email-previews/2026-09-29-request-received/remaining/cancelled.html",
+    "artifacts/email-previews/2026-09-29-request-received/remaining/confirmed.html",
+    "artifacts/email-previews/2026-09-29-request-received/remaining/day.html",
+    "artifacts/email-previews/2026-09-29-request-received/remaining/fifteen.html",
+    "artifacts/email-previews/2026-09-29-request-received/remaining/hour.html",
+    "artifacts/email-previews/2026-09-29-request-received/remaining/rejected.html",
+    "deployment/forum-api/sber-dns.override.yaml",
+    "scripts/verification/check-operational-sources.py",
+    "artifacts/repository-audits/accepted-source-matrix.json",
+    "artifacts/repository-audits/accepted-source-matrix.md"
   ],
   "ignoredSourceDirectories": [
     ".superpowers",

@@ -1,6 +1,6 @@
 # Candidate checks
 
-`repository-layout.json` records the current six package owners, exact declared
+`repository-layout.json` records the current seven package owners, exact declared
 commands, entrypoints and test files. `node check-repository-layout.mjs` runs
 from any directory and validates the tracked candidate tree. Required packages
 cannot be skipped. Generated dependencies/builds, private JSON and backups must
@@ -38,7 +38,7 @@ external provider configuration is required.
 `node --test scripts/verification/checks.test.mjs` exercises missing actual
 packages, locks/tests, command drift, tracked generated/private files and the
 final gate. The stable `quality` job requires layout, API/browser, aggregate
-frontend matrix, composition, publishers and ACL jobs to equal `success`.
+frontend matrix, composition, publishers, ACL, profile and operational jobs to equal `success`.
 Missing, skipped and canceled results fail. Superseded workflow/ref candidates
 may be canceled; this cannot give them a successful final gate.
 
@@ -49,3 +49,18 @@ generated sites and worktree files are never uploaded as artifacts. Native
 command logs retain diagnostics for inspection. The first actual GitHub run
 must validate this candidate head before merge; local checks do not substitute
 for the remote workflow result.
+
+Task4 adds the independent profile fixture owner and its exact lock, tests,
+lint, typecheck and build. Operational checks require all selected source files
+in the layout and validate the accepted matrix's actual file hashes/modes,
+Python/shell/Ruby syntax, four Compose owners, both active override contracts,
+eight independent HTML templates and the production Caddyfile. Compose parses
+copies with synthetic environment values; administrative programs are never
+executed. Caddy runs only `adapt` in a disposable network-none container from
+an immutable official image. No SMTP, provider, database data or server restart
+is part of these checks. Every checkout selects the exact pull-request head SHA
+(or push SHA), rather than GitHub's virtual merge; parent verifies job logs.
+
+Ruby patch syntax uses the pinned OpenProject 17.8.0 runtime in a disposable
+network-none/read-only container with the `ruby` entrypoint; host Ruby may be
+older and cannot parse the deployed Ruby language. This runs syntax checks only.

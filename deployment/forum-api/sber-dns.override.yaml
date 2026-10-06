@@ -1,0 +1,6 @@
+services:
+  forum_api:
+    # The VPS resolver works from the container; public UDP resolvers time out.
+    # Explicit DNS survives startup before the host's resolv.conf is populated.
+    dns:
+      - 172.16.160.1

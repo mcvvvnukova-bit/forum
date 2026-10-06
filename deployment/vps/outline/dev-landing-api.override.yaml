@@ -1,0 +1,4 @@
+services:
+  dev_landing_auth:
+    environment:
+      FORUM_API_ORIGIN: http://forum_api:3001
