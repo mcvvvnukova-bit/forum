@@ -22,12 +22,12 @@ def snapshot(directory):
             for p in directory.rglob('*') if p.is_file()}
 
 
-home = load('built_home', 'deployment/primer-home/scripts/deploy-dev-home.py')
-audience = load('built_audience', 'deployment/audience-pages/scripts/deploy.py')
-auth = load('built_auth', 'deployment/public-auth/scripts/deploy.py')
-home_build = ROOT / 'deployment/primer-home/dist'
-audience_build = ROOT / 'deployment/audience-pages/dist/site'
-auth_build = ROOT / 'deployment/public-auth/dist'
+home = load('built_home', 'scripts/deployment/primer-home/deploy-dev-home.py')
+audience = load('built_audience', 'scripts/deployment/audience-pages/deploy.py')
+auth = load('built_auth', 'scripts/deployment/public-auth/deploy.py')
+home_build = ROOT / 'apps/primer-home/dist'
+audience_build = ROOT / 'apps/audience-pages/dist/site'
+auth_build = ROOT / 'apps/public-auth/dist'
 for source, entry in ((home_build, 'index.html'), (audience_build, 'customers/index.html'),
                       (auth_build, 'index.html')):
     assert (source / entry).is_file(), f'Fresh owned build missing: {source / entry}'

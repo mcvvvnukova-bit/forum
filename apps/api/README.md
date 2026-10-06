@@ -14,7 +14,7 @@ docker compose -f deployment/forum-api/compose.test.yaml up -d --wait
 From `apps/api`:
 
 ```sh
-npm ci
+npm ci --prefix ../..
 npm run build
 DATABASE_URL=postgres://postgres:local-auth-tests@127.0.0.1:55432/forum_auth_test npm run migrate
 DATABASE_URL=postgres://postgres:local-auth-tests@127.0.0.1:55432/forum_auth_test npm start
@@ -190,12 +190,11 @@ The browser runner is owned by this API package: its locked dev dependencies
 include Playwright and Vite. The Fastify override keeps the adapter and direct
 Fastify dependency on the same patched version rather than its older nested pin.
 It composes the existing frontend in
-`deployment/dev-landing`, which needs its separate locked install (React, Primer,
+`apps/legacy-landing`, which needs its separate locked install (React, Primer,
 and its Vite config/plugin). From a clean checkout at the repository root:
 
 ```sh
-npm ci --prefix apps/api
-npm ci --prefix deployment/dev-landing
+npm ci --prefix ../..
 cd apps/api
 npx --no-install playwright install chromium
 TEST_DATABASE_URL=postgres://postgres:local-auth-tests@127.0.0.1:55432/forum_auth_test npm run test:browser

@@ -7,9 +7,14 @@
   "packages": [
     {
       "path": ".",
-      "name": "astforum-repository-checks",
+      "name": "@astforum/repository",
       "scripts": {
-        "test:composition": "vitest run --config vitest.composition.config.ts"
+        "test:composition": "vitest run --config vitest.composition.config.ts",
+        "build": "npm run build --workspaces",
+        "typecheck": "npm run typecheck --workspaces",
+        "test:mail": "python3 scripts/verification/check-mail-resources.py && node tests/e2e/mail-resources.mjs",
+        "check:layout": "node scripts/verification/check-repository-layout.mjs",
+        "test:publishers": "python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v"
       },
       "entrypoints": [
         "vitest.composition.config.ts"
@@ -46,15 +51,15 @@
       ]
     },
     {
-      "path": "deployment/dev-landing",
-      "name": "astforum-dev-landing",
+      "path": "apps/legacy-landing",
+      "name": "@astforum/legacy-landing",
       "scripts": {
         "build": "node scripts/prepare-runtime.mjs && vite build && vite build --config vite.landing.config.ts && node scripts/finalize-landing-build.mjs",
         "typecheck": "tsc --noEmit",
         "test": "npm run test:frontend && npm run test:gateway && npm run test:layout",
         "test:frontend": "vitest run src",
         "test:gateway": "python3 -m unittest discover -s tests -p 'test_*.py'",
-        "test:layout": "npm run build && node scripts/check_landing_layout.mjs"
+        "test:layout": "npm run build && node ../../tests/e2e/legacy-landing-layout.mjs"
       },
       "entrypoints": [
         "index.html",
@@ -64,7 +69,6 @@
         "src/landing/LandingApp.tsx"
       ],
       "tests": [
-        "scripts/check_landing_layout.mjs",
         "src/AuthScreen.test.tsx",
         "src/customers/CustomerLanding.test.tsx",
         "src/customers/customer-intent.test.ts",
@@ -77,8 +81,8 @@
       ]
     },
     {
-      "path": "deployment/primer-home",
-      "name": "astforum-primer-home-local",
+      "path": "apps/primer-home",
+      "name": "@astforum/primer-home",
       "scripts": {
         "build": "tsc --noEmit && vite build",
         "build:dev": "tsc --noEmit && VITE_FORUM_SESSION=true VITE_LOGIN_URL='/auth/sber-id/start?intent=login' VITE_START_URL='/auth/sber-id/start?intent=register&subject=individual' vite build",
@@ -88,18 +92,16 @@
       },
       "entrypoints": [
         "index.html",
-        "src/main.tsx",
-        "scripts/deploy-dev-home.py"
+        "src/main.tsx"
       ],
       "tests": [
-        "scripts/test_deploy.py",
         "src/home.test.tsx",
         "src/useForumSession.test.tsx"
       ]
     },
     {
-      "path": "deployment/audience-pages",
-      "name": "astforum-audience-pages",
+      "path": "apps/audience-pages",
+      "name": "@astforum/audience-pages",
       "scripts": {
         "build": "tsc --noEmit && vite build",
         "typecheck": "tsc --noEmit",
@@ -109,40 +111,36 @@
       "entrypoints": [
         "index.html",
         "src/main.tsx",
-        "scripts/deploy.py",
         "scripts/package-site.mjs"
       ],
       "tests": [
-        "scripts/test_deploy.py",
         "src/audience.test.tsx",
         "src/intent.test.ts",
         "src/resume.test.ts"
       ]
     },
     {
-      "path": "deployment/public-auth",
-      "name": "astforum-public-auth",
+      "path": "apps/public-auth",
+      "name": "@astforum/public-auth",
       "scripts": {
         "build": "tsc --noEmit && vite build",
         "typecheck": "tsc --noEmit",
-        "test": "vitest run && python3 -m unittest discover -s scripts -p 'test_*.py'",
+        "test": "vitest run && python3 -m unittest discover -s ../../scripts/deployment/public-auth -p 'test_*.py'",
         "lint": "eslint src"
       },
       "entrypoints": [
         "index.html",
-        "src/main.tsx",
-        "scripts/deploy.py"
+        "src/main.tsx"
       ],
       "tests": [
-        "scripts/test_deploy.py",
         "src/PublicAuth.test.tsx",
         "src/main.test.tsx",
         "src/session.test.ts"
       ]
     },
     {
-      "path": "local-previews/user-profile",
-      "name": "astforum-user-profile-local",
+      "path": "apps/profile-preview",
+      "name": "@astforum/profile-preview",
       "scripts": {
         "build": "tsc --noEmit && vite build",
         "typecheck": "tsc --noEmit",
@@ -191,30 +189,44 @@
     "deployment/vps/outline/Caddyfile.example",
     "deployment/vps/outline/compose.yaml",
     "deployment/vps/outline/dev-landing-api.override.yaml",
-    "deployment/astforum-static/favicon.png",
-    "deployment/astforum-static/fonts/golos-text-cyrillic.woff2",
-    "deployment/astforum-static/fonts/golos-text-latin.woff2",
-    "deployment/astforum-static/fonts/unbounded-cyrillic.woff2",
-    "deployment/astforum-static/fonts/unbounded-latin.woff2",
-    "deployment/astforum-static/forum-hard-hat.png",
-    "deployment/astforum-static/index.html",
+    "apps/web/production-static/favicon.png",
+    "apps/web/production-static/fonts/golos-text-cyrillic.woff2",
+    "apps/web/production-static/fonts/golos-text-latin.woff2",
+    "apps/web/production-static/fonts/unbounded-cyrillic.woff2",
+    "apps/web/production-static/fonts/unbounded-latin.woff2",
+    "apps/web/production-static/forum-hard-hat.png",
+    "apps/web/production-static/index.html",
     "deployment/pgadmin/README.md",
     "deployment/pgadmin/compose.yaml",
     "deployment/pgadmin/configure-admin.py",
     "deployment/pgadmin/servers.json",
-    "artifacts/email-previews/2026-09-29-request-received/README.md",
-    "artifacts/email-previews/2026-09-29-request-received/email.html",
-    "artifacts/email-previews/2026-09-29-request-received/index.html",
-    "artifacts/email-previews/2026-09-29-request-received/remaining/cancelled.html",
-    "artifacts/email-previews/2026-09-29-request-received/remaining/confirmed.html",
-    "artifacts/email-previews/2026-09-29-request-received/remaining/day.html",
-    "artifacts/email-previews/2026-09-29-request-received/remaining/fifteen.html",
-    "artifacts/email-previews/2026-09-29-request-received/remaining/hour.html",
-    "artifacts/email-previews/2026-09-29-request-received/remaining/rejected.html",
+    "deployment/mail/templates/README.md",
+    "deployment/mail/templates/email.html",
+    "deployment/mail/templates/index.html",
+    "deployment/mail/templates/remaining/cancelled.html",
+    "deployment/mail/templates/remaining/confirmed.html",
+    "deployment/mail/templates/remaining/day.html",
+    "deployment/mail/templates/remaining/fifteen.html",
+    "deployment/mail/templates/remaining/hour.html",
+    "deployment/mail/templates/remaining/rejected.html",
     "deployment/forum-api/sber-dns.override.yaml",
     "scripts/verification/check-operational-sources.py",
     "artifacts/repository-audits/accepted-source-matrix.json",
-    "artifacts/repository-audits/accepted-source-matrix.md"
+    "artifacts/repository-audits/accepted-source-matrix.md",
+    "tests/e2e/legacy-landing-layout.mjs",
+    "scripts/deployment/primer-home/deploy-dev-home.py",
+    "packages/public-navigation.ts",
+    "scripts/deployment/legacy-landing/deploy.sh",
+    "scripts/verification/check_origin_login.py",
+    "apps/dev-gateway/forum_dev_auth.py",
+    "scripts/deployment/audience-pages/deploy.py",
+    "scripts/deployment/audience-pages/test_deploy.py",
+    "scripts/deployment/public-auth/deploy.py",
+    "scripts/deployment/public-auth/test_deploy.py",
+    "scripts/deployment/primer-home/test_deploy.py",
+    "scripts/verification/check-mail-resources.py",
+    "deployment/mail/templates/logo.webp",
+    "tests/e2e/mail-resources.mjs"
   ],
   "ignoredSourceDirectories": [
     ".superpowers",
@@ -224,5 +236,6 @@
     "backups",
     ".secrets"
   ],
-  "ignoredPrivateSuffix": ".private.json"
+  "ignoredPrivateSuffix": ".private.json",
+  "workspaceRoot": "."
 }

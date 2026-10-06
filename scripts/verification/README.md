@@ -14,10 +14,10 @@ reopened content and attachments. It is intentionally disabled for this
 candidate; there is no environment-variable bypass.
 
 The workflow uses Node 24.18.1 and Python 3 stdlib on Ubuntu 24.04. Every owner
-is installed from its own lock with `npm ci`. API and dev-landing install their
+is installed from the canonical root lock with root `npm ci`. API and legacy landing install their
 own Playwright Chromium. The frontend jobs run declared lint where present,
 typecheck, tests and builds; the landing test already includes its build/layout
-and gateway/rollback tests. Root composition installs root, homepage, audience and auth.
+and gateway/rollback tests. Root composition uses the shared root React and Primer dependency context.
 Publisher integration runs the actual three entrypoints plus home/audience
 unit regressions; auth's Python suite is already part of its frontend script.
 Fresh builds additionally exercise auth → home → audience → auth across eight
@@ -36,7 +36,7 @@ Only synthetic credentials/provider data are used; no application dump or
 external provider configuration is required.
 
 `node --test scripts/verification/checks.test.mjs` exercises missing actual
-packages, locks/tests, command drift, tracked generated/private files and the
+packages, root lock/tests, command drift, tracked generated/private files and the
 final gate. The stable `quality` job requires layout, API/browser, aggregate
 frontend matrix, composition, publishers, ACL, profile and operational jobs to equal `success`.
 Missing, skipped and canceled results fail. Superseded workflow/ref candidates
@@ -50,7 +50,7 @@ command logs retain diagnostics for inspection. The first actual GitHub run
 must validate this candidate head before merge; local checks do not substitute
 for the remote workflow result.
 
-Task4 adds the independent profile fixture owner and its exact lock, tests,
+Task4 adds the independent profile fixture owner and its reviewed lock, tests,
 lint, typecheck and build. Operational checks require all selected source files
 in the layout and validate the accepted matrix's actual file hashes/modes,
 Python/shell/Ruby syntax, four Compose owners, both active override contracts,
@@ -64,3 +64,5 @@ is part of these checks. Every checkout selects the exact pull-request head SHA
 Ruby patch syntax uses the pinned OpenProject 17.8.0 runtime in a disposable
 network-none/read-only container with the `ruby` entrypoint; host Ruby may be
 older and cannot parse the deployed Ruby language. This runs syntax checks only.
+
+Task5 consolidates all six npm app workspaces into one root lock, relocates publishers to `scripts/deployment/<owner>` and retains source-only Python/static owners. All eight HTML templates pass offline local resource closure and local Chromium rendering through `npm run test:mail`; no email is sent. Dated deployment observations retain original paths and semantics.

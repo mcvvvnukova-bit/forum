@@ -41,6 +41,14 @@ def verify_provenance():
             assert mode == file['candidateMode'], candidate
             accepted += 1
     assert accepted > 0
+    parity = json.loads((ROOT / 'artifacts/repository-audits/task-5-source-parity.json').read_text())
+    for file in parity['files']:
+        path = ROOT / file['newPath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == file['newSha256'], file['newPath']
+        mode = '100755' if path.stat().st_mode & 0o111 else '100644'
+        assert mode == file['newMode'], file['newPath']
+        if file['unchanged']:
+            assert file['previousSha256'] == file['newSha256'] and file['previousMode'] == file['newMode']
     return accepted
 
 
@@ -55,6 +63,7 @@ class Template(HTMLParser):
 
 def main():
     count = verify_provenance()
+    run("python3", str(ROOT / "scripts/verification/check-mail-resources.py"))
     owners = ['deployment/mail', 'deployment/openproject', 'deployment/pgadmin', 'deployment/vps/outline']
     for owner in owners:
         for path in (ROOT / owner).rglob('*'):
@@ -64,7 +73,7 @@ def main():
                 run('bash', '-n', str(path))
             elif path.suffix == '.rb':
                 run('docker', 'run', '--rm', '--network', 'none', '--read-only', '--entrypoint', 'ruby', '-v', f'{path}:/candidate.rb:ro', RUBY, '-c', '/candidate.rb')
-    templates = sorted((ROOT / 'artifacts/email-previews/2026-09-29-request-received').rglob('*.html'))
+    templates = sorted((ROOT / 'deployment/mail/templates').rglob('*.html'))
     assert len(templates) == 8
     for path in templates:
         parser = Template()

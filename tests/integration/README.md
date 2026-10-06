@@ -4,8 +4,6 @@ From the repository root, install the declared packages:
 
 ```sh
 npm ci
-npm ci --prefix deployment/audience-pages
-npm ci --prefix deployment/public-auth
 npm run test:composition
 ```
 
@@ -16,7 +14,7 @@ locks still own their production builds and existing test suites. Tests replace
 only the session-fetch and provider-navigation boundaries; no server, provider
 or database is contacted.
 
-The shared `deployment/public-navigation.ts` contract stores a same-origin
+The shared `packages/public-navigation.ts` contract stores a same-origin
 public background URL in the modal history entry, retains other history fields,
 and notifies the page entrypoint when authentication pushes a URL. Audience
 popstate handling reads that background instead of reinterpreting `/login` as
@@ -31,12 +29,12 @@ select and scroll to their example.
 Keep the existing checks as well:
 
 ```sh
-npm --prefix deployment/audience-pages test
-npm --prefix deployment/audience-pages run typecheck
-npm --prefix deployment/audience-pages run build
-npm --prefix deployment/public-auth test
-npm --prefix deployment/public-auth run typecheck
-npm --prefix deployment/public-auth run build
+npm --prefix apps/audience-pages test
+npm --prefix apps/audience-pages run typecheck
+npm --prefix apps/audience-pages run build
+npm --prefix apps/public-auth test
+npm --prefix apps/public-auth run typecheck
+npm --prefix apps/public-auth run build
 ```
 
 
@@ -45,9 +43,9 @@ Run their release regression checks from the root without a server or provider:
 
 ```sh
 python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py'
-python3 -m unittest discover -s deployment/primer-home/scripts -p 'test_*.py'
-python3 -m unittest discover -s deployment/audience-pages/scripts -p 'test_*.py'
-python3 -m unittest discover -s deployment/public-auth/scripts -p 'test_*.py'
+python3 -m unittest discover -s scripts/deployment/primer-home -p 'test_*.py'
+python3 -m unittest discover -s scripts/deployment/audience-pages -p 'test_*.py'
+python3 -m unittest discover -s scripts/deployment/public-auth -p 'test_*.py'
 ```
 
 `publish(source, target, backups, *, label, pages, assets, commit=None,

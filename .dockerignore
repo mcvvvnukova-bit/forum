@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.test-build
+.git
+.gitnexus
+.superpowers
+**/.env*
+**/secrets
+**/.secrets
+**/*.private.json
+backups
+artifacts
+docs
+local-previews
