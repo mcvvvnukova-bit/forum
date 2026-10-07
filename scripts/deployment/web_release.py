@@ -139,12 +139,67 @@ def deploy(artifact, target, backups, *, source_sha, expected_target, environmen
                 shutil.move(str(prepared), str(backup / 'prepared-or-failed'))
 
 
+def rollback(target, release_backup, backups, *, expected_target, verifier):
+    """Restore owned pages/state from one exact successful release backup.
+
+    Assets and independently owned files remain current. Failed rollback verifier
+    exchanges back to the starting tree, provided both CAS fingerprints still own it.
+    """
+    target, release_backup, backups = Path(target), Path(release_backup), Path(backups)
+    if not callable(verifier):
+        raise ValueError('Rollback served verifier required')
+    before_source = release_backup / 'before'
+    validate_tree(before_source)
+    if not (release_backup / 'deployment.json').is_file():
+        raise ValueError('Rollback requires an exact successful release backup')
+    with site_lock(target):
+        current = inventory(target)
+        if fingerprint(current) != expected_target:
+            raise RuntimeError('Rollback target preflight drift')
+        operation = uuid.uuid4().hex
+        receipt = backups / ('rollback-' + operation)
+        receipt.mkdir(parents=True, mode=0o700)
+        os.chmod(receipt, 0o700)
+        prepared = target.parent / ('.web-rollback-' + operation)
+        shutil.copytree(target, prepared)
+        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register']]
+        for name in pages + ['.public-auth.json', '.web-release.json']:
+            source = before_source / name
+            if source.exists(): atomic_write(prepared / name, source.read_bytes())
+            else: (prepared / name).unlink(missing_ok=True)
+        # All original hashes must still be available; never delete a newer hash.
+        for name in inventory(before_source):
+            if name.startswith(('assets/', 'audience-assets/', 'public-auth-assets/', 'web-assets/', 'web-media/')):
+                install_asset(prepared / name, (before_source / name).read_bytes())
+        proposed = inventory(prepared)
+        if inventory(target) != current:
+            raise RuntimeError('Concurrent rollback preparation change; prepared tree '+str(prepared))
+        report = {'operationId':operation, 'rollbackOf':str(release_backup), 'servedTreeFingerprint':fingerprint(proposed), 'assetsRetained':True}
+        exchange(target, prepared)
+        try:
+            report['checks'] = verifier(report)
+            if inventory(target) != proposed:
+                raise RuntimeError('Concurrent rollback verification change')
+        except BaseException as error:
+            if inventory(target) != proposed or inventory(prepared) != current:
+                atomic_write(receipt / 'rollback-conflicts.json', b'{"reason":"Concurrent bytes preserved"}\n')
+                raise RuntimeError('Rollback CAS conflict; both trees preserved at '+str(prepared)) from error
+            exchange(target, prepared)
+            raise
+        finally:
+            if prepared.exists() and not (receipt / 'rollback-conflicts.json').exists():
+                shutil.move(str(prepared), str(receipt / 'previous'))
+        atomic_write(receipt / 'rollback.json', (json.dumps(report, indent=2)+'\n').encode())
+        return report
+
+
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('artifact',type=Path)
+    parser.add_argument('artifact',type=Path,nargs='?')
+    parser.add_argument('--rollback-backup',type=Path)
     parser.add_argument('--target',type=Path,required=True)
     parser.add_argument('--backups',type=Path,required=True)
-    parser.add_argument('--source-sha',required=True)
+    parser.add_argument('--source-sha')
     parser.add_argument('--expected-target',required=True)
     parser.add_argument('--environment',choices=['dev'],required=True)
     parser.add_argument('--verify-command',nargs='+',required=True)
@@ -154,5 +209,10 @@ if __name__ == '__main__':
     def verify(report):
         subprocess.run(args.verify_command,check=True)
         return {'commandSucceeded':True, 'receipt':'Caller must save independent origin/HTTPS/browser evidence'}
-    print(json.dumps(deploy(args.artifact,args.target,args.backups,source_sha=args.source_sha,
-                           expected_target=args.expected_target,environment=args.environment,verifier=verify),indent=2))
+    if args.rollback_backup and not args.artifact:
+        result=rollback(args.target,args.rollback_backup,args.backups,expected_target=args.expected_target,verifier=verify)
+    elif args.artifact and not args.rollback_backup and args.source_sha:
+        result=deploy(args.artifact,args.target,args.backups,source_sha=args.source_sha,expected_target=args.expected_target,environment=args.environment,verifier=verify)
+    else:
+        raise SystemExit('Choose an artifact+source-sha or one exact rollback-backup')
+    print(json.dumps(result,indent=2))

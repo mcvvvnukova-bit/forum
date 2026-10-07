@@ -12,6 +12,14 @@
       "candidateMode": "100644"
     },
     {
+      "previousCandidatePath": "README.md",
+      "previousSha256": "33ab2ca7e888d3739afb0e39b9dafcd31ea210c6d22095dc80426f18ba967715",
+      "previousMode": "100644",
+      "candidatePath": "README.md",
+      "candidateSha256": "e7a0d9034c04a3531257372de9e6d4cf3d631e9783f8d25b9a8c2f524f871ae9",
+      "candidateMode": "100644"
+    },
+    {
       "previousCandidatePath": "apps/api/Dockerfile",
       "previousSha256": "d33d1ebc7880b7df20dc57e86d0f0a317ebbffa7bb2c0191812c2899809445d4",
       "previousMode": "100644",
@@ -24,7 +32,7 @@
       "previousSha256": "48a2f2436cdc0822f9a3d47626b665ec50b60f35f92169b5195ab2d189762d90",
       "previousMode": "100644",
       "candidatePath": "apps/audience-pages/README.md",
-      "candidateSha256": "51de8571fbed899226c9cfa52fc002067c23526c61677fd3cf09e92ab2e7ef49",
+      "candidateSha256": "b692c1d93428c24429b714652b1363127b9b031abce8ce03932702cda2c65b56",
       "candidateMode": "100644"
     },
     {
@@ -232,7 +240,7 @@
       "previousSha256": "666cc69825bace2808c00f04c4f1a62916d5732d4f6a9c76b06cf7480fbc8316",
       "previousMode": "100644",
       "candidatePath": "scripts/deployment/build-web-release.mjs",
-      "candidateSha256": "6c837e8d2ed464bd5c99bdac2d5f14b0c45c88e6ab99a21e14006ff46c323d76",
+      "candidateSha256": "8da883961461dd1adbfd4a6244dfe0da095ed3899c13e50d757aa7182f48a487",
       "candidateMode": "100644"
     },
     {
@@ -448,7 +456,7 @@
       "previousSha256": "5dc13a520f6e8b01e8008775515cd14d638237577453cf5fea56b65339b437b5",
       "previousMode": "100644",
       "candidatePath": "apps/primer-home/README.md",
-      "candidateSha256": "a601fe19ffff0fb534150736881d3caf6403b33be251c2f3c85a3dbb8e7b8769",
+      "candidateSha256": "2a6cec60964298a7704d53cedbdbc0149db864353756b275f0f8e86dfe1ac0e7",
       "candidateMode": "100644"
     },
     {
@@ -752,7 +760,7 @@
       "previousSha256": "4054145455131c08e05d4a1a3310f4272a4ca00b059b05cd09547ed5f1495f1d",
       "previousMode": "100644",
       "candidatePath": "apps/public-auth/README.md",
-      "candidateSha256": "f823353eda6840f15adc952b2657d55fcb3ba4e2de3d95c5787a3137b83d69d3",
+      "candidateSha256": "dc34202ccdaf9bf8898df976a2e377b26aa0bae3c7b4bbe07ff1088844bd75c8",
       "candidateMode": "100644"
     },
     {
@@ -928,7 +936,7 @@
       "previousSha256": "7d7d6243779436725c8cb29cd226bd105c7e964b6ea5b5b610129f9728fd1412",
       "previousMode": "100644",
       "candidatePath": "deployment/release.md",
-      "candidateSha256": "45a925121aca1188a10a6aba8850c105bd7da63cc20ed21713d4e9c92085d977",
+      "candidateSha256": "69e4a8e279dbdad1249f02ed252fc22a1a0c5f2000b731f155e30e6600b7723d",
       "candidateMode": "100644"
     },
     {
@@ -936,7 +944,7 @@
       "previousSha256": "093fc7c395873e5504525597728732de1f6f480882fda908e70353173f5f2760",
       "previousMode": "100644",
       "candidatePath": "package-lock.json",
-      "candidateSha256": "06477a43119ddd038763f4d65bd1fa3de1edc3ea270ed70f11bde95dc99f6f36",
+      "candidateSha256": "6129529b156384a535b93bcdba332a9d97aff14f50e96b7ba996e4dabb69da38",
       "candidateMode": "100644"
     },
     {
@@ -944,7 +952,7 @@
       "previousSha256": "e30ec7fceb0ed55d67cf9269eb52cf60499b6171326517969892da6cd83adb5b",
       "previousMode": "100644",
       "candidatePath": "package.json",
-      "candidateSha256": "2072ea17ba1b3918b4374488a3d3557eed588fc1129d1eec5107d99e3c211401",
+      "candidateSha256": "b739c7c1739c424a0e4d3649eb8e5c34127eb23738d8479371ae63cde822d869",
       "candidateMode": "100644"
     },
     {
@@ -993,6 +1001,14 @@
       "previousMode": "100644",
       "candidatePath": "scripts/verification/repository-layout.json",
       "candidateSha256": "a2543d833e5a176b260816e1f94dba9140c6c9cadd25c5c8ff9cc64e16c71211",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/README.md",
+      "previousSha256": "c33ab960d73b07ef75d58ad99922d8562dbc037ae4a4dd0ee0f778993139da0b",
+      "previousMode": "100644",
+      "candidatePath": "tests/integration/README.md",
+      "candidateSha256": "f8ba81de820e7794f4a162bb0844edafd88d94c50caf780bd8a80cfb1fa5ba1c",
       "candidateMode": "100644"
     },
     {
@@ -1427,11 +1443,11 @@
     },
     {
       "path": "scripts/deployment/build-web-release.mjs",
-      "sha256": "6c837e8d2ed464bd5c99bdac2d5f14b0c45c88e6ab99a21e14006ff46c323d76"
+      "sha256": "8da883961461dd1adbfd4a6244dfe0da095ed3899c13e50d757aa7182f48a487"
     },
     {
       "path": "scripts/deployment/web_release.py",
-      "sha256": "f6954dc1d52a44111d5ada7685538f12facca49e0aab2babb1037f898648bd37"
+      "sha256": "ec71983b2447ab00f4209bd617264d67769c04ca2b16d39effb02df94447dcb8"
     },
     {
       "path": "scripts/verification/check-web-release.sh",
@@ -1443,7 +1459,7 @@
     },
     {
       "path": "tests/e2e/public-site.spec.ts",
-      "sha256": "c92357c8329d4e528d7ed01f66eae7491286ecf497cd6bc66132022311595f9c"
+      "sha256": "dfb52e1c3653170045b5d1aeccf7321c35a8350ebe00e561427e1c279f2a7636"
     },
     {
       "path": "tests/e2e/serve-public-site.mjs",
@@ -1451,7 +1467,7 @@
     },
     {
       "path": "tests/integration/test_web_release.py",
-      "sha256": "2fd08b4a4c50da00b63e9f71f1466371dbcf51d4c529b65230cc8ead246719bd"
+      "sha256": "d9ef6d440062f2a9a07ac7e91d6bb41f8eec5fa12c7f923a8a0b8d1d5e54e980"
     }
   ]
 }

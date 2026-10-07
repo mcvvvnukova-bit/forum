@@ -127,3 +127,18 @@ verify exact packaged CI bytes against origin and public HTTPS independently.
 No dev UI promotion. Apply only newly confirmed accepted production drift with its
 own backup/readiness/rollback. Task7 and whole-environment reconciliation remain
 pending until parent completes these actual runtime gates.
+
+For an explicit rollback after a successful release, use the exact private backup
+returned by that operation and a new target inventory CAS (never an arbitrary latest backup):
+
+```sh
+python3 scripts/deployment/web_release.py --rollback-backup /exact/web-OPERATION \
+  --target /opt/outline/dev-astforum/landing --backups /path/to/private-backups \
+  --expected-target FRESH_INVENTORY_SHA --environment dev \
+  --verify-command python3 /path/to/previous-served-verifier.py
+```
+
+This restores only the seven owned HTML routes and prior release/auth metadata,
+keeps newer assets and independently owned files, and atomically exchanges inside
+the same parent mount. A failed rollback verifier restores the starting release
+only while its CAS still matches; a conflict preserves both trees for inspection.

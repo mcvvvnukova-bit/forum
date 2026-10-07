@@ -12,7 +12,7 @@ import threading
 import unittest
 import urllib.request
 sys.path.insert(0, '/repo')
-from scripts.deployment.web_release import deploy, fingerprint, inventory, validate_artifact
+from scripts.deployment.web_release import deploy, fingerprint, inventory, validate_artifact, rollback
 from scripts.deployment.public_site import publish, site_lock
 spec=importlib.util.spec_from_file_location('web_release_gateway','/repo/apps/dev-gateway/forum_dev_auth.py')
 gateway=importlib.util.module_from_spec(spec);sys.modules[spec.name]=gateway;spec.loader.exec_module(gateway)
@@ -78,6 +78,8 @@ class Release(unittest.TestCase):
         def verify(report):
             with self.assertRaisesRegex(RuntimeError,'busy'):self.run_deploy(self.verify)
             with self.assertRaisesRegex(RuntimeError,'busy'):
+                publish(self.artifact/'site',self.target,self.backups,label='old-concurrent',pages={},assets={})
+            with self.assertRaisesRegex(RuntimeError,'busy'):
                 with site_lock(self.target):pass
             return self.verify(report)
         self.run_deploy(verify)
@@ -95,6 +97,32 @@ class Release(unittest.TestCase):
         self.assertEqual(self.get('index.html'),b'parallel bytes')
         self.assertEqual(len(list(self.parent.glob('.web-prepared-*'))),1)
         self.assertEqual(len(list(self.backups.glob('*/rollback-conflicts.json'))),1)
+    def test_explicit_successful_rollback_preserves_late_hashes_and_cookie(self):
+        report=self.run_deploy(self.verify)
+        def verify_old(_):
+            self.assertEqual(self.get('index.html'),self.old)
+            for name in self.manifest['files']:
+                if name.startswith(('web-assets/','web-media/')):self.assertEqual(self.get(name),(self.artifact/'site'/name).read_bytes())
+            return {'oldGatewayCookieAndLateAssets':True}
+        rollback(self.target,Path(report['backup']),self.backups,expected_target=fingerprint(inventory(self.target)),verifier=verify_old)
+        self.assertFalse((self.target/'.web-release.json').exists())
+
+    def test_explicit_rollback_verifier_failure_restores_current_release(self):
+        report=self.run_deploy(self.verify)
+        current=inventory(self.target)
+        def fail(_):raise RuntimeError('forced rollback verifier')
+        with self.assertRaisesRegex(RuntimeError,'forced rollback verifier'):
+            rollback(self.target,Path(report['backup']),self.backups,expected_target=fingerprint(current),verifier=fail)
+        self.assertEqual(inventory(self.target),current)
+        self.verify({})
+    def test_changed_artifact_bytes_and_extra_files_fail_closed(self):
+        corrupt=self.parent/'corrupt'
+        shutil.copytree(self.artifact,corrupt)
+        (corrupt/'site/index.html').write_bytes(b'changed artifact bytes')
+        with self.assertRaisesRegex(ValueError,'bytes/inventory'):validate_artifact(corrupt,self.sha,'dev')
+        (corrupt/'secret.private.json').write_text('synthetic forbidden extra')
+        with self.assertRaisesRegex(ValueError,'only manifest'):validate_artifact(corrupt,self.sha,'dev')
+
     def test_artifact_source_and_environment_rejected(self):
         with self.assertRaisesRegex(ValueError,'mismatch'):validate_artifact(self.artifact,'0'*40,'dev')
         with self.assertRaisesRegex(ValueError,'mismatch'):validate_artifact(self.artifact,self.sha,'production')

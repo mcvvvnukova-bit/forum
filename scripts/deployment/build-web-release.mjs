@@ -31,11 +31,12 @@ const config=JSON.parse(readFileSync(resolve(root,'deployment/web/build-config.j
 const owned=git('ls-files','-z','apps/web','packages/public-navigation.ts','package.json','package-lock.json','deployment/web','deployment/release-manifest.schema.json','scripts/deployment/build-web-release.mjs').split('\0').filter(Boolean).sort()
 const inputs=Object.fromEntries(owned.map(name=>[name,sha(readFileSync(resolve(root,name)))]))
 // Fingerprint installed payloads, including native build tools. Exclude only npm's
-// mutable lock receipt and executable symlinks; resolve package symlink workspaces
+// mutable lock receipt, root-level tool caches and executable symlinks; resolve package symlink workspaces
 // through the explicit source inputs above, never dump dependencies in artifacts.
 const dependencyHashes={}
 function dependencies(directory){
  for(const name of readdirSync(directory).sort()){
+  if(directory.endsWith('node_modules') && name.startsWith('.')) continue
   const file=resolve(directory,name);const stat=lstatSync(file)
   if(stat.isSymbolicLink()) continue
   if(stat.isDirectory()) dependencies(file)
