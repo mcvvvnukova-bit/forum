@@ -1,9 +1,9 @@
 import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react'
 import {BaseStyles, ThemeProvider} from '@primer/react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
-import {App} from '../../apps/audience-pages/src/App'
-import {App as HomeApp} from '../../apps/primer-home/src/App'
-import {PublicAuth} from '../../apps/public-auth/src/PublicAuth'
+import {App} from '../../apps/web/src/audience/App'
+import {App as HomeApp} from '../../apps/web/src/home/App'
+import {PublicAuth} from '../../apps/web/src/auth/PublicAuth'
 
 const customerTitle = 'Находите поставщиков и подрядчиков для ваших строительных объектов'
 const pageTitle = 'Для заказчиков — АСТ Форум'

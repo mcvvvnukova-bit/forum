@@ -81,64 +81,6 @@
       ]
     },
     {
-      "path": "apps/primer-home",
-      "name": "@astforum/primer-home",
-      "scripts": {
-        "build": "tsc --noEmit && vite build",
-        "build:dev": "tsc --noEmit && VITE_FORUM_SESSION=true VITE_LOGIN_URL='/auth/sber-id/start?intent=login' VITE_START_URL='/auth/sber-id/start?intent=register&subject=individual' vite build",
-        "typecheck": "tsc --noEmit",
-        "test": "vitest run",
-        "lint": "eslint src"
-      },
-      "entrypoints": [
-        "index.html",
-        "src/main.tsx"
-      ],
-      "tests": [
-        "src/home.test.tsx",
-        "src/useForumSession.test.tsx"
-      ]
-    },
-    {
-      "path": "apps/audience-pages",
-      "name": "@astforum/audience-pages",
-      "scripts": {
-        "build": "tsc --noEmit && vite build",
-        "typecheck": "tsc --noEmit",
-        "test": "vitest run",
-        "lint": "eslint src"
-      },
-      "entrypoints": [
-        "index.html",
-        "src/main.tsx",
-        "scripts/package-site.mjs"
-      ],
-      "tests": [
-        "src/audience.test.tsx",
-        "src/intent.test.ts",
-        "src/resume.test.ts"
-      ]
-    },
-    {
-      "path": "apps/public-auth",
-      "name": "@astforum/public-auth",
-      "scripts": {
-        "build": "tsc --noEmit && vite build",
-        "typecheck": "tsc --noEmit",
-        "test": "vitest run && python3 -m unittest discover -s ../../scripts/deployment/public-auth -p 'test_*.py'",
-        "lint": "eslint src"
-      },
-      "entrypoints": [
-        "index.html",
-        "src/main.tsx"
-      ],
-      "tests": [
-        "src/PublicAuth.test.tsx",
-        "src/main.test.tsx",
-        "src/session.test.ts"
-      ]
-    },
-    {
       "path": "apps/profile-preview",
       "name": "@astforum/profile-preview",
       "scripts": {
@@ -156,6 +98,35 @@
         "src/App.test.tsx",
         "src/ProfilePage.test.tsx",
         "src/profile.test.ts"
+      ]
+    },
+    {
+      "path": "apps/web",
+      "name": "@astforum/web",
+      "scripts": {
+        "dev": "vite --host 127.0.0.1 --port 5188 --strictPort",
+        "build": "tsc --noEmit && vite build",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint src",
+        "test": "vitest run",
+        "preview": "vite preview --host 127.0.0.1 --port 5188 --strictPort"
+      },
+      "entrypoints": [
+        "index.html",
+        "src/main.tsx",
+        "src/App.tsx",
+        "scripts/immutable-media.ts"
+      ],
+      "tests": [
+        "src/App.test.tsx",
+        "src/audience/audience.test.tsx",
+        "src/audience/intent.test.ts",
+        "src/audience/resume.test.ts",
+        "src/auth/PublicAuth.test.tsx",
+        "src/auth/main.test.tsx",
+        "src/auth/session.test.ts",
+        "src/home/home.test.tsx",
+        "src/home/useForumSession.test.tsx"
       ]
     }
   ],
@@ -237,7 +208,15 @@
     "deployment/forum-db/README.md",
     "apps/primer-home/README.md",
     ".gitnexusignore",
-    "artifacts/repository-audits/task-6-source-ownership.json"
+    "artifacts/repository-audits/task-6-source-ownership.json",
+    "scripts/deployment/build-web-release.mjs",
+    "scripts/deployment/web_release.py",
+    "scripts/verification/check-web-release.sh",
+    "tests/integration/test_web_release.py",
+    "tests/e2e/public-site.spec.ts",
+    "tests/e2e/public-site.config.ts",
+    "tests/e2e/serve-public-site.mjs",
+    "deployment/web/build-config.json"
   ],
   "ignoredSourceDirectories": [
     ".superpowers",

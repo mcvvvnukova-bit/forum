@@ -9,8 +9,8 @@ npm run test:composition
 
 The root manifest owns the Vitest/jsdom/testing-library harness. Its Vite
 configuration resolves one React instance and one Primer provider context while
-rendering the real audience `App` and `PublicAuth`. The package manifests and
-locks still own their production builds and existing test suites. Tests replace
+rendering the real audience `App` and `PublicAuth`. One apps/web workspace and the root lock now own their build and all existing
+component tests. The unified App has additional one-session tests. Tests replace
 only the session-fetch and provider-navigation boundaries; no server, provider
 or database is contacted.
 
@@ -29,16 +29,13 @@ select and scroll to their example.
 Keep the existing checks as well:
 
 ```sh
-npm --prefix apps/audience-pages test
-npm --prefix apps/audience-pages run typecheck
-npm --prefix apps/audience-pages run build
-npm --prefix apps/public-auth test
-npm --prefix apps/public-auth run typecheck
-npm --prefix apps/public-auth run build
+npm test --workspace @astforum/web
+npm run typecheck --workspace @astforum/web
+npm run build --workspace @astforum/web
 ```
 
 
-The three filesystem publishers share `scripts/deployment/public_site.py`.
+The retained legacy filesystem publishers share `scripts/deployment/public_site.py`.
 Run their release regression checks from the root without a server or provider:
 
 ```sh
@@ -81,8 +78,9 @@ Home retains its `verifier(Path)` interface but passes a temporary build view
 containing composed homepage HTML and active auth assets. Auth and audience use
 `verifier(report)`; audience adds this optional argument. Report `files` hashes
 refer to composed markup. Source build directories are never changed. These
-commands do not publish to the VPS; later consolidation owns the unified web
-builder.
+commands do not publish to the VPS. Unified current builds use
+`build-web-release.mjs` and `web_release.py`, documented in deployment/release.md.
+The legacy publishers reject a target marked `.web-release.json`.
 
 The publisher scripts must run from the repository checkout, retaining their
 relative paths and the shared `scripts/deployment/public_site.py` module; a
@@ -90,3 +88,6 @@ standalone upload of a publisher script is insufficient. Homepage protection
 allows exactly the shared auth composition of protected public HTML while
 checking their remaining markup and all gateway/production/configuration
 bytes. Its report distinguishes strictly unchanged files from composed HTML.
+
+Current built E2E: `npx --no-install playwright test --config tests/e2e/public-site.config.ts`.
+Actual Docker gateway/atomic-switch regression: `bash scripts/verification/check-web-release.sh EXACT_ARTIFACT`.
