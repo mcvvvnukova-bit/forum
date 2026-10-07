@@ -36,10 +36,26 @@
       "failures": 0,
       "exitCode": 0,
       "evidence": ".superpowers/sdd/2026-10-07-primer-semantic-visual-values/task-1-green.log"
+    },
+    "reviewFix1": {
+      "inspectedBaseSha": "f34aad37eeaf6ae6a5ddc8f04fcf51c0cf8da3f5",
+      "issue": "escaped identifier parameter shadowing",
+      "red": {
+        "tests": 21,
+        "failures": 6,
+        "exitCode": 1,
+        "evidence": ".superpowers/sdd/2026-10-07-primer-semantic-visual-values/task-1-fix1-red.log"
+      },
+      "green": {
+        "tests": 21,
+        "failures": 0,
+        "exitCode": 0,
+        "evidence": ".superpowers/sdd/2026-10-07-primer-semantic-visual-values/task-1-fix1-green.log"
+      }
     }
   },
   "verification": {
-    "npm run test:primer": "18 tests pass",
+    "npm run test:primer": "21 tests pass",
     "npm run check:primer": "0 errors / 0 warnings",
     "node scripts/verification/check-repository-layout.mjs": "pass",
     "node --test scripts/verification/checks.test.mjs": "44 tests pass",
@@ -100,6 +116,7 @@
     "Only exact static named/namespace ESM imports are proved; CommonJS and re-exports retain upstream warnings.",
     "Any non-tag identifier use conservatively invalidates the binding throughout that file, including benign type/value references.",
     "Complete unescaped literal variants only; dynamic expressions and responsive objects keep existing upstream behavior.",
-    "Offline validator evidence does not prove runtime UI, deployment, or external task/PR delivery."
+    "Offline validator evidence does not prove runtime UI, deployment, or external task/PR delivery.",
+    "Executable Unicode identifier escapes conservatively invalidate all import proofs in that source; comments and string/template text remain separate."
   ]
 }

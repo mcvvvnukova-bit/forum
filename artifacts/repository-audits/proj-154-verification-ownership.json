@@ -48,7 +48,7 @@
   "newFiles": [
     {
       "path": "scripts/verification/check-primer-ui.py",
-      "sha256": "67f04759913c832832ce71881924616924def2a22cdfdf020b379b820b7356fd",
+      "sha256": "014808a8f56e60fe3aec6f296f178313da8c46b141b2a80885cf7e0a5d80e7be",
       "mode": "100644"
     },
     {
@@ -63,7 +63,7 @@
     },
     {
       "path": "tests/integration/test_primer_ui_policy.py",
-      "sha256": "1ccb22119acba02ddee4b37ade0b59b01c084c8e38f046221142445ab22b5840",
+      "sha256": "42e9f7a3a385ef4c02e9a20a14390fa9ea562e98bec905ebf81a316918d21d05",
       "mode": "100644"
     }
   ],

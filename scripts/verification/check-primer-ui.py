@@ -53,6 +53,16 @@ def semantic_bindings(tokens, tags):
     scope resolver they could be a shadow, assignment, or namespace mutation.
     Comments and quoted lookalikes are absent from executable token evidence.
     """
+    # The pinned lexer does not decode Unicode identifier escapes. A legal
+    # escaped parameter/local may therefore shadow an imported binding without
+    # matching its raw spelling. Decline all bindings when such executable
+    # evidence occurs; comments, strings and template text do not emit these
+    # adjacent punctuation/identifier tokens (template interpolations do).
+    if any(token.kind == 'punctuation' and token.value == '\\'
+           and following.kind == 'identifier' and following.value.startswith('u')
+           and token.end == following.start
+           for token, following in zip(tokens, tokens[1:])):
+        return {}
     bindings = {}
     import_ranges = {}
     depth = 0

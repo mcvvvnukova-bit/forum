@@ -161,6 +161,33 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
             with self.subTest(source=source):
                 self.assert_visual_findings("import {Stack} from '@primer/react';import {Card} from '@primer/react/experimental';const C=()=>" + source, [1])
 
+    def test_escaped_named_alias_parameters_cannot_prove_imported_component(self):
+        for declaration in (
+            r'function C(\u004cayout) {return <Layout gap="normal"/>}',
+            r'function C(\u{4c}ayout) {return <Layout gap="normal"/>}',
+            r'const C=({\u004cayout})=> <Layout gap="normal"/>',
+        ):
+            with self.subTest(declaration=declaration):
+                self.assert_visual_findings("import {Stack as Layout} from '@primer/react';" + declaration, [1])
+
+    def test_escaped_namespace_parameters_cannot_prove_imported_component(self):
+        for declaration in (
+            r'function C(\u0050) {return <P.Stack gap="normal"/>}',
+            r'function C(\u{50}) {return <P.Stack gap="normal"/>}',
+            r'const C=({\u0050})=> <P.Stack gap="normal"/>',
+        ):
+            with self.subTest(declaration=declaration):
+                self.assert_visual_findings("import * as P from '@primer/react';" + declaration, [1])
+
+    def test_unicode_escape_lookalikes_in_comments_and_strings_do_not_invalidate_import(self):
+        for prefix in (
+            r'/* function C(\u004cayout) {} */',
+            r'const example="\u004cayout";',
+            r'const example=`\u004cayout`;',
+        ):
+            with self.subTest(prefix=prefix):
+                self.assert_visual_findings("import {Stack as Layout} from '@primer/react';" + prefix + 'const C=()=> <Layout gap="normal"/>', [])
+
     def test_same_line_props_do_not_authorize_style_sx_or_another_component(self):
         for source in (
             '<Stack gap="normal" style={{gap: "8px", padding: "none"}}/>',
