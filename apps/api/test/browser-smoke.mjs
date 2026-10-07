@@ -14,10 +14,10 @@ import {providerFixture} from '../.test-build/test/provider-fixture.js';
 
 const connectionString = testDatabaseUrl(process.env.TEST_DATABASE_URL);
 
-// The API owns the runner; the existing landing remains a workspace composition.
-const landingRoot = fileURLToPath(new URL('../../../apps/legacy-landing/', import.meta.url));
+// The API owns the runner; the unified web app supplies the actual sign-in and cabinet UI.
+const landingRoot = fileURLToPath(new URL('../../../apps/web/', import.meta.url));
 try {
-  for (const file of ['package.json', 'vite.landing.config.ts', 'landing.html', 'src/landing/LandingApp.tsx']) {
+  for (const file of ['package.json', 'vite.config.ts', 'index.html', 'src/auth/PublicAuth.tsx', 'src/home/Cabinet.tsx']) {
     await access(join(landingRoot, file));
   }
   const landingRequire = createRequire(join(landingRoot, 'package.json'));
@@ -25,7 +25,7 @@ try {
     landingRequire.resolve(dependency);
   }
 } catch (cause) {
-  throw new Error('Browser acceptance requires tracked apps/legacy-landing sources and its own dependencies. Run npm ci from the repository root.', {cause});
+  throw new Error('Browser acceptance requires tracked apps/web sources and its own dependencies. Run npm ci from the repository root.', {cause});
 }
 const screenshots = await mkdtemp(join(tmpdir(), 'forum-sber-browser-'));
 const pool = new Pool({connectionString});
@@ -37,13 +37,16 @@ let vite;
 let browser;
 const previousApiOrigin = process.env.FORUM_API_ORIGIN;
 try {
-  // Only migration 001 is needed by this unchanged legacy Sandbox runtime.
+  // Apply only identity and base-role migrations to the disposable Sandbox database.
   await migrate(pool);
   await api.listen(0, '127.0.0.1');
   const target = await api.getUrl();
   process.env.FORUM_API_ORIGIN = target;
-  vite = await createServer({root: landingRoot, configFile: join(landingRoot, 'vite.landing.config.ts'),
-    server: {host: '127.0.0.1', port: 0}});
+  vite = await createServer({root: landingRoot, configFile: join(landingRoot, 'vite.config.ts'),
+    define: {'import.meta.env.VITE_FORUM_SESSION': JSON.stringify('true')},
+    server: {host: '127.0.0.1', port: 0, proxy: {
+      '/auth/sber-id': {target}, '^/authorization(?:\\?|$)': {target}, '/api/auth': {target},
+    }}});
   await vite.listen();
   const origin = `http://127.0.0.1:${vite.httpServer.address().port}`;
   config.publicOrigin = origin;
@@ -54,15 +57,17 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(`${origin}/landing.html`);
-    await page.getByRole('link', {name: 'Регистрация', exact: true}).click();
-    await page.getByRole('link', {name: 'Зарегистрироваться по Сбер ID'}).click();
+    await page.goto(`${origin}/`);
+    await page.getByRole('link', {name: 'Войти', exact: true}).click();
+    await page.getByRole('button', {name: 'Войти по Сбер ID'}).click();
     await expect(page.getByText('Иванова Анна', {exact: true})).toBeVisible();
     await expect(page.getByRole('button', {name: 'Выйти'})).toBeVisible();
     const authenticated = await page.request.get(`${origin}/api/auth/session`);
     assert.equal(authenticated.status(), 200);
     const identity = await authenticated.json();
     assert.equal(identity.user.displayName, 'Иванова Анна');
+    assert.deepEqual(identity.roles, ['individual']);
+    assert.equal(new URL(page.url()).pathname, '/cabinet/');
     assert.equal((await pool.query('SELECT count(*) FROM iam.external_identities')).rows[0].count, '1');
     assert.equal((await pool.query('SELECT count(*) FROM iam.users')).rows[0].count, '1');
     assert.ok(provider.calls.some(call => call.path.endsWith('/tokens/v2/oidc')));
@@ -78,7 +83,7 @@ try {
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({path: join(screenshots, `session-${width}.png`)});
     await page.getByRole('button', {name: 'Выйти'}).click();
-    await expect(page.getByRole('link', {name: 'Регистрация', exact: true})).toBeVisible();
+    await expect(page.getByRole('link', {name: 'Войти', exact: true})).toBeVisible();
     const session = await page.request.get(`${origin}/api/auth/session`);
     assert.equal(session.status(), 401);
     assert.equal((await pool.query('SELECT count(*) FROM iam.sessions WHERE revoked_at IS NULL')).rows[0].count, '0');
@@ -86,9 +91,9 @@ try {
     provider.faults.authorizationError = 'access_denied';
     const callsBeforeCancel = provider.calls.length;
     const cancellation = page.waitForResponse(response => new URL(response.url()).pathname === '/authorization' && response.status() === 303);
-    await page.getByRole('link', {name: 'Регистрация', exact: true}).click();
-    await page.getByRole('link', {name: 'Зарегистрироваться по Сбер ID'}).click();
-    await expect(page.getByRole('alert')).toContainText('Вы отменили вход через Сбер ID');
+    await page.getByRole('link', {name: 'Войти', exact: true}).click();
+    await page.getByRole('button', {name: 'Войти по Сбер ID'}).click();
+    await expect(page.getByRole('alert')).toContainText('Вы отменили подтверждение');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert.equal((await cancellation).headers().location, '/?auth_error=access_denied');
     assert.equal((await page.request.get(`${origin}/api/auth/session`)).status(), 401);

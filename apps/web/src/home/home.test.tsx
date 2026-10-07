@@ -11,6 +11,39 @@ function renderPage(url = '/') {
 }
 
 describe('PUB.01.01.01', () => {
+  it('opens the cabinet from a real session and shows the assigned individual role', async () => {
+    vi.stubGlobal('fetch', async () => Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
+    renderPage('/cabinet/?auth=success')
+    expect(await screen.findByText('Анна Иванова')).toBeInTheDocument()
+    expect(screen.getByText('Физлицо')).toBeInTheDocument()
+    expect(screen.getByRole('button',{name:'Выйти'})).toBeInTheDocument()
+    expect(screen.queryByText('В этой локальной версии вход и создание учётной записи не подключены.')).not.toBeInTheDocument()
+  })
+  it('does not open the cabinet from the success query without a session', async () => {
+    vi.stubGlobal('fetch',async () => new Response('',{status:401}))
+    renderPage('/cabinet/?auth=success')
+    expect(await screen.findByText('Войдите через Сбер ID, чтобы открыть личный кабинет')).toBeInTheDocument()
+    expect(screen.queryByText('Физлицо')).not.toBeInTheDocument()
+  })
+  it('closes the cabinet session after logout and refuses to keep showing the old person', async () => {
+    let loggedIn=true
+    vi.stubGlobal('fetch',async (url: string, init?: RequestInit) => {
+      if (url==='/api/auth/logout' && init?.method==='POST') {loggedIn=false;return new Response(null,{status:204})}
+      return loggedIn ? Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}) : new Response('',{status:401})
+    })
+    renderPage('/cabinet/')
+    fireEvent.click(await screen.findByRole('button',{name:'Выйти'}))
+    expect(await screen.findByText('Войдите через Сбер ID, чтобы открыть личный кабинет')).toBeInTheDocument()
+    expect(screen.queryByText('Анна Иванова')).not.toBeInTheDocument()
+  })
+  it('offers a retry when the cabinet session endpoint is unavailable', async () => {
+    vi.stubGlobal('fetch',async () => new Response('',{status:503}))
+    renderPage('/cabinet/')
+    expect(await screen.findByText('Не удалось проверить вход')).toBeInTheDocument()
+    vi.stubGlobal('fetch',async () => Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
+    fireEvent.click(screen.getByRole('button',{name:'Повторить'}))
+    expect(await screen.findByText('Анна Иванова')).toBeInTheDocument()
+  })
   it('does not trust the preview query as a live authenticated session', () => {
     vi.stubEnv('VITE_FORUM_SESSION', 'true')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ok: false}))

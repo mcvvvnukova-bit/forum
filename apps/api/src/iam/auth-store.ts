@@ -36,14 +36,13 @@ export class AuthStore {
       if (matches.rowCount! > 1) throw new AuthError('account_conflict', 409);
       let userId: string = matches.rows[0]?.user_id;
       if (!userId) {
-        if (intent !== 'register') throw new AuthError('registration_required', 409);
         userId = uuid();
         await client.query(`INSERT INTO iam.users(id, email, email_confirmed_at, display_name)
           VALUES ($1, $2, CASE WHEN $3 THEN now() ELSE NULL END, $4)`,
           [userId, identity.email, identity.emailConfirmed, identity.displayName]);
         const participantId = await createIndividualParticipant(client, userId);
         await client.query(`INSERT INTO iam.role_assignments(id, user_id, scope_type, scope_id, role)
-          VALUES ($1, $2, 'participant', $3, 'provider')`, [uuid(), userId, participantId]);
+          VALUES ($1, $2, 'participant', $3, 'individual')`, [uuid(), userId, participantId]);
         await client.query(`INSERT INTO integration.outbox_events(event_id, aggregate_type, aggregate_id, event_type, payload)
           VALUES ($1, 'participant', $2, 'ParticipantRegistered', $3)`,
           [uuid(), participantId, {userId, participantId, provider: 'sber_id', legalStatus: 'individual_person'}]);
@@ -82,8 +81,10 @@ export class AuthStore {
       if (!row) throw new AuthError('unauthenticated', 401);
       const participant = await findIndividualParticipant(client, row.id);
       if (!participant || participant.status === 'deactivated') throw new AuthError('unauthenticated', 401);
+      const assignments = await client.query(`SELECT role FROM iam.role_assignments
+        WHERE user_id=$1 AND scope_type='participant' AND scope_id=$2 AND role='individual'`, [row.id, participant.id]);
       const {expiresAt, ...user} = row;
-      return {user, participant, expiresAt};
+      return {user, participant, roles: assignments.rows.map(row => row.role), expiresAt};
     } finally { client.release(); }
   }
 

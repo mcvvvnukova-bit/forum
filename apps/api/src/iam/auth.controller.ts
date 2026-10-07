@@ -76,10 +76,18 @@ export class AuthController {
       if (!await sber.complete(accessToken, rquid)) this.logger.warn({event: 'sber_completion_failed'});
       this.setCookie(reply, this.runtime.sessionCookie, session, this.runtime.config.sessionTtlSeconds);
       this.setCookie(reply, this.runtime.attemptCookie, '', 0);
-      return reply.redirect('/?auth=success', 303);
+      return reply.redirect('/cabinet/?auth=success', 303);
     } catch (error) {
       this.setCookie(reply, this.runtime.attemptCookie, '', 0);
       const code = this.errorCode(error);
+      if (code === 'account_deactivated') {
+        const oldToken = req.cookies[this.runtime.sessionCookie];
+        if (oldToken && this.runtime.store) {
+          try { await this.runtime.store.logout(oldToken); }
+          catch { this.logger.error({event:'blocked_session_revocation_failed'}); }
+        }
+        this.setCookie(reply, this.runtime.sessionCookie, '', 0);
+      }
       return reply.redirect(`/?auth_error=${encodeURIComponent(code)}`, 303);
     }
   }

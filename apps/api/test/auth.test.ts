@@ -85,10 +85,10 @@ test('unconfigured browser login redirects back to the landing with a controlled
   } finally { await disabled.close(); }
 });
 
-test('registration persists identity, provider role, outbox and an opaque session after mTLS exchange', async () => {
+test('registration persists identity, individual IAM role, outbox and an opaque session after mTLS exchange', async () => {
   const response = await finish(await begin());
   assert.equal(response.statusCode, 303);
-  assert.equal(response.headers.location, '/?auth=success');
+  assert.equal(response.headers.location, '/cabinet/?auth=success');
   const cookie = sessionCookie(response);
   const me = await app.inject({method: 'GET', url: '/api/auth/session', headers: {cookie}});
   assert.equal(me.statusCode, 200);
@@ -96,7 +96,8 @@ test('registration persists identity, provider role, outbox and an opaque sessio
   assert.equal(me.json().user.emailConfirmed, true);
   assert.equal(me.json().participant.legalStatus, 'individual_person');
   assert.equal(await userCount(), 1);
-  assert.equal((await pool.query('SELECT role FROM iam.role_assignments')).rows[0].role, 'provider');
+  assert.deepEqual(me.json().roles, ['individual']);
+  assert.equal((await pool.query('SELECT role FROM iam.role_assignments')).rows[0].role, 'individual');
   assert.equal((await pool.query('SELECT event_type FROM integration.outbox_events')).rows[0].event_type, 'ParticipantRegistered');
   assert.equal((await pool.query('SELECT count(*) FROM iam.authorization_attempts')).rows[0].count, '0');
   const tokenCall = provider.calls.find(c => c.path.endsWith('/oidc'))!;
@@ -131,7 +132,7 @@ test('returning login and repeated registration reuse the account and rotate the
 test('each authentication keeps one rquid across token, userinfo and completion retries', async () => {
   provider.faults.completionStatus = 503;
   const response = await finish(await begin());
-  assert.equal(response.headers.location, '/?auth=success');
+  assert.equal(response.headers.location, '/cabinet/?auth=success');
   const token = provider.calls.find(c => c.path.endsWith('/oidc'))!;
   const profile = provider.calls.find(c => c.path.endsWith('/userinfo'))!;
   const completion = provider.calls.filter(c => c.path === '/api/v2/auth/completed');
@@ -155,7 +156,7 @@ test('a registered root callback authenticates without treating ordinary homepag
     assert.equal(authorize.searchParams.get('redirect_uri'), 'https://forum.example');
     const browser = start.cookies.find(c => c.name.includes('sber_attempt'))!;
     const headers = {cookie: `${browser.name}=${browser.value}`};
-    for (const url of ['/', '/?auth=success', '/auth/sber-id/callback?state=wrong', '/?state=only']) {
+    for (const url of ['/', '/cabinet/?auth=success', '/auth/sber-id/callback?state=wrong', '/?state=only']) {
       const page = await rootApp.inject({method: 'GET', url, headers});
       assert.equal(page.statusCode, 404);
       assert.equal(page.headers['set-cookie'], undefined);
@@ -165,7 +166,7 @@ test('a registered root callback authenticates without treating ordinary homepag
     const url = `/?${new URLSearchParams({code, state: authorize.searchParams.get('state')!})}`;
     assert.equal((await rootApp.inject({method: 'HEAD', url, headers})).statusCode, 405);
     const response = await rootApp.inject({method: 'GET', url, headers});
-    assert.equal(response.headers.location, '/?auth=success');
+    assert.equal(response.headers.location, '/cabinet/?auth=success');
     assert.equal(provider.calls[0].form.get('redirect_uri'), 'https://forum.example');
     const cookie = response.cookies.find(c => c.name.includes('forum_session'))!;
     assert.ok(cookie);
@@ -181,7 +182,7 @@ test('non-configured callback aliases do not consume attempts', async () => {
     assert.equal(response.statusCode, 404);
     assert.equal(response.headers['set-cookie'], undefined);
   }
-  assert.equal((await finish(attempt)).headers.location, '/?auth=success');
+  assert.equal((await finish(attempt)).headers.location, '/cabinet/?auth=success');
 });
 
 test('the registered /authorization callback supports registration and login with one-use browser-bound state', async () => {
@@ -203,7 +204,7 @@ test('the registered /authorization callback supports registration and login wit
       assert.equal((await registered.inject({method: 'HEAD', url, headers})).statusCode, 405);
       assert.equal((await registered.inject({method: 'GET', url: `/auth/sber-id/callback?${query}`, headers})).statusCode, 404);
       const response = await registered.inject({method: 'GET', url, headers});
-      assert.equal(response.headers.location, '/?auth=success');
+      assert.equal(response.headers.location, '/cabinet/?auth=success');
       const cookie = response.cookies.find(c => c.name.includes('forum_session'))!;
       assert.ok(cookie);
       assert.equal((await registered.inject({method: 'GET', url: '/api/auth/session',
@@ -236,7 +237,7 @@ test('a dev callback retains the main registered URI, host-only cookies and one-
       const headers = {cookie: `${attempt.name}=${attempt.value}`};
       assert.equal((await dev.inject({method: 'GET', url})).headers.location, '/?auth_error=invalid_state');
       const response = await dev.inject({method: 'GET', url, headers});
-      assert.equal(response.headers.location, '/?auth=success');
+      assert.equal(response.headers.location, '/cabinet/?auth=success');
       assert.doesNotMatch(String(response.headers['set-cookie']), /Domain=/i);
       const cookie = response.cookies.find(c => c.name === '__Host-forum_session')!;
       assert.ok(cookie?.value);
@@ -251,10 +252,45 @@ test('a dev callback retains the main registered URI, host-only cookies and one-
   } finally { await dev.close(); }
 });
 
-test('unknown login does not silently register an account', async () => {
+test('first login creates one individual account and opens its cabinet', async () => {
   const response = await finish(await begin('login'));
-  assert.equal(response.headers.location, '/?auth_error=registration_required');
-  assert.equal(await userCount(), 0);
+  assert.equal(response.headers.location, '/cabinet/?auth=success');
+  const me = await app.inject({method: 'GET', url: '/api/auth/session', headers: {cookie: sessionCookie(response)}});
+  assert.equal(me.statusCode, 200);
+  assert.deepEqual(me.json().roles, ['individual']);
+  assert.equal(await userCount(), 1);
+  assert.equal((await pool.query('SELECT count(*) FROM iam.role_assignments')).rows[0].count, '1');
+});
+
+test('legacy personal assignments migrate once without changing the participant or its status', async () => {
+  const created = await finish(await begin());
+  const me = (await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie:sessionCookie(created)}})).json();
+  await pool.query("UPDATE iam.role_assignments SET role='provider'");
+  await pool.query("UPDATE iam.users SET status='deactivated'");
+  await pool.query("DELETE FROM iam.schema_migrations WHERE name='004_individual_role'");
+  await migrate(pool); await migrate(pool);
+  const roles = await pool.query('SELECT user_id,scope_id,role FROM iam.role_assignments');
+  assert.deepEqual(roles.rows,[{user_id:me.user.id,scope_id:me.participant.id,role:'individual'}]);
+  assert.equal((await pool.query('SELECT status FROM iam.users')).rows[0].status,'deactivated');
+  assert.equal((await pool.query('SELECT id,role FROM party.participants')).rows[0].id,me.participant.id);
+  assert.equal((await pool.query('SELECT role FROM party.participants')).rows[0].role,'provider');
+  assert.equal(await userCount(),1);
+});
+
+test('blocked identification closes a previous browser session without creating another account', async () => {
+  await finish(await begin());
+  await pool.query("UPDATE iam.users SET status='deactivated'");
+  const other = await finish(await begin('login'), {sub:'other-person'}, {email:'other@example.test'});
+  const oldCookie = sessionCookie(other);
+  const attempt = await begin('register');
+  const code = randomUUID(); provider.authorize(code, attempt.nonce);
+  const blocked = await app.inject({method:'GET',url:`/auth/sber-id/callback?${new URLSearchParams({state:attempt.state,code})}`,
+    headers:{cookie:`${attempt.cookie}; ${oldCookie}`}});
+  assert.equal(blocked.headers.location, '/?auth_error=account_deactivated');
+  assert.ok(blocked.cookies.some(c => c.name.includes('forum_session') && !c.value));
+  assert.equal((await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie:oldCookie}})).statusCode,401);
+  assert.equal(await userCount(),2);
+  assert.equal((await pool.query('SELECT count(*) FROM iam.sessions')).rows[0].count,'2');
 });
 
 test('callback is one-use and bound to the initiating browser', async () => {
@@ -263,7 +299,7 @@ test('callback is one-use and bound to the initiating browser', async () => {
   assert.equal(wrong.headers.location, '/?auth_error=invalid_state');
   assert.equal(provider.calls.length, 0);
   const success = await finish(attempt);
-  assert.equal(success.headers.location, '/?auth=success');
+  assert.equal(success.headers.location, '/cabinet/?auth=success');
   const replay = await finish(attempt);
   assert.equal(replay.headers.location, '/?auth_error=invalid_state');
   assert.equal(await userCount(), 1);
@@ -307,20 +343,21 @@ test('provider failures return a recoverable error without leaking the upstream 
 test('alternate Sber subjects match the same account without matching by email', async () => {
   await finish(await begin());
   const response = await finish(await begin('login'), {sub: 'sber-new-sub', sub_alt: ['sber-person-1']});
-  assert.equal(response.headers.location, '/?auth=success');
+  assert.equal(response.headers.location, '/cabinet/?auth=success');
   assert.equal(await userCount(), 1);
   const collision = await finish(await begin(), {sub: 'unrelated-person'});
   assert.equal(collision.headers.location, '/?auth_error=account_conflict');
   assert.equal(await userCount(), 1);
 });
 
-test('concurrent registration creates one identity and participant', async () => {
-  const one = await begin();
+test('concurrent login and registration create one identity, participant and individual role', async () => {
+  const one = await begin('login');
   const two = await begin();
   const responses = await Promise.all([finish(one), finish(two)]);
-  for (const response of responses) assert.equal(response.headers.location, '/?auth=success');
+  for (const response of responses) assert.equal(response.headers.location, '/cabinet/?auth=success');
   assert.equal(await userCount(), 1);
   assert.equal((await pool.query('SELECT count(*) FROM party.participants')).rows[0].count, '1');
+  assert.deepEqual((await pool.query('SELECT role FROM iam.role_assignments')).rows.map(row=>row.role), ['individual']);
 });
 
 test('session endpoint rejects missing, expired and deactivated sessions; logout enforces origin', async () => {
@@ -353,7 +390,7 @@ test('HEAD requests cannot consume attempts or begin authentication', async () =
   assert.equal((await app.inject({method: 'HEAD', url: '/auth/sber-id/start?intent=login'})).statusCode, 405);
   assert.equal((await app.inject({method: 'HEAD', url: `/auth/sber-id/callback?state=${attempt.state}&code=x`,
     headers: {cookie: attempt.cookie}})).statusCode, 405);
-  assert.equal((await finish(attempt)).headers.location, '/?auth=success');
+  assert.equal((await finish(attempt)).headers.location, '/cabinet/?auth=success');
 });
 
 test('deactivated identities cannot open new sessions and conflicting aliases are not auto-merged', async () => {
@@ -381,7 +418,7 @@ test('userinfo failure creates no account and completion outage does not undo a 
   provider.faults.profileStatus = 200;
   provider.faults.completionStatus = 500;
   const response = await finish(await begin());
-  assert.equal(response.headers.location, '/?auth=success');
+  assert.equal(response.headers.location, '/cabinet/?auth=success');
   assert.ok(sessionCookie(response));
   assert.equal(provider.calls.filter(c => c.path === '/api/v2/auth/completed').length, 2);
 });

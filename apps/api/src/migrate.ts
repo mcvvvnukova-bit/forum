@@ -15,12 +15,14 @@ export async function migrate(pool: Pool): Promise<void> {
     }
     await client.query('CREATE SCHEMA IF NOT EXISTS iam');
     await client.query('CREATE TABLE IF NOT EXISTS iam.schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
-    const name = '001_sber_identity';
-    const applied = await client.query('SELECT name FROM iam.schema_migrations WHERE name = $1', [name]);
-    if (!applied.rowCount) {
-      const sql = await readFile(resolve('migrations/001_sber_identity.sql'), 'utf8');
-      await client.query(sql);
-      await client.query('INSERT INTO iam.schema_migrations(name) VALUES ($1)', [name]);
+    // Profile/public-schema migrations belong to their separate deployment task.
+    for (const name of ['001_sber_identity', '004_individual_role']) {
+      const applied = await client.query('SELECT name FROM iam.schema_migrations WHERE name = $1', [name]);
+      if (!applied.rowCount) {
+        const sql = await readFile(resolve(`migrations/${name}.sql`), 'utf8');
+        await client.query(sql);
+        await client.query('INSERT INTO iam.schema_migrations(name) VALUES ($1)', [name]);
+      }
     }
     await client.query('COMMIT');
   } catch (error) {

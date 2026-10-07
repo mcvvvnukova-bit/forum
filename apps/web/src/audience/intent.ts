@@ -11,7 +11,7 @@ export type SupplierDirection = keyof typeof supplierDirectionLabels
 export function isSupplierDirection(value: unknown): value is SupplierDirection {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(supplierDirectionLabels, value)
 }
-export type Session = {user: {id: string; displayName: string; emailConfirmed?: boolean}; participant?: {id: string; role: string; status: string; legalStatus?: string; kind?: string}}
+export type Session = {user: {id: string; displayName: string; emailConfirmed?: boolean}; roles?: string[]; participant?: {id: string; role: string; status: string; legalStatus?: string; kind?: string}}
 export function validIntent(value: unknown): value is Intent {
   if (!value || typeof value !== 'object') return false
   const v = value as Record<string, unknown>

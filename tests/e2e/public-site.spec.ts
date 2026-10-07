@@ -5,7 +5,7 @@ for(const width of [320,390,1440]){
   await page.setViewportSize({width,height:1000})
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message))
   await page.route('**/api/auth/session',route=>route.fulfill({status:401,body:''}))
-  for(const path of ['/','/customers/','/suppliers/','/work/','/participate/','/login','/register']){
+  for(const path of ['/','/customers/','/suppliers/','/work/','/participate/','/login','/register','/cabinet/']){
    await page.goto(path);await expect(page.locator('h1')).toBeVisible()
    await page.reload();await expect(page.locator('h1')).toBeVisible()
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
@@ -74,6 +74,18 @@ for(const status of [401,500])test(`built guest and unknown ${status}`,async({pa
  await page.goto('/login?auth_error=sber_unavailable')
  await expect(page.getByText(status===401?'Вход через Сбер ID пока недоступен':'Не удалось проверить вход. Повторите попытку')).toBeVisible()
  await expect(page.getByRole('button',{name:'Войти по Сбер ID'})).toBeDisabled()
+})
+test('built cabinet uses a confirmed session and blocked callback opens a support dialog',async({page})=>{
+ await page.route('**/api/auth/session',route=>route.fulfill({status:200,json:{user:{id:'synthetic-person',displayName:'Тестовый пользователь'},roles:['individual']}}))
+ await page.goto('/cabinet/?auth=success')
+ await expect(page.getByRole('heading',{name:'Личный кабинет',exact:true})).toBeVisible()
+ await expect(page.getByText('Тестовый пользователь',{exact:true})).toBeVisible()
+ await expect(page.getByText('Физлицо',{exact:true})).toBeVisible()
+ await page.goto('/?auth_error=account_deactivated')
+ const blocked=page.getByRole('dialog',{name:'Вы заблокированы на платформе',exact:true})
+ await expect(blocked).toBeVisible()
+ await expect(blocked.getByRole('link',{name:'Тех. поддержка'})).toHaveAttribute('href','mailto:info@astforum.ru')
+ await expect(blocked.getByRole('button',{name:'Войти по Сбер ID'})).toHaveCount(0)
 })
 test('built work carousel survives modal history and demo keeps its actual embed contract',async({page})=>{
  await page.route('**/api/auth/session',route=>route.fulfill({status:401,body:''}))

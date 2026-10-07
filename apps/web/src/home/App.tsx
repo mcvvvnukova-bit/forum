@@ -9,6 +9,7 @@ import {destinations} from './config'
 import {useForumSession} from './useForumSession'
 import {AuthNotice} from './AuthNotice'
 import {usePublicPageUrl} from '../navigation'
+import {Cabinet} from './Cabinet'
 
 function DestinationPreview({path}: {path: string}) {
   const audience = audiences.find(item => item.path === path)
@@ -71,7 +72,7 @@ export function App() {
     <>
       <SiteHeader authorized={authorized || authorizedPreview} />
       {import.meta.env.VITE_FORUM_SESSION === 'true' && !authorized && <AuthNotice />}
-      {path === '/' ? <HomePage onDemo={openDemo} /> : <DestinationPreview path={path} />}
+      {path === '/' ? <HomePage onDemo={openDemo} /> : path === '/cabinet/' ? <Cabinet /> : <DestinationPreview path={path} />}
       <SiteFooter />
       {demoOpen && <DemoDialog onClose={() => setDemoOpen(false)} returnFocusRef={demoTriggerRef} />}
     </>

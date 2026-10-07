@@ -13,7 +13,7 @@ type View = {mode: Mode; modal: boolean} | null
 const errors: Record<string, string> = {
   access_denied: 'Вы отменили подтверждение. Можно попробовать ещё раз',
   invalid_state: 'Время ожидания входа истекло. Повторите вход ещё раз',
-  account_deactivated: 'Доступ к аккаунту закрыт. Обратитесь в тех. поддержку',
+  account_deactivated: 'Необходимо обратиться в тех. поддержку',
   account_conflict: 'Не удалось связать данные с аккаунтом. Обратитесь в тех. поддержку',
   registration_required: 'Аккаунт не найден. Зарегистрируйтесь со Сбер ID',
   account_exists: 'Аккаунт уже существует. Войдите в аккаунт',
@@ -127,11 +127,12 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
   }, [mode, retry, shared])
   if (!view) return null
   const blocked = error === 'account_deactivated' || error === 'account_conflict'
+  const platformBlocked = error === 'account_deactivated'
   const unavailable = error === 'sber_unavailable'
-  const message = session.kind === 'unknown' ? 'Не удалось проверить вход. Повторите попытку' : unavailable
+  const message = platformBlocked ? errors.account_deactivated : session.kind === 'unknown' ? 'Не удалось проверить вход. Повторите попытку' : unavailable
     ? mode === 'register' ? 'Регистрация через Сбер ID пока недоступна' : 'Вход через Сбер ID пока недоступен'
-    : error ? errors[error] || 'Не удалось завершить вход. Попробуйте ещё раз' : null
-  const title = mode === 'register' ? 'Создайте аккаунт' : 'Войти в аккаунт'
+    : error ? (Object.hasOwn(errors,error) ? errors[error] : 'Не удалось завершить вход. Попробуйте ещё раз') : null
+  const title = platformBlocked ? 'Вы заблокированы на платформе' : mode === 'register' ? 'Создайте аккаунт' : 'Войти в аккаунт'
   const switchMode = (event: React.MouseEvent, next: Mode) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
     event.preventDefault(); event.stopPropagation()
@@ -147,7 +148,7 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
   }
   const body = <Stack gap="spacious" className="public-auth-content">
     {message && <Banner title="Вход не завершён" variant="warning"><span role="alert">{message}</span></Banner>}
-    {session.kind === 'authenticated' ? <Text as="p" role="status">Вы уже вошли в аккаунт</Text> : <>
+    {platformBlocked ? null : session.kind === 'authenticated' ? <Text as="p" role="status">Вы уже вошли в аккаунт</Text> : <>
       <Button variant="primary" size="large" className="public-auth-sber"
         disabled={session.kind !== 'guest' || redirecting || blocked || unavailable} onClick={start}>
         <span className="public-auth-label-layout"><img src={sberMark} alt="" aria-hidden className="public-auth-mark" /><span className="public-auth-label">{mode === 'register' ? 'Зарегистрироваться по Сбер ID' : 'Войти по Сбер ID'}</span></span>
@@ -167,10 +168,12 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
       else start()
     }}>Повторить</Button>}
   </Stack>
-  if (view.modal) return <Dialog title={title} renderHeader={ModalHeader} renderBody={ModalBody} returnFocusRef={returnFocusRef}
+  if (view.modal || platformBlocked) return <Dialog title={title} renderHeader={ModalHeader} renderBody={ModalBody} returnFocusRef={returnFocusRef}
     onClose={() => {
       if (!returnFocusRef.current?.isConnected) returnFocusRef.current = document.querySelector<HTMLElement>('.site-header a[href]')
-      setView(null); history.back()
+      setView(null)
+      if (view.modal) history.back()
+      else {history.replaceState(history.state,'','/'); window.dispatchEvent(new PopStateEvent('popstate'))}
     }} width="min(560px, max(calc(100vw - var(--base-size-32)), min(320px, 100vw)))" style={{maxWidth:'100vw'}} position="center">{body}</Dialog>
   return <main className="public-auth-page"><Stack gap="spacious" padding={{narrow:"condensed", regular:"spacious"}} className="public-auth-panel">
     <Link href="/">АСТ Форум</Link><Heading as="h1" variant="large">{title}</Heading>{body}

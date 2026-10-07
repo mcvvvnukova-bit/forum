@@ -101,10 +101,10 @@ routes it to the API without requiring the separate shared-password cookie.
 | Route | Result |
 | --- | --- |
 | `GET /auth/sber-id/start?intent=register&subject=individual` | Persists a 10-minute browser-bound state/nonce/PKCE attempt and redirects to Sber. |
-| `GET /auth/sber-id/start?intent=login` | Same flow; unknown identities return `registration_required`. |
-| `GET /authorization?code=...&state=...` | Registered Forum callback: consumes the attempt once, exchanges code, verifies identity, commits account/session, redirects to `/?auth=success`. |
+| `GET /auth/sber-id/start?intent=login` | Same unified flow: after verified Sber identity, create an unknown user with base IAM role `individual`, or reuse an active user. |
+| `GET /authorization?code=...&state=...` | Registered Forum callback: consumes the attempt once, exchanges code, verifies identity, commits account/session, redirects to `/cabinet/?auth=success`. |
 | `GET /auth/sber-id/callback?code=...&state=...` | Alternative callback, enabled only when selected in `SBER_ID_REDIRECT_URI`. |
-| `GET /api/auth/session` | User, individual participant and expiry; 401 without an active session. |
+| `GET /api/auth/session` | User, individual participant, `roles` for that personal participant and expiry; 401 without an active session. |
 | `POST /api/auth/logout` | Revokes the current session and clears its cookie; exact matching `Origin` required. |
 | `GET /health/live` | Process liveness. |
 | `GET /health/ready` | Database/schema readiness and `sberConfigured` boolean. |
@@ -116,6 +116,11 @@ duplicate query fields, non-individual subjects and HEAD mutations are rejected.
 
 Session tokens are random, persisted only as SHA-256 hashes and rotated on login.
 Deactivated users/participants cannot authenticate or use existing sessions.
+After a verified blocked identity, any previous browser session is revoked and
+its cookie cleared; the callback opens a support dialog through `account_deactivated`.
+Login and registration intents are retained for compatibility/audit only and
+cannot change account creation or bypass blocking. `individual` means Физлицо;
+the participant's `provider` business characteristic is separate from IAM roles.
 Identity matching uses `sub`, `sub_alt` and `alt_sub`, never email. Conflicting
 identities/emails require support and are not auto-merged. An email is confirmed
 only if Sber explicitly sends `email_verified: true`; email confirmation/profile
@@ -125,7 +130,7 @@ completion beyond those claims is a separate feature.
 
 **Historical main database observation, 2026-09-15:** the source reported `forum` with migrations001–003 and all
 21 application tables in `public`, applied with `deployment/forum-db/apply-public.psql`.
-This API still uses the legacy Sandbox schema; its migrator runs only 001 and
+This API still uses the legacy Sandbox schema; its migrator runs only 001 and 004 and
 refuses installations containing `public.schema_migrations` to prevent recreating IAM.
 The documented API store uses `forum_sber_sandbox`; freshly verify the deployment target before release. Update the
 store queries to `public.*`, registration transaction and authorization before
@@ -136,8 +141,10 @@ The following describes the existing API implementation based on migration 001.
 The additive migration creates only the identity/individual-registration subset
 of the documented module schemas. Existing `public` company/OKVED tables are not
 modified. Email uniqueness uses `lower(email)` instead of the `citext` extension.
-The current participant and role constraints deliberately permit only the implemented
-individual/provider case; organizational onboarding will extend them in a new migration.
+Migration004 adds base IAM role `individual` and backfills existing personal users,
+including blocked users without activating them. It removes their old IAM provider
+assignment; `party.participants.role=provider` remains unchanged. The CHECK still
+accepts provider for preceding-image rollback. Organizational onboarding remains separate.
 Registration atomically writes user, external identities, participant, role, audit,
 `ParticipantRegistered` outbox and session. The outbox delivery worker is not part
 of this authentication implementation. Do not mark pending events as published manually.
