@@ -3,9 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/legacy-landing/package.json ./apps/legacy-landing/
-COPY apps/primer-home/package.json ./apps/primer-home/
-COPY apps/audience-pages/package.json ./apps/audience-pages/
-COPY apps/public-auth/package.json ./apps/public-auth/
+COPY apps/web/package.json ./apps/web/
 COPY apps/profile-preview/package.json ./apps/profile-preview/
 RUN npm ci --workspace @astforum/api --include-workspace-root=false
 COPY apps/api/tsconfig.json ./apps/api/

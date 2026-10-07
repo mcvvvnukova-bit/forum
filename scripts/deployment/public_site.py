@@ -265,6 +265,8 @@ def publish(source, target, backups, *, label, pages, assets, commit=None,
     for name in list(pages) + list(assets):
         relative(name)
     with site_lock(target):
+        if (target / ".web-release.json").exists():
+            raise RuntimeError("Unified web release owns this target; use web_release.py")
         validate_tree(target)
         existing = public_pages(target)
         current_contract = active_auth(target, existing)  # preflight before ANY site/backup write

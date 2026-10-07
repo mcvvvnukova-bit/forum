@@ -21,6 +21,46 @@ def run(*argv, cwd=ROOT):
     return result.stdout
 
 
+# Task7 is a new explicit current-ownership layer. Task4 source pins and Task5/6
+# snapshots remain byte-identical; no previous dated proof is rewritten.
+def current_file(candidate, expected_hash, expected_mode):
+    receipt_path = ROOT / 'artifacts/repository-audits/task-7-source-ownership.json'
+    if not receipt_path.exists():
+        return ROOT / candidate, expected_hash, expected_mode
+    receipt = json.loads(receipt_path.read_text())
+    assert receipt['baseSha'] == 'a56b52ed05a5f1fbe267dafcfe5d41ce1042916b'
+    changes = receipt['changes']
+    assert len({item['previousCandidatePath'] for item in changes}) == len(changes), 'Duplicate Task7 ownership'
+    explicit = {'apps/api/Dockerfile', 'package.json', 'package-lock.json', '.github/workflows/quality.yml',
+                'vitest.composition.config.ts', 'README.md', 'deployment/release.md',
+                'deployment/release-manifest.schema.json', 'scripts/deployment/public_site.py',
+                'scripts/verification/check-built-public-site.py',
+                'scripts/verification/check-operational-sources.py',
+                'scripts/verification/check-repository-layout.mjs',
+                'scripts/verification/repository-layout.json', 'scripts/verification/checks.test.mjs',
+                'scripts/verification/quality-gate.mjs', 'tests/integration/public-site-composition.test.tsx',
+                'tests/integration/README.md'}
+    for item in changes:
+        old = item['previousCandidatePath']
+        assert old in explicit or old.startswith(('apps/primer-home/', 'apps/audience-pages/', 'apps/public-auth/')), 'Out-of-scope Task7 ownership'
+        new = Path(item['candidatePath'])
+        assert not new.is_absolute() and '..' not in new.parts, 'Unsafe Task7 owner'
+        assert str(new) in explicit or str(new).startswith(('apps/web/', 'apps/primer-home/', 'apps/audience-pages/', 'apps/public-auth/', 'scripts/deployment/build-web-release')), 'Out-of-scope Task7 replacement'
+    change = next((item for item in changes if item['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'Task7 baseline pin mismatch: ' + candidate
+        return ROOT / change['candidatePath'], change['candidateSha256'], change['candidateMode']
+    return ROOT / candidate, expected_hash, expected_mode
+
+
+def verify_current(candidate, expected_hash, expected_mode):
+    path, digest, mode = current_file(candidate, expected_hash, expected_mode)
+    assert path.is_file() and not path.is_symlink(), candidate
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, str(path)
+    assert ('100755' if path.stat().st_mode & 0o111 else '100644') == mode, str(path)
+    return path
+
+
 def verify_provenance():
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
     assert matrix['schemaVersion'] == 1
@@ -31,14 +71,14 @@ def verify_provenance():
             candidate = file.get('candidatePath')
             if not candidate:
                 continue
-            path = ROOT / candidate
-            assert path.is_file() and not path.is_symlink(), candidate
-            data = path.read_bytes()
-            assert hashlib.sha256(data).hexdigest() == file['candidateSha256'], candidate
-            blob = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
-            assert blob == file['candidateGitBlob'], candidate
-            mode = '100755' if path.stat().st_mode & 0o111 else '100644'
-            assert mode == file['candidateMode'], candidate
+            verify_current(candidate, file['candidateSha256'], file['candidateMode'])
+            # Historical Git blob remains a pin of the originally accepted bytes;
+            # current changed content is independently SHA-verified by Task7.
+            path, digest, _ = current_file(candidate, file['candidateSha256'], file['candidateMode'])
+            if digest == file['candidateSha256']:
+                data = path.read_bytes()
+                blob = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+                assert blob == file['candidateGitBlob'], candidate
             accepted += 1
     assert accepted > 0
     parity_path = ROOT / 'artifacts/repository-audits/task-5-source-parity.json'
@@ -78,17 +118,20 @@ def verify_provenance():
         if change:
             assert change['previousSha256'] == file['newSha256'] and change['previousMode'] == file['newMode'], file['newPath']
             # The dated Task5 snapshot stays immutable; verify current ownership separately.
-            path = ROOT / change['candidatePath']
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == change['candidateSha256'], change['candidatePath']
-            expected_mode = change['candidateMode']
+            verify_current(change['candidatePath'], change['candidateSha256'], change['candidateMode'])
         else:
-            path = ROOT / file['newPath']
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == file['newSha256'], file['newPath']
-            expected_mode = file['newMode']
-        mode = '100755' if path.stat().st_mode & 0o111 else '100644'
-        assert mode == expected_mode, file['newPath']
+            verify_current(file['newPath'], file['newSha256'], file['newMode'])
         if file['unchanged']:
             assert file['previousSha256'] == file['newSha256'] and file['previousMode'] == file['newMode']
+    receipt_path = ROOT / 'artifacts/repository-audits/task-7-source-ownership.json'
+    if receipt_path.exists():
+        receipt = json.loads(receipt_path.read_text())
+        for item in receipt['changes']:
+            verify_current(item['previousCandidatePath'], item['previousSha256'], item['previousMode'])
+        for item in receipt['newFiles']:
+            path = ROOT / item['path']
+            assert path.is_file() and not path.is_symlink(), item['path']
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == item['sha256'], item['path']
     return accepted
 
 

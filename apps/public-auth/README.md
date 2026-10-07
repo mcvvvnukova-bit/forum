@@ -1,3 +1,5 @@
+> Runtime ownership moved to [`apps/web`](../web/README.md). Use its single build and release contract; this index retains historical product links.
+
 # public-auth runtime
 
 Продуктовые требования: [Outline](https://docs.astforum.ru/doc/pub0202-perehod-k-registracii-i-vhodu-dC0gjF8wo8). Исторические решения/оригиналы связаны в [реестре миграции](../../artifacts/repository-audits/document-migration-manifest.json).

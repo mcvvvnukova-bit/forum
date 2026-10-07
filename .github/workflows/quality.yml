@@ -93,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [legacy-landing, primer-home, audience-pages, public-auth]
+        package: [legacy-landing, web]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -184,15 +184,7 @@ jobs:
           python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v
           python3 -m unittest discover -s scripts/deployment/primer-home -p 'test_*.py' -v
           python3 -m unittest discover -s scripts/deployment/audience-pages -p 'test_*.py' -v
-          # Auth's six Python regressions run through its declared frontend npm test.
-      - name: Fresh owned output for release composition
-        run: |
-          npm ci
-          for package in primer-home audience-pages public-auth; do
-            npm run build --workspace @astforum/"$package"
-          done
-          node apps/audience-pages/scripts/package-site.mjs
-          python3 scripts/verification/check-built-public-site.py
+          python3 -m unittest discover -s scripts/deployment/public-auth -p 'test_*.py' -v
       # Only a status receipt is uploaded. Raw application logs, environment,
       # generated sites and private worktree contents stay out of artifacts.
       - name: Sanitized failure receipt
@@ -272,10 +264,49 @@ jobs:
       - name: Sanitized operational syntax and source contracts
         run: python3 scripts/verification/check-operational-sources.py
 
+  web-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.1
+      - run: npm ci
+      - name: Build exact immutable dev and separately owned production
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node scripts/deployment/build-web-release.mjs dev "$RUNNER_TEMP/forum-web-dev" "$SOURCE_SHA"
+          node scripts/deployment/build-web-release.mjs production "$RUNNER_TEMP/forum-web-production" "$SOURCE_SHA"
+      - name: Actual Docker serving, retained assets, atomic switch and rollback
+        run: bash scripts/verification/check-web-release.sh "$RUNNER_TEMP/forum-web-dev"
+      - name: Built route, held-session, history, focus and viewport regressions
+        env:
+          FORUM_WEB_SITE: ${{ runner.temp }}/forum-web-dev/site
+        run: |
+          npx --no-install playwright install --with-deps chromium
+          npx --no-install playwright test --config tests/e2e/public-site.config.ts
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: forum-web-dev-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/forum-web-dev/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: forum-web-production-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/forum-web-production/
+          if-no-files-found: error
+          retention-days: 30
+
   quality:
     name: quality
     if: always()
-    needs: [layout, api, frontend, composition, publishers, database, profile, operational]
+    needs: [layout, api, frontend, composition, publishers, database, profile, operational, web-release]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

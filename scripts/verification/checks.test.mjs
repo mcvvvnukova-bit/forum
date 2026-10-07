@@ -43,7 +43,7 @@ for (const [file, error] of [
     assert.match(run(path).stderr, error)
   })
 }
-for (const missing of ['apps/legacy-landing/package.json', 'package-lock.json', 'apps/public-auth/src/PublicAuth.test.tsx', 'apps/profile-preview/package.json', 'apps/profile-preview/src/profile.test.ts', 'apps/web/production-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml', 'scripts/deployment/forum-db/bootstrap_forum_db.sh', 'scripts/deployment/forum-db/configure_forum_app_role.sh', 'scripts/deployment/pgadmin/configure-admin.py', 'scripts/deployment/mail/stalwart_api.py', 'scripts/maintenance/mail/backup.sh', 'scripts/maintenance/openproject/backup.sh', 'scripts/verification/mail/verify.py', 'scripts/verification/forum-api/test-callback-relay.mjs']) {
+for (const missing of ['apps/legacy-landing/package.json', 'package-lock.json', 'apps/web/src/auth/PublicAuth.test.tsx', 'apps/profile-preview/package.json', 'apps/profile-preview/src/profile.test.ts', 'apps/web/production-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml', 'scripts/deployment/forum-db/bootstrap_forum_db.sh', 'scripts/deployment/forum-db/configure_forum_app_role.sh', 'scripts/deployment/pgadmin/configure-admin.py', 'scripts/deployment/mail/stalwart_api.py', 'scripts/maintenance/mail/backup.sh', 'scripts/maintenance/openproject/backup.sh', 'scripts/verification/mail/verify.py', 'scripts/verification/forum-api/test-callback-relay.mjs']) {
   test(`required source cannot be skipped: ${missing}`, t => {
     const path = fixture(t)
     rmSync(join(path, missing))
@@ -52,7 +52,7 @@ for (const missing of ['apps/legacy-landing/package.json', 'package-lock.json', 
 }
 test('actual package script drift is rejected', t => {
   const path = fixture(t)
-  const file = join(path, 'apps/primer-home/package.json')
+  const file = join(path, 'apps/web/package.json')
   const pkg = JSON.parse(readFileSync(file))
   pkg.scripts.lint = 'true'
   writeFileSync(file, JSON.stringify(pkg))
@@ -79,7 +79,7 @@ for (const file of ['.outline-migration/payload.json', 'outline-uploads/form.jso
   })
 }
 test('final quality check requires every exact result to be success', () => {
-  const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database', 'profile', 'operational']
+  const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database', 'profile', 'operational', 'web-release']
   const results = Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))
   const gate = data => spawnSync(process.execPath, [join(root, 'scripts/verification/quality-gate.mjs')], {
     env: {...process.env, QUALITY_RESULTS: JSON.stringify(data)}, encoding: 'utf8',
@@ -96,7 +96,7 @@ test('final quality check requires every exact result to be success', () => {
 test('every checkout uses the explicit candidate head expression', () => {
   const workflow = readFileSync(join(root, '.github/workflows/quality.yml'), 'utf8')
   const checkouts = [...workflow.matchAll(/- uses: actions\/checkout@[^\n]+\n([\s\S]*?)(?=      - |\n  \w|$)/g)]
-  assert.equal(checkouts.length, 9)
+  assert.equal(checkouts.length, 10)
   for (const [, block] of checkouts) assert.match(block, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/)
 })
 
@@ -146,4 +146,18 @@ test('fresh metadata hashes cannot replace immutable source pins', t => {
   ownership.acceptedSourceMatrixSha256 = createHash('sha256').update(readFileSync(file)).digest('hex')
   writeFileSync(receipt, JSON.stringify(ownership))
   assert.match(provenance(path).stderr, /Immutable source pins changed/)
+})
+
+test('Task7 current runtime ownership detects changed bytes and rejects unrelated overrides', t => {
+  const path=fixture(t)
+  assert.equal(provenance(path).status,0)
+  const source=join(path,'apps/web/src/App.tsx')
+  writeFileSync(source,readFileSync(source,'utf8')+'\n// unexpected runtime drift\n')
+  assert.notEqual(provenance(path).status,0)
+  const clean=fixture(t)
+  const file=join(clean,'artifacts/repository-audits/task-7-source-ownership.json')
+  const receipt=JSON.parse(readFileSync(file))
+  receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+  writeFileSync(file,JSON.stringify(receipt))
+  assert.match(provenance(clean).stderr,/Out-of-scope Task7/)
 })

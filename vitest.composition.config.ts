@@ -2,8 +2,8 @@ import {createRequire} from 'node:module'
 import {defineConfig} from 'vitest/config'
 import react from '@vitejs/plugin-react'
 const require = createRequire(import.meta.url)
-// Independently installed packages must share React and the provider context in
-// this composition harness; production still builds each existing entrypoint.
+// Accepted component regression composition shares the same React/Primer context.
+// apps/web now owns the single production dev bootstrap and shared session.
 export default defineConfig({
   plugins: [react()],
   resolve: {dedupe: ['react', 'react-dom', '@primer/react', '@primer/octicons-react'], alias: [

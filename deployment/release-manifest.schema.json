@@ -1,100 +1,5 @@
 {
-  "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "schemaVersion": {
-      "const": 1
-    },
-    "environment": {
-      "enum": [
-        "dev",
-        "production",
-        "shared"
-      ]
-    },
-    "recordKind": {
-      "enum": [
-        "observed",
-        "release"
-      ]
-    },
-    "reconciliationStatus": {
-      "enum": [
-        "observed-unreconciled",
-        "verified"
-      ]
-    },
-    "observedOn": {
-      "type": "string",
-      "format": "date"
-    },
-    "recordedAt": {
-      "$ref": "#/$defs/time"
-    },
-    "host": {
-      "type": "string",
-      "minLength": 1
-    },
-    "evidence": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "minItems": 1
-    },
-    "components": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/component"
-      },
-      "minItems": 1
-    },
-    "routes": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/route"
-      },
-      "minItems": 0
-    },
-    "limitations": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "minItems": 0
-    },
-    "proxyProof": {
-      "$ref": "#/$defs/proxyProof"
-    },
-    "databaseBoundary": {
-      "$ref": "#/$defs/databaseBoundary"
-    },
-    "backupProofs": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/backup"
-      },
-      "minItems": 0
-    }
-  },
-  "required": [
-    "schemaVersion",
-    "environment",
-    "recordKind",
-    "reconciliationStatus",
-    "observedOn",
-    "recordedAt",
-    "host",
-    "evidence",
-    "components",
-    "routes",
-    "limitations"
-  ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/mcvvvnukova-bit/forum/deployment/release-manifest.schema.json",
-  "title": "Forum environment observation and release manifest",
   "$defs": {
     "sha256": {
       "type": "string",
@@ -777,163 +682,454 @@
       ]
     }
   },
-  "allOf": [
+  "oneOf": [
     {
-      "if": {
-        "properties": {
-          "recordKind": {
-            "const": "observed"
-          }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 1
         },
-        "required": [
-          "recordKind"
-        ]
-      },
-      "then": {
-        "properties": {
-          "reconciliationStatus": {
-            "const": "observed-unreconciled"
+        "environment": {
+          "enum": [
+            "dev",
+            "production",
+            "shared"
+          ]
+        },
+        "recordKind": {
+          "enum": [
+            "observed",
+            "release"
+          ]
+        },
+        "reconciliationStatus": {
+          "enum": [
+            "observed-unreconciled",
+            "verified"
+          ]
+        },
+        "observedOn": {
+          "type": "string",
+          "format": "date"
+        },
+        "recordedAt": {
+          "$ref": "#/$defs/time"
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
           },
-          "components": {
-            "items": {
-              "not": {
-                "required": [
-                  "releaseProof"
-                ]
-              }
-            }
-          }
+          "minItems": 1
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component"
+          },
+          "minItems": 1
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/route"
+          },
+          "minItems": 0
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "proxyProof": {
+          "$ref": "#/$defs/proxyProof"
+        },
+        "databaseBoundary": {
+          "$ref": "#/$defs/databaseBoundary"
+        },
+        "backupProofs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/backup"
+          },
+          "minItems": 0
         }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "recordKind": {
-            "const": "release"
-          }
-        },
-        "required": [
-          "recordKind"
-        ]
       },
-      "then": {
-        "properties": {
-          "reconciliationStatus": {
-            "const": "verified"
+      "required": [
+        "schemaVersion",
+        "environment",
+        "recordKind",
+        "reconciliationStatus",
+        "observedOn",
+        "recordedAt",
+        "host",
+        "evidence",
+        "components",
+        "routes",
+        "limitations"
+      ],
+      "title": "Forum environment observation and release manifest",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "recordKind": {
+                "const": "observed"
+              }
+            },
+            "required": [
+              "recordKind"
+            ]
           },
-          "components": {
-            "items": {
-              "required": [
-                "releaseProof"
-              ],
-              "properties": {
-                "limitations": {
-                  "maxItems": 0
-                },
-                "sources": {
-                  "items": {
-                    "not": {
-                      "properties": {
-                        "kind": {
-                          "const": "unknown"
-                        }
-                      },
-                      "required": [
-                        "kind"
-                      ]
-                    },
-                    "if": {
-                      "properties": {
-                        "kind": {
-                          "const": "git"
-                        }
-                      },
-                      "required": [
-                        "kind"
-                      ]
-                    },
-                    "then": {
-                      "properties": {
-                        "verification": {
-                          "const": "release-chain"
-                        }
-                      }
-                    }
-                  }
-                },
-                "releaseProof": {
-                  "properties": {
-                    "served": {
-                      "properties": {
-                        "originHttp": {
-                          "items": {
-                            "properties": {
-                              "matchesMountedBytes": {
-                                "const": true
-                              }
-                            },
-                            "required": [
-                              "matchesMountedBytes"
-                            ]
-                          }
-                        },
-                        "publicHttp": {
-                          "items": {
-                            "properties": {
-                              "matchesMountedBytes": {
-                                "const": true
-                              }
-                            },
-                            "required": [
-                              "matchesMountedBytes"
-                            ]
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
+          "then": {
+            "properties": {
+              "reconciliationStatus": {
+                "const": "observed-unreconciled"
               },
-              "if": {
-                "properties": {
-                  "kind": {
-                    "enum": [
-                      "site",
-                      "api",
-                      "gateway"
+              "components": {
+                "items": {
+                  "not": {
+                    "required": [
+                      "releaseProof"
                     ]
                   }
-                },
-                "required": [
-                  "kind"
-                ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "recordKind": {
+                "const": "release"
+              }
+            },
+            "required": [
+              "recordKind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reconciliationStatus": {
+                "const": "verified"
               },
-              "then": {
-                "properties": {
-                  "releaseProof": {
-                    "properties": {
-                      "served": {
-                        "properties": {
-                          "originHttp": {
-                            "minItems": 1
+              "components": {
+                "items": {
+                  "required": [
+                    "releaseProof"
+                  ],
+                  "properties": {
+                    "limitations": {
+                      "maxItems": 0
+                    },
+                    "sources": {
+                      "items": {
+                        "not": {
+                          "properties": {
+                            "kind": {
+                              "const": "unknown"
+                            }
                           },
-                          "publicHttp": {
-                            "minItems": 1
+                          "required": [
+                            "kind"
+                          ]
+                        },
+                        "if": {
+                          "properties": {
+                            "kind": {
+                              "const": "git"
+                            }
+                          },
+                          "required": [
+                            "kind"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "verification": {
+                              "const": "release-chain"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "releaseProof": {
+                      "properties": {
+                        "served": {
+                          "properties": {
+                            "originHttp": {
+                              "items": {
+                                "properties": {
+                                  "matchesMountedBytes": {
+                                    "const": true
+                                  }
+                                },
+                                "required": [
+                                  "matchesMountedBytes"
+                                ]
+                              }
+                            },
+                            "publicHttp": {
+                              "items": {
+                                "properties": {
+                                  "matchesMountedBytes": {
+                                    "const": true
+                                  }
+                                },
+                                "required": [
+                                  "matchesMountedBytes"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "if": {
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "site",
+                          "api",
+                          "gateway"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "releaseProof": {
+                        "properties": {
+                          "served": {
+                            "properties": {
+                              "originHttp": {
+                                "minItems": 1
+                              },
+                              "publicHttp": {
+                                "minItems": 1
+                              }
+                            }
                           }
                         }
                       }
                     }
                   }
                 }
+              },
+              "limitations": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "recordKind": {
+          "const": "build"
+        },
+        "reconciliationStatus": {
+          "const": "build-only"
+        },
+        "environment": {
+          "enum": [
+            "dev",
+            "production"
+          ]
+        },
+        "sourceSha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "sourceTree": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "buildMode": {
+          "enum": [
+            "vite",
+            "static-copy"
+          ]
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "toolchain": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "node": {
+              "type": "string",
+              "minLength": 1
+            },
+            "npm": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vite": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "node",
+            "npm",
+            "vite"
+          ]
+        },
+        "sourceFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "configFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "lockFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "installedDependencyFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "artifactFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "inputs": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "propertyNames": {
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*(?:\\.env|private|node_modules|secrets|uploads|\\\\))[^\\s]+$"
+          }
+        },
+        "files": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "propertyNames": {
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*(?:\\.env|private|node_modules|secrets|uploads|\\\\))[^\\s]+$"
+          }
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "VITE_FORUM_SESSION": {
+              "const": "true"
+            },
+            "VITE_LOGIN_URL": {
+              "const": "/login"
+            },
+            "VITE_START_URL": {
+              "const": "/register"
+            }
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordKind",
+        "reconciliationStatus",
+        "environment",
+        "sourceSha",
+        "sourceTree",
+        "buildMode",
+        "routes",
+        "toolchain",
+        "sourceFingerprint",
+        "configFingerprint",
+        "lockFingerprint",
+        "installedDependencyFingerprint",
+        "artifactFingerprint",
+        "inputs",
+        "files",
+        "config"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "environment": {
+                "const": "production"
               }
             }
           },
-          "limitations": {
-            "maxItems": 0
+          "then": {
+            "properties": {
+              "buildMode": {
+                "const": "static-copy"
+              },
+              "routes": {
+                "const": [
+                  "/"
+                ]
+              },
+              "config": {
+                "maxProperties": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "buildMode": {
+                "const": "vite"
+              },
+              "routes": {
+                "const": [
+                  "/",
+                  "/customers/",
+                  "/suppliers/",
+                  "/work/",
+                  "/participate/",
+                  "/login",
+                  "/register"
+                ]
+              },
+              "config": {
+                "required": [
+                  "VITE_FORUM_SESSION",
+                  "VITE_LOGIN_URL",
+                  "VITE_START_URL"
+                ]
+              }
+            }
           }
         }
-      }
+      ]
     }
   ]
 }

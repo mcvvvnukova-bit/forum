@@ -1,0 +1,35 @@
+{
+  "name": "@astforum/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5188 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "preview": "vite preview --host 127.0.0.1 --port 5188 --strictPort"
+  },
+  "dependencies": {
+    "@primer/octicons-react": "19.33.0",
+    "@primer/primitives": "11.10.0",
+    "@primer/react": "38.37.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.1.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.0",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "eslint": "^9.39.0",
+    "typescript-eslint": "^8.46.0",
+    "jsdom": "27.0.0",
+    "typescript": "5.9.2",
+    "vite": "8.2.2",
+    "vitest": "4.1.11",
+    "@types/node": "^24.19.0"
+  }
+}
