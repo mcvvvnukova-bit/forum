@@ -56,7 +56,44 @@ def current_file(candidate, expected_hash, expected_mode):
         resolved = (change['candidatePath'], change['candidateSha256'], change['candidateMode'])
     else:
         resolved = (candidate, expected_hash, expected_mode)
-    return governance_file(*resolved)
+    return public_entry_file(*governance_file(*resolved))
+
+
+# Preserve all dated predecessor receipts. This task can replace only these
+# existing public entry and verification files, without moving or chmod'ing them.
+PUBLIC_ENTRY_PATHS = {
+    'apps/web/src/audience/App.tsx', 'apps/web/src/audience/audience.test.tsx',
+    'apps/web/src/auth/PublicAuth.tsx', 'apps/web/src/home/config.ts',
+    'apps/web/src/home/home.test.tsx', 'packages/public-navigation.ts',
+    'deployment/web/build-config.json', 'deployment/release-manifest.schema.json',
+    'scripts/deployment/web_release.py', 'tests/e2e/public-site.spec.ts',
+    'tests/integration/public-site-composition.test.tsx', 'vitest.composition.config.ts',
+    'scripts/verification/check-operational-sources.py', 'scripts/verification/checks.test.mjs',
+}
+
+
+def public_entry_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-31-public-entry-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-31'
+    assert receipt['baseSha'] == '36277f1094a6514709b2bf5eb6c9737c9361a213', 'PROJ-31 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(PUBLIC_ENTRY_PATHS), 'Duplicate or missing PROJ-31 owner'
+    assert {item['previousCandidatePath'] for item in changes} == PUBLIC_ENTRY_PATHS, 'Out-of-scope PROJ-31 owner'
+    for item in changes:
+        assert item['candidatePath'] == item['previousCandidatePath'], 'PROJ-31 owner cannot move'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-31 mode must stay unchanged'
+        for key in ('previousSha256', 'candidateSha256'):
+            assert len(item[key]) == 64 and all(c in '0123456789abcdef' for c in item[key]), 'Invalid PROJ-31 hash'
+    return receipt
+
+
+def public_entry_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((item for item in public_entry_receipt()['changes'] if item['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-31 predecessor pin mismatch: ' + candidate
+        return ROOT / candidate, change['candidateSha256'], change['candidateMode']
+    return ROOT / candidate, expected_hash, expected_mode
 
 
 
@@ -193,15 +230,20 @@ def verify_provenance():
         for item in receipt['changes']:
             verify_current(item['previousCandidatePath'], item['previousSha256'], item['previousMode'])
         for item in receipt['newFiles']:
-            path = ROOT / item['path']
+            path, digest, _ = public_entry_file(ROOT / item['path'], item['sha256'], '100644')
             assert path.is_file() and not path.is_symlink(), item['path']
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == item['sha256'], item['path']
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, item['path']
     governance = governance_receipt(verify_history=True)
     for item in governance['changes']:
+        path, digest, _ = public_entry_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-154 current hash mismatch: ' + item['candidatePath']
+        assert not path.stat().st_mode & 0o111, 'PROJ-154 current mode mismatch'
+    for item in public_entry_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-154 current hash mismatch: ' + item['candidatePath']
-        assert not path.stat().st_mode & 0o111, 'PROJ-154 current mode mismatch'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-31 current hash mismatch: ' + item['candidatePath']
+        assert not path.stat().st_mode & 0o111, 'PROJ-31 current mode mismatch'
     return accepted
 
 

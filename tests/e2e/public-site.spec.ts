@@ -43,6 +43,7 @@ for(const width of [320,390,1440]){
    await page.getByRole('button',{name:'Закрыть окно'}).click()
    await expect.poll(()=>page.evaluate(()=>document.activeElement instanceof HTMLElement && document.activeElement!==document.body)).toBe(true)
   })
+ }
  test(`built entry CTAs open the shared login at ${width}`,async({page})=>{
   await page.setViewportSize({width,height:1000})
   await page.route('**/api/auth/session',route=>route.fulfill({status:401,body:''}))
@@ -62,12 +63,11 @@ for(const width of [320,390,1440]){
     await expect(page).toHaveURL(/\/login$/)
     await expect(page.getByRole('button',{name:'Войти по Сбер ID',exact:true})).toBeEnabled()
     await page.getByRole('button',{name:'Закрыть окно',exact:true}).click()
-    await expect(page).toHaveURL(new RegExp(path.replaceAll('/','\\/')+'$'))
+    await expect(page).toHaveURL(new URL(path,page.url()).href)
     await expect(opener).toBeFocused()
    }
   }
  })
- }
 }
 for(const status of [401,500])test(`built guest and unknown ${status}`,async({page})=>{
  await page.route('**/api/auth/session',route=>route.fulfill({status,body:''}))

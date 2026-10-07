@@ -178,3 +178,21 @@ for (const mutation of ['hash', 'pin', 'scope', 'mode', 'path', 'duplicate', 'so
     assert.notEqual(provenance(path).status, 0)
   })
 }
+
+for (const mutation of ['hash', 'pin', 'scope', 'mode', 'path', 'duplicate', 'base']) {
+  test(`PROJ-31 public entry ownership rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    assert.equal(provenance(path).status, 0)
+    const file = join(path, 'artifacts/repository-audits/proj-31-public-entry-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    if (mutation === 'hash') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'pin') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes[0].previousCandidatePath = 'apps/api/src/app.ts'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}
