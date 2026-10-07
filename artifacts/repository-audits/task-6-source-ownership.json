@@ -4,7 +4,7 @@
   "baseSha": "236941728afbe87d960357a1a96b45f44c5b3a7d",
   "sourceObservationDate": "2026-10-06",
   "previousAcceptedSourceMatrixSha256": "e7b90f4243a4a9bc886c9527c9902aedf85e534661d277dcb4fb274f17dd1b93",
-  "acceptedSourceMatrixSha256": "d8607259e259f1f9bc0dd1e6798fe17dee921a86ba7a7e8d87258cc9418f08b3",
+  "acceptedSourceMatrixSha256": "1bcd9dff8cc7c42da2234e020ddc1f4f45e12029a911cf7963785b0ad0c2c895",
   "immutableSourcePinsSha256": "b35659b1514efac772e9cdd47af4b7f79de699f5bd075268dcc0d035faf43b04",
   "immutableTask5SnapshotSha256": "32c5c040940ae80ab0679d26dad95ee1118f8d81c5950375ee74a8279ab4f135",
   "mode": "100644",

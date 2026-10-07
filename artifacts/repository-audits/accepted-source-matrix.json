@@ -10567,8 +10567,8 @@
         "previousSha256": "daad083884cfcb081dd25470d39ff1074ac265598ec675ff8b75c318e8dbabc1",
         "previousMode": "100644",
         "candidatePath": "scripts/verification/checks.test.mjs",
-        "candidateSha256": "6a751ec7c77ab310bff50b6c40b05c966190e7a89feaba50c12a560a5f2a18b9",
-        "candidateGitBlob": "6259d5c6e6707073265d33f7c5a205b8cb3cc1ed",
+        "candidateSha256": "3bccaa278554700dfa323be75c41c05f7feb717cc938abfa190a7fc9f1268a91",
+        "candidateGitBlob": "cb904a60221b84dd565e0a6720e6ef9a514f6048",
         "candidateMode": "100644"
       },
       {
@@ -10576,8 +10576,8 @@
         "previousSha256": "7ff3de7cc224d52ca5fff4698eee9fb533cdead35fb565850dc0147c2f1c6e40",
         "previousMode": "100644",
         "candidatePath": "scripts/verification/repository-layout.json",
-        "candidateSha256": "5f57baf365d5e246b17804ecc257fdf1358861a9a0cfa68727cc3b7bf0416d9d",
-        "candidateGitBlob": "2e8cb157cf051bd3a90f24787c57d4023ccab09d",
+        "candidateSha256": "ce5b2299606698c152a0d192ba79cf1187e0efc0655edca1f32dd79039b9abc7",
+        "candidateGitBlob": "e035559c23022f33028f192a3c6bc2221da03eec",
         "candidateMode": "100644"
       }
     ],

@@ -67,6 +67,17 @@ test('ignored dependency and private source cannot enter the tracked layout', t 
   }
   assert.match(run(path).stderr, /Private\/generated/)
 })
+for (const file of ['.outline-migration/payload.json', 'outline-uploads/form.json', '.gitnexus/context.json', '.gitnexus-cache/cache.json']) {
+  test(`force-added migration and cache source is rejected: ${file}`, t => {
+    const path = fixture(t)
+    mkdirSync(dirname(join(path, file)), {recursive: true})
+    writeFileSync(join(path, file), 'synthetic forbidden fixture')
+    execFileSync('git', ['add', '-f', file], {cwd: path})
+    const result = run(path)
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /Private\/generated/)
+  })
+}
 test('final quality check requires every exact result to be success', () => {
   const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database', 'profile', 'operational']
   const results = Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))

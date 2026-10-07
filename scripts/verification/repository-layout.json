@@ -245,7 +245,11 @@
     "dist",
     ".test-build",
     "backups",
-    ".secrets"
+    ".secrets",
+    ".outline-migration",
+    "outline-uploads",
+    ".gitnexus",
+    ".gitnexus-cache"
   ],
   "ignoredPrivateSuffix": ".private.json",
   "workspaceRoot": "."
