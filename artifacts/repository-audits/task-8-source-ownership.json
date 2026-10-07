@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "task": "PROJ-152",
+  "baseSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+  "status": "offline-source-current-not-final-main-or-cleanup",
+  "readmePreviousCandidateSha256": "e7a0d9034c04a3531257372de9e6d4cf3d631e9783f8d25b9a8c2f524f871ae9",
+  "readmeCurrentCandidateSha256": "01df750b58e425200e775908702761d1a2b5157963973c257fb5118f308c9ba9",
+  "historicalSourcePinsUnchanged": true,
+  "files": [
+    {
+      "path": ".dockerignore",
+      "previousSha256": "796f3769729101847730cdf3ad8789e9aae06baf75cb4440b19d00f8d46fc5bb",
+      "sha256": "89eea1824df12144fe42f4a7dc57fcd4ce55b3af034616ac743373c46b695087"
+    },
+    {
+      "path": ".gitignore",
+      "previousSha256": "24f6d22bd253926262534a048705f2025019bdf776383d6743428c9bc0aeffa9",
+      "sha256": "5b02a08b017412933e56a4f69cea377c6fdf4359d9dda79e8b81e9e9c0483bba"
+    },
+    {
+      "path": ".gitnexusignore",
+      "previousSha256": "d0e1b0077611b44f42be113e306859e323cebfa11c759565a05a2d1025f27334",
+      "sha256": "6763b28e5af169f46e273b21b1681e32711c0ddd44b3d8416569800eef081cf2"
+    },
+    {
+      "path": "README.md",
+      "previousSha256": "e7a0d9034c04a3531257372de9e6d4cf3d631e9783f8d25b9a8c2f524f871ae9",
+      "sha256": "01df750b58e425200e775908702761d1a2b5157963973c257fb5118f308c9ba9"
+    },
+    {
+      "path": "artifacts/releases/2026-10-07-dev-e513872-build.json",
+      "previousSha256": null,
+      "sha256": "52caa9f0f3828e69946a8fe7f1de9980917777b83fa50b2255ca4b56bfda484f"
+    },
+    {
+      "path": "artifacts/releases/2026-10-07-production-e513872-build.json",
+      "previousSha256": null,
+      "sha256": "cf910a29c04a6fc49de55ccd5e11fc05dae58709b440a3c97df9b5b4b4492ff9"
+    },
+    {
+      "path": "artifacts/releases/2026-10-07-vps-dev-observed.json",
+      "previousSha256": null,
+      "sha256": "1019ddfac22fd5ed5e8a3f25b2e52e7c6ca7f406320a6f687816b23961ff1934"
+    },
+    {
+      "path": "artifacts/releases/2026-10-07-vps-production-observed.json",
+      "previousSha256": null,
+      "sha256": "9b46ccdebc7e73a8328d56ceeb7f76a486e66774bed2d6a7c5459233cfd3df96"
+    },
+    {
+      "path": "artifacts/releases/2026-10-07-vps-shared-observed.json",
+      "previousSha256": null,
+      "sha256": "45d05a285ed558b2ade6fcae262331be4704e79d2116fa6e787d6a7e1da261f9"
+    },
+    {
+      "path": "artifacts/repository-audits/2026-10-07-cleanup-eligibility.json",
+      "previousSha256": null,
+      "sha256": "8e81dc6fd70626e4f42e270173e93e62d921814e2ec48d1eb8d5e51b43051c31"
+    },
+    {
+      "path": "artifacts/repository-audits/2026-10-07-final-reconciliation.md",
+      "previousSha256": null,
+      "sha256": "aa3aa1fee9de4d90ddba729ef381d28dd47ebefe2c946061c686618c60b48c0f"
+    },
+    {
+      "path": "artifacts/repository-audits/2026-10-07-runtime-reconciliation.json",
+      "previousSha256": null,
+      "sha256": "72ced4ba5056eaacab206fb6d0da7e97e077f823d7ff79a314b947ae48ad474c"
+    },
+    {
+      "path": "artifacts/repository-audits/task-7-source-ownership.json",
+      "previousSha256": "37204e0064cfee166369c1f1adbaa6683c7915d8afbdd5d9811afc50cd5ccbad",
+      "sha256": "94eac5755fd666c30644777d3051aee21da932940da08b6d83ac3e6f528e69fa"
+    }
+  ]
+}
