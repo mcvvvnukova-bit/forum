@@ -1459,7 +1459,7 @@
     },
     {
       "path": "scripts/verification/check-web-release.sh",
-      "sha256": "f949865f31c63961aef798b9a584f69ccfbf59854bcc58d8d8d88e394bd7f383"
+      "sha256": "95dc3170650412a172a4e1dbf607a45d60fabdbc2263946f865a2e1f2a7e9f72"
     },
     {
       "path": "scripts/verification/web-build-inputs.test.mjs",
