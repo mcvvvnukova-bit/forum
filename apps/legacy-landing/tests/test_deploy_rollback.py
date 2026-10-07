@@ -1,4 +1,7 @@
-"""Execute deploy.sh locally; model bind mounts with pinned directory/file FDs.
+"""Historical rollback archaeology; not a supported deployment entrypoint.
+
+Execute the inert preserved payload only in a synthetic temporary root; model
+bind mounts with pinned directory/file FDs.
 
 Only root checks, ownership and Docker are shimmed. HTTP is real and the fixture
 loads gateway code at recreation, so replacing host directories cannot silently
@@ -168,8 +171,15 @@ class DeployRollbackTest(unittest.TestCase):
         (self.component / "apps/legacy-landing/dist/site/robots.txt").write_text("Disallow: /")
         (self.component / "apps/dev-gateway/forum_dev_auth.py").write_text(GATEWAY)
         (self.component / "scripts/verification/check_origin_login.py").write_text("import sys\nsys.exit(19)\n")
-        # The sole harness substitution relocates the fixed server directory.
-        script = (ROOT.parents[1] / "scripts/deployment/legacy-landing/deploy.sh").read_text().replace("app_dir=/opt/outline", "app_dir=" + shlex.quote(str(self.app)), 1)
+        # The live entrypoint is unconditionally retired. Extract only its inert
+        # historical payload for these rollback archaeology tests. This fixture
+        # always relocates /opt/outline to its own disposable directory.
+        source = (ROOT.parents[1] / "scripts/deployment/legacy-landing/deploy.sh").read_text()
+        _, script = source.split(": <<'FORUM_RETIRED_LEGACY_DEPLOY_SOURCE'\n", 1)
+        script, end = script.rsplit('FORUM_RETIRED_LEGACY_DEPLOY_SOURCE\n', 1)
+        assert not end
+        assert script.count("app_dir=/opt/outline") == 1
+        script = script.replace("app_dir=/opt/outline", "app_dir=" + shlex.quote(str(self.app)), 1)
         self.script = self.component / "scripts/deployment/legacy-landing/deploy.sh"
         self.script.write_text(script)
         self.compose = "services:\n  caddy:\n    image: caddy\n  outline:\n    image: outline\nsecrets:\n  unrelated:\n    file: ./secrets/unrelated\n"

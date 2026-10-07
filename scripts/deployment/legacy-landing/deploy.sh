@@ -1,4 +1,15 @@
 #!/bin/sh
+# This entrypoint is permanently retired, including bootstrap and --set-password.
+# Refuse before inspecting a target, prompting, creating backups or running tools.
+# A marker-only preflight could race the first unified publication; the old
+# replacement also unlinks the permanent site lock and mounted parent directory.
+printf '%s\n' 'Legacy landing deployment is retired. Use deployment/release.md for unified web publication; this command cannot change passwords.' >&2
+exit 1
+
+# Inert historical bootstrap/recovery source, retained for review and isolated
+# archaeology tests only. No argument or environment variable enables it.
+: <<'FORUM_RETIRED_LEGACY_DEPLOY_SOURCE'
+#!/bin/sh
 set -eu
 
 app_dir=/opt/outline
@@ -371,3 +382,4 @@ printf '%s\n' "AST Forum dev landing infrastructure deployed successfully."
 printf '%s\n' "Host: $public_host"
 printf '%s\n' "Password secret: $password_secret_file ($password_state)"
 printf '%s\n' "Backup: $backup_dir"
+FORUM_RETIRED_LEGACY_DEPLOY_SOURCE
