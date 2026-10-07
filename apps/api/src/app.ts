@@ -18,7 +18,9 @@ class HealthController {
   async ready(@Res() reply: FastifyReply) {
     try {
       if (!this.runtime.pool) return reply.code(503).send({status: 'not_ready'});
-      await this.runtime.pool.query('SELECT 1 FROM iam.users LIMIT 0');
+      await this.runtime.pool.query(`SELECT 1 FROM public.users, public.external_identities,
+        public.persons, public.participants, public.participant_memberships, public.role_assignments,
+        public.sessions, public.authorization_attempts, public.outbox_events, public.audit_events LIMIT 0`);
       return reply.send({status: 'ok', sberConfigured: Boolean(this.runtime.sber)});
     } catch { return reply.code(503).send({status: 'not_ready'}); }
   }

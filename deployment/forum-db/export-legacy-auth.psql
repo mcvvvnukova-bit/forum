@@ -1,0 +1,11 @@
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SELECT jsonb_build_object('schemaVersion',1,'sourceDatabase',current_database(),'sourceLedger',(SELECT jsonb_agg(to_jsonb(m)) FROM iam.schema_migrations m),'tables',jsonb_build_object(
+'users',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM iam.users t),
+'external_identities',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM iam.external_identities t),
+'participants',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM party.participants t),
+'role_assignments',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM iam.role_assignments t),
+'sessions',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM iam.sessions t),
+'authorization_attempts',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM iam.authorization_attempts t),
+'audit_events',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM audit.audit_events t),
+'outbox_events',(SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]') FROM integration.outbox_events t)));
+COMMIT;

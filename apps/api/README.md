@@ -128,34 +128,28 @@ completion beyond those claims is a separate feature.
 
 ## Persistence And Operations
 
-**Historical main database observation, 2026-09-15:** the source reported `forum` with migrations001–003 and all
-21 application tables in `public`, applied with `deployment/forum-db/apply-public.psql`.
-This API still uses the legacy Sandbox schema; its migrator runs only 001 and 004 and
-refuses installations containing `public.schema_migrations` to prevent recreating IAM.
-The documented API store uses `forum_sber_sandbox`; freshly verify the deployment target before release. Update the
-store queries to `public.*`, registration transaction and authorization before
-pointing this API at the main database.
-See [database ownership and checks](../../deployment/forum-db/README.md).
-The following describes the existing API implementation based on migration 001.
+The API uses the main `forum` database and the consolidated `public` identity tables.
+Migration005 adds IAM role `individual` with a participant-kind guard; original
+migrations001–004 stay immutable. The owner migrator applies001–003 and005 to a
+clean installation, upgrades an existing003 layout, and refuses a legacy installation.
+The one-shot legacy transfer is documented in [database operations](../../deployment/forum-db/README.md).
 
-The additive migration creates only the identity/individual-registration subset
-of the documented module schemas. Existing `public` company/OKVED tables are not
-modified. Email uniqueness uses `lower(email)` instead of the `citext` extension.
-Migration004 adds base IAM role `individual` and backfills existing personal users,
-including blocked users without activating them. It removes their old IAM provider
-assignment; `party.participants.role=provider` remains unchanged. The CHECK still
-accepts provider for preceding-image rollback. Organizational onboarding remains separate.
-Registration atomically writes user, external identities, participant, role, audit,
-`ParticipantRegistered` outbox and session. The outbox delivery worker is not part
-of this authentication implementation. Do not mark pending events as published manually.
+Registration atomically creates user, verified external identity, minimal validated
+person snapshot, personal provider participant, active membership, `individual`
+IAM grant, audit/outbox records and session. A revoked membership denies new login
+and existing sessions without being reactivated. Provider aliases retain ownership;
+email/phone are never used to link accounts. The current reduced userinfo snapshot
+provides sub, email confirmation and phone; missing Professional attributes remain absent.
 
-Migrations run explicitly with a schema-owner connection, never automatically at
-API startup. The legacy Sandbox uses `iam.schema_migrations`; the main database
-uses `public.schema_migrations`. Current main-database runtime grants are in
-`deployment/forum-api/grant-runtime.sql` and must not be reused for legacy Sandbox.
-The runtime role cannot modify/delete audit events. Rollback is to the previous application image while retaining the
-additive tables and registered users; destructive down-migrations are intentionally
-not supplied for identity data.
+Run migrations only with an explicitly selected schema-owner connection, never at
+API startup. Runtime uses restricted `forum_app` and the allowlist in
+`deployment/forum-api/grant-runtime.sql`. Readiness checks all required public tables.
+The runtime cannot edit/delete audit events. Source transfer preserves every original
+row/UUID/timestamp, builds profiles from recorded verified snapshots, and retains
+session token hashes. Keep private restorable backups of both databases before
+cutover; delete the source only after fresh runtime/database/browser verification.
+The outbox delivery worker remains separate; do not mark pending events published.
+
 
 Production completion notification runs after commit and retries once. Two failed
 attempts emit `sber_completion_failed` without undoing the account or session.
@@ -211,7 +205,7 @@ Provide a disposable PostgreSQL 18.6 instance before the last command. The brows
 test accepts only a `postgres:`/`postgresql:` loopback URL with a valid decoded
 ASCII database name ending in `_test` and no URL query options or fragments.
 The destructive API auth suite uses the same test-only validation. The browser applies
-only legacy migration 001 itself, so it can run independently of `npm test`.
+the complete public identity migrations itself, so it can run independently of `npm test`.
 Use a fresh empty database for each browser run. No deployed database, provider
 credentials or production dump is needed. Missing frontend sources or dependencies
 fail with the required install command before starting servers.
@@ -237,7 +231,7 @@ introduced or independently checked against Figma in this backend task.
 
 ### Sandbox target and TLS boundary
 
-The September11/October1 connection observations are historical; they do not prove the current deployment. Verify the selected database/schema, configured issuer, redirect origin, provider endpoint/port, certificate chain and runtime grants before an authorized release. The sandbox store is separate from the main `public` schema; a TLS connection alone does not prove OAuth, persistence or account reuse.
+The September11/October1 connection observations are historical; they do not prove the current deployment. Verify the selected database/schema, configured issuer, redirect origin, provider endpoint/port, certificate chain and runtime grants before an authorized release. The Sber provider can remain in test mode while the API persists to the main `forum.public` store; verify OAuth, persistence and account reuse separately.
 
 Port6443 and hostname/certificate validation are part of the documented provider configuration. Keep private certificates, converted keys, passwords and session/provider payloads outside Git. Use the owned [deployment runbook](../../deployment/forum-api/README.md) and [release gates](../../deployment/release.md) for target/backup/served-origin/rollback evidence; raw delivery records remain private/history.
 

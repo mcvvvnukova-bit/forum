@@ -214,3 +214,21 @@ for (const mutation of ['hash','pin','scope','mode','duplicate','base','source']
     assert.notEqual(provenance(path).status,0)
   })
 }
+
+for (const mutation of ['hash','pin','scope','mode','duplicate','base','source']) {
+  test(`PROJ-156 main auth ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-156-main-auth-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/web/src/home/App.tsx'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}

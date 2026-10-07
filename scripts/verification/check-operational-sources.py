@@ -136,9 +136,43 @@ def sber_auth_file(path, expected_hash, expected_mode):
     change = next((x for x in sber_auth_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-155 predecessor pin mismatch: ' + candidate
+        return main_auth_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return main_auth_file(ROOT / candidate, expected_hash, expected_mode)
+
+
+# Exact-path PROJ-156 successor. Historical receipts are never rewritten.
+MAIN_AUTH_PREDECESSORS = {'apps/api/README.md': 'a10db49c8291fa91f370a87c122bc622cb33fc2e0bcfb681f468a266e4d182c5', 'apps/api/src/app.ts': 'ce1b222c87830245d82178deea625f357cb9655674754e9d15449a9761d6ccc9', 'apps/api/src/iam/auth-store.ts': 'bb5155f1585ac209e5814074563ab9cc4a9a5931af9ae85f5ab339ac833b9840', 'apps/api/src/migrate.ts': '533b805fbd9e48e3cbfa0f28a16b12e23f042443552f312b2676f0e73b20d931', 'apps/api/src/party/individual-participant.ts': '1c084c9fc90293710a0c914292825bcc10dba1db6cf7574c65a29b94e658cc74', 'apps/api/test/auth.test.ts': '7a8dbf9be714b3b2e5f96e77fcdde7b5e9ce03c27365dbf61a21feceac86dda6', 'apps/api/test/browser-smoke.mjs': '4ba78089e73fe00197b201eeeddda0896047c7f60c17ab67d67312527b6b17e1', 'apps/api/test/migrate.test.ts': '6f224d2ec4d2e96ad330ea937901a3943ed52cc7275697ff9dbddb8dec04df52', 'deployment/forum-db/README.md': '365a2557150ec22de4ad8e9bd13b9e4e3a35ad3b80272f3b2fbd014d04b1cf74', 'scripts/verification/check-operational-sources.py': 'c5b192ab893ace0bcb765af3384f32d0c01212486d5b95b8d44448d4c0c15384', 'scripts/verification/checks.test.mjs': '164486026f2c52129a64821e35d86bfce1fc9d43ea5afeb57336c296b7bd03e6'}
+MAIN_AUTH_NEW_PATHS = {'apps/api/test/consolidation.test.ts', 'deployment/forum-db/export-legacy-auth.psql', 'apps/api/src/consolidate-auth.ts', 'docs/plans/2026-10-08-gitnexus-plan-main-forum-auth-migration.md', 'apps/api/migrations/005_public_individual_role.sql'}
+
+
+def main_auth_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-156-main-auth-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-156'
+    assert receipt['baseSha'] == 'f0a8d54f3a1d293b218ed9f7cb220b18929960b4', 'PROJ-156 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(MAIN_AUTH_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(MAIN_AUTH_PREDECESSORS), 'Out-of-scope PROJ-156 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        assert item['candidatePath'] == path and item['previousSha256'] == MAIN_AUTH_PREDECESSORS[path], 'PROJ-156 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-156 mode mismatch'
+        assert len(item['candidateSha256']) == 64 and all(c in '0123456789abcdef' for c in item['candidateSha256']), 'Invalid PROJ-156 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(MAIN_AUTH_NEW_PATHS) and {x['path'] for x in sources} == MAIN_AUTH_NEW_PATHS, 'Out-of-scope PROJ-156 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-156 source hash mismatch'
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-156 source mode mismatch'
+    return receipt
+
+
+def main_auth_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in main_auth_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-156 chain mismatch: ' + candidate
         return ROOT / candidate, change['candidateSha256'], change['candidateMode']
     return ROOT / candidate, expected_hash, expected_mode
-
 
 
 # PROJ-154 changes verification governance only. The old Task5/6/7 receipts
@@ -289,10 +323,15 @@ def verify_provenance():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-31 current hash mismatch: ' + item['candidatePath']
         assert not path.stat().st_mode & 0o111, 'PROJ-31 current mode mismatch'
     for item in sber_auth_receipt()['changes']:
+        path, digest, _ = main_auth_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-155 successor hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-155 successor mode mismatch'
+    for item in main_auth_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-155 current hash mismatch: ' + item['candidatePath']
-        assert not path.stat().st_mode & 0o111, 'PROJ-155 current mode mismatch'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-156 current hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-156 current mode mismatch'
     return accepted
 
 

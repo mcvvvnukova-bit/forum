@@ -37,7 +37,7 @@ let vite;
 let browser;
 const previousApiOrigin = process.env.FORUM_API_ORIGIN;
 try {
-  // Apply only identity and base-role migrations to the disposable Sandbox database.
+  // Apply the public identity migrations to the disposable local test database.
   await migrate(pool);
   await api.listen(0, '127.0.0.1');
   const target = await api.getUrl();
@@ -68,8 +68,8 @@ try {
     assert.equal(identity.user.displayName, 'Иванова Анна');
     assert.deepEqual(identity.roles, ['individual']);
     assert.equal(new URL(page.url()).pathname, '/cabinet/');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.external_identities')).rows[0].count, '1');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.users')).rows[0].count, '1');
+    assert.equal((await pool.query('SELECT count(*) FROM public.external_identities')).rows[0].count, '1');
+    assert.equal((await pool.query('SELECT count(*) FROM public.users')).rows[0].count, '1');
     assert.ok(provider.calls.some(call => call.path.endsWith('/tokens/v2/oidc')));
     assert.ok(provider.calls.some(call => call.path.endsWith('/userinfo')));
     assert.ok(provider.calls.some(call => call.path.endsWith('/auth/completed')));
@@ -86,7 +86,7 @@ try {
     await expect(page.getByRole('link', {name: 'Войти', exact: true})).toBeVisible();
     const session = await page.request.get(`${origin}/api/auth/session`);
     assert.equal(session.status(), 401);
-    assert.equal((await pool.query('SELECT count(*) FROM iam.sessions WHERE revoked_at IS NULL')).rows[0].count, '0');
+    assert.equal((await pool.query('SELECT count(*) FROM public.sessions WHERE revoked_at IS NULL')).rows[0].count, '0');
     // Exercise provider cancellation through start/state/callback, not a hand-written error URL.
     provider.faults.authorizationError = 'access_denied';
     const callsBeforeCancel = provider.calls.length;
@@ -98,8 +98,8 @@ try {
     assert.equal((await cancellation).headers().location, '/?auth_error=access_denied');
     assert.equal((await page.request.get(`${origin}/api/auth/session`)).status(), 401);
     assert.equal(provider.calls.length, callsBeforeCancel, 'Cancellation must not exchange a token');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.authorization_attempts')).rows[0].count, '0');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.users')).rows[0].count, '1');
+    assert.equal((await pool.query('SELECT count(*) FROM public.authorization_attempts')).rows[0].count, '0');
+    assert.equal((await pool.query('SELECT count(*) FROM public.users')).rows[0].count, '1');
     provider.faults.authorizationError = '';
     await page.screenshot({path: join(screenshots, `cancel-${width}.png`)});
     assert.deepEqual(errors, []);

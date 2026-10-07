@@ -22,7 +22,7 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  await pool.query('TRUNCATE iam.authorization_attempts, iam.sessions, iam.role_assignments, iam.external_identities, iam.users, party.participants, audit.audit_events, integration.outbox_events');
+  await pool.query('TRUNCATE public.authorization_attempts, public.sessions, public.role_assignments, public.external_identities, public.users, public.participants, public.audit_events, public.outbox_events, public.persons, public.participant_memberships');
   provider.calls.length = 0;
   Object.assign(provider.faults, {tokenStatus: 200, profileStatus: 200, completionStatus: 204});
 });
@@ -51,7 +51,25 @@ function sessionCookie(response: Awaited<ReturnType<typeof finish>>) {
   return `${cookie.name}=${cookie.value}`;
 }
 
-async function userCount() { return Number((await pool.query('SELECT count(*) FROM iam.users')).rows[0].count); }
+async function userCount() { return Number((await pool.query('SELECT count(*) FROM public.users')).rows[0].count); }
+
+test('registration persists a validated public person and active personal membership', async () => {
+  const response = await finish(await begin());
+  assert.equal(response.headers.location, '/cabinet/?auth=success');
+  const person = (await pool.query('SELECT sub, email, identified_at, profile_received_at FROM public.persons')).rows[0];
+  assert.equal(person.sub, 'sber-person-1');
+  assert.equal(person.email, 'anna@example.test');
+  assert.ok(person.identified_at && person.profile_received_at);
+  assert.equal((await pool.query('SELECT status FROM public.participant_memberships')).rows[0].status, 'active');
+});
+
+test('revoked personal membership denies an old session and new login without reactivation', async () => {
+  const cookie = sessionCookie(await finish(await begin()));
+  await pool.query("UPDATE public.participant_memberships SET status='revoked'");
+  assert.equal((await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie}})).statusCode,401);
+  assert.equal((await finish(await begin('login'))).headers.location,'/?auth_error=account_deactivated');
+  assert.equal((await pool.query('SELECT status FROM public.participant_memberships')).rows[0].status,'revoked');
+});
 
 test('Sber start reports unavailable until partner credentials are configured', async () => {
   const app = await createApp();
@@ -97,9 +115,9 @@ test('registration persists identity, individual IAM role, outbox and an opaque 
   assert.equal(me.json().participant.legalStatus, 'individual_person');
   assert.equal(await userCount(), 1);
   assert.deepEqual(me.json().roles, ['individual']);
-  assert.equal((await pool.query('SELECT role FROM iam.role_assignments')).rows[0].role, 'individual');
-  assert.equal((await pool.query('SELECT event_type FROM integration.outbox_events')).rows[0].event_type, 'ParticipantRegistered');
-  assert.equal((await pool.query('SELECT count(*) FROM iam.authorization_attempts')).rows[0].count, '0');
+  assert.equal((await pool.query('SELECT role FROM public.role_assignments')).rows[0].role, 'individual');
+  assert.equal((await pool.query('SELECT event_type FROM public.outbox_events')).rows[0].event_type, 'ParticipantRegistered');
+  assert.equal((await pool.query('SELECT count(*) FROM public.authorization_attempts')).rows[0].count, '0');
   const tokenCall = provider.calls.find(c => c.path.endsWith('/oidc'))!;
   assert.equal(tokenCall.form.get('client_secret'), 'synthetic-secret');
   assert.equal(tokenCall.form.get('redirect_uri'), provider.sber.redirectUri);
@@ -107,7 +125,7 @@ test('registration persists identity, individual IAM role, outbox and an opaque 
   assert.match(String(tokenCall.headers.rquid), /^[a-f0-9]{32}$/);
   assert.ok(provider.calls.some(c => c.path === '/api/v2/auth/completed'));
   assert.doesNotMatch(JSON.stringify(me.json()), /test-access|id_token|nonce|synthetic-secret/);
-  const stored = (await pool.query('SELECT token_hash FROM iam.sessions')).rows[0].token_hash;
+  const stored = (await pool.query('SELECT token_hash FROM public.sessions')).rows[0].token_hash;
   assert.notEqual(stored, cookie.split('=')[1]);
   assert.match(String(response.headers['set-cookie']), /HttpOnly/);
   assert.match(String(response.headers['set-cookie']), /Secure/);
@@ -126,7 +144,7 @@ test('returning login and repeated registration reuse the account and rotate the
   assert.equal((await app.inject({method: 'GET', url: '/api/auth/session', headers: {cookie: oldCookie}})).statusCode, 401);
   await finish(await begin());
   assert.equal(await userCount(), 1);
-  assert.equal((await pool.query('SELECT count(*) FROM party.participants')).rows[0].count, '1');
+  assert.equal((await pool.query('SELECT count(*) FROM public.participants')).rows[0].count, '1');
 });
 
 test('each authentication keeps one rquid across token, userinfo and completion retries', async () => {
@@ -259,27 +277,27 @@ test('first login creates one individual account and opens its cabinet', async (
   assert.equal(me.statusCode, 200);
   assert.deepEqual(me.json().roles, ['individual']);
   assert.equal(await userCount(), 1);
-  assert.equal((await pool.query('SELECT count(*) FROM iam.role_assignments')).rows[0].count, '1');
+  assert.equal((await pool.query('SELECT count(*) FROM public.role_assignments')).rows[0].count, '1');
 });
 
 test('legacy personal assignments migrate once without changing the participant or its status', async () => {
   const created = await finish(await begin());
   const me = (await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie:sessionCookie(created)}})).json();
-  await pool.query("UPDATE iam.role_assignments SET role='provider'");
-  await pool.query("UPDATE iam.users SET status='deactivated'");
-  await pool.query("DELETE FROM iam.schema_migrations WHERE name='004_individual_role'");
+  await pool.query("DELETE FROM public.role_assignments; INSERT INTO public.role_assignments(user_id,scope_type,scope_id,role) SELECT individual_user_id,'participant',id,'provider' FROM public.participants");
+  await pool.query("UPDATE public.users SET status='deactivated'");
+  await pool.query("DELETE FROM public.schema_migrations WHERE name='005_public_individual_role'");
   await migrate(pool); await migrate(pool);
-  const roles = await pool.query('SELECT user_id,scope_id,role FROM iam.role_assignments');
+  const roles = await pool.query('SELECT user_id,scope_id,role FROM public.role_assignments');
   assert.deepEqual(roles.rows,[{user_id:me.user.id,scope_id:me.participant.id,role:'individual'}]);
-  assert.equal((await pool.query('SELECT status FROM iam.users')).rows[0].status,'deactivated');
-  assert.equal((await pool.query('SELECT id,role FROM party.participants')).rows[0].id,me.participant.id);
-  assert.equal((await pool.query('SELECT role FROM party.participants')).rows[0].role,'provider');
+  assert.equal((await pool.query('SELECT status FROM public.users')).rows[0].status,'deactivated');
+  assert.equal((await pool.query('SELECT id,role FROM public.participants')).rows[0].id,me.participant.id);
+  assert.equal((await pool.query('SELECT role FROM public.participants')).rows[0].role,'provider');
   assert.equal(await userCount(),1);
 });
 
 test('blocked identification closes a previous browser session without creating another account', async () => {
   await finish(await begin());
-  await pool.query("UPDATE iam.users SET status='deactivated'");
+  await pool.query("UPDATE public.users SET status='deactivated'");
   const other = await finish(await begin('login'), {sub:'other-person'}, {email:'other@example.test'});
   const oldCookie = sessionCookie(other);
   const attempt = await begin('register');
@@ -290,7 +308,7 @@ test('blocked identification closes a previous browser session without creating 
   assert.ok(blocked.cookies.some(c => c.name.includes('forum_session') && !c.value));
   assert.equal((await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie:oldCookie}})).statusCode,401);
   assert.equal(await userCount(),2);
-  assert.equal((await pool.query('SELECT count(*) FROM iam.sessions')).rows[0].count,'2');
+  assert.equal((await pool.query('SELECT count(*) FROM public.sessions')).rows[0].count,'2');
 });
 
 test('callback is one-use and bound to the initiating browser', async () => {
@@ -307,7 +325,7 @@ test('callback is one-use and bound to the initiating browser', async () => {
 
 test('expired authorization attempts and declined consent create no account', async () => {
   const expired = await begin();
-  await pool.query("UPDATE iam.authorization_attempts SET expires_at = now() - interval '1 second'");
+  await pool.query("UPDATE public.authorization_attempts SET expires_at = now() - interval '1 second'");
   assert.equal((await finish(expired)).headers.location, '/?auth_error=invalid_state');
   const denied = await begin();
   const response = await app.inject({method: 'GET', url: `/auth/sber-id/callback?state=${denied.state}&error=access_denied`,
@@ -328,7 +346,7 @@ for (const [label, claims, profile] of [
     const response = await finish(await begin(), claims, profile);
     assert.equal(response.headers.location, '/?auth_error=invalid_provider_response');
     assert.equal(await userCount(), 0);
-    assert.equal((await pool.query('SELECT count(*) FROM iam.sessions')).rows[0].count, '0');
+    assert.equal((await pool.query('SELECT count(*) FROM public.sessions')).rows[0].count, '0');
   });
 }
 
@@ -356,8 +374,8 @@ test('concurrent login and registration create one identity, participant and ind
   const responses = await Promise.all([finish(one), finish(two)]);
   for (const response of responses) assert.equal(response.headers.location, '/cabinet/?auth=success');
   assert.equal(await userCount(), 1);
-  assert.equal((await pool.query('SELECT count(*) FROM party.participants')).rows[0].count, '1');
-  assert.deepEqual((await pool.query('SELECT role FROM iam.role_assignments')).rows.map(row=>row.role), ['individual']);
+  assert.equal((await pool.query('SELECT count(*) FROM public.participants')).rows[0].count, '1');
+  assert.deepEqual((await pool.query('SELECT role FROM public.role_assignments')).rows.map(row=>row.role), ['individual']);
 });
 
 test('session endpoint rejects missing, expired and deactivated sessions; logout enforces origin', async () => {
@@ -366,10 +384,10 @@ test('session endpoint rejects missing, expired and deactivated sessions; logout
   const crossSite = await app.inject({method: 'POST', url: '/api/auth/logout', headers: {cookie, origin: 'https://attacker.test'}});
   assert.equal(crossSite.statusCode, 403);
   assert.equal((await app.inject({method: 'GET', url: '/api/auth/session', headers: {cookie}})).statusCode, 200);
-  await pool.query("UPDATE iam.users SET status = 'deactivated'");
+  await pool.query("UPDATE public.users SET status = 'deactivated'");
   assert.equal((await app.inject({method: 'GET', url: '/api/auth/session', headers: {cookie}})).statusCode, 401);
-  await pool.query("UPDATE iam.users SET status = 'active'");
-  await pool.query("UPDATE iam.sessions SET expires_at = now() - interval '1 second'");
+  await pool.query("UPDATE public.users SET status = 'active'");
+  await pool.query("UPDATE public.sessions SET expires_at = now() - interval '1 second'");
   assert.equal((await app.inject({method: 'GET', url: '/api/auth/session', headers: {cookie}})).statusCode, 401);
   const fresh = sessionCookie(await finish(await begin('login')));
   const logout = await app.inject({method: 'POST', url: '/api/auth/logout', headers: {cookie: fresh, origin: 'https://forum.example'}});
@@ -395,9 +413,9 @@ test('HEAD requests cannot consume attempts or begin authentication', async () =
 
 test('deactivated identities cannot open new sessions and conflicting aliases are not auto-merged', async () => {
   await finish(await begin());
-  await pool.query("UPDATE iam.users SET status = 'deactivated'");
+  await pool.query("UPDATE public.users SET status = 'deactivated'");
   assert.equal((await finish(await begin('login'))).headers.location, '/?auth_error=account_deactivated');
-  await pool.query("UPDATE iam.users SET status = 'active'");
+  await pool.query("UPDATE public.users SET status = 'active'");
   await finish(await begin(), {sub: 'person-2'}, {email: 'second@example.test'});
   const conflict = await finish(await begin('login'), {sub: 'person-2', alt_sub: 'sber-person-1'});
   assert.equal(conflict.headers.location, '/?auth_error=account_conflict');
@@ -424,17 +442,17 @@ test('userinfo failure creates no account and completion outage does not undo a 
 });
 
 test('database failure during registration rolls back the user and participant', async () => {
-  await pool.query(`CREATE FUNCTION integration.reject_test_event() RETURNS trigger LANGUAGE plpgsql AS
+  await pool.query(`CREATE FUNCTION public.reject_test_event() RETURNS trigger LANGUAGE plpgsql AS
     $$ BEGIN RAISE EXCEPTION 'test storage fault'; END $$;
-    CREATE TRIGGER reject_test_event BEFORE INSERT ON integration.outbox_events
-    FOR EACH ROW EXECUTE FUNCTION integration.reject_test_event()`);
+    CREATE TRIGGER reject_test_event BEFORE INSERT ON public.outbox_events
+    FOR EACH ROW EXECUTE FUNCTION public.reject_test_event()`);
   try {
     const response = await finish(await begin());
     assert.equal(response.headers.location, '/?auth_error=temporarily_unavailable');
     assert.equal(await userCount(), 0);
-    assert.equal((await pool.query('SELECT count(*) FROM party.participants')).rows[0].count, '0');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.sessions')).rows[0].count, '0');
+    assert.equal((await pool.query('SELECT count(*) FROM public.participants')).rows[0].count, '0');
+    assert.equal((await pool.query('SELECT count(*) FROM public.sessions')).rows[0].count, '0');
   } finally {
-    await pool.query('DROP TRIGGER reject_test_event ON integration.outbox_events; DROP FUNCTION integration.reject_test_event()');
+    await pool.query('DROP TRIGGER reject_test_event ON public.outbox_events; DROP FUNCTION public.reject_test_event()');
   }
 });
