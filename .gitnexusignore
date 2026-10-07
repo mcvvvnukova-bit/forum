@@ -9,3 +9,7 @@ backups/**
 .outline-migration/**
 outline-uploads/**
 **/*.private
+.graft/**
+**/.graft/**
+cal-diy-astforum
+cal-diy-astforum/**

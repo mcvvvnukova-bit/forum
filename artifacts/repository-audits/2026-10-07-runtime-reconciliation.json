@@ -1,0 +1,2919 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "scoped-runtime-reconciliation",
+  "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+  "acceptedMainAtCapture": "a56b52ed05a5f1fbe267dafcfe5d41ce1042916b",
+  "recordedAt": "2026-10-07T04:04:45.004765+00:00",
+  "proofContract": {
+    "scope": "Only enumerated component boundaries and observation times; no whole-project completion.",
+    "static": "Every owned CI file equals mounted, origin HTTP and public HTTPS bytes.",
+    "api": "Exact Git/archive/image/installed dependency payload/dist and migrations plus actual candidate/rollback/final and HTTP availability; HTTP JSON is not byte-compared with code.",
+    "unchangedServices": "Observed existing container/image identity and explicitly allowed mounted code; no unknown custom image reconstruction.",
+    "inventorySchema": "Schema-v1 observed-unreconciled is retained because full-release mandates static HTTP equality and invented build/deployment fields would be false."
+  },
+  "ci": {
+    "checkedAt": "2026-10-07T03:25:58.347130+00:00",
+    "runId": 37566462831,
+    "runUrl": "https://github.com/mcvvvnukova-bit/forum/actions/runs/37566462831",
+    "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+    "downloadedOnlyFromExactSuccessfulRun": true,
+    "artifacts": [
+      {
+        "environment": "dev",
+        "artifactId": 11457924757,
+        "artifactName": "forum-web-dev-e513872ce218357c77b1f7381c26e57c6de66e79",
+        "githubDigest": "sha256:b66fa11ff892635129b02986fe2049eaef1fab06f243ff56f575f990d7aa4d3a",
+        "downloadedZipSha256": "b66fa11ff892635129b02986fe2049eaef1fab06f243ff56f575f990d7aa4d3a",
+        "manifestSha256": "52caa9f0f3828e69946a8fe7f1de9980917777b83fa50b2255ca4b56bfda484f",
+        "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+        "sourceTree": "7ce18784ca72717eafd9cadc66ca6b60eb7b5975",
+        "inputs": 117,
+        "fileCount": 48,
+        "artifactFingerprint": "ae24cb5b1bc2dc2ceb5074b006203e6ed4b6d09080fc7f22d57452f3509f6b30",
+        "installedDependencyFingerprint": "e3f767fdcce061a38f327e0cfcd39fa06c448fae20121605dcb0a14416b416ef",
+        "toolchain": {
+          "node": "v24.18.1",
+          "npm": "11.16.0",
+          "vite": "8.2.2"
+        },
+        "allGitInputsAndDownloadedFileHashesExact": true
+      },
+      {
+        "environment": "production",
+        "artifactId": 11457854721,
+        "artifactName": "forum-web-production-e513872ce218357c77b1f7381c26e57c6de66e79",
+        "githubDigest": "sha256:d2924a1785719735e0db736d8546b901f9fba3f73f976cc7fe128e2f40da81f5",
+        "downloadedZipSha256": "d2924a1785719735e0db736d8546b901f9fba3f73f976cc7fe128e2f40da81f5",
+        "manifestSha256": "cf910a29c04a6fc49de55ccd5e11fc05dae58709b440a3c97df9b5b4b4492ff9",
+        "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+        "sourceTree": "7ce18784ca72717eafd9cadc66ca6b60eb7b5975",
+        "inputs": 117,
+        "fileCount": 7,
+        "artifactFingerprint": "88af743bc1986011c6b8a0459284e6f6ac781353e9b073e978962a9386b24d6a",
+        "installedDependencyFingerprint": "e3f767fdcce061a38f327e0cfcd39fa06c448fae20121605dcb0a14416b416ef",
+        "toolchain": {
+          "node": "v24.18.1",
+          "npm": "11.16.0",
+          "vite": "8.2.2"
+        },
+        "allGitInputsAndDownloadedFileHashesExact": true
+      }
+    ]
+  },
+  "static": {
+    "dev": {
+      "boundaryStatus": "verified-enumerated-static-bytes",
+      "observedAt": "2026-10-07T03:54:51.456610+00:00",
+      "files": [
+        {
+          "path": "customers/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          }
+        },
+        {
+          "path": "index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          }
+        },
+        {
+          "path": "login/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          }
+        },
+        {
+          "path": "participate/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          }
+        },
+        {
+          "path": "register/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          }
+        },
+        {
+          "path": "suppliers/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          }
+        },
+        {
+          "path": "web-assets/index-BHd2KWCJ.css",
+          "sha256": "bd1122fffc9be4753e0ad5887732e061b68180a37803e17582c99cc35d9ebc48",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 171381,
+            "sha256": "bd1122fffc9be4753e0ad5887732e061b68180a37803e17582c99cc35d9ebc48"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 171381,
+            "sha256": "bd1122fffc9be4753e0ad5887732e061b68180a37803e17582c99cc35d9ebc48"
+          }
+        },
+        {
+          "path": "web-assets/index-C7zN4am9.js",
+          "sha256": "167ef0174ead9152ca171ac6a63c6d4915e57a1c8b090e1297f70e59fce3a76b",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 681190,
+            "sha256": "167ef0174ead9152ca171ac6a63c6d4915e57a1c8b090e1297f70e59fce3a76b"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 681190,
+            "sha256": "167ef0174ead9152ca171ac6a63c6d4915e57a1c8b090e1297f70e59fce3a76b"
+          }
+        },
+        {
+          "path": "web-assets/noto-sans-bold-condensed-cyrillic-SPamaKX4.woff2",
+          "sha256": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 7408,
+            "sha256": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 7408,
+            "sha256": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3"
+          }
+        },
+        {
+          "path": "web-assets/noto-sans-bold-condensed-latin-5IGi-XSh.woff2",
+          "sha256": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 13772,
+            "sha256": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 13772,
+            "sha256": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/brand-logo-horizontal-color.png",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 23529,
+            "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 23529,
+            "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/forum-logo-square.svg",
+          "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 618,
+            "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 618,
+            "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/hero-illustration-process-interface.png",
+          "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 1084494,
+            "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 1084494,
+            "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-bin-leasing.png",
+          "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 14731,
+            "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 14731,
+            "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-bk-resource.png",
+          "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 27195,
+            "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 27195,
+            "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-geoprom.webp",
+          "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 2324,
+            "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 2324,
+            "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-polycorr.svg",
+          "sha256": "f7b297ab02e7a8025830f8eedb0311affcb05fd5d894d5cf557e1faa3d0c4e2c",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 5265,
+            "sha256": "f7b297ab02e7a8025830f8eedb0311affcb05fd5d894d5cf557e1faa3d0c4e2c"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 5265,
+            "sha256": "f7b297ab02e7a8025830f8eedb0311affcb05fd5d894d5cf557e1faa3d0c4e2c"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-profmaster.svg",
+          "sha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 15060,
+            "sha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 15060,
+            "sha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-rentaero.svg",
+          "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 32377,
+            "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 32377,
+            "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-sfera-snab.svg",
+          "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 14309,
+            "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 14309,
+            "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-spectransservice.png",
+          "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 6786,
+            "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 6786,
+            "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-tahoban.svg",
+          "sha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 34155,
+            "sha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 34155,
+            "sha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-tool-tech.jpg",
+          "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 60990,
+            "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 60990,
+            "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-vostok-service.svg",
+          "sha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 3680,
+            "sha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 3680,
+            "sha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-vseinstrumenti.svg",
+          "sha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 13464,
+            "sha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 13464,
+            "sha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-zelenaya-doroga.png",
+          "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 195884,
+            "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 195884,
+            "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-customer.png",
+          "sha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 1701978,
+            "sha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 1701978,
+            "sha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-specialist-left-mirrored.png",
+          "sha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 1072620,
+            "sha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 1072620,
+            "sha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-supplier.png",
+          "sha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 1718598,
+            "sha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 1718598,
+            "sha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/brand-logo-horizontal-color.png",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 23529,
+            "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 23529,
+            "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/forum-logo-square.svg",
+          "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 618,
+            "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 618,
+            "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/hero-illustration-process-interface.png",
+          "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 1084494,
+            "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 1084494,
+            "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-bin-leasing.png",
+          "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 14731,
+            "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 14731,
+            "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-bk-resource.png",
+          "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 27195,
+            "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 27195,
+            "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-geoprom.webp",
+          "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 2324,
+            "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 2324,
+            "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-polycorr.svg",
+          "sha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 5264,
+            "sha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 5264,
+            "sha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-profmaster.svg",
+          "sha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 15061,
+            "sha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 15061,
+            "sha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-rentaero.svg",
+          "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 32377,
+            "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 32377,
+            "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-sfera-snab.svg",
+          "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 14309,
+            "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 14309,
+            "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-spectransservice.png",
+          "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 6786,
+            "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 6786,
+            "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-tahoban.svg",
+          "sha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 34155,
+            "sha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 34155,
+            "sha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-tool-tech.jpg",
+          "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 60990,
+            "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 60990,
+            "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-vostok-service.svg",
+          "sha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 3681,
+            "sha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 3681,
+            "sha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-vseinstrumenti.svg",
+          "sha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 13464,
+            "sha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 13464,
+            "sha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-zelenaya-doroga.png",
+          "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 195884,
+            "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 195884,
+            "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/work-order-interface-v1.png",
+          "sha256": "ea14c38f6c25426bea2d04f38d4a1063d0ea4c6d1dcd54a26f9ed9c6f1ff7e66",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 1169866,
+            "sha256": "ea14c38f6c25426bea2d04f38d4a1063d0ea4c6d1dcd54a26f9ed9c6f1ff7e66"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 1169866,
+            "sha256": "ea14c38f6c25426bea2d04f38d4a1063d0ea4c6d1dcd54a26f9ed9c6f1ff7e66"
+          }
+        },
+        {
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/work-vacancy-interface-v1.png",
+          "sha256": "8eb4ebdd2ed36483abbc264f6b2072bcf1a18efc296ead36cf74a56f767e7f5a",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 1226189,
+            "sha256": "8eb4ebdd2ed36483abbc264f6b2072bcf1a18efc296ead36cf74a56f767e7f5a"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 1226189,
+            "sha256": "8eb4ebdd2ed36483abbc264f6b2072bcf1a18efc296ead36cf74a56f767e7f5a"
+          }
+        },
+        {
+          "path": "work/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "mounted": true,
+          "origin": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          },
+          "https": {
+            "status": 200,
+            "bytes": 980,
+            "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983"
+          }
+        }
+      ],
+      "operationAt": "2026-10-07T03:35:14.834790+00:00",
+      "operation": {
+        "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+        "environment": "dev",
+        "operationId": "005e10614e494692ae2058dbf1888274",
+        "artifactFingerprint": "ae24cb5b1bc2dc2ceb5074b006203e6ed4b6d09080fc7f22d57452f3509f6b30",
+        "assetsRetainedOnRollback": true,
+        "switch": "renameat2-exchange-within-stable-parent"
+      },
+      "priorPreviewCookieReused": true,
+      "gatewayAndCaddyIdentityMountConfigUnchanged": true,
+      "rollbackSequence": [
+        {
+          "stage": "forced-new",
+          "checkedAt": "2026-10-07T03:31:56.950116+00:00",
+          "operation": {},
+          "checks": {
+            "intentionalFailureConfirmed": true,
+            "automaticRollbackVerified": true,
+            "allPreviousFilesPreservedWithAdditiveAssets": true
+          }
+        },
+        {
+          "stage": "candidate",
+          "checkedAt": "2026-10-07T03:32:44.011539+00:00",
+          "operation": {
+            "operationId": "73e0f0bee41f443fb361a5a59537f016",
+            "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+            "environment": "dev",
+            "artifactFingerprint": "ae24cb5b1bc2dc2ceb5074b006203e6ed4b6d09080fc7f22d57452f3509f6b30",
+            "assetsRetainedOnRollback": true,
+            "switch": "renameat2-exchange-within-stable-parent"
+          },
+          "checks": {}
+        },
+        {
+          "stage": "explicit-rollback",
+          "checkedAt": "2026-10-07T03:34:34.779478+00:00",
+          "operation": {
+            "operationId": "257104ded343449999fcc26d2334b918",
+            "assetsRetained": true,
+            "rollbackOf": "/opt/forum-reconcile/PROJ-152/e513872ce218357c77b1f7381c26e57c6de66e79/backups/web-73e0f0bee41f443fb361a5a59537f016"
+          },
+          "checks": {}
+        }
+      ]
+    },
+    "production": {
+      "boundaryStatus": "verified-existing-static-bytes",
+      "observedAt": "2026-10-07T03:53:14.224740+00:00",
+      "probes": [
+        {
+          "surface": "origin",
+          "path": "favicon.png",
+          "url": "http://127.0.0.1:80/favicon.png",
+          "status": 200,
+          "sha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "path": "favicon.png",
+          "url": "https://astforum.ru/favicon.png",
+          "status": 200,
+          "sha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "path": "fonts/golos-text-cyrillic.woff2",
+          "url": "http://127.0.0.1:80/fonts/golos-text-cyrillic.woff2",
+          "status": 200,
+          "sha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "path": "fonts/golos-text-cyrillic.woff2",
+          "url": "https://astforum.ru/fonts/golos-text-cyrillic.woff2",
+          "status": 200,
+          "sha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "path": "fonts/golos-text-latin.woff2",
+          "url": "http://127.0.0.1:80/fonts/golos-text-latin.woff2",
+          "status": 200,
+          "sha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "path": "fonts/golos-text-latin.woff2",
+          "url": "https://astforum.ru/fonts/golos-text-latin.woff2",
+          "status": 200,
+          "sha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "path": "fonts/unbounded-cyrillic.woff2",
+          "url": "http://127.0.0.1:80/fonts/unbounded-cyrillic.woff2",
+          "status": 200,
+          "sha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "path": "fonts/unbounded-cyrillic.woff2",
+          "url": "https://astforum.ru/fonts/unbounded-cyrillic.woff2",
+          "status": 200,
+          "sha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "path": "fonts/unbounded-latin.woff2",
+          "url": "http://127.0.0.1:80/fonts/unbounded-latin.woff2",
+          "status": 200,
+          "sha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "path": "fonts/unbounded-latin.woff2",
+          "url": "https://astforum.ru/fonts/unbounded-latin.woff2",
+          "status": 200,
+          "sha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "path": "forum-hard-hat.png",
+          "url": "http://127.0.0.1:80/forum-hard-hat.png",
+          "status": 200,
+          "sha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "path": "forum-hard-hat.png",
+          "url": "https://astforum.ru/forum-hard-hat.png",
+          "status": 200,
+          "sha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "path": "index.html",
+          "url": "http://127.0.0.1:80/",
+          "status": 200,
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "path": "index.html",
+          "url": "https://astforum.ru/",
+          "status": 200,
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "matchesMountedBytes": true,
+          "tlsHostnameValidated": true
+        }
+      ],
+      "productionApplied": false,
+      "reason": "All seven current mounted/source/CI files match. No production deployment event is asserted."
+    }
+  },
+  "api": {
+    "boundaryStatus": "verified-source-image-payload-and-availability",
+    "build": {
+      "checkedAt": "2026-10-07T03:36:33.209393+00:00",
+      "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+      "newImageTag": "astforum/forum-api:proj152-e513872",
+      "newImageId": "sha256:9fbf457667c2b4ab1f827da08b64e911797e39eda713f9e8d65bea3ab33c5ae9",
+      "newImageCreatedAt": "2026-10-07T06:36:27.114995404+03:00",
+      "oldImageId": "sha256:05845ef24741384bda793f4c67709c74b8b6fa4a58272637019479c986dd9865",
+      "sourceArchiveSha256": "362dc964190bb13d4937edbb938545730d4c330721bbb1cf3531abaf50b70696",
+      "buildCommand": [
+        "docker",
+        "build",
+        "--pull",
+        "--file",
+        "/opt/forum-reconcile/PROJ-152/e513872ce218357c77b1f7381c26e57c6de66e79/source/apps/api/Dockerfile",
+        "--tag",
+        "astforum/forum-api:proj152-e513872",
+        "--label",
+        "org.opencontainers.image.revision=e513872ce218357c77b1f7381c26e57c6de66e79",
+        "--label",
+        "org.opencontainers.image.source=https://github.com/mcvvvnukova-bit/forum",
+        "/opt/forum-reconcile/PROJ-152/e513872ce218357c77b1f7381c26e57c6de66e79/source"
+      ],
+      "rollbackConfigurationCopiedPrivately": true
+    },
+    "operations": [
+      {
+        "checkedAt": "2026-10-07T03:48:10.732411+00:00",
+        "stage": "candidate",
+        "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+        "oldContainerId": "50813f03b1c90f480818269e15f32ab3eb6dca8b45960d1d239fa7c68d2cccf2",
+        "newContainerId": "92c6b9953c49015f1e0994681a1459f5ca4c87c33a3d60ec900c6b4784f65989",
+        "imageId": "sha256:9fbf457667c2b4ab1f827da08b64e911797e39eda713f9e8d65bea3ab33c5ae9",
+        "imageTag": "astforum/forum-api:proj152-e513872",
+        "composeSettingsExceptImageUnchanged": true,
+        "environmentUnchanged": true,
+        "dnsUnchanged": true,
+        "bindsUnchanged": true,
+        "networksUnchanged": true,
+        "readinessStatus": 200,
+        "rollbackImageAndConfigurationPrivatelyPreserved": true
+      },
+      {
+        "checkedAt": "2026-10-07T03:49:13.915866+00:00",
+        "stage": "rollback",
+        "sourceSha": "previous-runtime-image",
+        "oldContainerId": "92c6b9953c49015f1e0994681a1459f5ca4c87c33a3d60ec900c6b4784f65989",
+        "newContainerId": "1a1edf6967be2b03b670aa3d38b8ab65f86c7562fba3355aa8137370dd5f5b5a",
+        "imageId": "sha256:05845ef24741384bda793f4c67709c74b8b6fa4a58272637019479c986dd9865",
+        "imageTag": "astforum/forum-api:20261001-sber-dns",
+        "composeSettingsExceptImageUnchanged": true,
+        "environmentUnchanged": true,
+        "dnsUnchanged": true,
+        "bindsUnchanged": true,
+        "networksUnchanged": true,
+        "readinessStatus": 200,
+        "rollbackImageAndConfigurationPrivatelyPreserved": true
+      },
+      {
+        "checkedAt": "2026-10-07T03:49:49.384542+00:00",
+        "stage": "final",
+        "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+        "oldContainerId": "1a1edf6967be2b03b670aa3d38b8ab65f86c7562fba3355aa8137370dd5f5b5a",
+        "newContainerId": "dfa38a3d76e2250b2a674b9e5df8c11c03682704bb27c779e74620c128d05581",
+        "imageId": "sha256:9fbf457667c2b4ab1f827da08b64e911797e39eda713f9e8d65bea3ab33c5ae9",
+        "imageTag": "astforum/forum-api:proj152-e513872",
+        "composeSettingsExceptImageUnchanged": true,
+        "environmentUnchanged": true,
+        "dnsUnchanged": true,
+        "bindsUnchanged": true,
+        "networksUnchanged": true,
+        "readinessStatus": 200,
+        "rollbackImageAndConfigurationPrivatelyPreserved": true
+      }
+    ],
+    "payloads": {
+      "built": {
+        "checkedAt": "2026-10-07T03:47:17.922163+00:00",
+        "stage": "built",
+        "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+        "node": "v24.21.0",
+        "dependencyFingerprint": "3ebb54689a1ae376b33533df99947b57e66476aa72ba9a6ee47f92071011faaa",
+        "dependencyEntries": 6205,
+        "selectedDependencies": {
+          "fastify": {
+            "path": "/app/node_modules/fastify/package.json",
+            "version": "5.12.5",
+            "sha256": "e3757c52e771fe055fd9c19731057f5dc6c10f1d4944da8093fc957a21bbd9aa"
+          },
+          "fast-uri": {
+            "path": "/app/node_modules/fast-uri/package.json",
+            "version": "4.1.5",
+            "sha256": "d8450898094bd5b3e97b0587186aeed8aacef051d29097d1d9b8384d5eeed0db"
+          },
+          "@nestjs/platform-fastify": {
+            "path": "/app/node_modules/@nestjs/platform-fastify/package.json",
+            "version": "12.0.3",
+            "sha256": "7e2a5fdcdea29b655f713d7a66f62a114f6aa247d3a5712ef8f454fbf52b8cd5"
+          },
+          "@fastify/cookie": {
+            "path": "/app/node_modules/@fastify/cookie/package.json",
+            "version": "11.1.2",
+            "sha256": "9eae9cc0becad4abd43a4c5898a2a1b55ff329b58312fa2c03e586c3e5d7ac42"
+          },
+          "pg": {
+            "path": "/app/node_modules/pg/package.json",
+            "version": "8.23.0",
+            "sha256": "e42dd36cba6e9dd8dbb6f773a2f7be8a8c3c273e18b155e42e75961a4cb8bc28"
+          }
+        },
+        "files": [
+          {
+            "path": "/app/dist/app.js",
+            "sha256": "64855b8206ea88be4cc96d27e2e8e2a49845a22b656c243d5b6c222f380d280f"
+          },
+          {
+            "path": "/app/dist/config.js",
+            "sha256": "7d96e9522981ffc610d983c6a58684fef860b80b0297bde0e95caea3414df7ba"
+          },
+          {
+            "path": "/app/dist/iam/auth-error.js",
+            "sha256": "aced0945251f16f2349b76d7c20e0d8eaad040999b3dc784a2c9a3a8367602e5"
+          },
+          {
+            "path": "/app/dist/iam/auth-store.js",
+            "sha256": "278cf9fe4525b8ce9a8c64292f7372c62f7ccbdc1785915ec49f9c6965b0da54"
+          },
+          {
+            "path": "/app/dist/iam/auth.controller.js",
+            "sha256": "7b17d6b9092a3c9d741722ef3d357e690cdaac91b05d390477df961a33720281"
+          },
+          {
+            "path": "/app/dist/iam/crypto.js",
+            "sha256": "d6bc563aba79c8d2774bef306baeddb2c27fc055c65ccace25823a14f387055f"
+          },
+          {
+            "path": "/app/dist/iam/sber-client.js",
+            "sha256": "0e3a66b39be8c155dd86505d99947849ee730362b304ea20138ab7ad3d551690"
+          },
+          {
+            "path": "/app/dist/main.js",
+            "sha256": "42f127098b88e8162cfec71b2b8b2fb171db283f4acac4bad704c9b645c2f7d3"
+          },
+          {
+            "path": "/app/dist/migrate.js",
+            "sha256": "11b794194c563e3a445779a35276debd3bd371799f14dd29ff5297d6a58c19ce"
+          },
+          {
+            "path": "/app/dist/party/individual-participant.js",
+            "sha256": "caed71f6d42d83dd3220536b9c9279cd0df65049f3394590702b1494f0ac4a3e"
+          },
+          {
+            "path": "/app/migrations/001_sber_identity.sql",
+            "sha256": "d45f8b6da7da162d1091ae378d8dee0eb299e5bbcd808418cec9396f09c13d3f"
+          },
+          {
+            "path": "/app/migrations/002_profiles.sql",
+            "sha256": "890208666c3ce3312d208390b54340c4b7f77193778f13352c3c1513cae56998"
+          },
+          {
+            "path": "/app/migrations/003_public_schema.sql",
+            "sha256": "8fe879b923a85b9e5331a84a473e45e1bd2901db7ee40463072653a30136cd8f"
+          }
+        ]
+      },
+      "candidate": {
+        "checkedAt": "2026-10-07T03:48:20.429467+00:00",
+        "stage": "candidate",
+        "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+        "node": "v24.21.0",
+        "dependencyFingerprint": "3ebb54689a1ae376b33533df99947b57e66476aa72ba9a6ee47f92071011faaa",
+        "dependencyEntries": 6205,
+        "selectedDependencies": {
+          "fastify": {
+            "path": "/app/node_modules/fastify/package.json",
+            "version": "5.12.5",
+            "sha256": "e3757c52e771fe055fd9c19731057f5dc6c10f1d4944da8093fc957a21bbd9aa"
+          },
+          "fast-uri": {
+            "path": "/app/node_modules/fast-uri/package.json",
+            "version": "4.1.5",
+            "sha256": "d8450898094bd5b3e97b0587186aeed8aacef051d29097d1d9b8384d5eeed0db"
+          },
+          "@nestjs/platform-fastify": {
+            "path": "/app/node_modules/@nestjs/platform-fastify/package.json",
+            "version": "12.0.3",
+            "sha256": "7e2a5fdcdea29b655f713d7a66f62a114f6aa247d3a5712ef8f454fbf52b8cd5"
+          },
+          "@fastify/cookie": {
+            "path": "/app/node_modules/@fastify/cookie/package.json",
+            "version": "11.1.2",
+            "sha256": "9eae9cc0becad4abd43a4c5898a2a1b55ff329b58312fa2c03e586c3e5d7ac42"
+          },
+          "pg": {
+            "path": "/app/node_modules/pg/package.json",
+            "version": "8.23.0",
+            "sha256": "e42dd36cba6e9dd8dbb6f773a2f7be8a8c3c273e18b155e42e75961a4cb8bc28"
+          }
+        },
+        "files": [
+          {
+            "path": "/app/dist/app.js",
+            "sha256": "64855b8206ea88be4cc96d27e2e8e2a49845a22b656c243d5b6c222f380d280f"
+          },
+          {
+            "path": "/app/dist/config.js",
+            "sha256": "7d96e9522981ffc610d983c6a58684fef860b80b0297bde0e95caea3414df7ba"
+          },
+          {
+            "path": "/app/dist/iam/auth-error.js",
+            "sha256": "aced0945251f16f2349b76d7c20e0d8eaad040999b3dc784a2c9a3a8367602e5"
+          },
+          {
+            "path": "/app/dist/iam/auth-store.js",
+            "sha256": "278cf9fe4525b8ce9a8c64292f7372c62f7ccbdc1785915ec49f9c6965b0da54"
+          },
+          {
+            "path": "/app/dist/iam/auth.controller.js",
+            "sha256": "7b17d6b9092a3c9d741722ef3d357e690cdaac91b05d390477df961a33720281"
+          },
+          {
+            "path": "/app/dist/iam/crypto.js",
+            "sha256": "d6bc563aba79c8d2774bef306baeddb2c27fc055c65ccace25823a14f387055f"
+          },
+          {
+            "path": "/app/dist/iam/sber-client.js",
+            "sha256": "0e3a66b39be8c155dd86505d99947849ee730362b304ea20138ab7ad3d551690"
+          },
+          {
+            "path": "/app/dist/main.js",
+            "sha256": "42f127098b88e8162cfec71b2b8b2fb171db283f4acac4bad704c9b645c2f7d3"
+          },
+          {
+            "path": "/app/dist/migrate.js",
+            "sha256": "11b794194c563e3a445779a35276debd3bd371799f14dd29ff5297d6a58c19ce"
+          },
+          {
+            "path": "/app/dist/party/individual-participant.js",
+            "sha256": "caed71f6d42d83dd3220536b9c9279cd0df65049f3394590702b1494f0ac4a3e"
+          },
+          {
+            "path": "/app/migrations/001_sber_identity.sql",
+            "sha256": "d45f8b6da7da162d1091ae378d8dee0eb299e5bbcd808418cec9396f09c13d3f"
+          },
+          {
+            "path": "/app/migrations/002_profiles.sql",
+            "sha256": "890208666c3ce3312d208390b54340c4b7f77193778f13352c3c1513cae56998"
+          },
+          {
+            "path": "/app/migrations/003_public_schema.sql",
+            "sha256": "8fe879b923a85b9e5331a84a473e45e1bd2901db7ee40463072653a30136cd8f"
+          }
+        ]
+      },
+      "rollback": {
+        "checkedAt": "2026-10-07T03:49:28.525785+00:00",
+        "stage": "rollback",
+        "sourceSha": "previous-runtime-image",
+        "node": "v24.21.0",
+        "dependencyFingerprint": "46284dcb0f677d6232367f329674ce93e92e1199f0ff701d6027a8fd0d23938a",
+        "dependencyEntries": 5804,
+        "selectedDependencies": {
+          "fastify": {
+            "path": "/app/node_modules/fastify/package.json",
+            "version": "5.12.1",
+            "sha256": "3b637c5ec3d748925d4e6819ad744135a78b32f47492593edbe4cf2d67d2fc5f"
+          },
+          "fast-uri": {
+            "path": "/app/node_modules/fast-uri/package.json",
+            "version": "4.1.4",
+            "sha256": "9680f90569e4250e6b437737e966d7a5f909d4d9bad21bdccc306389a3f771f8"
+          },
+          "@nestjs/platform-fastify": {
+            "path": "/app/node_modules/@nestjs/platform-fastify/package.json",
+            "version": "12.0.1",
+            "sha256": "e9b656ea0402b455f9b3f822c31f3ef72cf7aed939d9a75f023d0e0ef037fd13"
+          },
+          "@fastify/cookie": {
+            "path": "/app/node_modules/@fastify/cookie/package.json",
+            "version": "11.1.2",
+            "sha256": "9eae9cc0becad4abd43a4c5898a2a1b55ff329b58312fa2c03e586c3e5d7ac42"
+          },
+          "pg": {
+            "path": "/app/node_modules/pg/package.json",
+            "version": "8.23.0",
+            "sha256": "e42dd36cba6e9dd8dbb6f773a2f7be8a8c3c273e18b155e42e75961a4cb8bc28"
+          }
+        },
+        "files": [
+          {
+            "path": "/app/dist/app.js",
+            "sha256": "64855b8206ea88be4cc96d27e2e8e2a49845a22b656c243d5b6c222f380d280f"
+          },
+          {
+            "path": "/app/dist/config.js",
+            "sha256": "7d96e9522981ffc610d983c6a58684fef860b80b0297bde0e95caea3414df7ba"
+          },
+          {
+            "path": "/app/dist/iam/auth-error.js",
+            "sha256": "aced0945251f16f2349b76d7c20e0d8eaad040999b3dc784a2c9a3a8367602e5"
+          },
+          {
+            "path": "/app/dist/iam/auth-store.js",
+            "sha256": "278cf9fe4525b8ce9a8c64292f7372c62f7ccbdc1785915ec49f9c6965b0da54"
+          },
+          {
+            "path": "/app/dist/iam/auth.controller.js",
+            "sha256": "7b17d6b9092a3c9d741722ef3d357e690cdaac91b05d390477df961a33720281"
+          },
+          {
+            "path": "/app/dist/iam/crypto.js",
+            "sha256": "d6bc563aba79c8d2774bef306baeddb2c27fc055c65ccace25823a14f387055f"
+          },
+          {
+            "path": "/app/dist/iam/sber-client.js",
+            "sha256": "0e3a66b39be8c155dd86505d99947849ee730362b304ea20138ab7ad3d551690"
+          },
+          {
+            "path": "/app/dist/main.js",
+            "sha256": "42f127098b88e8162cfec71b2b8b2fb171db283f4acac4bad704c9b645c2f7d3"
+          },
+          {
+            "path": "/app/dist/migrate.js",
+            "sha256": "11b794194c563e3a445779a35276debd3bd371799f14dd29ff5297d6a58c19ce"
+          },
+          {
+            "path": "/app/dist/party/individual-participant.js",
+            "sha256": "caed71f6d42d83dd3220536b9c9279cd0df65049f3394590702b1494f0ac4a3e"
+          },
+          {
+            "path": "/app/migrations/._001_sber_identity.sql",
+            "sha256": "0da64bf7ee20646c7fc9cc5b4644dd143fcbf5c4bb83b1a673e65a5f7de726d9"
+          },
+          {
+            "path": "/app/migrations/._002_profiles.sql",
+            "sha256": "0da64bf7ee20646c7fc9cc5b4644dd143fcbf5c4bb83b1a673e65a5f7de726d9"
+          },
+          {
+            "path": "/app/migrations/._003_public_schema.sql",
+            "sha256": "0da64bf7ee20646c7fc9cc5b4644dd143fcbf5c4bb83b1a673e65a5f7de726d9"
+          },
+          {
+            "path": "/app/migrations/001_sber_identity.sql",
+            "sha256": "d45f8b6da7da162d1091ae378d8dee0eb299e5bbcd808418cec9396f09c13d3f"
+          },
+          {
+            "path": "/app/migrations/002_profiles.sql",
+            "sha256": "890208666c3ce3312d208390b54340c4b7f77193778f13352c3c1513cae56998"
+          },
+          {
+            "path": "/app/migrations/003_public_schema.sql",
+            "sha256": "8fe879b923a85b9e5331a84a473e45e1bd2901db7ee40463072653a30136cd8f"
+          }
+        ]
+      },
+      "final": {
+        "checkedAt": "2026-10-07T03:50:10.865273+00:00",
+        "stage": "final",
+        "sourceSha": "e513872ce218357c77b1f7381c26e57c6de66e79",
+        "node": "v24.21.0",
+        "dependencyFingerprint": "3ebb54689a1ae376b33533df99947b57e66476aa72ba9a6ee47f92071011faaa",
+        "dependencyEntries": 6205,
+        "selectedDependencies": {
+          "fastify": {
+            "path": "/app/node_modules/fastify/package.json",
+            "version": "5.12.5",
+            "sha256": "e3757c52e771fe055fd9c19731057f5dc6c10f1d4944da8093fc957a21bbd9aa"
+          },
+          "fast-uri": {
+            "path": "/app/node_modules/fast-uri/package.json",
+            "version": "4.1.5",
+            "sha256": "d8450898094bd5b3e97b0587186aeed8aacef051d29097d1d9b8384d5eeed0db"
+          },
+          "@nestjs/platform-fastify": {
+            "path": "/app/node_modules/@nestjs/platform-fastify/package.json",
+            "version": "12.0.3",
+            "sha256": "7e2a5fdcdea29b655f713d7a66f62a114f6aa247d3a5712ef8f454fbf52b8cd5"
+          },
+          "@fastify/cookie": {
+            "path": "/app/node_modules/@fastify/cookie/package.json",
+            "version": "11.1.2",
+            "sha256": "9eae9cc0becad4abd43a4c5898a2a1b55ff329b58312fa2c03e586c3e5d7ac42"
+          },
+          "pg": {
+            "path": "/app/node_modules/pg/package.json",
+            "version": "8.23.0",
+            "sha256": "e42dd36cba6e9dd8dbb6f773a2f7be8a8c3c273e18b155e42e75961a4cb8bc28"
+          }
+        },
+        "files": [
+          {
+            "path": "/app/dist/app.js",
+            "sha256": "64855b8206ea88be4cc96d27e2e8e2a49845a22b656c243d5b6c222f380d280f"
+          },
+          {
+            "path": "/app/dist/config.js",
+            "sha256": "7d96e9522981ffc610d983c6a58684fef860b80b0297bde0e95caea3414df7ba"
+          },
+          {
+            "path": "/app/dist/iam/auth-error.js",
+            "sha256": "aced0945251f16f2349b76d7c20e0d8eaad040999b3dc784a2c9a3a8367602e5"
+          },
+          {
+            "path": "/app/dist/iam/auth-store.js",
+            "sha256": "278cf9fe4525b8ce9a8c64292f7372c62f7ccbdc1785915ec49f9c6965b0da54"
+          },
+          {
+            "path": "/app/dist/iam/auth.controller.js",
+            "sha256": "7b17d6b9092a3c9d741722ef3d357e690cdaac91b05d390477df961a33720281"
+          },
+          {
+            "path": "/app/dist/iam/crypto.js",
+            "sha256": "d6bc563aba79c8d2774bef306baeddb2c27fc055c65ccace25823a14f387055f"
+          },
+          {
+            "path": "/app/dist/iam/sber-client.js",
+            "sha256": "0e3a66b39be8c155dd86505d99947849ee730362b304ea20138ab7ad3d551690"
+          },
+          {
+            "path": "/app/dist/main.js",
+            "sha256": "42f127098b88e8162cfec71b2b8b2fb171db283f4acac4bad704c9b645c2f7d3"
+          },
+          {
+            "path": "/app/dist/migrate.js",
+            "sha256": "11b794194c563e3a445779a35276debd3bd371799f14dd29ff5297d6a58c19ce"
+          },
+          {
+            "path": "/app/dist/party/individual-participant.js",
+            "sha256": "caed71f6d42d83dd3220536b9c9279cd0df65049f3394590702b1494f0ac4a3e"
+          },
+          {
+            "path": "/app/migrations/001_sber_identity.sql",
+            "sha256": "d45f8b6da7da162d1091ae378d8dee0eb299e5bbcd808418cec9396f09c13d3f"
+          },
+          {
+            "path": "/app/migrations/002_profiles.sql",
+            "sha256": "890208666c3ce3312d208390b54340c4b7f77193778f13352c3c1513cae56998"
+          },
+          {
+            "path": "/app/migrations/003_public_schema.sql",
+            "sha256": "8fe879b923a85b9e5331a84a473e45e1bd2901db7ee40463072653a30136cd8f"
+          }
+        ]
+      }
+    },
+    "candidateAndFinalPayloadEqualBuilt": true,
+    "rollbackPayloadComparison": "Exact original pre-apply node/dependencyFingerprint/dependencyEntries/dist+migrations equal actual rollback receipt.",
+    "internalSmoke": {
+      "before": {
+        "config": {
+          "publicOrigin": "https://dev.astforum.ru",
+          "secureCookies": true,
+          "sessionTtlSeconds": 86400,
+          "databaseName": "forum_sber_sandbox",
+          "sberConfigured": true
+        },
+        "ready": {
+          "path": "/health/ready",
+          "status": 200,
+          "sha256": "c977c3aa84f5ce648db7e1fd4204f4808b82f0edefd155a6778fd43fafc8807e",
+          "bytes": 37
+        },
+        "guest": {
+          "path": "/api/auth/session",
+          "status": 401,
+          "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+          "bytes": 26
+        },
+        "providerTls": {
+          "hostname": "oauth-sb.sber.ru",
+          "port": 6443,
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "hostnameValidation": true
+        },
+        "checkedAt": "2026-10-07T03:16:34.990396+00:00",
+        "stage": "before"
+      },
+      "candidate": {
+        "config": {
+          "publicOrigin": "https://dev.astforum.ru",
+          "secureCookies": true,
+          "sessionTtlSeconds": 86400,
+          "databaseName": "forum_sber_sandbox",
+          "sberConfigured": true
+        },
+        "ready": {
+          "path": "/health/ready",
+          "status": 200,
+          "sha256": "c977c3aa84f5ce648db7e1fd4204f4808b82f0edefd155a6778fd43fafc8807e",
+          "bytes": 37
+        },
+        "guest": {
+          "path": "/api/auth/session",
+          "status": 401,
+          "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+          "bytes": 26
+        },
+        "providerTls": {
+          "hostname": "oauth-sb.sber.ru",
+          "port": 6443,
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "hostnameValidation": true
+        },
+        "checkedAt": "2026-10-07T03:48:21.333381+00:00",
+        "stage": "candidate"
+      },
+      "rollback": {
+        "config": {
+          "publicOrigin": "https://dev.astforum.ru",
+          "secureCookies": true,
+          "sessionTtlSeconds": 86400,
+          "databaseName": "forum_sber_sandbox",
+          "sberConfigured": true
+        },
+        "ready": {
+          "path": "/health/ready",
+          "status": 200,
+          "sha256": "c977c3aa84f5ce648db7e1fd4204f4808b82f0edefd155a6778fd43fafc8807e",
+          "bytes": 37
+        },
+        "guest": {
+          "path": "/api/auth/session",
+          "status": 401,
+          "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+          "bytes": 26
+        },
+        "providerTls": {
+          "hostname": "oauth-sb.sber.ru",
+          "port": 6443,
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "hostnameValidation": true
+        },
+        "checkedAt": "2026-10-07T03:49:29.371126+00:00",
+        "stage": "rollback"
+      },
+      "final": {
+        "config": {
+          "publicOrigin": "https://dev.astforum.ru",
+          "secureCookies": true,
+          "sessionTtlSeconds": 86400,
+          "databaseName": "forum_sber_sandbox",
+          "sberConfigured": true
+        },
+        "ready": {
+          "path": "/health/ready",
+          "status": 200,
+          "sha256": "c977c3aa84f5ce648db7e1fd4204f4808b82f0edefd155a6778fd43fafc8807e",
+          "bytes": 37
+        },
+        "guest": {
+          "path": "/api/auth/session",
+          "status": 401,
+          "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+          "bytes": 26
+        },
+        "providerTls": {
+          "hostname": "oauth-sb.sber.ru",
+          "port": 6443,
+          "authorized": true,
+          "protocol": "TLSv1.3",
+          "hostnameValidation": true
+        },
+        "checkedAt": "2026-10-07T03:50:11.949997+00:00",
+        "stage": "final"
+      }
+    },
+    "originAndPublicSmoke": {
+      "candidate": {
+        "stage": "candidate",
+        "apiGuestProbes": [
+          {
+            "surface": "origin",
+            "url": "http://dev-gateway:8080/api/auth/session",
+            "status": 401,
+            "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+            "priorPreviewCookieAccepted": true,
+            "noReplacementCookie": true,
+            "cacheControl": "no-store"
+          },
+          {
+            "surface": "public",
+            "url": "https://dev.astforum.ru/api/auth/session",
+            "status": 401,
+            "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+            "priorPreviewCookieAccepted": true,
+            "noReplacementCookie": true,
+            "cacheControl": "no-store"
+          }
+        ],
+        "checkedAt": "2026-10-07T03:49:05.512136+00:00"
+      },
+      "rollback": {
+        "stage": "rollback",
+        "apiGuestProbes": [
+          {
+            "surface": "origin",
+            "url": "http://dev-gateway:8080/api/auth/session",
+            "status": 401,
+            "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+            "priorPreviewCookieAccepted": true,
+            "noReplacementCookie": true,
+            "cacheControl": "no-store"
+          },
+          {
+            "surface": "public",
+            "url": "https://dev.astforum.ru/api/auth/session",
+            "status": 401,
+            "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+            "priorPreviewCookieAccepted": true,
+            "noReplacementCookie": true,
+            "cacheControl": "no-store"
+          }
+        ],
+        "checkedAt": "2026-10-07T03:49:30.012644+00:00"
+      },
+      "final": {
+        "stage": "final",
+        "apiGuestProbes": [
+          {
+            "surface": "origin",
+            "url": "http://dev-gateway:8080/api/auth/session",
+            "status": 401,
+            "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+            "priorPreviewCookieAccepted": true,
+            "noReplacementCookie": true,
+            "cacheControl": "no-store"
+          },
+          {
+            "surface": "public",
+            "url": "https://dev.astforum.ru/api/auth/session",
+            "status": 401,
+            "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21",
+            "priorPreviewCookieAccepted": true,
+            "noReplacementCookie": true,
+            "cacheControl": "no-store"
+          }
+        ],
+        "checkedAt": "2026-10-07T03:50:12.613323+00:00"
+      }
+    },
+    "database": "forum_sber_sandbox",
+    "migrationAuthorized": false,
+    "nodeBoundary": "API actual Node24.21.0 from node:24-alpine contract is distinct from CI web Node24.18.1.",
+    "beforePayload": {
+      "checkedAt": "2026-10-07T02:32:10.655658+00:00",
+      "node": "v24.21.0",
+      "dependencyFingerprint": "46284dcb0f677d6232367f329674ce93e92e1199f0ff701d6027a8fd0d23938a",
+      "dependencyEntries": 5804,
+      "files": [
+        {
+          "path": "/app/dist/app.js",
+          "sha256": "64855b8206ea88be4cc96d27e2e8e2a49845a22b656c243d5b6c222f380d280f"
+        },
+        {
+          "path": "/app/dist/config.js",
+          "sha256": "7d96e9522981ffc610d983c6a58684fef860b80b0297bde0e95caea3414df7ba"
+        },
+        {
+          "path": "/app/dist/iam/auth-error.js",
+          "sha256": "aced0945251f16f2349b76d7c20e0d8eaad040999b3dc784a2c9a3a8367602e5"
+        },
+        {
+          "path": "/app/dist/iam/auth-store.js",
+          "sha256": "278cf9fe4525b8ce9a8c64292f7372c62f7ccbdc1785915ec49f9c6965b0da54"
+        },
+        {
+          "path": "/app/dist/iam/auth.controller.js",
+          "sha256": "7b17d6b9092a3c9d741722ef3d357e690cdaac91b05d390477df961a33720281"
+        },
+        {
+          "path": "/app/dist/iam/crypto.js",
+          "sha256": "d6bc563aba79c8d2774bef306baeddb2c27fc055c65ccace25823a14f387055f"
+        },
+        {
+          "path": "/app/dist/iam/sber-client.js",
+          "sha256": "0e3a66b39be8c155dd86505d99947849ee730362b304ea20138ab7ad3d551690"
+        },
+        {
+          "path": "/app/dist/main.js",
+          "sha256": "42f127098b88e8162cfec71b2b8b2fb171db283f4acac4bad704c9b645c2f7d3"
+        },
+        {
+          "path": "/app/dist/migrate.js",
+          "sha256": "11b794194c563e3a445779a35276debd3bd371799f14dd29ff5297d6a58c19ce"
+        },
+        {
+          "path": "/app/dist/party/individual-participant.js",
+          "sha256": "caed71f6d42d83dd3220536b9c9279cd0df65049f3394590702b1494f0ac4a3e"
+        },
+        {
+          "path": "/app/migrations/._001_sber_identity.sql",
+          "sha256": "0da64bf7ee20646c7fc9cc5b4644dd143fcbf5c4bb83b1a673e65a5f7de726d9"
+        },
+        {
+          "path": "/app/migrations/._002_profiles.sql",
+          "sha256": "0da64bf7ee20646c7fc9cc5b4644dd143fcbf5c4bb83b1a673e65a5f7de726d9"
+        },
+        {
+          "path": "/app/migrations/._003_public_schema.sql",
+          "sha256": "0da64bf7ee20646c7fc9cc5b4644dd143fcbf5c4bb83b1a673e65a5f7de726d9"
+        },
+        {
+          "path": "/app/migrations/001_sber_identity.sql",
+          "sha256": "d45f8b6da7da162d1091ae378d8dee0eb299e5bbcd808418cec9396f09c13d3f"
+        },
+        {
+          "path": "/app/migrations/002_profiles.sql",
+          "sha256": "890208666c3ce3312d208390b54340c4b7f77193778f13352c3c1513cae56998"
+        },
+        {
+          "path": "/app/migrations/003_public_schema.sql",
+          "sha256": "8fe879b923a85b9e5331a84a473e45e1bd2901db7ee40463072653a30136cd8f"
+        }
+      ]
+    },
+    "resolvedBase": {
+      "actualResolvedBaseImage": "docker.io/library/node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1",
+      "buildLogSha256": "5559f9b7cb8fdfb23a681f0559adc880da1a69c527284a01cc917978f3e82296",
+      "runtimeNode": "v24.21.0",
+      "sourceDockerfileContract": "FROM node:24-alpine",
+      "boundary": "Resolved base from actual BuildKit output; floating source tag must not be claimed immutable for a future rebuild"
+    }
+  },
+  "database": {
+    "boundaryStatus": "verified-narrow-default-acl-reconciliation",
+    "scope": {
+      "database": "forum",
+      "schema": "public",
+      "owner": "outline",
+      "grantee": "forum_app_role",
+      "objects": [
+        "future TABLE",
+        "future SEQUENCE"
+      ]
+    },
+    "restoration": {
+      "checkedAt": "2026-10-07T03:32:21.039225+00:00",
+      "imageId": "sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
+      "network": "none",
+      "forwardOnlyChangedForumPublicOwnerDefaults": true,
+      "rollbackFullMetadataExact": true,
+      "sandboxFullMetadataUnchanged": true,
+      "noLiveApply": true,
+      "databases": {
+        "forum": {
+          "fullOwnerRoleMembershipSchemaRelationColumnFunctionDefaultACLMatch": true,
+          "tables": 21
+        },
+        "forum_sber_sandbox": {
+          "fullOwnerRoleMembershipSchemaRelationColumnFunctionDefaultACLMatch": true,
+          "tables": 9
+        }
+      }
+    },
+    "operations": [
+      {
+        "checkedAt": "2026-10-07T03:50:32.042516+00:00",
+        "stage": "forward",
+        "sqlSha256": "73dcc5df36d7e4b1106947a2d773601859b2cc5c039191db5904e2b35161eb93",
+        "onlyFutureDefaultsChanged": true,
+        "allExistingOwnerRoleAclMetadataUnchanged": true,
+        "sandboxUnchanged": true,
+        "exactOriginalRestored": false,
+        "beforeDefaults": [
+          {
+            "owner": "outline",
+            "schema": "public",
+            "type": "S",
+            "acl": "{forum_app_role=rU/outline}"
+          },
+          {
+            "owner": "outline",
+            "schema": "public",
+            "type": "r",
+            "acl": "{forum_app_role=arwd/outline}"
+          }
+        ],
+        "afterDefaults": null,
+        "beforeMetadataDigest": "17018ee0d01701ad6597668ee2663f5b20880a582d775930c9fe37ea54451a12",
+        "afterMetadataDigest": "d8ebd42f822cdcfff6080f8724e243add491ffaa87a013f4228deccf2613ffa9"
+      },
+      {
+        "checkedAt": "2026-10-07T03:51:10.232810+00:00",
+        "stage": "rollback",
+        "sqlSha256": "24de88d0622073136a8b8213e3bf8e90cc6b0edd700b64c0ca9e5e70a7ee61e7",
+        "onlyFutureDefaultsChanged": false,
+        "allExistingOwnerRoleAclMetadataUnchanged": true,
+        "sandboxUnchanged": true,
+        "exactOriginalRestored": true,
+        "beforeDefaults": null,
+        "afterDefaults": [
+          {
+            "owner": "outline",
+            "schema": "public",
+            "type": "S",
+            "acl": "{forum_app_role=rU/outline}"
+          },
+          {
+            "owner": "outline",
+            "schema": "public",
+            "type": "r",
+            "acl": "{forum_app_role=arwd/outline}"
+          }
+        ],
+        "beforeMetadataDigest": "d8ebd42f822cdcfff6080f8724e243add491ffaa87a013f4228deccf2613ffa9",
+        "afterMetadataDigest": "17018ee0d01701ad6597668ee2663f5b20880a582d775930c9fe37ea54451a12"
+      },
+      {
+        "checkedAt": "2026-10-07T03:51:17.639986+00:00",
+        "stage": "final",
+        "sqlSha256": "73dcc5df36d7e4b1106947a2d773601859b2cc5c039191db5904e2b35161eb93",
+        "onlyFutureDefaultsChanged": true,
+        "allExistingOwnerRoleAclMetadataUnchanged": true,
+        "sandboxUnchanged": true,
+        "exactOriginalRestored": false,
+        "beforeDefaults": [
+          {
+            "owner": "outline",
+            "schema": "public",
+            "type": "S",
+            "acl": "{forum_app_role=rU/outline}"
+          },
+          {
+            "owner": "outline",
+            "schema": "public",
+            "type": "r",
+            "acl": "{forum_app_role=arwd/outline}"
+          }
+        ],
+        "afterDefaults": null,
+        "beforeMetadataDigest": "17018ee0d01701ad6597668ee2663f5b20880a582d775930c9fe37ea54451a12",
+        "afterMetadataDigest": "d8ebd42f822cdcfff6080f8724e243add491ffaa87a013f4228deccf2613ffa9"
+      }
+    ],
+    "semanticDataComparison": {
+      "baselineAt": "2026-10-07T03:27:00.692238+00:00",
+      "tables": {
+        "forum": {
+          "public.audit_events": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.authorization_attempts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.business_segments": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.commercial_roles": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.companies": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.company_okveds": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.company_statuses": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.external_identities": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.financial_observations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.offer_types": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.okveds": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.organizations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.outbox_events": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.participant_memberships": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.participants": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.persons": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.regions": {
+            "rows": 89,
+            "sha256": "49c786c7553231522a9ced627058f998ea3c825aa3067fdef8d58b37c86aa754"
+          },
+          "public.role_assignments": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.schema_migrations": {
+            "rows": 3,
+            "sha256": "79fe6f6f1908a7cb089f4dca91869ce77bd2da3aab899448fc3903933b6cf3cb"
+          },
+          "public.sessions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "public.users": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "forum_sber_sandbox": {
+          "audit.audit_events": {
+            "rows": 10,
+            "sha256": "0b05ea17db82971182b94f6fae126a2a0337f854ecf66d080833b18cfbca6070"
+          },
+          "iam.authorization_attempts": {
+            "rows": 1,
+            "sha256": "fc75c3d9faa181b60af431858b7253805bb68684ad0f431c1cd8cc09f0566f02"
+          },
+          "iam.external_identities": {
+            "rows": 1,
+            "sha256": "51016587590463d35c65062610fd48ab499bcfa862c46977f7416ed4486048e9"
+          },
+          "iam.role_assignments": {
+            "rows": 1,
+            "sha256": "c2732d9842001e90420e16059cd36fbd0bcdcac91fbcbaae773c243bba17f96b"
+          },
+          "iam.schema_migrations": {
+            "rows": 1,
+            "sha256": "243e8a035c1641310e519eadb2bc720b6a90d80ce986027a732ca280457eb435"
+          },
+          "iam.sessions": {
+            "rows": 10,
+            "sha256": "46b08dfe35c7059d592f633291693fec8521090af98096cfd98f7b41921cc046"
+          },
+          "iam.users": {
+            "rows": 1,
+            "sha256": "02c19b8e3ce1e1a00b385ff8dd32fa866e421b90cbd5c10e74aea4dbf5e9366d"
+          },
+          "integration.outbox_events": {
+            "rows": 1,
+            "sha256": "2410a7af145156b16c3cc21f9f65bf1a645d73d0f62e7cd0b3e40612f1bced51"
+          },
+          "party.participants": {
+            "rows": 1,
+            "sha256": "202d7f1932425a20a4fe68438efd0f1361dd73a5ed2b5f617a13c146f6eea815"
+          }
+        }
+      },
+      "checks": [
+        {
+          "stage": "before",
+          "checkedAt": "2026-10-07T03:27:00.692238+00:00",
+          "matchesBaseline": true
+        },
+        {
+          "stage": "acl-forward",
+          "checkedAt": "2026-10-07T03:50:51.686527+00:00",
+          "matchesBaseline": true
+        },
+        {
+          "stage": "acl-rollback",
+          "checkedAt": "2026-10-07T03:51:16.260976+00:00",
+          "matchesBaseline": true
+        },
+        {
+          "stage": "acl-final",
+          "checkedAt": "2026-10-07T03:51:23.939095+00:00",
+          "matchesBaseline": true
+        }
+      ]
+    },
+    "existingDataSchemaIAMMigration": false
+  },
+  "unchangedServices": {
+    "observedAt": "2026-10-07T03:51:45.786074+00:00",
+    "runningComponents": [
+      {
+        "name": "forum-api-forum_api-1",
+        "image": "astforum/forum-api:proj152-e513872",
+        "imageId": "sha256:9fbf457667c2b4ab1f827da08b64e911797e39eda713f9e8d65bea3ab33c5ae9",
+        "id": "dfa38a3d76e2250b2a674b9e5df8c11c03682704bb27c779e74620c128d05581",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "pgadmin-pgadmin-1",
+        "image": "dpage/pgadmin4:9.17",
+        "imageId": "sha256:2f4ce946ddf8360680d7eff4eaba1d91859eb6b4003e6623bad5c63a322c2f4d",
+        "id": "e00cbf437667160bf31740145333cf3b3b557269441217789b18d9db498ca73d",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "astforum-cal-diy-reminder-worker-1",
+        "image": "astforum/cal-diy:8b6088261b09",
+        "imageId": "sha256:5d831afb41cb4c0051ea60985e0dee57a6eca77db7ef01074b75810f900720ed",
+        "id": "901204c9448e9d35b43b0a57431a6ae58237f452a059f0a9a32e6156ff15134d",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "astforum-cal-diy-web-1",
+        "image": "astforum/cal-diy:8b6088261b09",
+        "imageId": "sha256:5d831afb41cb4c0051ea60985e0dee57a6eca77db7ef01074b75810f900720ed",
+        "id": "fbfcc1208ca01e400328b45c9c312812c61f585b9d9bfc2c1226d1b24896e41d",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "astforum-openproject-worker-1",
+        "image": "openproject/openproject:17.8.0-slim",
+        "imageId": "sha256:48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+        "id": "9cfd7fe50761aba81c3a8067426d2575c8c7d2e0ebeee2f2f7c1200cb9e3c17d",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "astforum-openproject-web-1",
+        "image": "openproject/openproject:17.8.0-slim",
+        "imageId": "sha256:48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+        "id": "72630afbc9dbd85dc33d0c0ecd2431e25563091985ef178aaa11380f5b2a5fe5",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "astforum-openproject-collaboration-1",
+        "image": "openproject/hocuspocus:17.8.0",
+        "imageId": "sha256:f37a8d647d172f4206308bdbf4910bbec0c19433b8870c7431fe0dc45a5a7682",
+        "id": "a45c5434e02318ecc708b34e2bdbb7b81226600742647db26d32742081350c46",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "astforum-openproject-db-1",
+        "image": "postgres:17-alpine",
+        "imageId": "sha256:f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995",
+        "id": "a2822a7f93dbb0265ae7bb13480ce04204fb86cf68010c456b303a0c33205297",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "astforum-openproject-cache-1",
+        "image": "memcached:1.6-alpine",
+        "imageId": "sha256:69ecd3c5701cebbe51f9fca15c1f9bd3b8773fd57cdb215adb6e1fa844bb0ea2",
+        "id": "a3ebd050f78031459367adb747f6303974fa4f9f4b614a0dc6184e1e548fd899",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "outline-outline-1",
+        "image": "outlinewiki/outline:1.9.2",
+        "imageId": "sha256:32d76719c378931dd65d93945930ca380d8376a0337d98a991fcc12b266f33cf",
+        "id": "0f6e33ae373afe913cda848f0d835207fee2cfa73a673f94d5351106593fd4e2",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "outline-dev_landing_auth-1",
+        "image": "python:3.13-alpine",
+        "imageId": "sha256:62e80a1ff2a4af41c6fe72a629e5729463a4fd05ae89ecc9c812a6c1457f2cc7",
+        "id": "21ad83ef9034be08f73b22917f6edfb151bc3ee6f72f11b3f1190cadd375e1f5",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "astforum-mail-tmail-1",
+        "image": "linagora/tmail-web:v0.36.0",
+        "imageId": "sha256:7a4f6c7c0f7d921e947324fada11848e6417d35cfc261839b31456d535cb52f7",
+        "id": "1a326be21b84c0060c63ad845fb17dbb92a7412900d3a78ee39e816e637e731a",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "astforum-mail-listmonk-1",
+        "image": "listmonk/listmonk:v6.2.0",
+        "imageId": "sha256:f535d59e14991337a9f2d570273685378ae86b0d7698c3e00da444e3bc205286",
+        "id": "ff4fef82a02a24ccec489eea8bde9ef05b23a5e23181a3ce6e56712acade18df",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "astforum-mail-stalwart-1",
+        "image": "stalwartlabs/stalwart:v0.16.21",
+        "imageId": "sha256:93c574e52249c1ebf90061da2c4c0756a7b72abfcc1fec34506a03c2e38b5977",
+        "id": "45336091c1b96cf631f2968efec9bdede5d3e77a625a493c2615ff43eda58682",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "astforum-mail-database-1",
+        "image": "postgres:17-alpine",
+        "imageId": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+        "id": "e38e49d72911edf507fbfd38e40a14ba626d0bac6a786b17a4a2216f2e0ab951",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "astforum-cal-diy-database-1",
+        "image": "postgres:16-alpine",
+        "imageId": "sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+        "id": "0cd91c61c689774b98d461b87b4ea4a63c306da70c291127824e11d88b44e337",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "astforum-cal-diy-redis-1",
+        "image": "redis:8-alpine",
+        "imageId": "sha256:becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+        "id": "4cf73cd4e35e9d37d4f1be671c481207175cb50e2c0ac24262a0c2bb576dcee9",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "outline-caddy-1",
+        "image": "caddy:2.10-alpine",
+        "imageId": "sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+        "id": "fb7b84c37f49a3f30fbf95e6d680341270814730f9ae34e14f39f1ac302085b0",
+        "running": true,
+        "health": null
+      },
+      {
+        "name": "outline-postgres-1",
+        "image": "postgres:18-alpine",
+        "imageId": "sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
+        "id": "074bdcc95e6ee57f57295dca79a6003ea0fabd4cadef9a31d2a9f6791f8a3f53",
+        "running": true,
+        "health": "healthy"
+      },
+      {
+        "name": "outline-redis-1",
+        "image": "redis:8-alpine",
+        "imageId": "sha256:becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+        "id": "f172d25c1ba971fec4e7cf504740efbfc8c40e0a5c653b9816391a0bcded1739",
+        "running": true,
+        "health": "healthy"
+      }
+    ],
+    "mountedCode": [
+      {
+        "container": "astforum-cal-diy-reminder-worker-1",
+        "mountedPath": "/reminder-worker.mjs",
+        "sha256": "f252a4cdcecf18d2f4fbb656f6ce6238a06eae78e360523717f50a01083020fe",
+        "mountedMatchesHost": true,
+        "source": {
+          "repository": "https://github.com/mcvvvnukova-bit/astforum-cal-diy",
+          "commit": "8b6088261b096d94d0304512b2df4ea32d4cb8ed",
+          "path": "deployment/astforum/reminder-worker.mjs"
+        }
+      },
+      {
+        "container": "astforum-openproject-worker-1",
+        "mountedPath": "/app/app/models/query/results/sums.rb",
+        "sha256": "bc47d3ab7092ed6ec9c34aad23b78803d222a5ca5efa92fe3a5d285f83a80256",
+        "mountedMatchesHost": true,
+        "source": {
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/sums.rb"
+        }
+      },
+      {
+        "container": "astforum-openproject-worker-1",
+        "mountedPath": "/app/modules/costs/lib/costs/query_currency_select.rb",
+        "sha256": "7ceae6174ce9cbed63647011a55807bddb56bb37142776317a58c65813e03fb2",
+        "mountedMatchesHost": true,
+        "source": {
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/query_currency_select.rb"
+        }
+      },
+      {
+        "container": "astforum-openproject-worker-1",
+        "mountedPath": "/app/app/models/queries/work_packages/selects/custom_field_select.rb",
+        "sha256": "2948e8bb8df68bb6ff4bc451a0549346790488462c9604b4dd3ca31be5a12229",
+        "mountedMatchesHost": true,
+        "source": {
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/custom_field_select.rb"
+        }
+      },
+      {
+        "container": "astforum-openproject-web-1",
+        "mountedPath": "/app/app/models/queries/work_packages/selects/custom_field_select.rb",
+        "sha256": "2948e8bb8df68bb6ff4bc451a0549346790488462c9604b4dd3ca31be5a12229",
+        "mountedMatchesHost": true,
+        "source": {
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/custom_field_select.rb"
+        }
+      },
+      {
+        "container": "astforum-openproject-web-1",
+        "mountedPath": "/app/app/models/query/results/sums.rb",
+        "sha256": "bc47d3ab7092ed6ec9c34aad23b78803d222a5ca5efa92fe3a5d285f83a80256",
+        "mountedMatchesHost": true,
+        "source": {
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/sums.rb"
+        }
+      },
+      {
+        "container": "astforum-openproject-web-1",
+        "mountedPath": "/app/modules/costs/lib/costs/query_currency_select.rb",
+        "sha256": "7ceae6174ce9cbed63647011a55807bddb56bb37142776317a58c65813e03fb2",
+        "mountedMatchesHost": true,
+        "source": {
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/query_currency_select.rb"
+        }
+      }
+    ],
+    "http": {
+      "checkedAt": "2026-10-07T03:54:13.515864+00:00",
+      "probes": [
+        {
+          "surface": "origin",
+          "host": "astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 200,
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "astforum.ru",
+          "url": "https://astforum.ru/",
+          "status": 200,
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "host": "dev.astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "dev.astforum.ru",
+          "url": "https://dev.astforum.ru/",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "host": "cal.astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 307,
+          "sha256": "3f556231410325f8f54f81a6bef7617193b80241b1e3d609d5e43f29fdde202f",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "cal.astforum.ru",
+          "url": "https://cal.astforum.ru/",
+          "status": 307,
+          "sha256": "3f556231410325f8f54f81a6bef7617193b80241b1e3d609d5e43f29fdde202f",
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "host": "campaigns.astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 200,
+          "sha256": "70550837f942e447d850c1ea8db7cbbcd1390e6a0edeea1e58250b2ac4103cee",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "campaigns.astforum.ru",
+          "url": "https://campaigns.astforum.ru/",
+          "status": 200,
+          "sha256": "70550837f942e447d850c1ea8db7cbbcd1390e6a0edeea1e58250b2ac4103cee",
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "host": "docs.astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 200,
+          "sha256": "d87de5aca2074279ae491b281c68189d5d4b067deb0b0491b8174cd6b41c2202",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "docs.astforum.ru",
+          "url": "https://docs.astforum.ru/",
+          "status": 200,
+          "sha256": "398a9684f0579578835f7a674c1889190abd7f217a32ace2876ad5a6cb228290",
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "host": "mail.astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 302,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "mail.astforum.ru",
+          "url": "https://mail.astforum.ru/",
+          "status": 302,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "host": "pg.astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 302,
+          "sha256": "b0a6e3598738aaa59c027d35f5fc82331219b4928c0a1a269a8842e9a948ed26",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "pg.astforum.ru",
+          "url": "https://pg.astforum.ru/",
+          "status": 302,
+          "sha256": "b0a6e3598738aaa59c027d35f5fc82331219b4928c0a1a269a8842e9a948ed26",
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "host": "roadmap.astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 302,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "roadmap.astforum.ru",
+          "url": "https://roadmap.astforum.ru/",
+          "status": 302,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tlsHostnameValidated": true
+        },
+        {
+          "surface": "origin",
+          "host": "webmail.astforum.ru",
+          "url": "http://127.0.0.1:80/",
+          "status": 200,
+          "sha256": "761efc6d4e18c9dff2f2dc52ce205b9101eae7830611edf7886ade951cbea759",
+          "tlsHostnameValidated": false
+        },
+        {
+          "surface": "public",
+          "host": "webmail.astforum.ru",
+          "url": "https://webmail.astforum.ru/",
+          "status": 200,
+          "sha256": "761efc6d4e18c9dff2f2dc52ce205b9101eae7830611edf7886ade951cbea759",
+          "tlsHostnameValidated": true
+        }
+      ],
+      "semantics": "Dynamic body hashes are observations only; origin Host is recorded separately from its loopback URL."
+    },
+    "pgadmin": {
+      "checkedAt": "2026-10-07T03:52:38.379255+00:00",
+      "persistentDatabaseReadOnly": true,
+      "noRestartNeededConfigUnchanged": true,
+      "registrations": [
+        {
+          "id": 39,
+          "maintenance_db": "postgres",
+          "db_res": null,
+          "db_res_type": null,
+          "queryDatabase": "postgres",
+          "queryRole": "outline",
+          "readOnlySqlSucceeded": true
+        },
+        {
+          "id": 40,
+          "maintenance_db": "forum",
+          "db_res": "forum",
+          "db_res_type": "databases",
+          "queryDatabase": "forum",
+          "queryRole": "forum_app",
+          "readOnlySqlSucceeded": true
+        },
+        {
+          "id": 41,
+          "maintenance_db": "openproject",
+          "db_res": null,
+          "db_res_type": null,
+          "queryDatabase": "openproject",
+          "queryRole": "openproject",
+          "readOnlySqlSucceeded": true
+        },
+        {
+          "id": 42,
+          "maintenance_db": "caldiy",
+          "db_res": null,
+          "db_res_type": null,
+          "queryDatabase": "caldiy",
+          "queryRole": "caldiy",
+          "readOnlySqlSucceeded": true
+        },
+        {
+          "id": 43,
+          "maintenance_db": "listmonk",
+          "db_res": null,
+          "db_res_type": null,
+          "queryDatabase": "listmonk",
+          "queryRole": "listmonk",
+          "readOnlySqlSucceeded": true
+        }
+      ]
+    },
+    "caddy": {
+      "checkedAt": "2026-10-07T03:51:45.786074+00:00",
+      "runtimeMatchesMountedConfig": true
+    },
+    "protectedConfiguration": "Controller verified unchanged environment/config privately; no protected paths or fingerprints are published."
+  },
+  "limitations": [
+    "Whole Cal.diy custom image buildchain remains unproven.",
+    "These dated controller runtime receipts are rechecked offline; no fresh network request was made by Task8 implementer.",
+    "Task8 publication, final accepted main, recovery all-ref bundle, cleanup and final GitNexus refresh remain controller gates.",
+    "Inherited Primer validator 3 PDS004 errors and geometry warnings remain a final-review policy issue; no false green claim.",
+    "Held authenticated-session and provider-error browser fixtures do not prove real Sber identity or a provider OAuth exchange."
+  ],
+  "browser": {
+    "source": "Controller actual Codex iab receipts, projected offline without user/provider payloads.",
+    "routes": [
+      {
+        "route": "/",
+        "phase": "direct",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/",
+        "phase": "reload",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/customers/",
+        "phase": "direct",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/customers/",
+        "phase": "reload",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/suppliers/",
+        "phase": "direct",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/suppliers/",
+        "phase": "reload",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/work/",
+        "phase": "direct",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/work/",
+        "phase": "reload",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/participate/",
+        "phase": "direct",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/participate/",
+        "phase": "reload",
+        "width": 320,
+        "pageWidth": 305,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/login",
+        "phase": "direct",
+        "width": 320,
+        "pageWidth": 320,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/login",
+        "phase": "reload",
+        "width": 320,
+        "pageWidth": 320,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/register",
+        "phase": "direct",
+        "width": 320,
+        "pageWidth": 320,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/register",
+        "phase": "reload",
+        "width": 320,
+        "pageWidth": 320,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/",
+        "phase": "direct",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/",
+        "phase": "reload",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/customers/",
+        "phase": "direct",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/customers/",
+        "phase": "reload",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/suppliers/",
+        "phase": "direct",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/suppliers/",
+        "phase": "reload",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/work/",
+        "phase": "direct",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/work/",
+        "phase": "reload",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/participate/",
+        "phase": "direct",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/participate/",
+        "phase": "reload",
+        "width": 390,
+        "pageWidth": 375,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/login",
+        "phase": "direct",
+        "width": 390,
+        "pageWidth": 390,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/login",
+        "phase": "reload",
+        "width": 390,
+        "pageWidth": 390,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/register",
+        "phase": "direct",
+        "width": 390,
+        "pageWidth": 390,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/register",
+        "phase": "reload",
+        "width": 390,
+        "pageWidth": 390,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/",
+        "phase": "direct",
+        "width": 1440,
+        "pageWidth": 1425,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/",
+        "phase": "reload",
+        "width": 1440,
+        "pageWidth": 1425,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/customers/",
+        "phase": "direct",
+        "width": 1440,
+        "pageWidth": 1425,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/customers/",
+        "phase": "reload",
+        "width": 1440,
+        "pageWidth": 1425,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/suppliers/",
+        "phase": "direct",
+        "width": 1440,
+        "pageWidth": 1425,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/suppliers/",
+        "phase": "reload",
+        "width": 1440,
+        "pageWidth": 1425,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/work/",
+        "phase": "direct",
+        "width": 1440,
+        "pageWidth": 1425,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/work/",
+        "phase": "reload",
+        "width": 1440,
+        "pageWidth": 1425,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/participate/",
+        "phase": "direct",
+        "width": 1440,
+        "pageWidth": 1440,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/participate/",
+        "phase": "reload",
+        "width": 1440,
+        "pageWidth": 1440,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/login",
+        "phase": "direct",
+        "width": 1440,
+        "pageWidth": 1440,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/login",
+        "phase": "reload",
+        "width": 1440,
+        "pageWidth": 1440,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/register",
+        "phase": "direct",
+        "width": 1440,
+        "pageWidth": 1440,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      },
+      {
+        "route": "/register",
+        "phase": "reload",
+        "width": 1440,
+        "pageWidth": 1440,
+        "mainPresent": true,
+        "notFound": false,
+        "dialogs": 0
+      }
+    ],
+    "sessionCases": [
+      {
+        "width": 1440,
+        "mode": "login",
+        "heldSuccessfulSession200": true,
+        "syntheticIdentityOnly": true,
+        "realProviderLogin": false,
+        "bothModeSwitches": true,
+        "headerUpdated": true,
+        "homeBackendIdPreserved": true,
+        "closeBackForwardReload": true,
+        "focusValid": true
+      },
+      {
+        "width": 1440,
+        "mode": "register",
+        "heldSuccessfulSession200": true,
+        "syntheticIdentityOnly": true,
+        "realProviderLogin": false,
+        "bothModeSwitches": true,
+        "headerUpdated": true,
+        "homeBackendIdPreserved": true,
+        "closeBackForwardReload": true,
+        "focusValid": true
+      },
+      {
+        "width": 320,
+        "mode": "login",
+        "heldSuccessfulSession200": true,
+        "syntheticIdentityOnly": true,
+        "realProviderLogin": false,
+        "bothModeSwitches": true,
+        "headerUpdated": true,
+        "homeBackendIdPreserved": true,
+        "closeBackForwardReload": true,
+        "focusValid": true
+      },
+      {
+        "width": 320,
+        "mode": "register",
+        "heldSuccessfulSession200": true,
+        "syntheticIdentityOnly": true,
+        "realProviderLogin": false,
+        "bothModeSwitches": true,
+        "headerUpdated": true,
+        "homeBackendIdPreserved": true,
+        "closeBackForwardReload": true,
+        "focusValid": true
+      },
+      {
+        "width": 390,
+        "mode": "login",
+        "heldSuccessfulSession200": true,
+        "syntheticIdentityOnly": true,
+        "realProviderLogin": false,
+        "bothModeSwitches": true,
+        "headerUpdated": true,
+        "homeBackendIdPreserved": true,
+        "closeBackForwardReload": true,
+        "focusValid": true
+      },
+      {
+        "width": 390,
+        "mode": "register",
+        "heldSuccessfulSession200": true,
+        "syntheticIdentityOnly": true,
+        "realProviderLogin": false,
+        "bothModeSwitches": true,
+        "headerUpdated": true,
+        "homeBackendIdPreserved": true,
+        "closeBackForwardReload": true,
+        "focusValid": true
+      }
+    ],
+    "calendar": {
+      "checkedAt": "2026-10-07T03:49:19.347Z",
+      "checks": [
+        {
+          "width": 320,
+          "pageWidth": 320,
+          "calendarRendered": true
+        },
+        {
+          "width": 390,
+          "pageWidth": 390,
+          "calendarRendered": true
+        },
+        {
+          "width": 1440,
+          "pageWidth": 1440,
+          "calendarRendered": true
+        }
+      ],
+      "noBookingSubmitted": true
+    },
+    "finalHomeConsole": {
+      "checkedAt": "2026-10-07T04:02:05.790Z",
+      "from": "2026-10-07T04:02:05.176Z",
+      "errors": []
+    },
+    "oldTab": [
+      {
+        "stage": "candidate",
+        "checkedAt": "2026-10-07T03:33:52.659Z",
+        "oldDocumentNeverReloaded": true,
+        "fileCount": 19,
+        "responseCount": 19
+      },
+      {
+        "stage": "explicit-rollback",
+        "checkedAt": "2026-10-07T03:34:57.717Z",
+        "oldDocumentNeverReloaded": true,
+        "fileCount": 19,
+        "responseCount": 19
+      }
+    ]
+  }
+}

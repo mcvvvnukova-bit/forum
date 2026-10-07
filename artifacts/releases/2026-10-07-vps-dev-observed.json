@@ -1,0 +1,1022 @@
+{
+  "schemaVersion": 1,
+  "environment": "dev",
+  "recordKind": "observed",
+  "reconciliationStatus": "observed-unreconciled",
+  "observedOn": "2026-10-07",
+  "recordedAt": "2026-10-07T03:51:45.786074+00:00",
+  "host": "test-debian",
+  "evidence": [
+    "artifacts/repository-audits/2026-10-07-runtime-reconciliation.json"
+  ],
+  "components": [
+    {
+      "id": "forum-api-forum_api-1",
+      "kind": "api",
+      "sources": [
+        {
+          "id": "api-git",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "apps/api",
+          "verification": "release-chain",
+          "provenance": "Scoped API source/archive/build/image/payload/rollback/smoke chain in runtime-reconciliation receipt."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "9fbf457667c2b4ab1f827da08b64e911797e39eda713f9e8d65bea3ab33c5ae9",
+          "sourceId": "api-git",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [
+        {
+          "url": "http://dev-gateway:8080/api/auth/session",
+          "status": 401,
+          "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21"
+        }
+      ],
+      "publicHttp": [
+        {
+          "url": "https://dev.astforum.ru/api/auth/session",
+          "status": 401,
+          "sha256": "4d5695e1f032a97dd0b3dd3e1c0b3d90a2ca2515046d8939083228734cc6dd21"
+        }
+      ],
+      "limitations": [
+        "Schema v1 full-release HTTP byte-equality is inapplicable to dynamic API responses; exact image/payload is separately verified."
+      ]
+    },
+    {
+      "id": "outline-dev_landing_auth-1",
+      "kind": "gateway",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "python:3.13-alpine",
+          "imageId": "62e80a1ff2a4af41c6fe72a629e5729463a4fd05ae89ecc9c812a6c1457f2cc7",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "62e80a1ff2a4af41c6fe72a629e5729463a4fd05ae89ecc9c812a6c1457f2cc7",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "dev-web",
+      "kind": "site",
+      "sources": [
+        {
+          "id": "dev-web",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "apps/web",
+          "verification": "release-chain",
+          "provenance": "Exact CI artifact and mounted/origin/public bytes verified in scoped receipt; production reused existing bytes without write."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "site",
+          "path": "customers/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "login/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "participate/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "register/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "suppliers/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-assets/index-BHd2KWCJ.css",
+          "sha256": "bd1122fffc9be4753e0ad5887732e061b68180a37803e17582c99cc35d9ebc48",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-assets/index-C7zN4am9.js",
+          "sha256": "167ef0174ead9152ca171ac6a63c6d4915e57a1c8b090e1297f70e59fce3a76b",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-assets/noto-sans-bold-condensed-cyrillic-SPamaKX4.woff2",
+          "sha256": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-assets/noto-sans-bold-condensed-latin-5IGi-XSh.woff2",
+          "sha256": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/brand-logo-horizontal-color.png",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/forum-logo-square.svg",
+          "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/hero-illustration-process-interface.png",
+          "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-bin-leasing.png",
+          "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-bk-resource.png",
+          "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-geoprom.webp",
+          "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-polycorr.svg",
+          "sha256": "f7b297ab02e7a8025830f8eedb0311affcb05fd5d894d5cf557e1faa3d0c4e2c",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-profmaster.svg",
+          "sha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-rentaero.svg",
+          "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-sfera-snab.svg",
+          "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-spectransservice.png",
+          "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-tahoban.svg",
+          "sha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-tool-tech.jpg",
+          "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-vostok-service.svg",
+          "sha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-vseinstrumenti.svg",
+          "sha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-zelenaya-doroga.png",
+          "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-customer.png",
+          "sha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-specialist-left-mirrored.png",
+          "sha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-supplier.png",
+          "sha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/brand-logo-horizontal-color.png",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/forum-logo-square.svg",
+          "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/hero-illustration-process-interface.png",
+          "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-bin-leasing.png",
+          "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-bk-resource.png",
+          "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-geoprom.webp",
+          "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-polycorr.svg",
+          "sha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-profmaster.svg",
+          "sha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-rentaero.svg",
+          "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-sfera-snab.svg",
+          "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-spectransservice.png",
+          "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-tahoban.svg",
+          "sha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-tool-tech.jpg",
+          "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-vostok-service.svg",
+          "sha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-vseinstrumenti.svg",
+          "sha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-zelenaya-doroga.png",
+          "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/work-order-interface-v1.png",
+          "sha256": "ea14c38f6c25426bea2d04f38d4a1063d0ea4c6d1dcd54a26f9ed9c6f1ff7e66",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/work-vacancy-interface-v1.png",
+          "sha256": "8eb4ebdd2ed36483abbc264f6b2072bcf1a18efc296ead36cf74a56f767e7f5a",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "work/index.html",
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "sourceId": "dev-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        }
+      ],
+      "originHttp": [
+        {
+          "url": "http://dev-gateway:8080/customers/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/login/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/participate/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/register/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/suppliers/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-assets/index-BHd2KWCJ.css",
+          "status": 200,
+          "sha256": "bd1122fffc9be4753e0ad5887732e061b68180a37803e17582c99cc35d9ebc48",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-assets/index-C7zN4am9.js",
+          "status": 200,
+          "sha256": "167ef0174ead9152ca171ac6a63c6d4915e57a1c8b090e1297f70e59fce3a76b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-assets/noto-sans-bold-condensed-cyrillic-SPamaKX4.woff2",
+          "status": 200,
+          "sha256": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-assets/noto-sans-bold-condensed-latin-5IGi-XSh.woff2",
+          "status": 200,
+          "sha256": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/brand-logo-horizontal-color.png",
+          "status": 200,
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/forum-logo-square.svg",
+          "status": 200,
+          "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/hero-illustration-process-interface.png",
+          "status": 200,
+          "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-bin-leasing.png",
+          "status": 200,
+          "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-bk-resource.png",
+          "status": 200,
+          "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-geoprom.webp",
+          "status": 200,
+          "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-polycorr.svg",
+          "status": 200,
+          "sha256": "f7b297ab02e7a8025830f8eedb0311affcb05fd5d894d5cf557e1faa3d0c4e2c",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-profmaster.svg",
+          "status": 200,
+          "sha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-rentaero.svg",
+          "status": 200,
+          "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-sfera-snab.svg",
+          "status": 200,
+          "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-spectransservice.png",
+          "status": 200,
+          "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-tahoban.svg",
+          "status": 200,
+          "sha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-tool-tech.jpg",
+          "status": 200,
+          "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-vostok-service.svg",
+          "status": 200,
+          "sha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-vseinstrumenti.svg",
+          "status": 200,
+          "sha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-zelenaya-doroga.png",
+          "status": 200,
+          "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-customer.png",
+          "status": 200,
+          "sha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-specialist-left-mirrored.png",
+          "status": 200,
+          "sha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-supplier.png",
+          "status": 200,
+          "sha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/brand-logo-horizontal-color.png",
+          "status": 200,
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/forum-logo-square.svg",
+          "status": 200,
+          "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/hero-illustration-process-interface.png",
+          "status": 200,
+          "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-bin-leasing.png",
+          "status": 200,
+          "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-bk-resource.png",
+          "status": 200,
+          "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-geoprom.webp",
+          "status": 200,
+          "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-polycorr.svg",
+          "status": 200,
+          "sha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-profmaster.svg",
+          "status": 200,
+          "sha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-rentaero.svg",
+          "status": 200,
+          "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-sfera-snab.svg",
+          "status": 200,
+          "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-spectransservice.png",
+          "status": 200,
+          "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-tahoban.svg",
+          "status": 200,
+          "sha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-tool-tech.jpg",
+          "status": 200,
+          "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-vostok-service.svg",
+          "status": 200,
+          "sha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-vseinstrumenti.svg",
+          "status": 200,
+          "sha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-zelenaya-doroga.png",
+          "status": 200,
+          "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/work-order-interface-v1.png",
+          "status": 200,
+          "sha256": "ea14c38f6c25426bea2d04f38d4a1063d0ea4c6d1dcd54a26f9ed9c6f1ff7e66",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/work-vacancy-interface-v1.png",
+          "status": 200,
+          "sha256": "8eb4ebdd2ed36483abbc264f6b2072bcf1a18efc296ead36cf74a56f767e7f5a",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://dev-gateway:8080/work/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        }
+      ],
+      "publicHttp": [
+        {
+          "url": "https://dev.astforum.ru/customers/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/login/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/participate/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/register/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/suppliers/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-assets/index-BHd2KWCJ.css",
+          "status": 200,
+          "sha256": "bd1122fffc9be4753e0ad5887732e061b68180a37803e17582c99cc35d9ebc48",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-assets/index-C7zN4am9.js",
+          "status": 200,
+          "sha256": "167ef0174ead9152ca171ac6a63c6d4915e57a1c8b090e1297f70e59fce3a76b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-assets/noto-sans-bold-condensed-cyrillic-SPamaKX4.woff2",
+          "status": 200,
+          "sha256": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-assets/noto-sans-bold-condensed-latin-5IGi-XSh.woff2",
+          "status": 200,
+          "sha256": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/brand-logo-horizontal-color.png",
+          "status": 200,
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/forum-logo-square.svg",
+          "status": 200,
+          "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/hero-illustration-process-interface.png",
+          "status": 200,
+          "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-bin-leasing.png",
+          "status": 200,
+          "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-bk-resource.png",
+          "status": 200,
+          "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-geoprom.webp",
+          "status": 200,
+          "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-polycorr.svg",
+          "status": 200,
+          "sha256": "f7b297ab02e7a8025830f8eedb0311affcb05fd5d894d5cf557e1faa3d0c4e2c",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-profmaster.svg",
+          "status": 200,
+          "sha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-rentaero.svg",
+          "status": 200,
+          "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-sfera-snab.svg",
+          "status": 200,
+          "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-spectransservice.png",
+          "status": 200,
+          "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-tahoban.svg",
+          "status": 200,
+          "sha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-tool-tech.jpg",
+          "status": 200,
+          "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-vostok-service.svg",
+          "status": 200,
+          "sha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-vseinstrumenti.svg",
+          "status": 200,
+          "sha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/assets/logo-color-zelenaya-doroga.png",
+          "status": 200,
+          "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-customer.png",
+          "status": 200,
+          "sha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-specialist-left-mirrored.png",
+          "status": 200,
+          "sha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/audience-supplier.png",
+          "status": 200,
+          "sha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/brand-logo-horizontal-color.png",
+          "status": 200,
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/forum-logo-square.svg",
+          "status": 200,
+          "sha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/hero-illustration-process-interface.png",
+          "status": 200,
+          "sha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-bin-leasing.png",
+          "status": 200,
+          "sha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-bk-resource.png",
+          "status": 200,
+          "sha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-geoprom.webp",
+          "status": 200,
+          "sha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-polycorr.svg",
+          "status": 200,
+          "sha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-profmaster.svg",
+          "status": 200,
+          "sha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-rentaero.svg",
+          "status": 200,
+          "sha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-sfera-snab.svg",
+          "status": 200,
+          "sha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-spectransservice.png",
+          "status": 200,
+          "sha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-tahoban.svg",
+          "status": 200,
+          "sha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-tool-tech.jpg",
+          "status": 200,
+          "sha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-vostok-service.svg",
+          "status": 200,
+          "sha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-vseinstrumenti.svg",
+          "status": 200,
+          "sha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/logo-color-zelenaya-doroga.png",
+          "status": 200,
+          "sha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/work-order-interface-v1.png",
+          "status": 200,
+          "sha256": "ea14c38f6c25426bea2d04f38d4a1063d0ea4c6d1dcd54a26f9ed9c6f1ff7e66",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/web-media/b25f3fbe775e7b085df1c0a4a0541501db6b4ff5cc4006290a6573423378f302/audience-assets/media/work-vacancy-interface-v1.png",
+          "status": 200,
+          "sha256": "8eb4ebdd2ed36483abbc264f6b2072bcf1a18efc296ead36cf74a56f767e7f5a",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://dev.astforum.ru/work/index.html",
+          "status": 200,
+          "sha256": "1273fbb6fcf5808468af1ac8fbbe733aa8365a9249e1c5af3421ca12018db983",
+          "matchesMountedBytes": true
+        }
+      ],
+      "limitations": [
+        "Build timestamp and production deployment event are not invented; receipt records actual verification time and dev operation time."
+      ]
+    }
+  ],
+  "routes": [],
+  "limitations": [
+    "Inventory status is conservative under schema v1, not a failure of measured checks. The scoped reconciliation receipt proves static bytes and the API image/payload chain separately. Dynamic HTTP bodies do not equal executable files."
+  ]
+}

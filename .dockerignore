@@ -12,3 +12,7 @@ backups
 artifacts
 docs
 local-previews
+.graft
+**/.graft
+.worktrees
+cal-diy-astforum

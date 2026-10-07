@@ -16,7 +16,7 @@
       "previousSha256": "33ab2ca7e888d3739afb0e39b9dafcd31ea210c6d22095dc80426f18ba967715",
       "previousMode": "100644",
       "candidatePath": "README.md",
-      "candidateSha256": "e7a0d9034c04a3531257372de9e6d4cf3d631e9783f8d25b9a8c2f524f871ae9",
+      "candidateSha256": "01df750b58e425200e775908702761d1a2b5157963973c257fb5118f308c9ba9",
       "candidateMode": "100644"
     },
     {
@@ -449,6 +449,22 @@
       "previousMode": "100644",
       "candidatePath": "apps/web/vite.config.ts",
       "candidateSha256": "f18c4eac3eef149a4efdfcb4ad0c3dd88037df17bf246a287d0a5c2ffb6a97a8",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/README.md",
+      "previousSha256": "c167fee12f303e5d3e59027e38e34a197eeca4862cf05cc0ea27b20f9c5463c3",
+      "previousMode": "100644",
+      "candidatePath": "apps/legacy-landing/README.md",
+      "candidateSha256": "b33674692a5fccdc4e0bcd6556ea58e1557b45a36907c241a175353452582406",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tests/test_deploy_rollback.py",
+      "previousSha256": "aec2d59aefb139d5dd544aa7846fdd8e2cd37691147316621238e7d9e91b54d7",
+      "previousMode": "100644",
+      "candidatePath": "apps/legacy-landing/tests/test_deploy_rollback.py",
+      "candidateSha256": "0794668da5debfa3b38faeb41c4ca476c88326640e463e0e6d8303a28f1f2457",
       "candidateMode": "100644"
     },
     {
@@ -956,6 +972,14 @@
       "candidateMode": "100644"
     },
     {
+      "previousCandidatePath": "scripts/deployment/legacy-landing/deploy.sh",
+      "previousSha256": "b87137794c952dbb428b8c8fb31f7f005b5627b296f277faacd4a6fcbbd27412",
+      "previousMode": "100755",
+      "candidatePath": "scripts/deployment/legacy-landing/deploy.sh",
+      "candidateSha256": "b92f52de94ed74317fdf0d1e3a78e22fd20b83ace2a8c131ecb0d1455fa70439",
+      "candidateMode": "100755"
+    },
+    {
       "previousCandidatePath": "scripts/deployment/public_site.py",
       "previousSha256": "fc7e5e7f2405394afcd6bf6777ad83d46f3fe5a6fee882c4f196bcb1930f3cb2",
       "previousMode": "100644",
@@ -976,7 +1000,7 @@
       "previousSha256": "64d18cf65c1eb24f32c8357bb51ed060f68a29e3bb2d47e91817fcab23e11bd9",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "a0d5640ca2349d98855b3b85f1720e948d039f45ae04dd7c8553cb3838cd4cfe",
+      "candidateSha256": "9f2d9c59607d0a1b5ae3c3c82248563be2ddee436a5f7d6dd6ca535dc4332038",
       "candidateMode": "100644"
     },
     {
@@ -1029,6 +1053,10 @@
     }
   ],
   "newFiles": [
+    {
+      "path": "apps/legacy-landing/tests/test_deploy_retired.py",
+      "sha256": "a24dc2503f7492c61678fe1f3dc035c49c4a6e6eb5bec348b812dafa69d8d2da"
+    },
     {
       "path": "apps/web/README.md",
       "sha256": "23e30f5c96e8b623de6856e848ce0aed224e226fa977b5e454b8a9293b7e2c9e"

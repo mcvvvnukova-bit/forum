@@ -1,0 +1,614 @@
+{
+  "schemaVersion": 1,
+  "environment": "shared",
+  "recordKind": "observed",
+  "reconciliationStatus": "observed-unreconciled",
+  "observedOn": "2026-10-07",
+  "recordedAt": "2026-10-07T03:51:45.786074+00:00",
+  "host": "test-debian",
+  "evidence": [
+    "artifacts/repository-audits/2026-10-07-runtime-reconciliation.json"
+  ],
+  "components": [
+    {
+      "id": "pgadmin-pgadmin-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "dpage/pgadmin4:9.17",
+          "imageId": "2f4ce946ddf8360680d7eff4eaba1d91859eb6b4003e6623bad5c63a322c2f4d",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "2f4ce946ddf8360680d7eff4eaba1d91859eb6b4003e6623bad5c63a322c2f4d",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-cal-diy-reminder-worker-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "opaque-custom-image",
+          "kind": "unknown",
+          "reason": "Existing custom Cal.diy image buildchain has not been reconstructed.",
+          "provenance": "Exact observed image ID sha256:5d831afb41cb4c0051ea60985e0dee57a6eca77db7ef01074b75810f900720ed; mounted reminder source is a separate boundary."
+        },
+        {
+          "id": "mounted-reminder-worker.mjs",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/astforum-cal-diy",
+          "commit": "8b6088261b096d94d0304512b2df4ea32d4cb8ed",
+          "path": "deployment/astforum/reminder-worker.mjs",
+          "verification": "file-byte-match",
+          "provenance": "Current mounted code equals host code; source lineage explicitly separate from whole image."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "5d831afb41cb4c0051ea60985e0dee57a6eca77db7ef01074b75810f900720ed",
+          "sourceId": "opaque-custom-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        },
+        {
+          "kind": "source",
+          "path": "/reminder-worker.mjs",
+          "sha256": "f252a4cdcecf18d2f4fbb656f6ce6238a06eae78e360523717f50a01083020fe",
+          "sourceId": "mounted-reminder-worker.mjs",
+          "provenance": "Exact observed mounted code hash with separately pinned source lineage."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Opaque custom Cal.diy whole-image buildchain remains unproven; separate mounted reminder does not establish image provenance."
+      ]
+    },
+    {
+      "id": "astforum-cal-diy-web-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "opaque-custom-image",
+          "kind": "unknown",
+          "reason": "Existing custom Cal.diy image buildchain has not been reconstructed.",
+          "provenance": "Exact observed image ID sha256:5d831afb41cb4c0051ea60985e0dee57a6eca77db7ef01074b75810f900720ed; mounted reminder source is a separate boundary."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "5d831afb41cb4c0051ea60985e0dee57a6eca77db7ef01074b75810f900720ed",
+          "sourceId": "opaque-custom-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Opaque custom Cal.diy whole-image buildchain remains unproven; separate mounted reminder does not establish image provenance."
+      ]
+    },
+    {
+      "id": "astforum-openproject-worker-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "openproject/openproject:17.8.0-slim",
+          "imageId": "48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        },
+        {
+          "id": "mounted-sums.rb",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/sums.rb",
+          "verification": "file-byte-match",
+          "provenance": "Current mounted code equals host code; source lineage explicitly separate from whole image."
+        },
+        {
+          "id": "mounted-query_currency_select.rb",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/query_currency_select.rb",
+          "verification": "file-byte-match",
+          "provenance": "Current mounted code equals host code; source lineage explicitly separate from whole image."
+        },
+        {
+          "id": "mounted-custom_field_select.rb",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/custom_field_select.rb",
+          "verification": "file-byte-match",
+          "provenance": "Current mounted code equals host code; source lineage explicitly separate from whole image."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        },
+        {
+          "kind": "source",
+          "path": "/app/app/models/query/results/sums.rb",
+          "sha256": "bc47d3ab7092ed6ec9c34aad23b78803d222a5ca5efa92fe3a5d285f83a80256",
+          "sourceId": "mounted-sums.rb",
+          "provenance": "Exact observed mounted code hash with separately pinned source lineage."
+        },
+        {
+          "kind": "source",
+          "path": "/app/modules/costs/lib/costs/query_currency_select.rb",
+          "sha256": "7ceae6174ce9cbed63647011a55807bddb56bb37142776317a58c65813e03fb2",
+          "sourceId": "mounted-query_currency_select.rb",
+          "provenance": "Exact observed mounted code hash with separately pinned source lineage."
+        },
+        {
+          "kind": "source",
+          "path": "/app/app/models/queries/work_packages/selects/custom_field_select.rb",
+          "sha256": "2948e8bb8df68bb6ff4bc451a0549346790488462c9604b4dd3ca31be5a12229",
+          "sourceId": "mounted-custom_field_select.rb",
+          "provenance": "Exact observed mounted code hash with separately pinned source lineage."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-openproject-web-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "openproject/openproject:17.8.0-slim",
+          "imageId": "48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        },
+        {
+          "id": "mounted-custom_field_select.rb",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/custom_field_select.rb",
+          "verification": "file-byte-match",
+          "provenance": "Current mounted code equals host code; source lineage explicitly separate from whole image."
+        },
+        {
+          "id": "mounted-sums.rb",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/sums.rb",
+          "verification": "file-byte-match",
+          "provenance": "Current mounted code equals host code; source lineage explicitly separate from whole image."
+        },
+        {
+          "id": "mounted-query_currency_select.rb",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "deployment/openproject/patches/query-sums/query_currency_select.rb",
+          "verification": "file-byte-match",
+          "provenance": "Current mounted code equals host code; source lineage explicitly separate from whole image."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "48952034215d2a8ecf07086db86be55c74819cc76aa26af61f8da9ce5f06eda2",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        },
+        {
+          "kind": "source",
+          "path": "/app/app/models/queries/work_packages/selects/custom_field_select.rb",
+          "sha256": "2948e8bb8df68bb6ff4bc451a0549346790488462c9604b4dd3ca31be5a12229",
+          "sourceId": "mounted-custom_field_select.rb",
+          "provenance": "Exact observed mounted code hash with separately pinned source lineage."
+        },
+        {
+          "kind": "source",
+          "path": "/app/app/models/query/results/sums.rb",
+          "sha256": "bc47d3ab7092ed6ec9c34aad23b78803d222a5ca5efa92fe3a5d285f83a80256",
+          "sourceId": "mounted-sums.rb",
+          "provenance": "Exact observed mounted code hash with separately pinned source lineage."
+        },
+        {
+          "kind": "source",
+          "path": "/app/modules/costs/lib/costs/query_currency_select.rb",
+          "sha256": "7ceae6174ce9cbed63647011a55807bddb56bb37142776317a58c65813e03fb2",
+          "sourceId": "mounted-query_currency_select.rb",
+          "provenance": "Exact observed mounted code hash with separately pinned source lineage."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-openproject-collaboration-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "openproject/hocuspocus:17.8.0",
+          "imageId": "f37a8d647d172f4206308bdbf4910bbec0c19433b8870c7431fe0dc45a5a7682",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "f37a8d647d172f4206308bdbf4910bbec0c19433b8870c7431fe0dc45a5a7682",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-openproject-db-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "postgres:17-alpine",
+          "imageId": "f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "f02121de6f74d30d8a94cd1d9584125e2178d7e6c377d8130112d4e52d867995",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-openproject-cache-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "memcached:1.6-alpine",
+          "imageId": "69ecd3c5701cebbe51f9fca15c1f9bd3b8773fd57cdb215adb6e1fa844bb0ea2",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "69ecd3c5701cebbe51f9fca15c1f9bd3b8773fd57cdb215adb6e1fa844bb0ea2",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "outline-outline-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "outlinewiki/outline:1.9.2",
+          "imageId": "32d76719c378931dd65d93945930ca380d8376a0337d98a991fcc12b266f33cf",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "32d76719c378931dd65d93945930ca380d8376a0337d98a991fcc12b266f33cf",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-mail-tmail-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "linagora/tmail-web:v0.36.0",
+          "imageId": "7a4f6c7c0f7d921e947324fada11848e6417d35cfc261839b31456d535cb52f7",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "7a4f6c7c0f7d921e947324fada11848e6417d35cfc261839b31456d535cb52f7",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-mail-listmonk-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "listmonk/listmonk:v6.2.0",
+          "imageId": "f535d59e14991337a9f2d570273685378ae86b0d7698c3e00da444e3bc205286",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "f535d59e14991337a9f2d570273685378ae86b0d7698c3e00da444e3bc205286",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-mail-stalwart-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "stalwartlabs/stalwart:v0.16.21",
+          "imageId": "93c574e52249c1ebf90061da2c4c0756a7b72abfcc1fec34506a03c2e38b5977",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "93c574e52249c1ebf90061da2c4c0756a7b72abfcc1fec34506a03c2e38b5977",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-mail-database-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "postgres:17-alpine",
+          "imageId": "18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-cal-diy-database-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "postgres:16-alpine",
+          "imageId": "cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "astforum-cal-diy-redis-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "redis:8-alpine",
+          "imageId": "becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "outline-caddy-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "caddy:2.10-alpine",
+          "imageId": "4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "outline-postgres-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "postgres:18-alpine",
+          "imageId": "d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    },
+    {
+      "id": "outline-redis-1",
+      "kind": "service",
+      "sources": [
+        {
+          "id": "running-image",
+          "kind": "vendor",
+          "image": "redis:8-alpine",
+          "imageId": "becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+          "provenance": "Observed existing image identity; no rebuild or whole-image source equivalence asserted."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "image",
+          "path": "runtime-image",
+          "sha256": "becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576",
+          "sourceId": "running-image",
+          "provenance": "Actual controller runtime image observation; identity does not imply reconstructed buildchain."
+        }
+      ],
+      "originHttp": [],
+      "publicHttp": [],
+      "limitations": [
+        "Accepted unchanged image boundary; dynamic HTTP is availability evidence only."
+      ]
+    }
+  ],
+  "routes": [],
+  "limitations": [
+    "Inventory status is conservative under schema v1, not a failure of measured checks. The scoped reconciliation receipt proves static bytes and the API image/payload chain separately. Dynamic HTTP bodies do not equal executable files."
+  ]
+}

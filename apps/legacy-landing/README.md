@@ -1,8 +1,10 @@
-# Dev landing deployment
+# Legacy landing source and gateway history
 
-This package prepares `dev.astforum.ru` on the existing AST Forum VPS.
+This package retains the earlier landing build and gateway integration context.
+The current dev UI is owned by [`apps/web`](../web/README.md); publication follows
+[`deployment/release.md`](../../deployment/release.md).
 
-It uses the current `/opt/outline` Docker Compose project and Caddy origin:
+The historical bootstrap used the `/opt/outline` Docker Compose project and Caddy origin:
 
 - static files are copied to `/opt/outline/dev-astforum`;
 - the auth gateway is copied to `/opt/outline/dev-landing-auth`;
@@ -29,34 +31,20 @@ landing. `/auth/sber-id/*` and `/api/auth/*` proxy to `http://127.0.0.1:3001` by
 default, configurable with `FORUM_API_ORIGIN`. Keep the API's `PUBLIC_ORIGIN`
 equal to the browser origin, including the local port.
 
-## Deploy
+## Retired deployment entrypoint
 
-Upload the package without requiring `rsync` on the VPS:
+`scripts/deployment/legacy-landing/deploy.sh` always exits with an error before
+reading deployment state, prompting, creating backups or writing files. Ordinary
+invocation, `--set-password`, environment-provided passwords and first bootstrap
+are all disabled. It must not be used for publishing or password maintenance.
 
-```sh
-ssh forum-prod 'rm -rf /home/testing-user/dev-astforum-deploy.tmp && mkdir -p /home/testing-user/dev-astforum-deploy.tmp'
-COPYFILE_DISABLE=1 tar --no-xattrs --exclude './node_modules' -cf - apps/legacy-landing/dist apps/dev-gateway scripts/deployment/legacy-landing scripts/verification/check_origin_login.py scripts/verification/verify-legacy-public.sh \
-  | ssh forum-prod 'tar -C /home/testing-user/dev-astforum-deploy.tmp -xf -'
-ssh forum-prod 'chmod +x /home/testing-user/dev-astforum-deploy.tmp/scripts/deployment/legacy-landing/deploy.sh /home/testing-user/dev-astforum-deploy.tmp/scripts/verification/verify-legacy-public.sh && rm -rf /home/testing-user/dev-astforum-deploy && mv /home/testing-user/dev-astforum-deploy.tmp /home/testing-user/dev-astforum-deploy'
-```
+The old bootstrap/recovery source is preserved as inert text in that file for
+review and isolated historical rollback tests. It deletes the mounted site parent
+and its shared lock inode and cannot safely coexist with unified releases. There
+is no force override or live recovery/password workflow through this entrypoint.
+Use the unified release procedure linked above for current web publication.
 
-Apply on the VPS:
-
-```sh
-ssh -t forum-prod 'sudo /home/testing-user/dev-astforum-deploy/scripts/deployment/legacy-landing/deploy.sh'
-```
-
-Set or replace the shared password during deploy:
-
-```sh
-ssh -t forum-prod 'sudo /home/testing-user/dev-astforum-deploy/scripts/deployment/legacy-landing/deploy.sh --set-password'
-```
-
-If no password exists and `--set-password` or `DEV_LANDING_PASSWORD` is not
-provided, the script generates one at
-`/opt/outline/secrets/dev_landing_password`.
-
-## Verify
+## Historical gateway verification
 
 ```sh
 scripts/verification/verify-legacy-public.sh
@@ -66,7 +54,7 @@ To include the successful-login check on the VPS, run the verifier as root so it
 can read `/opt/outline/secrets/dev_landing_password`:
 
 ```sh
-ssh -t forum-prod 'sudo /home/testing-user/dev-astforum-deploy/scripts/verification/verify-legacy-public.sh'
+sudo scripts/verification/verify-legacy-public.sh
 ```
 
 The same checks can be run manually:
@@ -80,13 +68,3 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://dev.astforum.ru/api/demo-reque
 ```
 
 Expected status for `/api/demo-request` is `501` until the Bitrix24 proxy service is implemented.
-
-## Troubleshooting
-
-### `sudo: a password is required`
-
-The SSH alias works, but the current VPS user does not have passwordless sudo.
-Run the apply command from an interactive terminal, or temporarily grant
-passwordless sudo for this maintenance step.
-
-Do not put the sudo password in the repository or chat history.

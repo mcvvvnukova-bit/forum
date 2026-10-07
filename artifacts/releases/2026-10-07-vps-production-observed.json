@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "environment": "production",
+  "recordKind": "observed",
+  "reconciliationStatus": "observed-unreconciled",
+  "observedOn": "2026-10-07",
+  "recordedAt": "2026-10-07T03:51:45.786074+00:00",
+  "host": "test-debian",
+  "evidence": [
+    "artifacts/repository-audits/2026-10-07-runtime-reconciliation.json"
+  ],
+  "components": [
+    {
+      "id": "production-web",
+      "kind": "site",
+      "sources": [
+        {
+          "id": "production-web",
+          "kind": "git",
+          "repository": "https://github.com/mcvvvnukova-bit/forum",
+          "commit": "e513872ce218357c77b1f7381c26e57c6de66e79",
+          "path": "apps/web/production-static",
+          "verification": "release-chain",
+          "provenance": "Exact CI artifact and mounted/origin/public bytes verified in scoped receipt; production reused existing bytes without write."
+        }
+      ],
+      "artifacts": [
+        {
+          "kind": "site",
+          "path": "favicon.png",
+          "sha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+          "sourceId": "production-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "fonts/golos-text-cyrillic.woff2",
+          "sha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+          "sourceId": "production-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "fonts/golos-text-latin.woff2",
+          "sha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+          "sourceId": "production-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "fonts/unbounded-cyrillic.woff2",
+          "sha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+          "sourceId": "production-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "fonts/unbounded-latin.woff2",
+          "sha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+          "sourceId": "production-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "forum-hard-hat.png",
+          "sha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+          "sourceId": "production-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        },
+        {
+          "kind": "site",
+          "path": "index.html",
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "sourceId": "production-web",
+          "provenance": "Exact CI file hash matched mounted, origin HTTP and public HTTPS; see scoped runtime receipt."
+        }
+      ],
+      "originHttp": [
+        {
+          "url": "http://127.0.0.1:80/favicon.png",
+          "status": 200,
+          "sha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://127.0.0.1:80/fonts/golos-text-cyrillic.woff2",
+          "status": 200,
+          "sha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://127.0.0.1:80/fonts/golos-text-latin.woff2",
+          "status": 200,
+          "sha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://127.0.0.1:80/fonts/unbounded-cyrillic.woff2",
+          "status": 200,
+          "sha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://127.0.0.1:80/fonts/unbounded-latin.woff2",
+          "status": 200,
+          "sha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://127.0.0.1:80/forum-hard-hat.png",
+          "status": 200,
+          "sha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "http://127.0.0.1:80/",
+          "status": 200,
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "matchesMountedBytes": true
+        }
+      ],
+      "publicHttp": [
+        {
+          "url": "https://astforum.ru/favicon.png",
+          "status": 200,
+          "sha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://astforum.ru/fonts/golos-text-cyrillic.woff2",
+          "status": 200,
+          "sha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://astforum.ru/fonts/golos-text-latin.woff2",
+          "status": 200,
+          "sha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://astforum.ru/fonts/unbounded-cyrillic.woff2",
+          "status": 200,
+          "sha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://astforum.ru/fonts/unbounded-latin.woff2",
+          "status": 200,
+          "sha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://astforum.ru/forum-hard-hat.png",
+          "status": 200,
+          "sha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+          "matchesMountedBytes": true
+        },
+        {
+          "url": "https://astforum.ru/",
+          "status": 200,
+          "sha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+          "matchesMountedBytes": true
+        }
+      ],
+      "limitations": [
+        "Build timestamp and production deployment event are not invented; receipt records actual verification time and dev operation time."
+      ]
+    }
+  ],
+  "routes": [],
+  "limitations": [
+    "Inventory status is conservative under schema v1, not a failure of measured checks. The scoped reconciliation receipt proves static bytes and the API image/payload chain separately. Dynamic HTTP bodies do not equal executable files."
+  ]
+}

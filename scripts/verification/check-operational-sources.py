@@ -39,7 +39,11 @@ def current_file(candidate, expected_hash, expected_mode):
                 'scripts/verification/check-repository-layout.mjs',
                 'scripts/verification/repository-layout.json', 'scripts/verification/checks.test.mjs',
                 'scripts/verification/quality-gate.mjs', 'tests/integration/public-site-composition.test.tsx',
-                'tests/integration/README.md'}
+                'tests/integration/README.md',
+                # Final Task7/8 ownership closure: retire the fourth publisher.
+                'scripts/deployment/legacy-landing/deploy.sh',
+                'apps/legacy-landing/README.md',
+                'apps/legacy-landing/tests/test_deploy_rollback.py'}
     for item in changes:
         old = item['previousCandidatePath']
         assert old in explicit or old.startswith(('apps/primer-home/', 'apps/audience-pages/', 'apps/public-auth/')), 'Out-of-scope Task7 ownership'

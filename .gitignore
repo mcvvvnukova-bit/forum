@@ -17,3 +17,7 @@ backups/
 .outline-migration/
 outline-uploads/
 *.private
+
+# Preserve independent graph readers and the separate Cal.diy checkout.
+.graft/
+cal-diy-astforum
