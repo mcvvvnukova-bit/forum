@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-154",
+  "inspectedBaseSha": "bcdf43abb1228653ace66605e4971992cda13cee",
+  "status": "verified-offline-semantic-classification-not-runtime-proof",
+  "scope": "project wrapper and integration tests only",
+  "before": {
+    "findings": 71,
+    "errors": 0,
+    "warnings": 71,
+    "code": "PDS007",
+    "breakdown": {
+      "gap": 58,
+      "padding": 5,
+      "borderRadius": 2,
+      "cssAuto": 4,
+      "cssZero": 2
+    }
+  },
+  "after": {
+    "findings": 0,
+    "errors": 0,
+    "warnings": 0
+  },
+  "upstreamSnapshotUnchanged": true,
+  "tdd": {
+    "red": {
+      "command": "python3 -m unittest discover -s tests/integration -p test_primer_ui_policy.py -v",
+      "tests": 18,
+      "failures": 39,
+      "exitCode": 1,
+      "evidence": ".superpowers/sdd/2026-10-07-primer-semantic-visual-values/task-1-red.log"
+    },
+    "green": {
+      "tests": 18,
+      "failures": 0,
+      "exitCode": 0,
+      "evidence": ".superpowers/sdd/2026-10-07-primer-semantic-visual-values/task-1-green.log"
+    }
+  },
+  "verification": {
+    "npm run test:primer": "18 tests pass",
+    "npm run check:primer": "0 errors / 0 warnings",
+    "node scripts/verification/check-repository-layout.mjs": "pass",
+    "node --test scripts/verification/checks.test.mjs": "44 tests pass",
+    "verify_provenance": "354 sources verified"
+  },
+  "immutableByteChecks": [
+    {
+      "path": "package-lock.json",
+      "sha256": "6129529b156384a535b93bcdba332a9d97aff14f50e96b7ba996e4dabb69da38",
+      "unchangedFromInspectedBase": true
+    },
+    {
+      "path": "scripts/verification/primer-ui/validate_primer_ui.py",
+      "sha256": "c926222170bb455281ebc2c6f2f279d75ef44143b7e41b18ea0fe0d0841a88e7",
+      "unchangedFromInspectedBase": true
+    },
+    {
+      "path": "scripts/verification/primer-ui/policy.json",
+      "sha256": "71db5e0a25616f1dfa8bcc587de2cdbadf8a788a79f75a282594998e231e8ccd",
+      "unchangedFromInspectedBase": true
+    },
+    {
+      "path": "artifacts/repository-audits/accepted-source-matrix.json",
+      "sha256": "1bcd9dff8cc7c42da2234e020ddc1f4f45e12029a911cf7963785b0ad0c2c895",
+      "unchangedFromInspectedBase": true
+    },
+    {
+      "path": "artifacts/repository-audits/task-5-source-parity.json",
+      "sha256": "32c5c040940ae80ab0679d26dad95ee1118f8d81c5950375ee74a8279ab4f135",
+      "unchangedFromInspectedBase": true
+    },
+    {
+      "path": "artifacts/repository-audits/task-5-lock-resolution.json",
+      "sha256": "e4ba532f751134c37df5c6f9a1b78331055faab689fe7daffc7c5963a9f73b97",
+      "unchangedFromInspectedBase": true
+    },
+    {
+      "path": "artifacts/repository-audits/task-6-source-ownership.json",
+      "sha256": "b157fd454b08e02bc3dc03d5f0d579bc4412e27a531dad70f3a057c58158e21a",
+      "unchangedFromInspectedBase": true
+    },
+    {
+      "path": "artifacts/repository-audits/task-7-source-ownership.json",
+      "sha256": "3be7b5e0cc2779ab71b3ba6383761860e7199ffe4765d05556adbda76e7d4fa3",
+      "unchangedFromInspectedBase": true
+    },
+    {
+      "path": "artifacts/repository-audits/2026-10-07-sber-primer-token-policy.json",
+      "sha256": "92c69d10411afc6dde7d8271e1c2d1527744dbf1a7618a560280f17f0b2d84a7",
+      "unchangedFromInspectedBase": true
+    }
+  ],
+  "appsTree": {
+    "unchangedFromInspectedBase": true,
+    "treeManifestSha256": "8a4d4d8eb40c17618b0539ae4d5a636d13db58c716698b0956e886e3c9ee2694"
+  },
+  "knownLimits": [
+    "Only exact static named/namespace ESM imports are proved; CommonJS and re-exports retain upstream warnings.",
+    "Any non-tag identifier use conservatively invalidates the binding throughout that file, including benign type/value references.",
+    "Complete unescaped literal variants only; dynamic expressions and responsive objects keep existing upstream behavior.",
+    "Offline validator evidence does not prove runtime UI, deployment, or external task/PR delivery."
+  ]
+}

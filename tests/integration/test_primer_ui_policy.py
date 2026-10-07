@@ -73,13 +73,159 @@ createRoot(document.getElementById('root')).render(
                 self.assertTrue(any(f['code'] == 'PDS004' and f['path'] == path for f in findings), findings)
                 (self.root / path).unlink()
 
-    def test_full_project_retains_warnings(self):
+    def test_full_project_has_no_findings(self):
         result = subprocess.run([sys.executable, str(ENTRY), '--format', 'json'],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         findings = json.loads(result.stdout)
-        self.assertEqual(sum(f['code'] == 'PDS007' for f in findings), 71)
-        self.assertFalse(any(f['severity'] == 'error' for f in findings))
+        self.assertEqual(findings, [])
+
+    def assert_visual_findings(self, source, expected, *, css=False):
+        path = 'src/semantic.css' if css else 'src/Semantic.tsx'
+        self.write(path, source)
+        result, findings = self.findings()
+        visual = [f for f in findings if f['code'] == 'PDS007' and f['path'] == path]
+        self.assertEqual([(f['line'], f['severity']) for f in visual],
+                         [(line, 'warning') for line in expected], findings)
+        self.assertEqual(result.returncode, int(any(f['severity'] == 'error' for f in findings)))
+
+    def test_supported_named_aliases_and_literal_expressions(self):
+        self.assert_visual_findings("""import {Stack as Layout} from '@primer/react'
+import {Card as Panel} from '@primer/react/experimental'
+export const Example = () => <Layout gap="normal"><Panel padding="none" borderRadius="medium" /></Layout>
+""", [])
+        for source in (
+            "import{Stack}from'@primer/react';const C=()=> <Stack gap={'normal'} padding={`cozy`} paddingBlock=\"tight\" paddingInline=\"spacious\" />",
+            "import * as P from '@primer/react';import * as E from '@primer/react/experimental';const C=()=> <P.Stack gap=\"condensed\"><E.Card padding={'normal'} borderRadius={`large`}/></P.Stack>",
+            "import Default,{Stack as S}from'@primer/react'; const C=()=> <S\n gap=\"normal\"\n padding=\"none\"\n />",
+        ):
+            with self.subTest(source=source):
+                self.assert_visual_findings(source, [])
+
+    def test_supported_variant_values(self):
+        for prop in ('gap', 'padding', 'paddingBlock', 'paddingInline'):
+            for value in ('none', 'tight', 'condensed', 'cozy', 'normal', 'spacious'):
+                with self.subTest(component='Stack', prop=prop, value=value):
+                    self.assert_visual_findings(f"import {{Stack}} from '@primer/react';const C=()=> <Stack {prop}=\"{value}\"/>", [])
+        for prop, values in (('padding', ('none', 'condensed', 'normal')),
+                             ('borderRadius', ('medium', 'large'))):
+            for value in values:
+                with self.subTest(component='Card', prop=prop, value=value):
+                    self.assert_visual_findings(f"import {{Card}} from '@primer/react/experimental';const C=()=> <Card {prop}=\"{value}\"/>", [])
+
+    def test_unproven_imports_never_authorize_component_names(self):
+        for prefix in (
+            '', "import {Stack} from 'another-package';",
+            "import type {Stack} from '@primer/react';",
+            "import {type Stack} from '@primer/react';",
+            "export {Stack} from '@primer/react';",
+            "const Stack = Local;",
+            "/* import {Stack} from '@primer/react' */",
+            "const text = \"import {Stack} from '@primer/react'\";",
+            "const text = `import {Stack} from '@primer/react'`;",
+            "import {Stack} from '@primer/react/experimental';",
+        ):
+            with self.subTest(prefix=prefix):
+                self.assert_visual_findings(prefix + ' const C=()=> <Stack gap="normal"/>', [1])
+        self.assert_visual_findings("import {Card} from '@primer/react';const C=()=> <Card padding=\"none\" borderRadius=\"medium\"/>", [1, 1])
+
+    def test_shadowed_or_reassigned_bindings_remain_unproven(self):
+        for declaration in (
+            'function C(Layout) { return <Layout gap="normal"/> }',
+            'function C({Layout}) { return <Layout gap="normal"/> }',
+            'const C = (Layout) => <Layout gap="normal"/>',
+            'const C = ({Layout}) => <Layout gap="normal"/>',
+            'Layout = Other; const C=()=> <Layout gap="normal"/>',
+            'const C=()=> { const Layout=Other; return <Layout gap="normal"/> }',
+        ):
+            with self.subTest(declaration=declaration):
+                self.assert_visual_findings("import {Stack as Layout} from '@primer/react';" + declaration, [1])
+        for declaration in (
+            'P=Other;const C=()=> <P.Stack gap="normal"/>',
+            'P.Stack=Other;const C=()=> <P.Stack gap="normal"/>',
+            'function C(P){return <P.Stack gap="normal"/>}',
+            'const C=({P})=> <P.Stack gap="normal"/>',
+        ):
+            with self.subTest(declaration=declaration):
+                self.assert_visual_findings("import * as P from '@primer/react';" + declaration, [1])
+
+    def test_unknown_props_values_and_other_components_still_warn(self):
+        for source in (
+            '<Stack gap="mystery" padding="8px" borderRadius="medium"/>',
+            '<Card gap="normal" padding="cozy" borderRadius="small"/>',
+            '<Box gap="normal" padding="none" borderRadius="medium"/>',
+        ):
+            with self.subTest(source=source):
+                self.assert_visual_findings("import {Stack,Box} from '@primer/react';import {Card} from '@primer/react/experimental';const C=()=>" + source, [1, 1, 1])
+        for source in ('<Stack.Item gap="normal"/>', '<Card.Heading padding="none"/>'):
+            with self.subTest(source=source):
+                self.assert_visual_findings("import {Stack} from '@primer/react';import {Card} from '@primer/react/experimental';const C=()=>" + source, [1])
+
+    def test_same_line_props_do_not_authorize_style_sx_or_another_component(self):
+        for source in (
+            '<Stack gap="normal" style={{gap: "8px", padding: "none"}}/>',
+            '<Stack gap="normal" sx={{gap: "8px", padding: "none"}}/>',
+            '<><Stack gap="normal"/><Box gap="normal" padding="8px"/></>',
+            '<><Box gap="normal"/><Stack gap="normal"/><Box padding="8px"/></>',
+        ):
+            with self.subTest(source=source):
+                self.assert_visual_findings("import {Stack,Box} from '@primer/react';const C=()=>" + source, [1, 1])
+
+    def test_css_auto_and_zero_complete_shorthands(self):
+        self.assert_visual_findings(""".center { margin-inline: auto; margin: 0 auto; }
+.reset { padding-inline: 0; margin: 0; gap: 0; border-radius: 0; }
+""", [], css=True)
+        for declaration in (
+            'margin: 0 auto 0 auto', 'margin: auto', 'margin-inline: auto 0',
+            'margin-block: 0 auto', 'margin-top: auto', 'padding: 0 0 0 0',
+            'padding-inline: 0 0', 'padding-block: 0 0', 'padding-left: 0',
+            'gap: 0 0', 'row-gap: 0', 'column-gap: 0', 'border-radius: 0 0 0 0',
+            'margin: 0 auto !important', 'padding: 0 !important',
+            'margin: 0 /* real comment */ auto',
+        ):
+            with self.subTest(declaration=declaration):
+                self.assert_visual_findings('.a {' + declaration + ';}', [], css=True)
+
+    def test_css_invalid_values_and_shorthand_lengths_still_warn(self):
+        for declaration in (
+            'margin: 0 auto 0 auto 0', 'margin-inline: 0 auto 0', 'margin-top: 0 auto',
+            'padding: 0 0 0 0 0', 'padding-inline: 0 0 0', 'padding-left: 0 0',
+            'gap: 0 0 0', 'row-gap: 0 0', 'column-gap: 0 0',
+            'border-radius: 0 0 0 0 0', 'border-radius: 0 / 0',
+            'padding: auto', 'gap: auto', 'border-radius: auto', 'box-shadow: 0',
+            'margin: 0 8px', 'padding: 0 unknown', 'margin: "auto"',
+            'margin: calc(0)', 'padding: 0px', 'gap: -0',
+            'margin: 0 auto !important invalid', 'padding: auto !important',
+        ):
+            with self.subTest(declaration=declaration):
+                self.assert_visual_findings('.a {' + declaration + ';}', [1], css=True)
+
+    def test_css_same_line_valid_occurrences_do_not_hide_invalid_ones(self):
+        for source in (
+            '.a {margin: 0 auto; padding: 8px; padding: auto; gap: 0; box-shadow: 0;}',
+            '.a {padding: 8px; margin: 0 auto; padding: auto; box-shadow: 0; gap: 0;}',
+            '.a {content: "margin: 0 auto"; padding: 8px;} /* margin: 0 auto; */ .b{padding:auto;box-shadow:0;}',
+        ):
+            with self.subTest(source=source):
+                self.assert_visual_findings(source, [1, 1, 1], css=True)
+
+    def test_color_and_typography_rules_survive_accepted_visual_props(self):
+        self.write('src/Semantic.tsx', "import {Stack} from '@primer/react';const C=()=> <Stack gap=\"normal\" style={{color:'#fff',fontSize:'14px'}}/>")
+        result, findings = self.findings()
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(sorted(f['code'] for f in findings if f['path'] == 'src/Semantic.tsx'), ['PDS004', 'PDS005'])
+
+    def test_upstream_snapshot_retains_original_71_visual_warnings(self):
+        result = subprocess.run([sys.executable, str(VENDOR), str(REPO / 'apps/web'),
+                                 '--format', 'json',
+                                 '--allow-token-file', 'src/home/forum-tokens.css',
+                                 '--allow-token-file', 'src/audience/forum-tokens.css',
+                                 '--allow-token-file', 'src/auth/sber-tokens.css'],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        findings = json.loads(result.stdout)
+        self.assertEqual(len(findings), 71)
+        self.assertTrue(all(f['code'] == 'PDS007' and f['severity'] == 'warning' for f in findings))
 
     def test_default_target_independent_of_working_directory(self):
         outputs = [subprocess.run([sys.executable, str(ENTRY), '--format', 'json'],
