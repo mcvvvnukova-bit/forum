@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "snapshot_sha256": "c926222170bb455281ebc2c6f2f279d75ef44143b7e41b18ea0fe0d0841a88e7",
+  "original_source_name": "primer-design-system/scripts/validate_primer_ui.py",
+  "original_source_path": "/Users/vvv/.codex/skills/primer-design-system/scripts/validate_primer_ui.py",
+  "approval_date": "2026-10-07",
+  "allowed_token_paths": [
+    "src/home/forum-tokens.css",
+    "src/audience/forum-tokens.css",
+    "src/auth/sber-tokens.css"
+  ],
+  "official_sber_reference": "https://developers.sber.ru/docs/ru/sberid/guidebook",
+  "forum_allowance_rationale": "The home and audience Forum token sources preserve the existing vendor default allowance; auth/sber-tokens.css is the sole newly approved provider source."
+}

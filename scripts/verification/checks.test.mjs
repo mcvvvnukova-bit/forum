@@ -161,3 +161,20 @@ test('Task7 current runtime ownership detects changed bytes and rejects unrelate
   writeFileSync(file,JSON.stringify(receipt))
   assert.match(provenance(clean).stderr,/Out-of-scope Task7/)
 })
+
+for (const mutation of ['hash', 'pin', 'scope', 'mode', 'path', 'duplicate', 'source']) {
+  test(`PROJ-154 governance ownership rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    const file = join(path, 'artifacts/repository-audits/proj-154-verification-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    if (mutation === 'hash') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'pin') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes[0].previousCandidatePath = 'apps/api/src/app.ts'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
+    if (mutation === 'source') receipt.newFiles[0].sha256 = '0'.repeat(64)
+    writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}

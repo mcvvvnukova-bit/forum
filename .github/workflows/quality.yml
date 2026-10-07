@@ -108,6 +108,11 @@ jobs:
         if: matrix.package == 'legacy-landing'
         working-directory: apps/legacy-landing
         run: npx --no-install playwright install --with-deps chromium
+      - name: Tracked Primer policy and negative regressions
+        if: matrix.package == 'web'
+        run: |
+          npm run test:primer
+          npm run check:primer
       - name: Declared frontend checks
         working-directory: apps/${{ matrix.package }}
         env:

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-154",
+  "baseSha": "f53901d129d78b1df1f0d89e5b7462734856d781",
+  "status": "offline-current-governance-not-runtime-proof",
+  "changes": [
+    {
+      "previousCandidatePath": "package.json",
+      "previousSha256": "b739c7c1739c424a0e4d3649eb8e5c34127eb23738d8479371ae63cde822d869",
+      "previousMode": "100644",
+      "candidatePath": "package.json",
+      "candidateSha256": "a23caeea3300b68808ccd35c6a1ce35a3cb566d022c8ac570f78c4cbd445410e",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": ".github/workflows/quality.yml",
+      "previousSha256": "cba602d7fa7ed4ec896861ce677d5b0087a58a010ba43cdb3e851ffa5f0c48c3",
+      "previousMode": "100644",
+      "candidatePath": ".github/workflows/quality.yml",
+      "candidateSha256": "4e6f77be04839cb75711089d19404eb8dd35231ccb2bd90ea3aa368f3b583ce0",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/repository-layout.json",
+      "previousSha256": "a2543d833e5a176b260816e1f94dba9140c6c9cadd25c5c8ff9cc64e16c71211",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/repository-layout.json",
+      "candidateSha256": "e6debbf43df842f10b738e65eda0baa12b59f39bd95ff2aadead7d66b43b5ab7",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "9f2d9c59607d0a1b5ae3c3c82248563be2ddee436a5f7d6dd6ca535dc4332038",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "75389cf4d7b6047ffa107cea3ef83620e2c9e15dbcac81b09545263f9c99c608",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "210a8ca7ebd902b5630313632a31ab54a6fce4e7282d8c3d8b95ef081a84bbd8",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "b18f228e48fafec474638de15722dee2257bf33a344bc2aed2beee33bfa70ad3",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "scripts/verification/check-primer-ui.py",
+      "sha256": "d59e2afa61f2d10f5a508710bd86e2bbd625f0de987f410231ae1bbb7d3a7311",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/primer-ui/policy.json",
+      "sha256": "71db5e0a25616f1dfa8bcc587de2cdbadf8a788a79f75a282594998e231e8ccd",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/primer-ui/validate_primer_ui.py",
+      "sha256": "c926222170bb455281ebc2c6f2f279d75ef44143b7e41b18ea0fe0d0841a88e7",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/integration/test_primer_ui_policy.py",
+      "sha256": "61531fcf14ce7af8e0d3eedcc1d062353e356f6b3e33e361d4c837273ce00a65",
+      "mode": "100644"
+    }
+  ],
+  "historicalReceipts": [
+    {
+      "path": "artifacts/repository-audits/accepted-source-matrix.json",
+      "sha256": "1bcd9dff8cc7c42da2234e020ddc1f4f45e12029a911cf7963785b0ad0c2c895",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-5-source-parity.json",
+      "sha256": "32c5c040940ae80ab0679d26dad95ee1118f8d81c5950375ee74a8279ab4f135",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-6-source-ownership.json",
+      "sha256": "b157fd454b08e02bc3dc03d5f0d579bc4412e27a531dad70f3a057c58158e21a",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-7-source-ownership.json",
+      "sha256": "3be7b5e0cc2779ab71b3ba6383761860e7199ffe4765d05556adbda76e7d4fa3",
+      "mode": "100644"
+    }
+  ]
+}

@@ -53,7 +53,67 @@ def current_file(candidate, expected_hash, expected_mode):
     change = next((item for item in changes if item['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'Task7 baseline pin mismatch: ' + candidate
-        return ROOT / change['candidatePath'], change['candidateSha256'], change['candidateMode']
+        resolved = (change['candidatePath'], change['candidateSha256'], change['candidateMode'])
+    else:
+        resolved = (candidate, expected_hash, expected_mode)
+    return governance_file(*resolved)
+
+
+
+# PROJ-154 changes verification governance only. The old Task5/6/7 receipts
+# stay immutable; this exact-path layer pins the resolved current predecessor.
+GOVERNANCE_PATHS = {
+    'package.json', '.github/workflows/quality.yml',
+    'scripts/verification/repository-layout.json',
+    'scripts/verification/check-operational-sources.py',
+    'scripts/verification/checks.test.mjs',
+}
+PRIMER_SOURCE_PATHS = {
+    'scripts/verification/check-primer-ui.py',
+    'scripts/verification/primer-ui/policy.json',
+    'scripts/verification/primer-ui/validate_primer_ui.py',
+    'tests/integration/test_primer_ui_policy.py',
+}
+HISTORICAL_RECEIPTS = {
+    'artifacts/repository-audits/accepted-source-matrix.json',
+    'artifacts/repository-audits/task-5-source-parity.json',
+    'artifacts/repository-audits/task-6-source-ownership.json',
+    'artifacts/repository-audits/task-7-source-ownership.json',
+}
+
+
+def governance_receipt(verify_history=False):
+    path = ROOT / 'artifacts/repository-audits/proj-154-verification-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing PROJ-154 governance receipt'
+    receipt = json.loads(path.read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-154'
+    assert receipt['baseSha'] == 'f53901d129d78b1df1f0d89e5b7462734856d781'
+    changes = receipt['changes']
+    assert len(changes) == len(GOVERNANCE_PATHS), 'Duplicate or missing PROJ-154 governance owner'
+    assert {item['previousCandidatePath'] for item in changes} == GOVERNANCE_PATHS, 'Out-of-scope PROJ-154 governance owner'
+    for item in changes:
+        assert item['candidatePath'] == item['previousCandidatePath'], 'PROJ-154 governance owner cannot move'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-154 governance mode must stay unchanged'
+        for key in ('previousSha256', 'candidateSha256'):
+            assert len(item[key]) == 64 and all(c in '0123456789abcdef' for c in item[key]), 'Invalid PROJ-154 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(PRIMER_SOURCE_PATHS) and {item['path'] for item in sources} == PRIMER_SOURCE_PATHS, 'Out-of-scope PROJ-154 source'
+    historical = receipt['historicalReceipts']
+    assert len(historical) == len(HISTORICAL_RECEIPTS) and {item['path'] for item in historical} == HISTORICAL_RECEIPTS, 'Invalid historical receipt scope'
+    for item in sources + (historical if verify_history else []):
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-154 receipt hash mismatch: ' + item['path']
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-154 source mode mismatch'
+    return receipt
+
+
+def governance_file(candidate, expected_hash, expected_mode):
+    receipt = governance_receipt()
+    change = next((item for item in receipt['changes'] if item['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-154 baseline pin mismatch: ' + candidate
+        return ROOT / candidate, change['candidateSha256'], change['candidateMode']
     return ROOT / candidate, expected_hash, expected_mode
 
 
@@ -136,6 +196,12 @@ def verify_provenance():
             path = ROOT / item['path']
             assert path.is_file() and not path.is_symlink(), item['path']
             assert hashlib.sha256(path.read_bytes()).hexdigest() == item['sha256'], item['path']
+    governance = governance_receipt(verify_history=True)
+    for item in governance['changes']:
+        path = ROOT / item['candidatePath']
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-154 current hash mismatch: ' + item['candidatePath']
+        assert not path.stat().st_mode & 0o111, 'PROJ-154 current mode mismatch'
     return accepted
 
 

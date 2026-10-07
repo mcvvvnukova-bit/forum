@@ -28,13 +28,15 @@
 - Create: `scripts/verification/check-primer-ui.py` — small project command.
 - Create: `tests/integration/test_primer_ui_policy.py` — acceptance and negative boundaries.
 - Modify: `package.json`, `.github/workflows/quality.yml`, `scripts/verification/repository-layout.json` — commands, web CI gate, tracked source contract.
+- Modify: `scripts/verification/check-operational-sources.py`, `scripts/verification/checks.test.mjs` — exact five-path current governance ownership chain and negative tamper regressions.
+- Create: `artifacts/repository-audits/proj-154-verification-ownership.json` — current governance hashes chained after existing Task7 resolution; accepted matrix and Task5/6/7 receipts remain byte-identical. Allowed governance paths: `package.json`, `.github/workflows/quality.yml`, `scripts/verification/repository-layout.json`, `scripts/verification/check-operational-sources.py`, `scripts/verification/checks.test.mjs`.
 - Create: `artifacts/repository-audits/2026-10-07-sber-primer-token-policy.json` — factual controller verification receipt after the code review.
 
 **Interfaces:**
 - Consumes: the pinned validator's `scan_project(root, allowed_token_globs)` and CLI JSON findings (`severity`, `code`, `path`, `line`, `message`).
 - Produces: `npm run check:primer` (full `apps/web` scan; errors fail, warnings printed), `npm run test:primer` (standard-library unittest regressions), and equivalent direct Python entrypoints.
 - Entrypoint may expose `--root` for isolated fixture roots and `--format {text,json}`. It must not expose arbitrary token-file permissions or forward unknown arguments to the vendor CLI.
-- Approved paths relative to the web root are exactly `src/home/forum-tokens.css` and `src/auth/sber-tokens.css`, without glob wildcards. Token values remain in the already existing files.
+- Approved paths relative to the web root are exactly `src/home/forum-tokens.css`, `src/audience/forum-tokens.css` and `src/auth/sber-tokens.css`, without glob wildcards. The two existing Forum sources preserve the vendor default allowance; Sber is the sole newly approved provider source. Token values remain in the already existing files.
 - Configuration/source/integrity/read errors fail with nonzero status and a useful diagnostic. Warning findings stay in the output.
 
 - [ ] **Step 1: Establish the baseline and write discriminating regressions.**
@@ -48,7 +50,7 @@ Use a temporary minimal web project with real Primer dependencies/imports and a 
 | Add a hex color to a component style or ordinary CSS file | PDS004 and nonzero project command exit |
 | Add `:root { --sber-button-rest: #21a038; }` in a different `sber-tokens.css` path | PDS004; basename does not grant permission |
 | Add `.arbitrary { color: #fff; }` inside the approved Sber file | PDS004; file permission does not excuse component styling |
-| Existing Forum root exports | Still accepted |
+| Existing home and audience Forum root exports | Still accepted; preservation of the vendor default allowance |
 | Run direct script from another working directory | Same scan target and result |
 | Invalid command option, unreadable root, invalid policy or snapshot mismatch | Nonzero result; no false success |
 
