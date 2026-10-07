@@ -258,7 +258,7 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
         self.assertEqual(result.returncode, 1)
         self.assertEqual(sorted(f['code'] for f in findings if f['path'] == 'src/Semantic.tsx'), ['PDS004', 'PDS005'])
 
-    def test_upstream_snapshot_retains_original_71_visual_warnings(self):
+    def test_upstream_snapshot_retains_visual_warnings_including_cabinet_props(self):
         result = subprocess.run([sys.executable, str(VENDOR), str(REPO / 'apps/web'),
                                  '--format', 'json',
                                  '--allow-token-file', 'src/home/forum-tokens.css',
@@ -267,7 +267,9 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         findings = json.loads(result.stdout)
-        self.assertEqual(len(findings), 71)
+        # Cabinet adds two valid Primer Stack gap props; the pinned upstream
+        # scanner still warns, while our narrow semantic binding gate accepts them.
+        self.assertEqual(len(findings), 73)
         self.assertTrue(all(f['code'] == 'PDS007' and f['severity'] == 'warning' for f in findings))
 
     def test_default_target_independent_of_working_directory(self):
