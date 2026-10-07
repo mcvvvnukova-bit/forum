@@ -20,8 +20,8 @@ export function publicPageUrl(): string {
   return publicAuthBackground() ?? location.pathname + location.search + location.hash
 }
 
-export function openPublicAuth(mode: 'login' | 'register') {
+export function openPublicAuth(mode: 'login' | 'register', opener: HTMLElement | null = null) {
   const background = publicPageUrl()
   history.pushState({...history.state, publicAuth:true, publicAuthBackground:background}, '', '/'+mode)
-  window.dispatchEvent(new Event(publicNavigationEvent))
+  window.dispatchEvent(new CustomEvent(publicNavigationEvent, {detail:{opener}}))
 }

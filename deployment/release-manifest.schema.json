@@ -1055,7 +1055,8 @@
               "const": "/login"
             },
             "VITE_START_URL": {
-              "const": "/register"
+              "description": "Login is the current entry; register is retained for historical build receipts.",
+              "enum": ["/login", "/register"]
             }
           }
         }

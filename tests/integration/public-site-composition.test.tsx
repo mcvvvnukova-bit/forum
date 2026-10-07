@@ -53,6 +53,35 @@ beforeEach(() => {
 afterEach(() => {vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs()})
 
 describe('actual audience + public authentication composition', () => {
+  it.each([
+    ['/customers/', 'Разместить заказ', 0], ['/customers/', 'Разместить заказ', 1],
+    ['/suppliers/', 'Найти заказы', 0], ['/suppliers/', 'Найти заказы', 1],
+    ...[0,1,2,3].map(index => ['/suppliers/', 'Приступить к работе', index] as const),
+    ['/work/', 'Найти работу', 0], ['/work/', 'Найти работу', 1],
+    ['/work/', 'Выбрать заказы', 0], ['/work/', 'Выбрать вакансии', 0],
+  ] as const)('opens the shared login from %s: %s #%s and restores its opener', async (path, label, index) => {
+    const background=path+'?campaign=fixture#main'
+    history.replaceState({foreign:'retained'}, '', background)
+    sessionStorage.setItem('forum.public.intent', JSON.stringify({audience:'supplier', direction:'goods'}))
+    sessionStorage.setItem('forum.customer.intent', 'obsolete')
+    mount(); await settle(0)
+    const heading=screen.getByRole('heading', {level:1})
+    const opener=screen.getAllByRole('button', {name:label})[index]
+    opener.focus(); fireEvent.click(opener)
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    const dialog=screen.getByRole('dialog', {name:'Войти в аккаунт'})
+    expect(location.pathname).toBe('/login')
+    expect(history.state.publicAuthBackground).toBe(background)
+    expect(sessionStorage.getItem('forum.public.intent')).toBeNull()
+    expect(sessionStorage.getItem('forum.customer.intent')).toBeNull()
+    await settle(1)
+    expect(within(dialog).getByRole('button', {name:'Войти по Сбер ID'})).toBeEnabled()
+    fireEvent.click(within(dialog).getByRole('button', {name:'Закрыть окно'}))
+    await waitFor(() => expect(location.pathname+location.search+location.hash).toBe(background))
+    expect(screen.getByRole('heading', {level:1})).toBe(heading)
+    await waitFor(() => expect(opener).toHaveFocus())
+    expect(navigate).not.toHaveBeenCalled()
+  })
   it('retains the customer DOM, title, focus and scroll when both pending session checks return 401, including Close, Back and Forward', async () => {
     mount()
     const heading=customerHeading()
@@ -240,6 +269,14 @@ describe('actual homepage + public authentication composition', () => {
     vi.stubEnv('VITE_FORUM_SESSION', 'true')
     history.replaceState({foreign:{retained:42}}, '', background)
   })
+  it('opens login from Start, with the homepage retained and registration offered inside the form', async () => {
+    mountHome(); const heading=homeHeading()
+    fireEvent.click(screen.getByRole('link', {name:'Начать работу'}))
+    expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
+    expect(location.pathname).toBe('/login')
+    expect(screen.getByRole('link', {name:'Зарегистрироваться'})).toHaveAttribute('href','/register')
+    retainedHome(heading)
+  })
   it.each([
     ['login', 'Close'], ['login', 'Back'], ['register', 'Close'], ['register', 'Back'],
   ])('retains the homepage through pending successful session, %s modal, %s and Forward', async (mode, action) => {
@@ -248,6 +285,8 @@ describe('actual homepage + public authentication composition', () => {
     if (mode==='login') await openLogin()
     else {
       fireEvent.click(screen.getByRole('link', {name:'Начать работу'}))
+      expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('link', {name:'Зарегистрироваться'}))
       await screen.findByRole('dialog', {name:'Создайте аккаунт'})
     }
     expect(location.pathname).toBe('/'+mode)
@@ -255,7 +294,7 @@ describe('actual homepage + public authentication composition', () => {
     await settle(0,200)
     retainedHome(heading)
     // The independent auth session stays guest, so provider controls remain testable.
-    await settle(1)
+    await settle(requests.length-1)
     expect(screen.getByRole('button', {name:mode==='login'?'Войти по Сбер ID':'Зарегистрироваться по Сбер ID'})).toBeEnabled()
     if (action==='Close') {
       fireEvent.click(screen.getByRole('button', {name:'Закрыть окно'}))
@@ -267,7 +306,7 @@ describe('actual homepage + public authentication composition', () => {
     await traverse('forward', '/'+mode)
     retainedHome(heading)
     expect(screen.getByRole('dialog', {name:mode==='login'?'Войти в аккаунт':'Создайте аккаунт'})).toBeInTheDocument()
-    await settle(2)
+    await settle(requests.length-1)
     await traverse('back', '/')
     expect(homeHeading()).toBe(heading)
     expect(location.pathname+location.search+location.hash).toBe(background)

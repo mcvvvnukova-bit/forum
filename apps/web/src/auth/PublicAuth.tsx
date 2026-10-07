@@ -6,7 +6,7 @@ import {useSharedSession} from '../SessionProvider'
 import {checkSession} from './session'
 import type {SessionState} from './session'
 import sberMark from './sber-mark.svg'
-import {openPublicAuth, publicAuthBackground} from '../../../../packages/public-navigation'
+import {openPublicAuth, publicAuthBackground, publicNavigationEvent} from '../../../../packages/public-navigation'
 
 type Mode = 'login' | 'register'
 type View = {mode: Mode; modal: boolean} | null
@@ -86,10 +86,15 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
       const next = linkMode(anchor)
       if (!next) return
       event.preventDefault(); event.stopPropagation()
+      openPublicAuth(next, anchor)
+    }
+    const onNavigation = (event: Event) => {
+      const next = modeFromPath()
+      if (!next || publicAuthBackground() === null) return
       clearLegacyIntent()
-      returnFocusRef.current = anchor
+      const opener: unknown = event instanceof CustomEvent ? event.detail?.opener : null
+      if (opener instanceof HTMLElement) returnFocusRef.current = opener
       setError(null); navigating.current=false; setRedirecting(false)
-      openPublicAuth(next)
       setView({mode:next, modal:true})
     }
     let focusTimer: number | undefined
@@ -110,7 +115,8 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
     observer.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['href']})
     document.addEventListener('click', onClick, true)
     window.addEventListener('popstate', onPop)
-    return () => {window.clearTimeout(focusTimer); observer.disconnect(); document.removeEventListener('click', onClick, true); window.removeEventListener('popstate', onPop)}
+    window.addEventListener(publicNavigationEvent, onNavigation)
+    return () => {window.clearTimeout(focusTimer); observer.disconnect(); document.removeEventListener('click', onClick, true); window.removeEventListener('popstate', onPop); window.removeEventListener(publicNavigationEvent, onNavigation)}
   }, [])
   useEffect(() => {
     if (!mode || shared) return

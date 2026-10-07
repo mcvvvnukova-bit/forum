@@ -38,8 +38,8 @@ describe('PUB.01.01.01', () => {
 
   it('sends start and sign-in to the same auth screen, and maps the three audiences', () => {
     renderPage()
-    expect(screen.getByRole('link', {name: 'Начать работу'})).toHaveAttribute('href', '/authorization/')
-    expect(screen.getByRole('link', {name: 'Войти'})).toHaveAttribute('href', '/authorization/')
+    expect(screen.getByRole('link', {name: 'Начать работу'})).toHaveAttribute('href', '/login')
+    expect(screen.getByRole('link', {name: 'Войти'})).toHaveAttribute('href', '/login')
     expect(screen.getByRole('link', {name: 'Я заказчик'})).toHaveAttribute('href', '/customers/')
     expect(screen.getByRole('link', {name: 'Я подрядчик'})).toHaveAttribute('href', '/suppliers/')
     expect(screen.getByRole('link', {name: 'Я ищу работу'})).toHaveAttribute('href', '/work/')

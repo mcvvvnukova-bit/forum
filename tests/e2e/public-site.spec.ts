@@ -12,19 +12,19 @@ for(const width of [320,390,1440]){
   }
   expect(errors).toEqual([])
  })
- for(const mode of ['login','register']){
-  test(`built held 200 ${mode} history and focus at ${width}`,async({page})=>{
+ for(const entry of ['Войти','Начать работу']){
+  test(`built held 200 ${entry} history and focus at ${width}`,async({page})=>{
    await page.setViewportSize({width,height:1000})
    let release!:()=>void;const held=new Promise<void>(resolve=>{release=resolve});let requests=0
    await page.route('**/api/auth/session',async route=>{requests++;await held;await route.fulfill({status:200,json:{user:{id:'synthetic',displayName:'Synthetic'}}})})
    const background='/?campaign=built#rules'
    await page.goto(background)
    await page.locator('h1').evaluate(node=>node.setAttribute('data-original-home','yes'))
-   const opener=mode==='login'?page.locator('.site-header').getByRole('link',{name:'Войти',exact:true}):page.getByRole('link',{name:'Начать работу',exact:true})
+   const opener=entry==='Войти'?page.locator('.site-header').getByRole('link',{name:'Войти',exact:true}):page.getByRole('link',{name:'Начать работу',exact:true})
    await opener.click()
-   const other=mode==='login'?'Зарегистрироваться':'Войти'
-   await page.getByRole('dialog').getByRole('link',{name:other,exact:true}).click()
-   await page.getByRole('dialog').getByRole('link',{name:mode==='login'?'Войти':'Зарегистрироваться',exact:true}).click()
+   await expect(page.getByRole('dialog',{name:'Войти в аккаунт',exact:true})).toBeVisible()
+   await page.getByRole('dialog').getByRole('link',{name:'Зарегистрироваться',exact:true}).click()
+   await page.getByRole('dialog').getByRole('link',{name:'Войти',exact:true}).click()
    release()
    await expect(page.getByRole('dialog').getByText('Вы уже вошли в аккаунт')).toBeVisible()
    await expect(page.locator('.site-header')).toContainText('В кабинет')
@@ -43,6 +43,30 @@ for(const width of [320,390,1440]){
    await page.getByRole('button',{name:'Закрыть окно'}).click()
    await expect.poll(()=>page.evaluate(()=>document.activeElement instanceof HTMLElement && document.activeElement!==document.body)).toBe(true)
   })
+ test(`built entry CTAs open the shared login at ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:1000})
+  await page.route('**/api/auth/session',route=>route.fulfill({status:401,body:''}))
+  for(const [path,label,count] of [
+   ['/','Начать работу',1],['/customers/','Разместить заказ',2],
+   ['/suppliers/','Найти заказы',2],['/suppliers/','Приступить к работе',4],
+   ['/work/','Найти работу',2],['/work/','Выбрать заказы',1],['/work/','Выбрать вакансии',1],
+  ] as const){
+   await page.goto(path)
+   const openers=page.getByRole(path==='/'?'link':'button',{name:label,exact:true})
+   await expect(openers).toHaveCount(count)
+   for(let index=0;index<count;index++){
+    const opener=openers.nth(index)
+    await opener.click()
+    await expect(page.getByRole('dialog',{name:'Войти в аккаунт',exact:true})).toBeVisible()
+    await expect(page.getByRole('dialog')).toHaveCount(1)
+    await expect(page).toHaveURL(/\/login$/)
+    await expect(page.getByRole('button',{name:'Войти по Сбер ID',exact:true})).toBeEnabled()
+    await page.getByRole('button',{name:'Закрыть окно',exact:true}).click()
+    await expect(page).toHaveURL(new RegExp(path.replaceAll('/','\\/')+'$'))
+    await expect(opener).toBeFocused()
+   }
+  }
+ })
  }
 }
 for(const status of [401,500])test(`built guest and unknown ${status}`,async({page})=>{

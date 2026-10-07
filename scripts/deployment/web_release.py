@@ -68,7 +68,7 @@ def validate_artifact(artifact, source_sha, environment):
     if {name for name in files if name.endswith('.html')} != pages:
         raise ValueError('Unexpected page ownership')
     if environment == 'dev':
-        if manifest['config'] != {'VITE_FORUM_SESSION':'true','VITE_LOGIN_URL':'/login','VITE_START_URL':'/register'}:
+        if manifest['config'] != {'VITE_FORUM_SESSION':'true','VITE_LOGIN_URL':'/login','VITE_START_URL':'/login'}:
             raise ValueError('Dev configuration mismatch')
         for name in files:
             if name not in pages and not name.startswith(('web-assets/', 'web-media/')):
