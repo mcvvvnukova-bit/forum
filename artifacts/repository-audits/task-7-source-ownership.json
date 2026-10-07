@@ -8,7 +8,7 @@
       "previousSha256": "350d5d9d83ed93464132e9ea708d30060e415bd9bdb6e446e6b18f589a4d4e87",
       "previousMode": "100644",
       "candidatePath": ".github/workflows/quality.yml",
-      "candidateSha256": "b1ec532d20a035a2ef2e1fd16cd5b418a61dd0d6b57f6826cff0c20494c9657c",
+      "candidateSha256": "cba602d7fa7ed4ec896861ce677d5b0087a58a010ba43cdb3e851ffa5f0c48c3",
       "candidateMode": "100644"
     },
     {
@@ -240,7 +240,7 @@
       "previousSha256": "666cc69825bace2808c00f04c4f1a62916d5732d4f6a9c76b06cf7480fbc8316",
       "previousMode": "100644",
       "candidatePath": "scripts/deployment/build-web-release.mjs",
-      "candidateSha256": "8da883961461dd1adbfd4a6244dfe0da095ed3899c13e50d757aa7182f48a487",
+      "candidateSha256": "045b17b3d7635565cadee0f296da1a86a81f60f19838eee0e15ef01445988c73",
       "candidateMode": "100644"
     },
     {
@@ -448,7 +448,7 @@
       "previousSha256": "a9fde257ddd120805c4f039a644e0a3989d0666e8c89f324ca2a9bee1b80cb70",
       "previousMode": "100644",
       "candidatePath": "apps/web/vite.config.ts",
-      "candidateSha256": "165edb303c3099dab0dc861202fb784a0b88e5ec027c66b7530c1880c1bd5919",
+      "candidateSha256": "f18c4eac3eef149a4efdfcb4ad0c3dd88037df17bf246a287d0a5c2ffb6a97a8",
       "candidateMode": "100644"
     },
     {
@@ -752,7 +752,7 @@
       "previousSha256": "b3e2999a7b46d9193024ad760da62a311d57b15c859a83c59ee5f906c9e0a2a8",
       "previousMode": "100644",
       "candidatePath": "apps/web/vite.config.ts",
-      "candidateSha256": "165edb303c3099dab0dc861202fb784a0b88e5ec027c66b7530c1880c1bd5919",
+      "candidateSha256": "f18c4eac3eef149a4efdfcb4ad0c3dd88037df17bf246a287d0a5c2ffb6a97a8",
       "candidateMode": "100644"
     },
     {
@@ -920,7 +920,7 @@
       "previousSha256": "a1476220357da29cbc10fc491f1ae6ed83d0a7aa56fa4f47ffe9866b4ac55410",
       "previousMode": "100644",
       "candidatePath": "apps/web/vite.config.ts",
-      "candidateSha256": "165edb303c3099dab0dc861202fb784a0b88e5ec027c66b7530c1880c1bd5919",
+      "candidateSha256": "f18c4eac3eef149a4efdfcb4ad0c3dd88037df17bf246a287d0a5c2ffb6a97a8",
       "candidateMode": "100644"
     },
     {
@@ -936,7 +936,7 @@
       "previousSha256": "7d7d6243779436725c8cb29cd226bd105c7e964b6ea5b5b610129f9728fd1412",
       "previousMode": "100644",
       "candidatePath": "deployment/release.md",
-      "candidateSha256": "69e4a8e279dbdad1249f02ed252fc22a1a0c5f2000b731f155e30e6600b7723d",
+      "candidateSha256": "1cecca20132ecd0544d87f63456771e6a904af37c3006bfec965ef1b03a7ddbc",
       "candidateMode": "100644"
     },
     {
@@ -1435,15 +1435,23 @@
     },
     {
       "path": "apps/web/vite.config.ts",
-      "sha256": "165edb303c3099dab0dc861202fb784a0b88e5ec027c66b7530c1880c1bd5919"
+      "sha256": "f18c4eac3eef149a4efdfcb4ad0c3dd88037df17bf246a287d0a5c2ffb6a97a8"
     },
     {
       "path": "deployment/web/build-config.json",
       "sha256": "46235eb100a8abda28005269aa1086b50be7cfe4701ff75b200d177d67ef946a"
     },
     {
+      "path": "deployment/web/build-global.npmrc",
+      "sha256": "da68987e92d9992f725b9cf09affd4ae1421688e4659e4b40fd0d47399af4530"
+    },
+    {
+      "path": "deployment/web/build-user.npmrc",
+      "sha256": "94c568ca48a8e5af8bb4f4a121e84c43c7daba67d2fe8f745f2bda61df2b3869"
+    },
+    {
       "path": "scripts/deployment/build-web-release.mjs",
-      "sha256": "8da883961461dd1adbfd4a6244dfe0da095ed3899c13e50d757aa7182f48a487"
+      "sha256": "045b17b3d7635565cadee0f296da1a86a81f60f19838eee0e15ef01445988c73"
     },
     {
       "path": "scripts/deployment/web_release.py",
@@ -1452,6 +1460,10 @@
     {
       "path": "scripts/verification/check-web-release.sh",
       "sha256": "f949865f31c63961aef798b9a584f69ccfbf59854bcc58d8d8d88e394bd7f383"
+    },
+    {
+      "path": "scripts/verification/web-build-inputs.test.mjs",
+      "sha256": "23d7097d46e873f97910eef12ec4ed5a31f3f086e2f21caef51bf1dd177b3765"
     },
     {
       "path": "tests/e2e/public-site.config.ts",

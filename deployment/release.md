@@ -35,7 +35,18 @@ FORUM_WEB_SITE=/tmp/forum-web-dev/site npx --no-install playwright test --config
 
 Use a fresh output directory. Builder rejects a dirty/mismatched checkout,
 undeclared artifact files and unexpected routes. It disables Vite env-file loading
-and removes inherited VITE values before applying the tracked config allowlist.
+and uses an explicit child-process environment. Supported build-affecting values
+are fixed `NODE_ENV=production`, `TZ=UTC`, `LANG=C`, `LC_ALL=C`, the tracked
+`deployment/web/build-config.json` map (`VITE_FORUM_SESSION`, `VITE_LOGIN_URL`,
+`VITE_START_URL` for dev; none for production), and the owned empty
+`build-user.npmrc` / `build-global.npmrc`. These files and the builder are source
+fingerprint inputs. Only launcher/filesystem context `PATH`, `HOME`, `TMPDIR`,
+`TMP`, `TEMP`, `SystemRoot`, `COMSPEC`, `PATHEXT` is inherited; it must resolve the
+locked toolchain whose versions and installed payload hashes enter the manifest.
+All other ambient variables, including `NODE_OPTIONS`, `BABEL_ENV`, `VITE_*`
+and `npm_config_*`, are excluded. Local `npm run dev --workspace @astforum/web`
+serves the owned `public/` directory; release builds disable public copying and
+emit only the content-addressed media produced by `immutableMedia`.
 Manifest includes source/tree/input SHA, lock and installed dependency payload
 fingerprints, Node/npm/Vite versions, configuration and every output file hash.
 Dev media namespaces are content-addressed before Vite hashes referencing chunks.

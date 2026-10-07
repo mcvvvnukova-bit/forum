@@ -276,6 +276,8 @@ jobs:
         with:
           node-version: 24.18.1
       - run: npm ci
+      - name: Build environment isolation and actual Vite media serving
+        run: node --test scripts/verification/web-build-inputs.test.mjs
       - name: Build exact immutable dev and separately owned production
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
