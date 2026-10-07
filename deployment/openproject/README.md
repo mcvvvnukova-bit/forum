@@ -139,3 +139,5 @@ ssh forum-prod 'sudo docker compose -f /opt/openproject/compose.yaml ps -a'
 Успешная публикация: DNS возвращает `84.47.165.130`, TLS проходит проверку, `/login` отвечает HTTP 200, контейнер `web` имеет статус `healthy`.
 
 Основа конфигурации: [официальная установка Docker Compose](https://www.openproject.org/docs/installation-and-operations/installation/docker-compose/).
+
+The current backup source is `scripts/maintenance/openproject/backup.sh`. Install that source explicitly at the documented `/opt/openproject/backup.sh` runtime location; repository relocation does not change the server command above. Compose, Caddy configuration and Ruby patches remain here.

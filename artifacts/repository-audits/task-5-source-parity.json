@@ -1,0 +1,3094 @@
+{
+  "schemaVersion": 1,
+  "baseSha": "f7dda0186cb65316b593bf9ccbe14a83b97f4ba2",
+  "semantics": "Source path/byte parity only; not deployment or served artifact proof",
+  "files": [
+    {
+      "previousPath": ".github/workflows/quality.yml",
+      "newPath": ".github/workflows/quality.yml",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ba70aa3c42c866f602c5eca101f9b569f4182f269a139b5b69133e8f9c976241",
+      "newSha256": "350d5d9d83ed93464132e9ea708d30060e415bd9bdb6e446e6b18f589a4d4e87",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "README.md",
+      "newPath": "README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7ea8dd3a8f37fdc05c91ea823d4dba558de813698aadfbfaca8270a72329422e",
+      "newSha256": "b28a4d1560f4db99ae2c559b37eddfeeb930179404a141594463e3f3db98f722",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "apps/api/Dockerfile",
+      "newPath": "apps/api/Dockerfile",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "fd078fe1717c80b16c50380dae808d15f12f8b12d059a27b0625f638dccb256f",
+      "newSha256": "d33d1ebc7880b7df20dc57e86d0f0a317ebbffa7bb2c0191812c2899809445d4",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "apps/api/README.md",
+      "newPath": "apps/api/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "34ed691b84f478814b855ab88ed9b34aadffd580637c42a2518fa4158ab0c166",
+      "newSha256": "4bfe427d53729d4c23c18856fc1b6cedc98fd782b11fd397651a1910c468b938",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "apps/api/package-lock.json",
+      "newPath": "package-lock.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b6220410cfc978fe58303913a64ee72ccaa8582f8e74604427f91409c10ae480",
+      "newSha256": "093fc7c395873e5504525597728732de1f6f480882fda908e70353173f5f2760",
+      "unchanged": false,
+      "classification": "lock-consolidation"
+    },
+    {
+      "previousPath": "apps/api/package.json",
+      "newPath": "apps/api/package.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2b2419f17249cebf753714a59212315eb4c87accef444148f066941da27849f1",
+      "newSha256": "f9c973a3ea0e7514bb9e769355d5ff3a8bc1444fea3968c474986403f48eba81",
+      "unchanged": false,
+      "classification": "workspace-contract"
+    },
+    {
+      "previousPath": "apps/api/test/browser-smoke.mjs",
+      "newPath": "apps/api/test/browser-smoke.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c7c9d8fbebbb466fe41ccc867f7df3414fc299ad3a4adde1b56e176fbff3f81d",
+      "newSha256": "f8f486e185e5de44f7f277940d7d9d9a864c345b6b0b11a7e97374564a2329c3",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/README.md",
+      "newPath": "deployment/mail/templates/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "61a18e33b8ec0bc12cf36bcb993909505c7835e431f0d487cd0d53ba7ac48697",
+      "newSha256": "315457910c280991d124a7e1ebcc0f8196184d951c6b08db2811b7acab5d0a5a",
+      "unchanged": false,
+      "classification": "local-resource-reference-fix"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/email.html",
+      "newPath": "deployment/mail/templates/email.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "4397316e7b1717c47988f4427959814b42de298031ffa42805a758ac6136867e",
+      "newSha256": "beb2ba858f9fd27e136da48419809d7f4e3820d87f895c87c37b48dd142ba6b8",
+      "unchanged": false,
+      "classification": "local-resource-reference-fix"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/index.html",
+      "newPath": "deployment/mail/templates/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7e4d420b55be281473739b64b0e251670fa181f8f9b83785b17525094e5322db",
+      "newSha256": "7e4d420b55be281473739b64b0e251670fa181f8f9b83785b17525094e5322db",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/remaining/cancelled.html",
+      "newPath": "deployment/mail/templates/remaining/cancelled.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "58d7e46003d2358969e54b543b95a12d1140443d7dacaa90f87cb02a1a982d50",
+      "newSha256": "673ad22af000ac5c83cb2d70bf1c03252f6dc4ed192335cfa3145d58ecec9f26",
+      "unchanged": false,
+      "classification": "local-resource-reference-fix"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/remaining/confirmed.html",
+      "newPath": "deployment/mail/templates/remaining/confirmed.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "4ec948816658cb5c6dc9e224ff239a43d32983122f601c8cb6d38eea6ef3cbdf",
+      "newSha256": "80505582030841a270d317334f84afd16c095a9b37d812844ddcf90ab01815fb",
+      "unchanged": false,
+      "classification": "local-resource-reference-fix"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/remaining/day.html",
+      "newPath": "deployment/mail/templates/remaining/day.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "cacd44d8c4928720f1e45aae8d47fe5902d713f8a335847408c806337fdf2197",
+      "newSha256": "9306a5b71bf73447cad61f5b38023db9d51c18e977463099f9c2c9f65104e6c6",
+      "unchanged": false,
+      "classification": "local-resource-reference-fix"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/remaining/fifteen.html",
+      "newPath": "deployment/mail/templates/remaining/fifteen.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "499cad15bf430aa59d40cb0be7a7e3a38a80c0b297daa898a367651242220b87",
+      "newSha256": "700115656cd7f625ec460ef680f306fae8351c73a8468963298a4d220a3e7447",
+      "unchanged": false,
+      "classification": "local-resource-reference-fix"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/remaining/hour.html",
+      "newPath": "deployment/mail/templates/remaining/hour.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "964357df2a6cf4f4eb6cf97f2308c839af1dcacdf6b26c9968c50cf5c440ded8",
+      "newSha256": "910c3eed925ebcce06eed2ca0e21279c844bc4229f04e97cd1244dd42cef0360",
+      "unchanged": false,
+      "classification": "local-resource-reference-fix"
+    },
+    {
+      "previousPath": "artifacts/email-previews/2026-09-29-request-received/remaining/rejected.html",
+      "newPath": "deployment/mail/templates/remaining/rejected.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "e860ddfd1a248fdee990adb23b0047827e82bfc7f98df2c6a8af44f8fec1cb5b",
+      "newSha256": "278633fc6dc9a500471ceb44ade5ddb223ee7beab43f01108ea4158a97229372",
+      "unchanged": false,
+      "classification": "local-resource-reference-fix"
+    },
+    {
+      "previousPath": "artifacts/repository-audits/accepted-source-matrix.json",
+      "newPath": "artifacts/repository-audits/accepted-source-matrix.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a138e9747ee12dd3063f520291b4e01b55c9d79471df3d5fdf0a09f935bfa461",
+      "newSha256": "e7b90f4243a4a9bc886c9527c9902aedf85e534661d277dcb4fb274f17dd1b93",
+      "unchanged": false,
+      "classification": "provenance-reference-update"
+    },
+    {
+      "previousPath": "artifacts/repository-audits/accepted-source-matrix.md",
+      "newPath": "artifacts/repository-audits/accepted-source-matrix.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "e1c72a57040ab1d0eb9e080641ee1bb68cc5945469e861dd1c8a53b11ac29357",
+      "newSha256": "fdd0c87ae1e73076decd596338eb6033c39a61f9a951175318e03e7a49a59b98",
+      "unchanged": false,
+      "classification": "provenance-reference-update"
+    },
+    {
+      "previousPath": "deployment/astforum-static/favicon.png",
+      "newPath": "apps/web/production-static/favicon.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+      "newSha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/astforum-static/fonts/golos-text-cyrillic.woff2",
+      "newPath": "apps/web/production-static/fonts/golos-text-cyrillic.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+      "newSha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/astforum-static/fonts/golos-text-latin.woff2",
+      "newPath": "apps/web/production-static/fonts/golos-text-latin.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+      "newSha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/astforum-static/fonts/unbounded-cyrillic.woff2",
+      "newPath": "apps/web/production-static/fonts/unbounded-cyrillic.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+      "newSha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/astforum-static/fonts/unbounded-latin.woff2",
+      "newPath": "apps/web/production-static/fonts/unbounded-latin.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+      "newSha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/astforum-static/forum-hard-hat.png",
+      "newPath": "apps/web/production-static/forum-hard-hat.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+      "newSha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/astforum-static/index.html",
+      "newPath": "apps/web/production-static/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+      "newSha256": "afa3e70bb95ff75707972fdcdb17107ffa10231e945d581d2d77a8c0435ca93a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/.gitignore",
+      "newPath": "apps/audience-pages/.gitignore",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "9e7a1a4de263fb27af6eb462399c31d96f7ec7a3d1d81a76671f8086422cb69b",
+      "newSha256": "9e7a1a4de263fb27af6eb462399c31d96f7ec7a3d1d81a76671f8086422cb69b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/README.md",
+      "newPath": "apps/audience-pages/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2d89eb5d575ee4ef12d742a200b1b587cd5e0990ad30f76ca658d8dac877405c",
+      "newSha256": "11b7454061230864f1e4307b97283a49962529431a43aab189a033d67c79f0cd",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/audience-pages/eslint.config.js",
+      "newPath": "apps/audience-pages/eslint.config.js",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ec905eb8e76cda2db42ebbad9d13deb67e3b611605aaee5a264ceccb98e587f8",
+      "newSha256": "ec905eb8e76cda2db42ebbad9d13deb67e3b611605aaee5a264ceccb98e587f8",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/index.html",
+      "newPath": "apps/audience-pages/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3b1f1ba64eab28cd3f4997fcefb95a9dc9c7b808a4822286f937d4ba1579e8e4",
+      "newSha256": "3b1f1ba64eab28cd3f4997fcefb95a9dc9c7b808a4822286f937d4ba1579e8e4",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/package-lock.json",
+      "newPath": "package-lock.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "161c4a7ebc2796343195de61a6f2f3622ea3c05c79933a1167fab52ea1deeeab",
+      "newSha256": "093fc7c395873e5504525597728732de1f6f480882fda908e70353173f5f2760",
+      "unchanged": false,
+      "classification": "lock-consolidation"
+    },
+    {
+      "previousPath": "deployment/audience-pages/package.json",
+      "newPath": "apps/audience-pages/package.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "30f19cba97cfaef8d0026b3bf6d910ad6d2a492f84362c4f6f570315bb228512",
+      "newSha256": "350ed3afa693acbdbc77dbcce00c0ab978eb2c6f6de9948c164b7e07c8b36306",
+      "unchanged": false,
+      "classification": "workspace-contract"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/audience-customer.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/audience-customer.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+      "newSha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/audience-specialist-left-mirrored.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/audience-specialist-left-mirrored.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+      "newSha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/audience-supplier.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/audience-supplier.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+      "newSha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/brand-logo-horizontal-color.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/brand-logo-horizontal-color.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "newSha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/forum-logo-square.svg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/forum-logo-square.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "newSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/hero-illustration-process-interface.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/hero-illustration-process-interface.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "newSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-bin-leasing.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-bin-leasing.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+      "newSha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-bk-resource.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-bk-resource.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+      "newSha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-geoprom.webp",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-geoprom.webp",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+      "newSha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-polycorr.svg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-polycorr.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c",
+      "newSha256": "155de93c81f7aa15de0738a84517e2703ef535c34afa42885ec277157c7ebd0c",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-profmaster.svg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-profmaster.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b",
+      "newSha256": "efc9b202367a6801ef8bc0fdec3918541f23da410cd39084fbbbf5eb2e29e49b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-rentaero.svg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-rentaero.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+      "newSha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-sfera-snab.svg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-sfera-snab.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+      "newSha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-spectransservice.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-spectransservice.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+      "newSha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-tahoban.svg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-tahoban.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b",
+      "newSha256": "6fe59fdfc71f5b7765c0fcf856ab0a7135d146bd9599bdfc2fbf0c10ddeed75b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-tool-tech.jpg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-tool-tech.jpg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+      "newSha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-vostok-service.svg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-vostok-service.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74",
+      "newSha256": "24d23414c2575f720b90e55b47657eb75a8ee3ed14e1ee53ff0e9c5101d4bb74",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-vseinstrumenti.svg",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-vseinstrumenti.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4",
+      "newSha256": "2f0c0fdeffdb67240cfee422d23d14fea241a10492022c260e08b0030494eac4",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/logo-color-zelenaya-doroga.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/logo-color-zelenaya-doroga.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+      "newSha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/work-order-interface-v1.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/work-order-interface-v1.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ea14c38f6c25426bea2d04f38d4a1063d0ea4c6d1dcd54a26f9ed9c6f1ff7e66",
+      "newSha256": "ea14c38f6c25426bea2d04f38d4a1063d0ea4c6d1dcd54a26f9ed9c6f1ff7e66",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/media/work-vacancy-interface-v1.png",
+      "newPath": "apps/audience-pages/public/audience-assets/media/work-vacancy-interface-v1.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "8eb4ebdd2ed36483abbc264f6b2072bcf1a18efc296ead36cf74a56f767e7f5a",
+      "newSha256": "8eb4ebdd2ed36483abbc264f6b2072bcf1a18efc296ead36cf74a56f767e7f5a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/public/audience-assets/resume.js",
+      "newPath": "apps/audience-pages/public/audience-assets/resume.js",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "59776923167ea23035c656a5ac6faa8991f838348aa429de32083f27da4b47ee",
+      "newSha256": "59776923167ea23035c656a5ac6faa8991f838348aa429de32083f27da4b47ee",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/scripts/deploy.py",
+      "newPath": "scripts/deployment/audience-pages/deploy.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "06d99f316af98284e43e3ce570db2228612f98d4fb528199272bf9d2becee77e",
+      "newSha256": "06d99f316af98284e43e3ce570db2228612f98d4fb528199272bf9d2becee77e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/scripts/package-site.mjs",
+      "newPath": "apps/audience-pages/scripts/package-site.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "666cc69825bace2808c00f04c4f1a62916d5732d4f6a9c76b06cf7480fbc8316",
+      "newSha256": "666cc69825bace2808c00f04c4f1a62916d5732d4f6a9c76b06cf7480fbc8316",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/scripts/test_deploy.py",
+      "newPath": "scripts/deployment/audience-pages/test_deploy.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3760310b66b5d1d614151bc2947e1646f8b22ee57520cec4e959c88a81dc85a6",
+      "newSha256": "3760310b66b5d1d614151bc2947e1646f8b22ee57520cec4e959c88a81dc85a6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/App.tsx",
+      "newPath": "apps/audience-pages/src/App.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "9af43440a191ffa78460388fabfca4ba32f8fcaff130cd6c3ec8a192a7857d23",
+      "newSha256": "fbcd3573a6fa2c078912dd7d9d987db37306359907ef6338849adf48d8d7b477",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/AudiencePage.tsx",
+      "newPath": "apps/audience-pages/src/AudiencePage.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "33da7c787a84ba348efd1464f2c7daff3dd81568a10bd1c98898e43fd9a89768",
+      "newSha256": "33da7c787a84ba348efd1464f2c7daff3dd81568a10bd1c98898e43fd9a89768",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/DemoDialog.tsx",
+      "newPath": "apps/audience-pages/src/DemoDialog.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "02c4958ed7ba9e8314b49a351c12aeafa6fcd3cf999c3339c7c120cd91a89b7a",
+      "newSha256": "02c4958ed7ba9e8314b49a351c12aeafa6fcd3cf999c3339c7c120cd91a89b7a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/HomePage.tsx",
+      "newPath": "apps/audience-pages/src/HomePage.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "8af3ecc43f7b4544b8cc302c4950f2378c3b7c305fb1dfa2ff02fc494601f9e8",
+      "newSha256": "8af3ecc43f7b4544b8cc302c4950f2378c3b7c305fb1dfa2ff02fc494601f9e8",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/PageSections.tsx",
+      "newPath": "apps/audience-pages/src/PageSections.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "00f62f1d843a3b1bc088cd31a159ab61dd52ff923f51d9c9797d37132aa5828f",
+      "newSha256": "00f62f1d843a3b1bc088cd31a159ab61dd52ff923f51d9c9797d37132aa5828f",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/Participation.tsx",
+      "newPath": "apps/audience-pages/src/Participation.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1c56a916c9fd31a2ffd5382f7c7661239f11efebf03761ed1cc6a4328cae399e",
+      "newSha256": "1c56a916c9fd31a2ffd5382f7c7661239f11efebf03761ed1cc6a4328cae399e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/SharedLayout.tsx",
+      "newPath": "apps/audience-pages/src/SharedLayout.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2f38e56b2b3f65309e8878f70d0f077b526d72c8e4edddfb6aff85edd3cccc8d",
+      "newSha256": "2f38e56b2b3f65309e8878f70d0f077b526d72c8e4edddfb6aff85edd3cccc8d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/StandardSections.tsx",
+      "newPath": "apps/audience-pages/src/StandardSections.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "08c671dd8820a7c5f05094319c3a0958515cb71cc77809afc4acd4dcd53c0b5f",
+      "newSha256": "08c671dd8820a7c5f05094319c3a0958515cb71cc77809afc4acd4dcd53c0b5f",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/WorkExample.tsx",
+      "newPath": "apps/audience-pages/src/WorkExample.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "0d2b1c35296852a867346c0856e6f70d9fdc1ecceb22ae91132501c272c1466b",
+      "newSha256": "0d2b1c35296852a867346c0856e6f70d9fdc1ecceb22ae91132501c272c1466b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/WorkExamples.tsx",
+      "newPath": "apps/audience-pages/src/WorkExamples.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "bec182cc4581172903a99bd81f82ea5fdabe9d9ef958bf805231b1998ac727e6",
+      "newSha256": "f0f1ccfe3da3b35c31068e93c6380b554e58e74e645f6ccaff364ff9edbfcb2d",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/WorkPage.tsx",
+      "newPath": "apps/audience-pages/src/WorkPage.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "64f4a0e5720ec6132a0955d9526b85c6fa3ecf16597cf04e3f04f72e837a2c66",
+      "newSha256": "64f4a0e5720ec6132a0955d9526b85c6fa3ecf16597cf04e3f04f72e837a2c66",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/audience-content.json",
+      "newPath": "apps/audience-pages/src/audience-content.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "47f2881c6e2f58495311ab671affc19c1fd26d87d21fcef6e4ba3772958d3531",
+      "newSha256": "47f2881c6e2f58495311ab671affc19c1fd26d87d21fcef6e4ba3772958d3531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/audience.test.tsx",
+      "newPath": "apps/audience-pages/src/audience.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7987adb56ba8c3bf42191c27584db56fd19d15ea335f4ae9c3ff514645935eab",
+      "newSha256": "7987adb56ba8c3bf42191c27584db56fd19d15ea335f4ae9c3ff514645935eab",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/config.ts",
+      "newPath": "apps/audience-pages/src/config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "04a7f952c1144b4a458a84d9c27d65d20d89584f061ea1f433d7d3b421b31731",
+      "newSha256": "04a7f952c1144b4a458a84d9c27d65d20d89584f061ea1f433d7d3b421b31731",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/content.ts",
+      "newPath": "apps/audience-pages/src/content.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "0ff064204b5377205daf5c1b5cd9b29dcb00808bbd73d163aad0b56d333249bd",
+      "newSha256": "0ff064204b5377205daf5c1b5cd9b29dcb00808bbd73d163aad0b56d333249bd",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/forum-tokens.css",
+      "newPath": "apps/audience-pages/src/forum-tokens.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ff7d1053147e7f35ce8448fd08036f0e3e45423d1fbb73986713e8b5c4c66f55",
+      "newSha256": "ff7d1053147e7f35ce8448fd08036f0e3e45423d1fbb73986713e8b5c4c66f55",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/intent.test.ts",
+      "newPath": "apps/audience-pages/src/intent.test.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "cfeb6847b5847527859d36547d63dfaad9fd4c5e1bb3d39b404dad979aa73234",
+      "newSha256": "cfeb6847b5847527859d36547d63dfaad9fd4c5e1bb3d39b404dad979aa73234",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/intent.ts",
+      "newPath": "apps/audience-pages/src/intent.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "0927f342ac34481e0f95d28806f38f3965d0b5261005c8a66d6b3a1abc2d3229",
+      "newSha256": "0927f342ac34481e0f95d28806f38f3965d0b5261005c8a66d6b3a1abc2d3229",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/layout.css",
+      "newPath": "apps/audience-pages/src/layout.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "5845c782969970ee0d9be9124a628454130d2d546d9b0305af1ac3642be021b4",
+      "newSha256": "5845c782969970ee0d9be9124a628454130d2d546d9b0305af1ac3642be021b4",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/main.tsx",
+      "newPath": "apps/audience-pages/src/main.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1f0c7e051c8d10f0e49151935990c673ef2c34d5cfb81e18c817895b1358ba39",
+      "newSha256": "1f0c7e051c8d10f0e49151935990c673ef2c34d5cfb81e18c817895b1358ba39",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/resume.test.ts",
+      "newPath": "apps/audience-pages/src/resume.test.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "081ece83a147ff17e88f9e9976afe4c3463384f9d7f0d13ef8554c80eb549660",
+      "newSha256": "081ece83a147ff17e88f9e9976afe4c3463384f9d7f0d13ef8554c80eb549660",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/test-setup.ts",
+      "newPath": "apps/audience-pages/src/test-setup.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "57c440e2838aba15eec29760dcd9698f0fa0ac6848d2e0b6ab9a96fc353a8455",
+      "newSha256": "57c440e2838aba15eec29760dcd9698f0fa0ac6848d2e0b6ab9a96fc353a8455",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/use-session.ts",
+      "newPath": "apps/audience-pages/src/use-session.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f93618c39ba2c8af02b89389c66d9679e1bd1b608f6741ee9a376e2f5de6196f",
+      "newSha256": "f93618c39ba2c8af02b89389c66d9679e1bd1b608f6741ee9a376e2f5de6196f",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/src/vite-env.d.ts",
+      "newPath": "apps/audience-pages/src/vite-env.d.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "newSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/tsconfig.json",
+      "newPath": "apps/audience-pages/tsconfig.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c2ec010a44eff797ebc3f7a037600ed811cfc867b3eb649afd93ed3a7fe484c0",
+      "newSha256": "c2ec010a44eff797ebc3f7a037600ed811cfc867b3eb649afd93ed3a7fe484c0",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/audience-pages/vite.config.ts",
+      "newPath": "apps/audience-pages/vite.config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a63dcf1ba84bafc3b6d15eef1f7842960db5c1c9658c7a86f8ef7911a5c31378",
+      "newSha256": "a9fde257ddd120805c4f039a644e0a3989d0666e8c89f324ca2a9bee1b80cb70",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/README.md",
+      "newPath": "apps/legacy-landing/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7260312fc9802ed0c6844a7b80c8928cab80a7228cf96906a3489cae45431469",
+      "newSha256": "c167fee12f303e5d3e59027e38e34a197eeca4862cf05cc0ea27b20f9c5463c3",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/auth-gateway/forum_dev_auth.py",
+      "newPath": "apps/dev-gateway/forum_dev_auth.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6d45b1ce43fbd8405d58de052dc5e5c5d152d2434351d9baf1629ae97eead1c3",
+      "newSha256": "6d45b1ce43fbd8405d58de052dc5e5c5d152d2434351d9baf1629ae97eead1c3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/customers/index.html",
+      "newPath": "apps/legacy-landing/customers/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "382bd1fccf7c590c1d21aed12be233c79503e7b76f6d8c14cb539921227a45a0",
+      "newSha256": "382bd1fccf7c590c1d21aed12be233c79503e7b76f6d8c14cb539921227a45a0",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/deploy.sh",
+      "newPath": "scripts/deployment/legacy-landing/deploy.sh",
+      "previousMode": "100755",
+      "newMode": "100755",
+      "previousSha256": "56b8d013ea465b590cbfcebeef6e9cb9d701af1d04c9365a855d8de2a5f04fa9",
+      "newSha256": "b87137794c952dbb428b8c8fb31f7f005b5627b296f277faacd4a6fcbbd27412",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/index.html",
+      "newPath": "apps/legacy-landing/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ccf9429c7b1095a7fa3fb3d9623ae6a4a07513666bb79a0b05d9c707b243339f",
+      "newSha256": "ccf9429c7b1095a7fa3fb3d9623ae6a4a07513666bb79a0b05d9c707b243339f",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/landing.html",
+      "newPath": "apps/legacy-landing/landing.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ea8b772fd928610dae563689c81ab92dbbda96ceb3e60be5f19ac07da257aefc",
+      "newSha256": "ea8b772fd928610dae563689c81ab92dbbda96ceb3e60be5f19ac07da257aefc",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/package-lock.json",
+      "newPath": "package-lock.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "5899eba4b6e8c637cd7fd94a1c972b65b34f26c69d840a6fc6ddb4cc774a7e3e",
+      "newSha256": "093fc7c395873e5504525597728732de1f6f480882fda908e70353173f5f2760",
+      "unchanged": false,
+      "classification": "lock-consolidation"
+    },
+    {
+      "previousPath": "deployment/dev-landing/package.json",
+      "newPath": "apps/legacy-landing/package.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b02f58827d6fb3e883c719ad38aa70b811f36814a36e18a453813f89e8a10d12",
+      "newSha256": "6f243f07a7ae1e8853ded29415725d80927ada30b881661d162691f608a1cccc",
+      "unchanged": false,
+      "classification": "workspace-contract"
+    },
+    {
+      "previousPath": "deployment/dev-landing/public/forum-logo-square.svg",
+      "newPath": "apps/legacy-landing/public/forum-logo-square.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "newSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/scripts/check_landing_layout.mjs",
+      "newPath": "tests/e2e/legacy-landing-layout.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "609c2d1a3b83d4011d3cd414d4c1975ed393c0c74acd0df7ed0ddbcb86a2cac7",
+      "newSha256": "807649804c5b34512c4869992de0bce898ded0e84ff5e368925ec27e7e937715",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/scripts/check_origin_login.py",
+      "newPath": "scripts/verification/check_origin_login.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "87486e50115030001db2a17d0fe41b188e4cf99488bcd113a38cd9761adaa4fe",
+      "newSha256": "87486e50115030001db2a17d0fe41b188e4cf99488bcd113a38cd9761adaa4fe",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/scripts/finalize-landing-build.mjs",
+      "newPath": "apps/legacy-landing/scripts/finalize-landing-build.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f3c529fd122c56831789335c4cbdbc3f411d8990e2843d12fa40282287e91e43",
+      "newSha256": "f3c529fd122c56831789335c4cbdbc3f411d8990e2843d12fa40282287e91e43",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/scripts/prepare-runtime.mjs",
+      "newPath": "apps/legacy-landing/scripts/prepare-runtime.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b3c36e169f005b5ee6a87510368f1e5fb01a368e7ebb3cd98014a6ff4b049fce",
+      "newSha256": "b3c36e169f005b5ee6a87510368f1e5fb01a368e7ebb3cd98014a6ff4b049fce",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/AuthScreen.test.tsx",
+      "newPath": "apps/legacy-landing/src/AuthScreen.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "00abfb1caef863463de352cb6d843cb63aefb9547aa6836120595396be413bd6",
+      "newSha256": "00abfb1caef863463de352cb6d843cb63aefb9547aa6836120595396be413bd6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/AuthScreen.tsx",
+      "newPath": "apps/legacy-landing/src/AuthScreen.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "61b6b26b77585c78c64636fe9938cb2a4a3ef967f46d570eaedbba26bbfad834",
+      "newSha256": "61b6b26b77585c78c64636fe9938cb2a4a3ef967f46d570eaedbba26bbfad834",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/auth-screen.css",
+      "newPath": "apps/legacy-landing/src/auth-screen.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "0a9a5b2fcc84df688dc0bef98defb01562fe8024bf3b6fe8629d8443bf6419dc",
+      "newSha256": "0a9a5b2fcc84df688dc0bef98defb01562fe8024bf3b6fe8629d8443bf6419dc",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/customers/CustomerLanding.test.tsx",
+      "newPath": "apps/legacy-landing/src/customers/CustomerLanding.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "d53aac7fe22a8d5f145fad12e227c8d97e5db316244b31ced6ab20c06a565dfc",
+      "newSha256": "d53aac7fe22a8d5f145fad12e227c8d97e5db316244b31ced6ab20c06a565dfc",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/customers/CustomerLanding.tsx",
+      "newPath": "apps/legacy-landing/src/customers/CustomerLanding.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a6c5d05530a1b0530d49de2716e640fee9ba4fc5b73beaf654fa826614753a74",
+      "newSha256": "a6c5d05530a1b0530d49de2716e640fee9ba4fc5b73beaf654fa826614753a74",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/customers/customer-content.ts",
+      "newPath": "apps/legacy-landing/src/customers/customer-content.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "74788b6012605ae08a06d1fa3f3290d1bee06a8cfc066ad5f7501bdff3a668f1",
+      "newSha256": "74788b6012605ae08a06d1fa3f3290d1bee06a8cfc066ad5f7501bdff3a668f1",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/customers/customer-intent.test.ts",
+      "newPath": "apps/legacy-landing/src/customers/customer-intent.test.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "849cf233e57c06d259bb86a757b3d374a85cccbd6fd0ade9c9ded381cdb210dc",
+      "newSha256": "849cf233e57c06d259bb86a757b3d374a85cccbd6fd0ade9c9ded381cdb210dc",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/customers/customer-intent.ts",
+      "newPath": "apps/legacy-landing/src/customers/customer-intent.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "695aae1f530bad083b232c674841f2d11de1078495cea669f6cf60634fb346ce",
+      "newSha256": "695aae1f530bad083b232c674841f2d11de1078495cea669f6cf60634fb346ce",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/customers/customer-screen.css",
+      "newPath": "apps/legacy-landing/src/customers/customer-screen.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "5fbfe2c11e03bc139cb4029f83142155234bc0b700c286c0729a44db9c78adb5",
+      "newSha256": "5fbfe2c11e03bc139cb4029f83142155234bc0b700c286c0729a44db9c78adb5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/customers/main.tsx",
+      "newPath": "apps/legacy-landing/src/customers/main.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "4ab58a9c892d0462842e03d984e869403cd451d9902458809388a4c3d69e0091",
+      "newSha256": "4ab58a9c892d0462842e03d984e869403cd451d9902458809388a4c3d69e0091",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/forum-tokens.css",
+      "newPath": "apps/legacy-landing/src/forum-tokens.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "9ad363edbffd21f513a527204e54a2b09664c8f84b60637cb4feffca8be81edc",
+      "newSha256": "9ad363edbffd21f513a527204e54a2b09664c8f84b60637cb4feffca8be81edc",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/LandingApp.test.tsx",
+      "newPath": "apps/legacy-landing/src/landing/LandingApp.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "8140792675dca56931c23a31dd6cec2688a32111e706e772b9a3b193f0ebe675",
+      "newSha256": "8140792675dca56931c23a31dd6cec2688a32111e706e772b9a3b193f0ebe675",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/LandingApp.tsx",
+      "newPath": "apps/legacy-landing/src/landing/LandingApp.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "cfb68fe9da3bfbc7bc67ca4ff2598e883ce290d2caddf195bec4258249eadd75",
+      "newSha256": "cfb68fe9da3bfbc7bc67ca4ff2598e883ce290d2caddf195bec4258249eadd75",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/PARTNER_LOGOS.md",
+      "newPath": "apps/legacy-landing/src/landing/assets/PARTNER_LOGOS.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "aaf55af98b1d4443fb3c1b917e80f3651b2eae03fe90a38ad32218bda4b84c77",
+      "newSha256": "aaf55af98b1d4443fb3c1b917e80f3651b2eae03fe90a38ad32218bda4b84c77",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/audience-contractor.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/audience-contractor.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6be40519a84946ee207299bd3bbbe34796dba6259506014352bea607387b5da7",
+      "newSha256": "6be40519a84946ee207299bd3bbbe34796dba6259506014352bea607387b5da7",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/audience-customer.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/audience-customer.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+      "newSha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/audience-specialist-left-mirrored.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/audience-specialist-left-mirrored.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+      "newSha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/audience-supplier.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/audience-supplier.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+      "newSha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/brand-logo-horizontal-color.webp",
+      "newPath": "apps/legacy-landing/src/landing/assets/brand-logo-horizontal-color.webp",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2a908e49dfcb6df3d7a1ad85691ba310eb96ac2fdde86bdc27a78b0e9322ed6e",
+      "newSha256": "2a908e49dfcb6df3d7a1ad85691ba310eb96ac2fdde86bdc27a78b0e9322ed6e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/chevron-down.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/chevron-down.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "e8dd3dcded76a10e2261de56320b2cba1b64c98f37034e57688be51ecdd56738",
+      "newSha256": "e8dd3dcded76a10e2261de56320b2cba1b64c98f37034e57688be51ecdd56738",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/hero-illustration-process-interface-v1.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/hero-illustration-process-interface-v1.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "newSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-bin-leasing.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-bin-leasing.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+      "newSha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-bk-resource.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-bk-resource.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+      "newSha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-geoprom.webp",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-geoprom.webp",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+      "newSha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-polycorr.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-polycorr.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c85f107340967720f694b22708901f5831e2516948e742fa64381f5a44707004",
+      "newSha256": "c85f107340967720f694b22708901f5831e2516948e742fa64381f5a44707004",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-profmaster.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-profmaster.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+      "newSha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-rentaero.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-rentaero.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+      "newSha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-sfera-snab.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-sfera-snab.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+      "newSha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-spectransservice.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-spectransservice.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+      "newSha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-tahoban.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-tahoban.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+      "newSha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-tool-tech.jpg",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-tool-tech.jpg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+      "newSha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-vostok-service.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-vostok-service.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+      "newSha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-vseinstrumenti.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-vseinstrumenti.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+      "newSha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-color-zelenaya-doroga.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-color-zelenaya-doroga.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+      "newSha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-bin-leasing.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-bin-leasing.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "06edb1acc3c23683c43d260b8242a0d619487aaec9059139a30b391ef7705aed",
+      "newSha256": "06edb1acc3c23683c43d260b8242a0d619487aaec9059139a30b391ef7705aed",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-bk-resource.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-bk-resource.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "71235fd5161658b2245a4a4375dda1e4258309a9b3b93d51d4d4afd0c8e4882f",
+      "newSha256": "71235fd5161658b2245a4a4375dda1e4258309a9b3b93d51d4d4afd0c8e4882f",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-geoprom.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-geoprom.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c2a0fd60efb75fd28fd1aa6c45cf847ac44e0f8917c772d9c412f835d34f7920",
+      "newSha256": "c2a0fd60efb75fd28fd1aa6c45cf847ac44e0f8917c772d9c412f835d34f7920",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-profmaster.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-profmaster.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7dcacbb3dbc779112bc4f858af04442c9c1148be90a3d584011c31f5746c6158",
+      "newSha256": "7dcacbb3dbc779112bc4f858af04442c9c1148be90a3d584011c31f5746c6158",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-sfera-snab.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-sfera-snab.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c5e3f9c2ba161652c2fa24b9ea243401eae805e6fc08f36cb56b95196d7da4e6",
+      "newSha256": "c5e3f9c2ba161652c2fa24b9ea243401eae805e6fc08f36cb56b95196d7da4e6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-spectransservice.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-spectransservice.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "8d6962764c875a3561aac1557da2c40427e920adf5b6e50daecc1c43aaf13bab",
+      "newSha256": "8d6962764c875a3561aac1557da2c40427e920adf5b6e50daecc1c43aaf13bab",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-tahoban.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-tahoban.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7fd5100d3666b7fee59b555099d5a6cecfa0d9742b94360e997e0d3454721f76",
+      "newSha256": "7fd5100d3666b7fee59b555099d5a6cecfa0d9742b94360e997e0d3454721f76",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-vostok-service.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-vostok-service.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6c3c28709edc5b97966fcafcbe99ff2b5e0ea401a178c2aa4e5b5427fd6426fc",
+      "newSha256": "6c3c28709edc5b97966fcafcbe99ff2b5e0ea401a178c2aa4e5b5427fd6426fc",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-vseinstrumenti.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-vseinstrumenti.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "45164385ce2bee7fd97960f7247746a08b156e2263372d6cfa141ff4f53139da",
+      "newSha256": "45164385ce2bee7fd97960f7247746a08b156e2263372d6cfa141ff4f53139da",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-gray-zelenaya-doroga.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-gray-zelenaya-doroga.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "28d5b90e35065a79a3130e747753fa5ad0442193d996696434107aeec8295236",
+      "newSha256": "28d5b90e35065a79a3130e747753fa5ad0442193d996696434107aeec8295236",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-polycorr-gray.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-polycorr-gray.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "18d32712f350cab1c0624ae109f86fa473cc9028b2000d93189185f91231f0f1",
+      "newSha256": "18d32712f350cab1c0624ae109f86fa473cc9028b2000d93189185f91231f0f1",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-rentaero-gray.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-rentaero-gray.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "969e3f750d2e6cde9c84ca72ca8a940e3dee494540f747ec6e8c38a0910bcccc",
+      "newSha256": "969e3f750d2e6cde9c84ca72ca8a940e3dee494540f747ec6e8c38a0910bcccc",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/logo-tool-tech-gray.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/logo-tool-tech-gray.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ab3fc9fd222d118b48790121e72ba10bee302fec2f4f5712f987a2cc2d51891e",
+      "newSha256": "ab3fc9fd222d118b48790121e72ba10bee302fec2f4f5712f987a2cc2d51891e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/sber-id-official-mark.svg",
+      "newPath": "apps/legacy-landing/src/landing/assets/sber-id-official-mark.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ddc6ab8713ea03141c440a2c5ccda7bf158f96ee8ac7f1c01e675445749ce73a",
+      "newSha256": "ddc6ab8713ea03141c440a2c5ccda7bf158f96ee8ac7f1c01e675445749ce73a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/assets/vortex-selected-concept-01.png",
+      "newPath": "apps/legacy-landing/src/landing/assets/vortex-selected-concept-01.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "200425ba9e284d55ea816ab28849de4d0556bc9d3112a1fb11061b3fa1c19c19",
+      "newSha256": "200425ba9e284d55ea816ab28849de4d0556bc9d3112a1fb11061b3fa1c19c19",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/cal-diy-embed.test.ts",
+      "newPath": "apps/legacy-landing/src/landing/cal-diy-embed.test.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "038d9a1474e905f7b70c605b76283a603b707059c12395ed5a444edc30e840c9",
+      "newSha256": "038d9a1474e905f7b70c605b76283a603b707059c12395ed5a444edc30e840c9",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/cal-diy-embed.ts",
+      "newPath": "apps/legacy-landing/src/landing/cal-diy-embed.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "0dff77da4270719d8a2d8f29f93453a321e4f9841bd9375fd1a9ffc028a6014d",
+      "newSha256": "0dff77da4270719d8a2d8f29f93453a321e4f9841bd9375fd1a9ffc028a6014d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/landing-screen.css",
+      "newPath": "apps/legacy-landing/src/landing/landing-screen.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6432b03f842ca2e3787f90156c519a733cc2ec5c93fa7d94e1328e88abfc8348",
+      "newSha256": "6432b03f842ca2e3787f90156c519a733cc2ec5c93fa7d94e1328e88abfc8348",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/landing-screen.test.tsx",
+      "newPath": "apps/legacy-landing/src/landing/landing-screen.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "81ee385a5b9788eb997ceff1bfc10e586fc46e0c9b19008ec2b53e785ec87b8d",
+      "newSha256": "81ee385a5b9788eb997ceff1bfc10e586fc46e0c9b19008ec2b53e785ec87b8d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/main.tsx",
+      "newPath": "apps/legacy-landing/src/landing/main.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "631dac05a76d75147a475023b56dd0ee8eb99940235fad1151d2fd78a546a89a",
+      "newSha256": "631dac05a76d75147a475023b56dd0ee8eb99940235fad1151d2fd78a546a89a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/landing/use-landing-session.ts",
+      "newPath": "apps/legacy-landing/src/landing/use-landing-session.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2b535134ff3d8c65437c2273e6f6c15748d25be153c6f96c086b86b6d27bbf39",
+      "newSha256": "2b535134ff3d8c65437c2273e6f6c15748d25be153c6f96c086b86b6d27bbf39",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/main.tsx",
+      "newPath": "apps/legacy-landing/src/main.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "89fde870fd25bc2fbbbc0a143df1ae127814925c4be8f6c5cd640da890cb1d3d",
+      "newSha256": "89fde870fd25bc2fbbbc0a143df1ae127814925c4be8f6c5cd640da890cb1d3d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/shared/DemoSection.tsx",
+      "newPath": "apps/legacy-landing/src/shared/DemoSection.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "706ecff544f29e26a79e795a98e8f4b1deef2a3a3e1e49b84b457b612f9a2f82",
+      "newSha256": "706ecff544f29e26a79e795a98e8f4b1deef2a3a3e1e49b84b457b612f9a2f82",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/shared/demo-section.css",
+      "newPath": "apps/legacy-landing/src/shared/demo-section.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1b8d7f6f1e6ee509e466db1915ee55fa91d561afcaa9dd2731e299d5aabda2f6",
+      "newSha256": "1b8d7f6f1e6ee509e466db1915ee55fa91d561afcaa9dd2731e299d5aabda2f6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/test-setup.ts",
+      "newPath": "apps/legacy-landing/src/test-setup.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de",
+      "newSha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/src/vite-env.d.ts",
+      "newPath": "apps/legacy-landing/src/vite-env.d.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "newSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/favicon.png",
+      "newPath": "apps/legacy-landing/static/favicon.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+      "newSha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/fonts/golos-text-cyrillic.woff2",
+      "newPath": "apps/legacy-landing/static/fonts/golos-text-cyrillic.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+      "newSha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/fonts/golos-text-latin.woff2",
+      "newPath": "apps/legacy-landing/static/fonts/golos-text-latin.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+      "newSha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/fonts/unbounded-cyrillic.woff2",
+      "newPath": "apps/legacy-landing/static/fonts/unbounded-cyrillic.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+      "newSha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/fonts/unbounded-latin.woff2",
+      "newPath": "apps/legacy-landing/static/fonts/unbounded-latin.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+      "newSha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/forum-hard-hat.png",
+      "newPath": "apps/legacy-landing/static/forum-hard-hat.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+      "newSha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/forum-logo-square.svg",
+      "newPath": "apps/legacy-landing/static/forum-logo-square.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "newSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/audience-contractor.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/audience-contractor.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6be40519a84946ee207299bd3bbbe34796dba6259506014352bea607387b5da7",
+      "newSha256": "6be40519a84946ee207299bd3bbbe34796dba6259506014352bea607387b5da7",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/audience-customer.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/audience-customer.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+      "newSha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/audience-specialist-left-mirrored.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/audience-specialist-left-mirrored.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+      "newSha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/audience-supplier.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/audience-supplier.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+      "newSha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/brand-logo-horizontal-color.webp",
+      "newPath": "apps/legacy-landing/static/landing-assets/brand-logo-horizontal-color.webp",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2a908e49dfcb6df3d7a1ad85691ba310eb96ac2fdde86bdc27a78b0e9322ed6e",
+      "newSha256": "2a908e49dfcb6df3d7a1ad85691ba310eb96ac2fdde86bdc27a78b0e9322ed6e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/chevron-down.svg",
+      "newPath": "apps/legacy-landing/static/landing-assets/chevron-down.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "e8dd3dcded76a10e2261de56320b2cba1b64c98f37034e57688be51ecdd56738",
+      "newSha256": "e8dd3dcded76a10e2261de56320b2cba1b64c98f37034e57688be51ecdd56738",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/hero-illustration-process-interface-v1.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/hero-illustration-process-interface-v1.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "newSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-bin-leasing.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-bin-leasing.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-bk-resource.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-bk-resource.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-geoprom.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-geoprom.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-profmaster.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-profmaster.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-sfera-snab.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-sfera-snab.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-spectransservice.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-spectransservice.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "652f5a02a5a898d4f74ba1314f9c4718e0f0bd4c5c9565660e174c5178f27ce4",
+      "newSha256": "652f5a02a5a898d4f74ba1314f9c4718e0f0bd4c5c9565660e174c5178f27ce4",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-tahoban.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-tahoban.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-vostok-service.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-vostok-service.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-vseinstrumenti.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-vseinstrumenti.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-gray-zelenaya-doroga.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-gray-zelenaya-doroga.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-polycorr-gray.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-polycorr-gray.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-rentaero-gray.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-rentaero-gray.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/logo-tool-tech-gray.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/logo-tool-tech-gray.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "newSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing-assets/vortex-selected-concept-01.png",
+      "newPath": "apps/legacy-landing/static/landing-assets/vortex-selected-concept-01.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "200425ba9e284d55ea816ab28849de4d0556bc9d3112a1fb11061b3fa1c19c19",
+      "newSha256": "200425ba9e284d55ea816ab28849de4d0556bc9d3112a1fb11061b3fa1c19c19",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/landing/index.html",
+      "newPath": "apps/legacy-landing/static/landing/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "167c122e1ef9c2f1464219feb00d77008a00d91a2327fe65ac649e1cc3b550a6",
+      "newSha256": "167c122e1ef9c2f1464219feb00d77008a00d91a2327fe65ac649e1cc3b550a6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/static/robots.txt",
+      "newPath": "apps/legacy-landing/static/robots.txt",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1",
+      "newSha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/tests/test_auth_gateway.py",
+      "newPath": "apps/legacy-landing/tests/test_auth_gateway.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b4bf8da2537269a46691ebfd4b642fc82713b894a3a1aaaaa91230c778783fc2",
+      "newSha256": "140836d2f34751b89b3ddd276ac6d515490d686074f961d48898b1e70ad1d3ca",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/tests/test_deploy_rollback.py",
+      "newPath": "apps/legacy-landing/tests/test_deploy_rollback.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "70cbee8a1567619696ab36931670a0ab01abc442eb91a944ce047addd983a7ec",
+      "newSha256": "aec2d59aefb139d5dd544aa7846fdd8e2cd37691147316621238e7d9e91b54d7",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/tests/test_origin_login_check.py",
+      "newPath": "apps/legacy-landing/tests/test_origin_login_check.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "da7f0ca5b178469e301dca1895053da945fa787037784a43531e6dc340f23a57",
+      "newSha256": "54f359d18659f721860459cec45f6a860a4708e356800de3fb14f4ec0c70ec1c",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/tsconfig.json",
+      "newPath": "apps/legacy-landing/tsconfig.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a590c6d45eb6afa9fc72c39ad1553478382b809071ab7b88061b021063a6c2c5",
+      "newSha256": "a590c6d45eb6afa9fc72c39ad1553478382b809071ab7b88061b021063a6c2c5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/verify-public.sh",
+      "newPath": "scripts/verification/verify-legacy-public.sh",
+      "previousMode": "100755",
+      "newMode": "100755",
+      "previousSha256": "de63c4419966b69bb2ef5fed0aebd51f631ca5bc6ce5e965a3196dd1644c03a3",
+      "newSha256": "de63c4419966b69bb2ef5fed0aebd51f631ca5bc6ce5e965a3196dd1644c03a3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/dev-landing/vite.config.ts",
+      "newPath": "apps/legacy-landing/vite.config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f325c66c52ec0f49c42266b523f6d6f94a3264c0069026265a01dde9d8677b26",
+      "newSha256": "5e5358fcfb1c0be86e47f54cf9941ecca1ee3527dc5cfd745ab527bb287fd336",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/vite.landing.config.ts",
+      "newPath": "apps/legacy-landing/vite.landing.config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "eb89e8d71533052a94d288a1d13bf2ff46a5202ed6e5d39bf3aa720cea909a92",
+      "newSha256": "d151d7dd9593f497b6de23d113ddcee8025eda8cdf9c0c942bf5b2b5441bfe36",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/dev-landing/vitest.config.ts",
+      "newPath": "apps/legacy-landing/vitest.config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "22bfea63f5ce82c666b1e6b011dfd0c4f48f1708de522faabfdf0dde469a6491",
+      "newSha256": "1a00ac6456530348177835b6b798e0799804ecfc4143ac2f7cbdb4580abbd583",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/forum-api/compose.yaml",
+      "newPath": "deployment/forum-api/compose.yaml",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "71f2d2cdad7802c97fa14066b11957cc5614fe692ab5b565b8a4b7247be2ca05",
+      "newSha256": "cbf4327ced74fb8380a1827eac30206d11c242d23c89830d6d1732ee2577b078",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/forum-api/test-callback-relay.mjs",
+      "newPath": "scripts/verification/forum-api/test-callback-relay.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ba3607996679c60866a505dfe111b4597a839d87e17262a9b9577f396ce35d14",
+      "newSha256": "e2096e67337308014d0f89fde532d6d8fcd521ce87f6b8b96963bc67fd9ae6e8",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/forum-db/bootstrap_forum_db.sh",
+      "newPath": "scripts/deployment/forum-db/bootstrap_forum_db.sh",
+      "previousMode": "100755",
+      "newMode": "100755",
+      "previousSha256": "05364c39c1eab343130303b494ceea771279899f5daef400cd5e7ec281218b90",
+      "newSha256": "05364c39c1eab343130303b494ceea771279899f5daef400cd5e7ec281218b90",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/forum-db/configure_forum_app_role.sh",
+      "newPath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
+      "previousMode": "100755",
+      "newMode": "100755",
+      "previousSha256": "51dac73fff4d5ac8bdce399595f214077bd0ad5c8f26d591141e27c02ca3dd91",
+      "newSha256": "43ded821bb9d2bb6e47aa7ac0122aedf26809790ed5abc8f4b7aed2869e5ea90",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "newPath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7e8e200798e5594a257f6b5f946db80cebd52421d46656fd7f92d34baf2b2462",
+      "newSha256": "d53d633f1be92590341fd1e28b41f8fd3849fd943105314c99b5dd8bd484bb37",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/mail/README.md",
+      "newPath": "deployment/mail/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "91aa2b136db85abbd8537ee35f8f9cb78528eba47d556f2c81add3e403e88e4f",
+      "newSha256": "38be3623ec0e51c293025b47b2135d64cc742093f10dce4db2cb9e79ea3fa68c",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/mail/backup.sh",
+      "newPath": "scripts/maintenance/mail/backup.sh",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "9a57f46a345a12307d317584c0848339b264d7ec1d379d0020b97b33d35423e0",
+      "newSha256": "9a57f46a345a12307d317584c0848339b264d7ec1d379d0020b97b33d35423e0",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/configure_acme.py",
+      "newPath": "scripts/deployment/mail/configure_acme.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "bbd2ba942024d12609cb0dc614ad17017f69f6dcc93a2190ced9982273dcfc44",
+      "newSha256": "bbd2ba942024d12609cb0dc614ad17017f69f6dcc93a2190ced9982273dcfc44",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/deploy-certificate.py",
+      "newPath": "scripts/deployment/mail/deploy-certificate.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "efa3781fe50fbd1d32ed803d1a6913ddfc7d9e885a677eb4509b63f10e175082",
+      "newSha256": "efa3781fe50fbd1d32ed803d1a6913ddfc7d9e885a677eb4509b63f10e175082",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/install-caddy-routes.py",
+      "newPath": "scripts/deployment/mail/install-caddy-routes.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "465ab69ef5d2b72fb6332e315862dc10e5876911e6e2be8a00175f6fd14cc623",
+      "newSha256": "465ab69ef5d2b72fb6332e315862dc10e5876911e6e2be8a00175f6fd14cc623",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/listmonk_setup.py",
+      "newPath": "scripts/deployment/mail/listmonk_setup.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "adce7731f99fb89a58ec21a31b0244c4bed712638dc35a69ed99b02db72021c2",
+      "newSha256": "adce7731f99fb89a58ec21a31b0244c4bed712638dc35a69ed99b02db72021c2",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/stalwart_api.py",
+      "newPath": "scripts/deployment/mail/stalwart_api.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "47d9aa6071ac7ceb2d92ff73592ebfc35515928bd664f884e964c00d5f14ad95",
+      "newSha256": "47d9aa6071ac7ceb2d92ff73592ebfc35515928bd664f884e964c00d5f14ad95",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/mail/verify.py",
+      "newPath": "scripts/verification/mail/verify.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "7829b92b668cd0cf36c03adf1401d7e9e14e518d8e42aaac71b059bafda885e6",
+      "newSha256": "7829b92b668cd0cf36c03adf1401d7e9e14e518d8e42aaac71b059bafda885e6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/openproject/README.md",
+      "newPath": "deployment/openproject/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3215bb20fe927bc3c014c2c6fcc4764501cdf7c8ab588526cb3e090f2205dca1",
+      "newSha256": "b755954b64036d332e361607f0ee767753cf4d25d018c426734a3db71da5db92",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/openproject/backup.sh",
+      "newPath": "scripts/maintenance/openproject/backup.sh",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ad4c78b0e6cb9bbbad096257586ed19b6e3ea7e2791d977e9326bd6584f7aee5",
+      "newSha256": "ad4c78b0e6cb9bbbad096257586ed19b6e3ea7e2791d977e9326bd6584f7aee5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/pgadmin/README.md",
+      "newPath": "deployment/pgadmin/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "564dd09a2478ed8b27ed07610c0dd863425d80690e0bdc55c31134903c3724e0",
+      "newSha256": "49b2043feedf72d24b863797802281f405bfb3bae98a04f91633a255bd88f08f",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/pgadmin/configure-admin.py",
+      "newPath": "scripts/deployment/pgadmin/configure-admin.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1c7daad73af5252212a1233c1d0986b17ca1b9a9d14a44dd9f713d4fa3e743b1",
+      "newSha256": "4311298435ecc5990ac65d45d8dc119ceff6645c2b36ff0274aed38cf345beb7",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/primer-home/.gitignore",
+      "newPath": "apps/primer-home/.gitignore",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "bca72906f127894e6ac5370421437a9cbaf70245adfbe32a4b00e887ca9bdf3e",
+      "newSha256": "bca72906f127894e6ac5370421437a9cbaf70245adfbe32a4b00e887ca9bdf3e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/eslint.config.js",
+      "newPath": "apps/primer-home/eslint.config.js",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ec905eb8e76cda2db42ebbad9d13deb67e3b611605aaee5a264ceccb98e587f8",
+      "newSha256": "ec905eb8e76cda2db42ebbad9d13deb67e3b611605aaee5a264ceccb98e587f8",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/index.html",
+      "newPath": "apps/primer-home/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f8816af042e2c57e3d7936f854b43b63cd5dac014c19221a0aedf1a57bae6c2a",
+      "newSha256": "f8816af042e2c57e3d7936f854b43b63cd5dac014c19221a0aedf1a57bae6c2a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/package-lock.json",
+      "newPath": "package-lock.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "910b403bcb6d95bd5f7783d6e0c1c7f275d4b859b6522a890e1cacc30a628652",
+      "newSha256": "093fc7c395873e5504525597728732de1f6f480882fda908e70353173f5f2760",
+      "unchanged": false,
+      "classification": "lock-consolidation"
+    },
+    {
+      "previousPath": "deployment/primer-home/package.json",
+      "newPath": "apps/primer-home/package.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "9558f33fd6b457f1b2be315f6a3fd7eee9fbc24f44b658691760225a2bdd79f9",
+      "newSha256": "7fd9d9f3130afc3447a44ebee39061524f69bebb10b1a0b82a7bf5e140c635f5",
+      "unchanged": false,
+      "classification": "workspace-contract"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/brand-logo-horizontal-color.png",
+      "newPath": "apps/primer-home/public/assets/brand-logo-horizontal-color.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "newSha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/forum-logo-square.svg",
+      "newPath": "apps/primer-home/public/assets/forum-logo-square.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "newSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/hero-illustration-process-interface.png",
+      "newPath": "apps/primer-home/public/assets/hero-illustration-process-interface.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "newSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-bin-leasing.png",
+      "newPath": "apps/primer-home/public/assets/logo-color-bin-leasing.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+      "newSha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-bk-resource.png",
+      "newPath": "apps/primer-home/public/assets/logo-color-bk-resource.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+      "newSha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-geoprom.webp",
+      "newPath": "apps/primer-home/public/assets/logo-color-geoprom.webp",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+      "newSha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-polycorr.svg",
+      "newPath": "apps/primer-home/public/assets/logo-color-polycorr.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f7b297ab02e7a8025830f8eedb0311affcb05fd5d894d5cf557e1faa3d0c4e2c",
+      "newSha256": "f7b297ab02e7a8025830f8eedb0311affcb05fd5d894d5cf557e1faa3d0c4e2c",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-profmaster.svg",
+      "newPath": "apps/primer-home/public/assets/logo-color-profmaster.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+      "newSha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-rentaero.svg",
+      "newPath": "apps/primer-home/public/assets/logo-color-rentaero.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+      "newSha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-sfera-snab.svg",
+      "newPath": "apps/primer-home/public/assets/logo-color-sfera-snab.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+      "newSha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-spectransservice.png",
+      "newPath": "apps/primer-home/public/assets/logo-color-spectransservice.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+      "newSha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-tahoban.svg",
+      "newPath": "apps/primer-home/public/assets/logo-color-tahoban.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+      "newSha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-tool-tech.jpg",
+      "newPath": "apps/primer-home/public/assets/logo-color-tool-tech.jpg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+      "newSha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-vostok-service.svg",
+      "newPath": "apps/primer-home/public/assets/logo-color-vostok-service.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+      "newSha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-vseinstrumenti.svg",
+      "newPath": "apps/primer-home/public/assets/logo-color-vseinstrumenti.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+      "newSha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/public/assets/logo-color-zelenaya-doroga.png",
+      "newPath": "apps/primer-home/public/assets/logo-color-zelenaya-doroga.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+      "newSha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/scripts/deploy-dev-home.py",
+      "newPath": "scripts/deployment/primer-home/deploy-dev-home.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3ded9536a4ac486962cf3d5d2def1fd50d589949436035705109a8729b190772",
+      "newSha256": "3ded9536a4ac486962cf3d5d2def1fd50d589949436035705109a8729b190772",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/scripts/test_deploy.py",
+      "newPath": "scripts/deployment/primer-home/test_deploy.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "fb204db80fd4420ce5b18c7f33c01aafd9bab302cf0c6db8207ce9c003d9cd9a",
+      "newSha256": "fb204db80fd4420ce5b18c7f33c01aafd9bab302cf0c6db8207ce9c003d9cd9a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/App.tsx",
+      "newPath": "apps/primer-home/src/App.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "8af92246f439a95bbc74cd2dfa8bc3826b75128b98aa8241594b408fbea7495e",
+      "newSha256": "6d68f494e1054c9ba050cb1bad9ac4bd0b37a352c23fa1e9f9da46844e1538e7",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/AuthNotice.tsx",
+      "newPath": "apps/primer-home/src/AuthNotice.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "178e654377037475aae81cb6e17a8a0da604b497abf74b1fdce01d03c237a053",
+      "newSha256": "178e654377037475aae81cb6e17a8a0da604b497abf74b1fdce01d03c237a053",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/DemoDialog.tsx",
+      "newPath": "apps/primer-home/src/DemoDialog.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b66a51760b7706484737187b4aed383757de4b5c3d3845f4adcb9152e9a42929",
+      "newSha256": "b66a51760b7706484737187b4aed383757de4b5c3d3845f4adcb9152e9a42929",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/HomePage.tsx",
+      "newPath": "apps/primer-home/src/HomePage.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6ca842ad3cccf1f07b33067433041b748a4b4c377ae81bf9cc99d0f63eb796d3",
+      "newSha256": "6ca842ad3cccf1f07b33067433041b748a4b4c377ae81bf9cc99d0f63eb796d3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/SharedLayout.tsx",
+      "newPath": "apps/primer-home/src/SharedLayout.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "17cc498bb4c65c0193812105a009a3aaa72538faa8b95d99ec618fc82084e081",
+      "newSha256": "17cc498bb4c65c0193812105a009a3aaa72538faa8b95d99ec618fc82084e081",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/config.ts",
+      "newPath": "apps/primer-home/src/config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "eb472ee6911d4531cdf1262c9e1a2a516478eb5bed52876299f70dc2ffeb22d7",
+      "newSha256": "eb472ee6911d4531cdf1262c9e1a2a516478eb5bed52876299f70dc2ffeb22d7",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/content.ts",
+      "newPath": "apps/primer-home/src/content.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "0ff064204b5377205daf5c1b5cd9b29dcb00808bbd73d163aad0b56d333249bd",
+      "newSha256": "0ff064204b5377205daf5c1b5cd9b29dcb00808bbd73d163aad0b56d333249bd",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/forum-tokens.css",
+      "newPath": "apps/primer-home/src/forum-tokens.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ff7d1053147e7f35ce8448fd08036f0e3e45423d1fbb73986713e8b5c4c66f55",
+      "newSha256": "ff7d1053147e7f35ce8448fd08036f0e3e45423d1fbb73986713e8b5c4c66f55",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/home.test.tsx",
+      "newPath": "apps/primer-home/src/home.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "d43ac0a1e6dbe1e775f8b53edadd4b8d7dbbea7cb92796e6ffbbc3b5f1b308cd",
+      "newSha256": "d43ac0a1e6dbe1e775f8b53edadd4b8d7dbbea7cb92796e6ffbbc3b5f1b308cd",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/layout.css",
+      "newPath": "apps/primer-home/src/layout.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "d9acb62f164beb4865790059d3b90b79758dc6182fef2d70753e44ccb6d2e6b8",
+      "newSha256": "d9acb62f164beb4865790059d3b90b79758dc6182fef2d70753e44ccb6d2e6b8",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/main.tsx",
+      "newPath": "apps/primer-home/src/main.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1f0c7e051c8d10f0e49151935990c673ef2c34d5cfb81e18c817895b1358ba39",
+      "newSha256": "1f0c7e051c8d10f0e49151935990c673ef2c34d5cfb81e18c817895b1358ba39",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/test-setup.ts",
+      "newPath": "apps/primer-home/src/test-setup.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "57c440e2838aba15eec29760dcd9698f0fa0ac6848d2e0b6ab9a96fc353a8455",
+      "newSha256": "57c440e2838aba15eec29760dcd9698f0fa0ac6848d2e0b6ab9a96fc353a8455",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/useForumSession.test.tsx",
+      "newPath": "apps/primer-home/src/useForumSession.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "34520512ca1c269cec34469c41d004ecba3fa12a31708f44128155076d7f99ae",
+      "newSha256": "34520512ca1c269cec34469c41d004ecba3fa12a31708f44128155076d7f99ae",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/useForumSession.ts",
+      "newPath": "apps/primer-home/src/useForumSession.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "d0ee1d618cf6012378c758a620d447c3f8a2f9cd28615181df5213e7ce26816b",
+      "newSha256": "d0ee1d618cf6012378c758a620d447c3f8a2f9cd28615181df5213e7ce26816b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/src/vite-env.d.ts",
+      "newPath": "apps/primer-home/src/vite-env.d.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "newSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/start.command",
+      "newPath": "apps/primer-home/start.command",
+      "previousMode": "100755",
+      "newMode": "100755",
+      "previousSha256": "6833ee85720f3922c11c04a39b04d6674c7199b8e343d528ab29dee9b59a8491",
+      "newSha256": "ed6e88b744980bb14dc90d3da188b6689a1a481f9371bbf1260f184b2e746130",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/primer-home/tsconfig.json",
+      "newPath": "apps/primer-home/tsconfig.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c2ec010a44eff797ebc3f7a037600ed811cfc867b3eb649afd93ed3a7fe484c0",
+      "newSha256": "c2ec010a44eff797ebc3f7a037600ed811cfc867b3eb649afd93ed3a7fe484c0",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/primer-home/vite.config.ts",
+      "newPath": "apps/primer-home/vite.config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3ca0b19984093b04ab8b9eee10d2d40fd29b3a9d198a4b3c1cc2fb56785ff999",
+      "newSha256": "b3e2999a7b46d9193024ad760da62a311d57b15c859a83c59ee5f906c9e0a2a8",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/public-auth/README.md",
+      "newPath": "apps/public-auth/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "75f63989fada9d780955195d8569db2a2fc3da8e45b603ca93e8afaa053c896e",
+      "newSha256": "f70a1d3609d1d5a709e8c4a8eddaa66bdd97f247053961941637a056481100f8",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/public-auth/eslint.config.js",
+      "newPath": "apps/public-auth/eslint.config.js",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ec905eb8e76cda2db42ebbad9d13deb67e3b611605aaee5a264ceccb98e587f8",
+      "newSha256": "ec905eb8e76cda2db42ebbad9d13deb67e3b611605aaee5a264ceccb98e587f8",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/index.html",
+      "newPath": "apps/public-auth/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "01b2638ae2b6729733bdd5693301cc9fdcde4529215f58d186208a3b6b64bf17",
+      "newSha256": "01b2638ae2b6729733bdd5693301cc9fdcde4529215f58d186208a3b6b64bf17",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/package-lock.json",
+      "newPath": "package-lock.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "0e17cd3ed617c6c4ca360c6868783e9c3ad53d661ed321c93fe8d937afd05d71",
+      "newSha256": "093fc7c395873e5504525597728732de1f6f480882fda908e70353173f5f2760",
+      "unchanged": false,
+      "classification": "lock-consolidation"
+    },
+    {
+      "previousPath": "deployment/public-auth/package.json",
+      "newPath": "apps/public-auth/package.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "4741f52f4f6f7894e71d7df6d5994c9920f2b08fc980a7fd4b2f8aace8699a75",
+      "newSha256": "7d951a586a890008e6104da0826a02057d16efde44850e6c939f7821eca427e6",
+      "unchanged": false,
+      "classification": "workspace-contract"
+    },
+    {
+      "previousPath": "deployment/public-auth/scripts/deploy.py",
+      "newPath": "scripts/deployment/public-auth/deploy.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "cbe2339d862844291feda1e171cb5c2fedbcca623318f8624bf7e3eeb5f2f905",
+      "newSha256": "cbe2339d862844291feda1e171cb5c2fedbcca623318f8624bf7e3eeb5f2f905",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/scripts/test_deploy.py",
+      "newPath": "scripts/deployment/public-auth/test_deploy.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c8fb5dfa28152702e985c9163d770d6789a8bc4d5018fe3c0b79be975bfcc561",
+      "newSha256": "c8fb5dfa28152702e985c9163d770d6789a8bc4d5018fe3c0b79be975bfcc561",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/PublicAuth.test.tsx",
+      "newPath": "apps/public-auth/src/PublicAuth.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "da6883fe58d9b97a50dc9f395f6776f88d25d81ff03cb1650d49a1317f28d79c",
+      "newSha256": "da6883fe58d9b97a50dc9f395f6776f88d25d81ff03cb1650d49a1317f28d79c",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/PublicAuth.tsx",
+      "newPath": "apps/public-auth/src/PublicAuth.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "4536c8d8211e11c8d1385ce68460b8608f99c7c25653e2d27259471790e24d3e",
+      "newSha256": "2d37f563f9f27004887e54897642b9e9135eb74b7be4a62ec3b73bd8c5c2d67b",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/auth.css",
+      "newPath": "apps/public-auth/src/auth.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "dfc6756b17d1cf4115838451c84b5270326ab33b7b4c9bcbe03b378162ded57a",
+      "newSha256": "dfc6756b17d1cf4115838451c84b5270326ab33b7b4c9bcbe03b378162ded57a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/fonts/OFL.txt",
+      "newPath": "apps/public-auth/src/fonts/OFL.txt",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "e2e177a32561584d4fc13aaa3cd8e53758a12910f013fe9ca125419111722029",
+      "newSha256": "e2e177a32561584d4fc13aaa3cd8e53758a12910f013fe9ca125419111722029",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/fonts/SOURCE.md",
+      "newPath": "apps/public-auth/src/fonts/SOURCE.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3a937be4f8ed6647cb68d1f052347e301f6d0c17bfb8833e9e56fa0f405f0df2",
+      "newSha256": "3a937be4f8ed6647cb68d1f052347e301f6d0c17bfb8833e9e56fa0f405f0df2",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/fonts/noto-sans-bold-condensed-cyrillic.woff2",
+      "newPath": "apps/public-auth/src/fonts/noto-sans-bold-condensed-cyrillic.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3",
+      "newSha256": "b1adf3b1e17c27bf913162d5bc692ff3d88127964ea2630d0dba92128e0e3eb3",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/fonts/noto-sans-bold-condensed-latin.woff2",
+      "newPath": "apps/public-auth/src/fonts/noto-sans-bold-condensed-latin.woff2",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082",
+      "newSha256": "40259f7bd493c4afa77e658aa26222bc41c62a97d781f87cb2afeca79a9c5082",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/main.test.tsx",
+      "newPath": "apps/public-auth/src/main.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6f8ac2dd667ab06a3494ebe03ca88afc5da089787db5b7fe56ba8711bb765bcf",
+      "newSha256": "6f8ac2dd667ab06a3494ebe03ca88afc5da089787db5b7fe56ba8711bb765bcf",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/main.tsx",
+      "newPath": "apps/public-auth/src/main.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ff6039603abaeafadc3a9b62c81d5fe4e69ae71708a17d26f1ab184b34b63b8d",
+      "newSha256": "ff6039603abaeafadc3a9b62c81d5fe4e69ae71708a17d26f1ab184b34b63b8d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/sber-fonts.css",
+      "newPath": "apps/public-auth/src/sber-fonts.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "23ad97d553257b4687d1def031505705857935cc9782a01a8462ff0d33ddcc8d",
+      "newSha256": "23ad97d553257b4687d1def031505705857935cc9782a01a8462ff0d33ddcc8d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/sber-mark.svg",
+      "newPath": "apps/public-auth/src/sber-mark.svg",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ddc6ab8713ea03141c440a2c5ccda7bf158f96ee8ac7f1c01e675445749ce73a",
+      "newSha256": "ddc6ab8713ea03141c440a2c5ccda7bf158f96ee8ac7f1c01e675445749ce73a",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/sber-tokens.css",
+      "newPath": "apps/public-auth/src/sber-tokens.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "386842b0de5198ec360f3fad3ad0318d9e3b1b78e33d18fefdcf50846eabd182",
+      "newSha256": "386842b0de5198ec360f3fad3ad0318d9e3b1b78e33d18fefdcf50846eabd182",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/session.test.ts",
+      "newPath": "apps/public-auth/src/session.test.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "e09c3d7e55583aa30d3b906e9b1340b23c7c97872a9a2243b1422f110670909c",
+      "newSha256": "e09c3d7e55583aa30d3b906e9b1340b23c7c97872a9a2243b1422f110670909c",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/session.ts",
+      "newPath": "apps/public-auth/src/session.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "bb6af391da997a5bde90b4654b02ce20cfcccba6bb62c29a79cf44f26cda855b",
+      "newSha256": "bb6af391da997a5bde90b4654b02ce20cfcccba6bb62c29a79cf44f26cda855b",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/src/test-setup.ts",
+      "newPath": "apps/public-auth/src/test-setup.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "57c440e2838aba15eec29760dcd9698f0fa0ac6848d2e0b6ab9a96fc353a8455",
+      "newSha256": "57c440e2838aba15eec29760dcd9698f0fa0ac6848d2e0b6ab9a96fc353a8455",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/tsconfig.json",
+      "newPath": "apps/public-auth/tsconfig.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f699e29e7bada109c081e74e51cb660d57f3c3dbab8b0dc7fb695439d23ae191",
+      "newSha256": "f699e29e7bada109c081e74e51cb660d57f3c3dbab8b0dc7fb695439d23ae191",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "deployment/public-auth/vite.config.ts",
+      "newPath": "apps/public-auth/vite.config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ada35d21567d986321ccadf271bf9f5d4cffc90e13959e7c6451c1a7bd430af3",
+      "newSha256": "a1476220357da29cbc10fc491f1ae6ed83d0a7aa56fa4f47ffe9866b4ac55410",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "deployment/public-navigation.ts",
+      "newPath": "packages/public-navigation.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f2366b75ec399431b7b7afef2bc329228eb66e36d831265f0a99208ccb241cc7",
+      "newSha256": "f2366b75ec399431b7b7afef2bc329228eb66e36d831265f0a99208ccb241cc7",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/.gitignore",
+      "newPath": "apps/profile-preview/.gitignore",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f99ead27b34cbc6756d707e7e7ee7340eb9a71e02dfec2b40d5fb848dd3f4d4f",
+      "newSha256": "f99ead27b34cbc6756d707e7e7ee7340eb9a71e02dfec2b40d5fb848dd3f4d4f",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/README.md",
+      "newPath": "apps/profile-preview/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "3ee7b3b8378a4781879cc5cc3df27a0974ec8be4ecae3f1e9564b6c0e3291ced",
+      "newSha256": "945e35619ed9357631576f8030d0eb6e1f8994bf3126537a1049c0842dd5a0c9",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "local-previews/user-profile/eslint.config.js",
+      "newPath": "apps/profile-preview/eslint.config.js",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ec905eb8e76cda2db42ebbad9d13deb67e3b611605aaee5a264ceccb98e587f8",
+      "newSha256": "ec905eb8e76cda2db42ebbad9d13deb67e3b611605aaee5a264ceccb98e587f8",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/index.html",
+      "newPath": "apps/profile-preview/index.html",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "ff816121d55e46b232412f05b87c291940473adfa71688bd4eb3909985e426ed",
+      "newSha256": "ff816121d55e46b232412f05b87c291940473adfa71688bd4eb3909985e426ed",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/package-lock.json",
+      "newPath": "package-lock.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "e595bc16452320be2a8912d6e4d28cf784e2531f27d2191970e550509e4b89ea",
+      "newSha256": "093fc7c395873e5504525597728732de1f6f480882fda908e70353173f5f2760",
+      "unchanged": false,
+      "classification": "lock-consolidation"
+    },
+    {
+      "previousPath": "local-previews/user-profile/package.json",
+      "newPath": "apps/profile-preview/package.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "804b7114ad1fe584447e7572d76b6ac193ab78f8efafbab078e79ea7f44dfcac",
+      "newSha256": "20c40fade4b4448eceff3c541f27521adcd7ff69a2e66e35d2713d7a970a6574",
+      "unchanged": false,
+      "classification": "workspace-contract"
+    },
+    {
+      "previousPath": "local-previews/user-profile/public/assets/forum-logo.png",
+      "newPath": "apps/profile-preview/public/assets/forum-logo.png",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "newSha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/App.test.tsx",
+      "newPath": "apps/profile-preview/src/App.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "0b8a2b660effc587152316ad63c323680378d490d5bf99936cc4abdd69b19e1c",
+      "newSha256": "0b8a2b660effc587152316ad63c323680378d490d5bf99936cc4abdd69b19e1c",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/App.tsx",
+      "newPath": "apps/profile-preview/src/App.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "d245165e1da127179c40637ac4af4aebd8aa198b10f5c1145c1254b5ea74684f",
+      "newSha256": "d245165e1da127179c40637ac4af4aebd8aa198b10f5c1145c1254b5ea74684f",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/ProfilePage.test.tsx",
+      "newPath": "apps/profile-preview/src/ProfilePage.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "67b4860d58afbef6e7e35608241eef21849114854034268d6749aacfc076a409",
+      "newSha256": "67b4860d58afbef6e7e35608241eef21849114854034268d6749aacfc076a409",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/ProfilePage.tsx",
+      "newPath": "apps/profile-preview/src/ProfilePage.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "6ff286610858bdd8154acc71d4382411ccf4bff6e4560bb4a286b043dfcbe180",
+      "newSha256": "6ff286610858bdd8154acc71d4382411ccf4bff6e4560bb4a286b043dfcbe180",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/fixtures.ts",
+      "newPath": "apps/profile-preview/src/fixtures.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "fbecfca2290630d9e40dc8b7a7f827b6f621d4845f0841d45829430257aa4302",
+      "newSha256": "fbecfca2290630d9e40dc8b7a7f827b6f621d4845f0841d45829430257aa4302",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/layout.css",
+      "newPath": "apps/profile-preview/src/layout.css",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "dbc47360f73e64005ace1c99a394cfaeb6220e3dcd7fe443e696c57341e630dd",
+      "newSha256": "dbc47360f73e64005ace1c99a394cfaeb6220e3dcd7fe443e696c57341e630dd",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/main.tsx",
+      "newPath": "apps/profile-preview/src/main.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "663dff62de0c2f199b905d71bc8960e81b0518e779afef56b6450108ffcdf12d",
+      "newSha256": "663dff62de0c2f199b905d71bc8960e81b0518e779afef56b6450108ffcdf12d",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/profile.test.ts",
+      "newPath": "apps/profile-preview/src/profile.test.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "92b2300b6a299dcd205671f4376c47e7ff2d3cb02493bbba132697ee46d45045",
+      "newSha256": "92b2300b6a299dcd205671f4376c47e7ff2d3cb02493bbba132697ee46d45045",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/profile.ts",
+      "newPath": "apps/profile-preview/src/profile.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "2d6c70032bdb742414776af911d54bf28ddcb0f6c58cf242a0ce7da29f143464",
+      "newSha256": "2d6c70032bdb742414776af911d54bf28ddcb0f6c58cf242a0ce7da29f143464",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/test-setup.ts",
+      "newPath": "apps/profile-preview/src/test-setup.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "57c440e2838aba15eec29760dcd9698f0fa0ac6848d2e0b6ab9a96fc353a8455",
+      "newSha256": "57c440e2838aba15eec29760dcd9698f0fa0ac6848d2e0b6ab9a96fc353a8455",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/src/vite-env.d.ts",
+      "newPath": "apps/profile-preview/src/vite-env.d.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "newSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/tsconfig.json",
+      "newPath": "apps/profile-preview/tsconfig.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c2ec010a44eff797ebc3f7a037600ed811cfc867b3eb649afd93ed3a7fe484c0",
+      "newSha256": "c2ec010a44eff797ebc3f7a037600ed811cfc867b3eb649afd93ed3a7fe484c0",
+      "unchanged": true,
+      "classification": "unchanged-bytes-owner-move"
+    },
+    {
+      "previousPath": "local-previews/user-profile/vite.config.ts",
+      "newPath": "apps/profile-preview/vite.config.ts",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "1463afbb0e4c2c6de036bbf3c8c36fd9be0643ecc6e164015905d32e0ea2dacc",
+      "newSha256": "c99e0717f9aeaf266864158e93ab4036cc5089399090949c5dd9c3e61fa43266",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "package-lock.json",
+      "newPath": "package-lock.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "c5337b9da715c5ac15bb7b149c905a610511cfb0ce1790769606e0bf69837f6b",
+      "newSha256": "093fc7c395873e5504525597728732de1f6f480882fda908e70353173f5f2760",
+      "unchanged": false,
+      "classification": "lock-consolidation"
+    },
+    {
+      "previousPath": "package.json",
+      "newPath": "package.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "28dc5de517a65092da02ca034334748732733ce10218488fdc5ed1171439e85d",
+      "newSha256": "e30ec7fceb0ed55d67cf9269eb52cf60499b6171326517969892da6cd83adb5b",
+      "unchanged": false,
+      "classification": "workspace-contract"
+    },
+    {
+      "previousPath": "scripts/verification/README.md",
+      "newPath": "scripts/verification/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "bf1bf16f69409f1e453f4049e365c1e3a0f20bbeecc9024242224ae9bf944bcd",
+      "newSha256": "0b54bbaaa678b17c80b6430790d12297b928a315da90abd6b36affa7bf0ec773",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "scripts/verification/check-api.sh",
+      "newPath": "scripts/verification/check-api.sh",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "d4d90e8845a55990464a470177d0c708b626291179410cc9eb8e6ece38ecfa9d",
+      "newSha256": "44255908ab14debdc66ca2ba836b6e226ad6c33b743bace384be4e42334c9a0f",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "scripts/verification/check-built-public-site.py",
+      "newPath": "scripts/verification/check-built-public-site.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "73b6884b99415f66d466c1a1b59fb586f984eff25558624890f825f0e99429e7",
+      "newSha256": "37ee4d03c446f655812ef233b3b54b8fb99588ec0eabff58337a5371b5ccad36",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "scripts/verification/check-operational-sources.py",
+      "newPath": "scripts/verification/check-operational-sources.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "4610f65810510e015391dff7caf8e7af4f2d5275e869b928ee1de08922f75208",
+      "newSha256": "900410235db178cfe710d5bbd310f1b7868dc915c333e596e8fd7a0269102057",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "scripts/verification/check-repository-layout.mjs",
+      "newPath": "scripts/verification/check-repository-layout.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "a56949b60a4c987013dc1a0479e609aa3430cc5a2ecc0bc57e980762af76234c",
+      "newSha256": "277ff1d03541b9858022ad3cd69d7f9b81971b1853039b87c6792d93cc475821",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "scripts/verification/checks.test.mjs",
+      "newPath": "scripts/verification/checks.test.mjs",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "475dcf9e6fa3737ef0fe9ca4229fa863950ecdc338d4293edcf2a79ce935a940",
+      "newSha256": "daad083884cfcb081dd25470d39ff1074ac265598ec675ff8b75c318e8dbabc1",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "scripts/verification/repository-layout.json",
+      "newPath": "scripts/verification/repository-layout.json",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "5d2be07319bd86101e6efa585aa53286e792c36744e7905ca354a2726a1510a6",
+      "newSha256": "7ff3de7cc224d52ca5fff4698eee9fb533cdead35fb565850dc0147c2f1c6e40",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "tests/integration/README.md",
+      "newPath": "tests/integration/README.md",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "41526532712e115bf1d6e880bc741a5b0e19922f88397442fb3315d977e5b5aa",
+      "newSha256": "c33ab960d73b07ef75d58ad99922d8562dbc037ae4a4dd0ee0f778993139da0b",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "tests/integration/public-site-composition.test.tsx",
+      "newPath": "tests/integration/public-site-composition.test.tsx",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "f9296b44591049933161312a5b279af378c667ade229672fdbec32880bc42d53",
+      "newSha256": "8c6e45841c2b6478bf71b4bacf693162f6299a903e5d7107bf9575dc9d639ebd",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    },
+    {
+      "previousPath": "tests/integration/test_public_site_release.py",
+      "newPath": "tests/integration/test_public_site_release.py",
+      "previousMode": "100644",
+      "newMode": "100644",
+      "previousSha256": "12507dbad4bb941c96cbe1442e1e2de751ae9715387212df5c349369ad388ad7",
+      "newSha256": "e33251a2a2cdb0786b753b818587787e9a8a3c0a7fada53adfe950660c44bab7",
+      "unchanged": false,
+      "classification": "path-reference-update"
+    }
+  ],
+  "newFiles": {
+    "deployment/mail/templates/logo.webp": "accepted-brand-resource-copy",
+    "scripts/verification/check-mail-resources.py": "local-resource-closure-verifier",
+    "tests/e2e/mail-resources.mjs": "local-resource-render-verifier",
+    ".dockerignore": "workspace-docker-context",
+    "artifacts/repository-audits/task-5-lock-resolution.json": "lock-resolution-receipt"
+  }
+}

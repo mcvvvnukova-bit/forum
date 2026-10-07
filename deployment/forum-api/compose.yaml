@@ -1,7 +1,9 @@
 services:
   forum_api:
     image: ${FORUM_API_IMAGE:-astforum/forum-api:latest}
-    build: ../../apps/api
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     env_file: .env
     environment:

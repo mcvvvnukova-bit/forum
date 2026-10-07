@@ -26,16 +26,18 @@ const sourceFile = (path) => {
   assert(tracked.has(path), `Required source must be tracked: ${path}`)
   return absolute
 }
+const rootPackage = JSON.parse(readFileSync(sourceFile("package.json")))
+const rootLock = JSON.parse(readFileSync(sourceFile("package-lock.json")))
+assert.deepEqual(rootPackage.workspaces.slice().sort(), manifest.packages.filter(p => p.path !== ".").map(p => p.path).sort(), "Required workspace owners")
+assert.equal(rootLock.name, rootPackage.name)
 const expectedPackages = new Set()
 for (const owner of manifest.packages) {
   const prefix = owner.path === '.' ? '' : owner.path + '/'
   assert(!expectedPackages.has(prefix + 'package.json'), `Duplicate package: ${owner.path}`)
   expectedPackages.add(prefix + 'package.json')
   const pkg = JSON.parse(readFileSync(sourceFile(prefix + 'package.json')))
-  const lock = JSON.parse(readFileSync(sourceFile(prefix + 'package-lock.json')))
   assert.equal(pkg.name, owner.name, `Package name: ${owner.path}`)
-  assert.equal(lock.name, owner.name, `Lock name: ${owner.path}`)
-  assert.equal(lock.packages[''].name, owner.name, `Lock root name: ${owner.path}`)
+  assert.equal(rootLock.packages[owner.path === '.' ? '' : owner.path].name, owner.name, `Workspace lock name: ${owner.path}`)
   for (const [script, command] of Object.entries(owner.scripts)) {
     assert.equal(typeof command, 'string')
     assert(command.trim(), `Empty declared script: ${owner.path}:${script}`)
@@ -44,6 +46,7 @@ for (const owner of manifest.packages) {
   for (const path of [...owner.entrypoints, ...owner.tests]) sourceFile(prefix + path)
 }
 assert.deepEqual([...tracked].filter(p => p.endsWith('package.json')).sort(), [...expectedPackages].sort(), 'Unexpected or missing tracked packages')
+assert.deepEqual([...tracked].filter(p => p.endsWith("package-lock.json")), ["package-lock.json"], "Single root lock")
 for (const path of manifest.requiredFiles) sourceFile(path)
 const forbidden = path => path.split('/').some(p => manifest.ignoredSourceDirectories.includes(p)) || path.endsWith(manifest.ignoredPrivateSuffix)
 assert.deepEqual([...tracked].filter(forbidden), [], 'Private/generated paths must never be tracked source')

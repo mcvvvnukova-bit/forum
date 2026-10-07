@@ -1,9 +1,14 @@
 {
-  "name": "astforum-repository-checks",
+  "name": "@astforum/repository",
   "private": true,
   "type": "module",
   "scripts": {
-    "test:composition": "vitest run --config vitest.composition.config.ts"
+    "test:composition": "vitest run --config vitest.composition.config.ts",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "test:mail": "python3 scripts/verification/check-mail-resources.py && node tests/e2e/mail-resources.mjs",
+    "check:layout": "node scripts/verification/check-repository-layout.mjs",
+    "test:publishers": "python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v"
   },
   "devDependencies": {
     "@primer/react": "38.37.0",
@@ -15,5 +20,46 @@
     "react-dom": "19.2.8",
     "vite": "8.2.2",
     "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/legacy-landing",
+    "apps/primer-home",
+    "apps/audience-pages",
+    "apps/public-auth",
+    "apps/profile-preview"
+  ],
+  "overrides": {
+    "@nestjs/platform-fastify": {
+      "fastify": "5.12.5"
+    },
+    "source-map-js": "1.2.2",
+    "@fastify/proxy-addr": "5.1.0",
+    "@nestjs/common": "12.0.1",
+    "@nestjs/core": "12.0.1",
+    "@typescript-eslint/eslint-plugin": "8.71.0",
+    "@typescript-eslint/parser": "8.71.0",
+    "@typescript-eslint/project-service": "8.71.0",
+    "@typescript-eslint/scope-manager": "8.71.0",
+    "@typescript-eslint/tsconfig-utils": "8.71.0",
+    "@typescript-eslint/type-utils": "8.71.0",
+    "@typescript-eslint/types": "8.71.0",
+    "@typescript-eslint/typescript-estree": "8.71.0",
+    "@typescript-eslint/utils": "8.71.0",
+    "@typescript-eslint/visitor-keys": "8.71.0",
+    "acorn": "8.18.0",
+    "fast-uri@^4.1.5": "4.1.5",
+    "file-type": "22.0.2",
+    "pg": "8.23.0",
+    "pg-cloudflare": "1.4.0",
+    "pg-connection-string": "2.14.0",
+    "pg-protocol": "1.16.0",
+    "pino": "10.3.1",
+    "typescript-eslint": "8.71.0",
+    "uint8array-extras": "1.5.0",
+    "@playwright/test": "1.62.1"
   }
 }

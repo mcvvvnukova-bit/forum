@@ -29,8 +29,11 @@ jobs:
           node-version: 24.18.1
       - name: Candidate layout and verification regressions
         run: |
+          npm ci
           node scripts/verification/check-repository-layout.mjs
           node --test scripts/verification/checks.test.mjs
+          npx --no-install playwright install --with-deps chromium
+          npm run test:mail
       # Only a status receipt is uploaded. Raw application logs, environment,
       # generated sites and private worktree contents stay out of artifacts.
       - name: Sanitized failure receipt
@@ -61,8 +64,7 @@ jobs:
           node-version: 24.18.1
       - name: Clean install of API and its landing composition
         run: |
-          npm ci --prefix apps/api
-          npm ci --prefix deployment/dev-landing
+          npm ci
       - name: Install API-owned Chromium
         working-directory: apps/api
         run: npx --no-install playwright install --with-deps chromium
@@ -91,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [dev-landing, primer-home, audience-pages, public-auth]
+        package: [legacy-landing, primer-home, audience-pages, public-auth]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -101,21 +103,21 @@ jobs:
         with:
           node-version: 24.18.1
       - name: Clean install
-        run: npm ci --prefix deployment/${{ matrix.package }}
+        run: npm ci
       - name: Install landing-owned Chromium for its layout test
-        if: matrix.package == 'dev-landing'
-        working-directory: deployment/dev-landing
+        if: matrix.package == 'legacy-landing'
+        working-directory: apps/legacy-landing
         run: npx --no-install playwright install --with-deps chromium
       - name: Declared frontend checks
-        working-directory: deployment/${{ matrix.package }}
+        working-directory: apps/${{ matrix.package }}
         env:
           FRONTEND_PACKAGE: ${{ matrix.package }}
         run: |
           npm run typecheck
-          if [ "$FRONTEND_PACKAGE" != dev-landing ]; then npm run lint; fi
+          if [ "$FRONTEND_PACKAGE" != legacy-landing ]; then npm run lint; fi
           npm test
           # dev-landing's declared test:layout already builds both entrypoints.
-          if [ "$FRONTEND_PACKAGE" != dev-landing ]; then npm run build; fi
+          if [ "$FRONTEND_PACKAGE" != legacy-landing ]; then npm run build; fi
       # Only a status receipt is uploaded. Raw application logs, environment,
       # generated sites and private worktree contents stay out of artifacts.
       - name: Sanitized failure receipt
@@ -147,9 +149,6 @@ jobs:
       - name: Clean install all composition owners
         run: |
           npm ci
-          npm ci --prefix deployment/audience-pages
-          npm ci --prefix deployment/public-auth
-          npm ci --prefix deployment/primer-home
       - name: Actual public-site component composition
         run: npm run test:composition
       # Only a status receipt is uploaded. Raw application logs, environment,
@@ -183,16 +182,16 @@ jobs:
       - name: Actual three-publisher regression suites
         run: |
           python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v
-          python3 -m unittest discover -s deployment/primer-home/scripts -p 'test_*.py' -v
-          python3 -m unittest discover -s deployment/audience-pages/scripts -p 'test_*.py' -v
+          python3 -m unittest discover -s scripts/deployment/primer-home -p 'test_*.py' -v
+          python3 -m unittest discover -s scripts/deployment/audience-pages -p 'test_*.py' -v
           # Auth's six Python regressions run through its declared frontend npm test.
       - name: Fresh owned output for release composition
         run: |
+          npm ci
           for package in primer-home audience-pages public-auth; do
-            npm ci --prefix deployment/"$package"
-            npm run build --prefix deployment/"$package"
+            npm run build --workspace @astforum/"$package"
           done
-          node deployment/audience-pages/scripts/package-site.mjs
+          node apps/audience-pages/scripts/package-site.mjs
           python3 scripts/verification/check-built-public-site.py
       # Only a status receipt is uploaded. Raw application logs, environment,
       # generated sites and private worktree contents stay out of artifacts.
@@ -254,14 +253,13 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.18.1
-      - name: Profile fixture checks from its exact lock
-        working-directory: local-previews/user-profile
+      - name: Profile fixture checks from the workspace lock
         run: |
           npm ci
-          npm run typecheck
-          npm run lint
-          npm test
-          npm run build
+          npm run typecheck --workspace @astforum/profile-preview
+          npm run lint --workspace @astforum/profile-preview
+          npm test --workspace @astforum/profile-preview
+          npm run build --workspace @astforum/profile-preview
 
   operational:
     runs-on: ubuntu-24.04

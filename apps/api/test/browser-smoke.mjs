@@ -14,8 +14,8 @@ import {providerFixture} from '../.test-build/test/provider-fixture.js';
 
 const connectionString = testDatabaseUrl(process.env.TEST_DATABASE_URL);
 
-// The API owns the runner; the existing landing remains a separately installed composition.
-const landingRoot = fileURLToPath(new URL('../../../deployment/dev-landing/', import.meta.url));
+// The API owns the runner; the existing landing remains a workspace composition.
+const landingRoot = fileURLToPath(new URL('../../../apps/legacy-landing/', import.meta.url));
 try {
   for (const file of ['package.json', 'vite.landing.config.ts', 'landing.html', 'src/landing/LandingApp.tsx']) {
     await access(join(landingRoot, file));
@@ -25,7 +25,7 @@ try {
     landingRequire.resolve(dependency);
   }
 } catch (cause) {
-  throw new Error('Browser acceptance requires tracked deployment/dev-landing sources and its own dependencies. Run npm ci --prefix deployment/dev-landing from the repository root.', {cause});
+  throw new Error('Browser acceptance requires tracked apps/legacy-landing sources and its own dependencies. Run npm ci from the repository root.', {cause});
 }
 const screenshots = await mkdtemp(join(tmpdir(), 'forum-sber-browser-'));
 const pool = new Pool({connectionString});

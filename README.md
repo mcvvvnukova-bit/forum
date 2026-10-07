@@ -26,3 +26,10 @@
 Перенос продуктовых файлов из Git выполняется после проверки их сохранности в Outline. Отменённый парсер организаций и финансов по ОКВЭД из закрытого PR №2 исключён из принятой базы и дальнейшей разработки. Общий справочник ОКВЭД имеет отдельную границу.
 
 Правила работы, учётная запись ассистента и обязательная связь коммитов/PR с OpenProject закреплены в [AGENTS.md](AGENTS.md).
+
+
+## Workspace checks
+
+Use Node 24.18.1 and `npm ci` at the repository root. One root lock owns all six explicit application workspaces; `npm run typecheck` and `npm run build` require every owner. Public integration runs with `npm run test:composition`, publishers with `npm run test:publishers`, and local mail resources with `npm run test:mail`. Individual app commands use `npm run <script> --workspace @astforum/<owner>`.
+
+Accepted runtime source lives in `apps/`: API, legacy landing, Primer home, audience pages, public auth, profile fixture and Python dev gateway. `apps/web/production-static` is unchanged production source, not yet an npm package. Shared public navigation lives in `packages/public-navigation.ts`. Publishers are `scripts/deployment/<owner>`; local browser layout acceptance is `tests/e2e/legacy-landing-layout.mjs`. Infrastructure stays in `deployment/`; mail templates and the owned logo stay in `deployment/mail/templates/`. The source-path parity map is `artifacts/repository-audits/task-5-source-parity.json`.

@@ -19,9 +19,9 @@ def load(name, path):
     return module
 
 
-home = load('home_publisher', 'deployment/primer-home/scripts/deploy-dev-home.py')
-audience = load('audience_publisher', 'deployment/audience-pages/scripts/deploy.py')
-auth = load('auth_publisher', 'deployment/public-auth/scripts/deploy.py')
+home = load('home_publisher', 'scripts/deployment/primer-home/deploy-dev-home.py')
+audience = load('audience_publisher', 'scripts/deployment/audience-pages/deploy.py')
+auth = load('auth_publisher', 'scripts/deployment/public-auth/deploy.py')
 
 
 def html(body, loaders=''):
@@ -398,9 +398,9 @@ else: module.deploy(source,target,backups)
         before = snapshot(self.target)
         with public_site.site_lock(self.target):
             for script, source, kind in (
-                ('deployment/primer-home/scripts/deploy-dev-home.py', self.home, 'home'),
-                ('deployment/audience-pages/scripts/deploy.py', self.audience, 'audience'),
-                ('deployment/public-auth/scripts/deploy.py', self.auth, 'auth')):
+                ('scripts/deployment/primer-home/deploy-dev-home.py', self.home, 'home'),
+                ('scripts/deployment/audience-pages/deploy.py', self.audience, 'audience'),
+                ('scripts/deployment/public-auth/deploy.py', self.auth, 'auth')):
                 result = subprocess.run([sys.executable, '-c', code, str(ROOT / script), str(source),
                                          str(self.target), str(self.backups), kind], capture_output=True, text=True, timeout=10)
                 self.assertNotEqual(result.returncode, 0)
