@@ -618,8 +618,8 @@
           "reason": "Reviewed existing runtime/fixes retained",
           "candidatePath": "apps/legacy-landing/src/landing/assets/PARTNER_LOGOS.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "1c7f2db34b1443a5e046136710e3fc152a3dd9a9",
-          "candidateSha256": "aaf55af98b1d4443fb3c1b917e80f3651b2eae03fe90a38ad32218bda4b84c77",
+          "candidateGitBlob": "a782d7ffc07041183297b881e45892172ff31264",
+          "candidateSha256": "9d625d1bdfba17eed640d90f8ad8b1dfc444996da50a2596ff4ccc20e12f3478",
           "sourceRelativeDelta": "task5-owner-move",
           "task5PreviousCandidate": {
             "candidatePath": "deployment/dev-landing/src/landing/assets/PARTNER_LOGOS.md",
@@ -2499,16 +2499,22 @@
           "reason": "Reviewed existing runtime/fixes retained",
           "candidatePath": "apps/api/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "2ca67b8ecdf7f4d1197df5b1acc714573666d639",
-          "candidateSha256": "4bfe427d53729d4c23c18856fc1b6cedc98fd782b11fd397651a1910c468b938",
-          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
-          "deltaExplanation": "Approved Task2 F1-F6 and Task3 provenance/auth corrections; current candidate wins over old source; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json.",
+          "candidateGitBlob": "306aceaf77a7edfdb91ad6c2dcccdfa83c0ac954",
+          "candidateSha256": "f1bb07c5838ca1751ee619ff2790adb043bfbbe84b9c719ed0b3856b3a20828c",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged.",
           "task5PreviousCandidate": {
             "candidatePath": "apps/api/README.md",
             "candidateMode": "100644",
             "candidateGitBlob": "34f9cdc22788a515d717a31130e9ebd947ca5db1",
             "candidateSha256": "34ed691b84f478814b855ab88ed9b34aadffd580637c42a2518fa4158ab0c166",
             "sourceRelativeDelta": "reviewed-candidate-delta"
+          },
+          "task6PreviousCandidate": {
+            "candidatePath": "apps/api/README.md",
+            "candidateSha256": "4bfe427d53729d4c23c18856fc1b6cedc98fd782b11fd397651a1910c468b938",
+            "candidateGitBlob": "2ca67b8ecdf7f4d1197df5b1acc714573666d639",
+            "candidateMode": "100644"
           }
         },
         {
@@ -2895,11 +2901,18 @@
           "sourceSha256": "d04fa00ae05e5774a0f9fde751ceb2109d499acf37e94d25640c1553956b6978",
           "decision": "accepted",
           "reason": "Reviewed existing runtime/fixes retained",
-          "candidatePath": "deployment/forum-api/DEV-DEPLOYMENT.md",
+          "candidatePath": "deployment/forum-api/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "dec48e87a0dcbac7dd41f16df1e0f01b30086f9c",
-          "candidateSha256": "d04fa00ae05e5774a0f9fde751ceb2109d499acf37e94d25640c1553956b6978",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "d513b0604981bc78f41e6010e833e665171c7d00",
+          "candidateSha256": "931def6274fd56d8ab1e8d1e9f5e797bc05a7c2ef98f93fb43b82826223e5181",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
+          "task6PreviousCandidate": {
+            "candidatePath": "deployment/forum-api/DEV-DEPLOYMENT.md",
+            "candidateSha256": "d04fa00ae05e5774a0f9fde751ceb2109d499acf37e94d25640c1553956b6978",
+            "candidateGitBlob": "dec48e87a0dcbac7dd41f16df1e0f01b30086f9c",
+            "candidateMode": "100644"
+          },
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged."
         },
         {
           "sourcePath": "deployment/forum-api/README.md",
@@ -2910,9 +2923,16 @@
           "reason": "Reviewed existing runtime/fixes retained",
           "candidatePath": "deployment/forum-api/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "bda3a1370ba1e3e45c9f3534865ea74b2a579d88",
-          "candidateSha256": "4bd2e985b199ecad8734fcca5613ead523e68a783e2ec8a71f41aa21f1157c24",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "d513b0604981bc78f41e6010e833e665171c7d00",
+          "candidateSha256": "931def6274fd56d8ab1e8d1e9f5e797bc05a7c2ef98f93fb43b82826223e5181",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
+          "task6PreviousCandidate": {
+            "candidatePath": "deployment/forum-api/README.md",
+            "candidateSha256": "4bd2e985b199ecad8734fcca5613ead523e68a783e2ec8a71f41aa21f1157c24",
+            "candidateGitBlob": "bda3a1370ba1e3e45c9f3534865ea74b2a579d88",
+            "candidateMode": "100644"
+          },
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged."
         },
         {
           "sourcePath": "deployment/forum-api/astforum.caddy",
@@ -3080,11 +3100,18 @@
           "sourceSha256": "a43603914f023c05d79505ce7bc613b0d80674fe728d7c45786bed6f174bbda0",
           "decision": "accepted",
           "reason": "Reviewed existing runtime/fixes retained",
-          "candidatePath": "deployment/forum-db/PROFILES-DEPLOYMENT.md",
+          "candidatePath": "deployment/forum-db/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "cd0dfa40702e257118e6a9904f83d3df3acff332",
-          "candidateSha256": "a43603914f023c05d79505ce7bc613b0d80674fe728d7c45786bed6f174bbda0",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "ae5883e482ab00310a558995af87ff39787bb059",
+          "candidateSha256": "365a2557150ec22de4ad8e9bd13b9e4e3a35ad3b80272f3b2fbd014d04b1cf74",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
+          "task6PreviousCandidate": {
+            "candidatePath": "deployment/forum-db/PROFILES-DEPLOYMENT.md",
+            "candidateSha256": "a43603914f023c05d79505ce7bc613b0d80674fe728d7c45786bed6f174bbda0",
+            "candidateGitBlob": "cd0dfa40702e257118e6a9904f83d3df3acff332",
+            "candidateMode": "100644"
+          },
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged."
         },
         {
           "sourcePath": "deployment/forum-db/PUBLIC-DEPLOYMENT.md",
@@ -3093,11 +3120,18 @@
           "sourceSha256": "9fc2cbcf7db4df013c882a02cb07e7c0c9f9ddf9ddd1ed5dde53bc66b334a3a0",
           "decision": "accepted",
           "reason": "Reviewed existing runtime/fixes retained",
-          "candidatePath": "deployment/forum-db/PUBLIC-DEPLOYMENT.md",
+          "candidatePath": "deployment/forum-db/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "c4baf97430ee448b659771564cffdcfc2081ffe4",
-          "candidateSha256": "9fc2cbcf7db4df013c882a02cb07e7c0c9f9ddf9ddd1ed5dde53bc66b334a3a0",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "ae5883e482ab00310a558995af87ff39787bb059",
+          "candidateSha256": "365a2557150ec22de4ad8e9bd13b9e4e3a35ad3b80272f3b2fbd014d04b1cf74",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
+          "task6PreviousCandidate": {
+            "candidatePath": "deployment/forum-db/PUBLIC-DEPLOYMENT.md",
+            "candidateSha256": "9fc2cbcf7db4df013c882a02cb07e7c0c9f9ddf9ddd1ed5dde53bc66b334a3a0",
+            "candidateGitBlob": "c4baf97430ee448b659771564cffdcfc2081ffe4",
+            "candidateMode": "100644"
+          },
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged."
         },
         {
           "sourcePath": "deployment/forum-db/apply-profiles.psql",
@@ -3174,11 +3208,18 @@
           "sourceSha256": "a1d3cc13226ef0c8fd81532ea0b541e97dd9f8090225d8f917d1513e897cb606",
           "decision": "accepted",
           "reason": "Reviewed existing runtime/fixes retained",
-          "candidatePath": "deployment/forum-db/public-schema-review.md",
+          "candidatePath": "deployment/forum-db/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "9987d59958dc55368d5836f76a4ee04f64ac4f43",
-          "candidateSha256": "a1d3cc13226ef0c8fd81532ea0b541e97dd9f8090225d8f917d1513e897cb606",
-          "sourceRelativeDelta": "unchanged"
+          "candidateGitBlob": "ae5883e482ab00310a558995af87ff39787bb059",
+          "candidateSha256": "365a2557150ec22de4ad8e9bd13b9e4e3a35ad3b80272f3b2fbd014d04b1cf74",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
+          "task6PreviousCandidate": {
+            "candidatePath": "deployment/forum-db/public-schema-review.md",
+            "candidateSha256": "a1d3cc13226ef0c8fd81532ea0b541e97dd9f8090225d8f917d1513e897cb606",
+            "candidateGitBlob": "9987d59958dc55368d5836f76a4ee04f64ac4f43",
+            "candidateMode": "100644"
+          },
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged."
         },
         {
           "sourcePath": "deployment/forum-db/tests/profiles.sql",
@@ -5972,9 +6013,9 @@
           "reason": "Reviewed existing runtime/fixes retained",
           "candidatePath": "apps/audience-pages/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "c29941781caa3d5e5867bd48a91f2edeb7e8142e",
-          "candidateSha256": "11b7454061230864f1e4307b97283a49962529431a43aab189a033d67c79f0cd",
-          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
+          "candidateGitBlob": "48a6bef485015787f8101067ae126bf74f642728",
+          "candidateSha256": "48a2f2436cdc0822f9a3d47626b665ec50b60f35f92169b5195ab2d189762d90",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
           "task5PreviousCandidate": {
             "candidatePath": "deployment/audience-pages/README.md",
             "candidateMode": "100644",
@@ -5982,7 +6023,13 @@
             "candidateSha256": "2d89eb5d575ee4ef12d742a200b1b587cd5e0990ad30f76ca658d8dac877405c",
             "sourceRelativeDelta": "unchanged"
           },
-          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged.",
+          "task6PreviousCandidate": {
+            "candidatePath": "apps/audience-pages/README.md",
+            "candidateSha256": "11b7454061230864f1e4307b97283a49962529431a43aab189a033d67c79f0cd",
+            "candidateGitBlob": "c29941781caa3d5e5867bd48a91f2edeb7e8142e",
+            "candidateMode": "100644"
+          }
         },
         {
           "sourcePath": "deployment/audience-pages/eslint.config.js",
@@ -9089,9 +9136,9 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "apps/public-auth/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "8a493ed8ee17738a021992782c9753937a414f94",
-          "candidateSha256": "f70a1d3609d1d5a709e8c4a8eddaa66bdd97f247053961941637a056481100f8",
-          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
+          "candidateGitBlob": "83e33dc9187aa1734db221f9a6813250ddfaf5f0",
+          "candidateSha256": "4054145455131c08e05d4a1a3310f4272a4ca00b059b05cd09547ed5f1495f1d",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
           "task5PreviousCandidate": {
             "candidatePath": "deployment/public-auth/README.md",
             "candidateMode": "100644",
@@ -9099,7 +9146,13 @@
             "candidateSha256": "75f63989fada9d780955195d8569db2a2fc3da8e45b603ca93e8afaa053c896e",
             "sourceRelativeDelta": "unchanged"
           },
-          "deltaExplanation": "; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json."
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged.",
+          "task6PreviousCandidate": {
+            "candidatePath": "apps/public-auth/README.md",
+            "candidateSha256": "f70a1d3609d1d5a709e8c4a8eddaa66bdd97f247053961941637a056481100f8",
+            "candidateGitBlob": "8a493ed8ee17738a021992782c9753937a414f94",
+            "candidateMode": "100644"
+          }
         },
         {
           "sourcePath": "deployment/public-auth/eslint.config.js",
@@ -9859,16 +9912,22 @@
           "reason": "Selected pinned runtime source; no branch ancestry imported",
           "candidatePath": "apps/profile-preview/README.md",
           "candidateMode": "100644",
-          "candidateGitBlob": "abf504dbc3440858f0b6926bc463c8c95e21d923",
-          "candidateSha256": "945e35619ed9357631576f8030d0eb6e1f8994bf3126537a1049c0842dd5a0c9",
-          "sourceRelativeDelta": "task5-path-workspace-or-resource-delta",
-          "deltaExplanation": "PR14 technical README replaces product prose/omitted evidence links; Task5 mechanical owner/reference/workspace/root lock changes or deferred email logo closure; reviewed behavior preserved. See task-5-source-parity.json.",
+          "candidateGitBlob": "591d6ee1c46286c2fc5e4bf4677e09a02f701f85",
+          "candidateSha256": "9874969eb7c1140eca882fb9d8fac52cfef272742cb10d5300b90b5863914dbe",
+          "sourceRelativeDelta": "reviewed-documentation-ownership-delta",
+          "deltaExplanation": "Task6 current technical README ownership; product decisions/originals preserved in Outline, raw operational delivery originals private/history. Immutable source pins unchanged.",
           "task5PreviousCandidate": {
             "candidatePath": "local-previews/user-profile/README.md",
             "candidateMode": "100644",
             "candidateGitBlob": "7b8e13536b87dea651864f60ab126b66c76b9008",
             "candidateSha256": "3ee7b3b8378a4781879cc5cc3df27a0974ec8be4ecae3f1e9564b6c0e3291ced",
             "sourceRelativeDelta": "reviewed-candidate-delta"
+          },
+          "task6PreviousCandidate": {
+            "candidatePath": "apps/profile-preview/README.md",
+            "candidateSha256": "945e35619ed9357631576f8030d0eb6e1f8994bf3126537a1049c0842dd5a0c9",
+            "candidateGitBlob": "abf504dbc3440858f0b6926bc463c8c95e21d923",
+            "candidateMode": "100644"
           }
         },
         {
@@ -10404,5 +10463,125 @@
     "lockResolutionManifest": "artifacts/repository-audits/task-5-lock-resolution.json",
     "sourcePinsImmutable": true,
     "vpsObservationsRemainHistorical": true
+  },
+  "task6": {
+    "baseSha": "236941728afbe87d960357a1a96b45f44c5b3a7d",
+    "sourceObservationDate": "2026-10-06",
+    "task5SnapshotSha256": "32c5c040940ae80ab0679d26dad95ee1118f8d81c5950375ee74a8279ab4f135",
+    "migrationManifest": "artifacts/repository-audits/document-migration-manifest.json",
+    "currentDocumentationOwnership": [
+      {
+        "previousCandidatePath": "README.md",
+        "previousSha256": "b28a4d1560f4db99ae2c559b37eddfeeb930179404a141594463e3f3db98f722",
+        "previousMode": "100644",
+        "candidatePath": "README.md",
+        "candidateSha256": "33ab2ca7e888d3739afb0e39b9dafcd31ea210c6d22095dc80426f18ba967715",
+        "candidateGitBlob": "583bebb84dac5eba12882210a4380208e9fa3a16",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "apps/api/README.md",
+        "previousSha256": "4bfe427d53729d4c23c18856fc1b6cedc98fd782b11fd397651a1910c468b938",
+        "previousMode": "100644",
+        "candidatePath": "apps/api/README.md",
+        "candidateSha256": "f1bb07c5838ca1751ee619ff2790adb043bfbbe84b9c719ed0b3856b3a20828c",
+        "candidateGitBlob": "306aceaf77a7edfdb91ad6c2dcccdfa83c0ac954",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "artifacts/repository-audits/accepted-source-matrix.md",
+        "previousSha256": "fdd0c87ae1e73076decd596338eb6033c39a61f9a951175318e03e7a49a59b98",
+        "previousMode": "100644",
+        "candidatePath": "artifacts/repository-audits/accepted-source-matrix.md",
+        "candidateSha256": "270e96c5e42cd62dc0badd203dbf971cc4f8fc4743ff3f6cd80b5c3670b8205b",
+        "candidateGitBlob": "dad91ac26d0c295e6f6d67c7f8ea41c1ac95481d",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "apps/audience-pages/README.md",
+        "previousSha256": "11b7454061230864f1e4307b97283a49962529431a43aab189a033d67c79f0cd",
+        "previousMode": "100644",
+        "candidatePath": "apps/audience-pages/README.md",
+        "candidateSha256": "48a2f2436cdc0822f9a3d47626b665ec50b60f35f92169b5195ab2d189762d90",
+        "candidateGitBlob": "48a6bef485015787f8101067ae126bf74f642728",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "apps/legacy-landing/src/landing/assets/PARTNER_LOGOS.md",
+        "previousSha256": "aaf55af98b1d4443fb3c1b917e80f3651b2eae03fe90a38ad32218bda4b84c77",
+        "previousMode": "100644",
+        "candidatePath": "apps/legacy-landing/src/landing/assets/PARTNER_LOGOS.md",
+        "candidateSha256": "9d625d1bdfba17eed640d90f8ad8b1dfc444996da50a2596ff4ccc20e12f3478",
+        "candidateGitBlob": "a782d7ffc07041183297b881e45892172ff31264",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "apps/public-auth/README.md",
+        "previousSha256": "f70a1d3609d1d5a709e8c4a8eddaa66bdd97f247053961941637a056481100f8",
+        "previousMode": "100644",
+        "candidatePath": "apps/public-auth/README.md",
+        "candidateSha256": "4054145455131c08e05d4a1a3310f4272a4ca00b059b05cd09547ed5f1495f1d",
+        "candidateGitBlob": "83e33dc9187aa1734db221f9a6813250ddfaf5f0",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "apps/profile-preview/README.md",
+        "previousSha256": "945e35619ed9357631576f8030d0eb6e1f8994bf3126537a1049c0842dd5a0c9",
+        "previousMode": "100644",
+        "candidatePath": "apps/profile-preview/README.md",
+        "candidateSha256": "9874969eb7c1140eca882fb9d8fac52cfef272742cb10d5300b90b5863914dbe",
+        "candidateGitBlob": "591d6ee1c46286c2fc5e4bf4677e09a02f701f85",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "scripts/verification/README.md",
+        "previousSha256": "0b54bbaaa678b17c80b6430790d12297b928a315da90abd6b36affa7bf0ec773",
+        "previousMode": "100644",
+        "candidatePath": "scripts/verification/README.md",
+        "candidateSha256": "ce42b692aa984d66cb90de582a322ff7a98e42c13c5c188c761927de66f31410",
+        "candidateGitBlob": "3395577280be02479c01ae81afba7b6e11f16240",
+        "candidateMode": "100644"
+      }
+    ],
+    "currentVerificationOwnership": [
+      {
+        "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+        "previousSha256": "900410235db178cfe710d5bbd310f1b7868dc915c333e596e8fd7a0269102057",
+        "previousMode": "100644",
+        "candidatePath": "scripts/verification/check-operational-sources.py",
+        "candidateSha256": "64d18cf65c1eb24f32c8357bb51ed060f68a29e3bb2d47e91817fcab23e11bd9",
+        "candidateGitBlob": "135ee90348158c8add3b9e225c9e75750898f71e",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "scripts/verification/check-repository-layout.mjs",
+        "previousSha256": "277ff1d03541b9858022ad3cd69d7f9b81971b1853039b87c6792d93cc475821",
+        "previousMode": "100644",
+        "candidatePath": "scripts/verification/check-repository-layout.mjs",
+        "candidateSha256": "61b13e05d81e540419fb030a231f4732343cc8666f136844a04f51c6af7b5ae8",
+        "candidateGitBlob": "26f87a6128ddd0b2b285e7534cef10d8362c77b6",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "scripts/verification/checks.test.mjs",
+        "previousSha256": "daad083884cfcb081dd25470d39ff1074ac265598ec675ff8b75c318e8dbabc1",
+        "previousMode": "100644",
+        "candidatePath": "scripts/verification/checks.test.mjs",
+        "candidateSha256": "6a751ec7c77ab310bff50b6c40b05c966190e7a89feaba50c12a560a5f2a18b9",
+        "candidateGitBlob": "6259d5c6e6707073265d33f7c5a205b8cb3cc1ed",
+        "candidateMode": "100644"
+      },
+      {
+        "previousCandidatePath": "scripts/verification/repository-layout.json",
+        "previousSha256": "7ff3de7cc224d52ca5fff4698eee9fb533cdead35fb565850dc0147c2f1c6e40",
+        "previousMode": "100644",
+        "candidatePath": "scripts/verification/repository-layout.json",
+        "candidateSha256": "5f57baf365d5e246b17804ecc257fdf1358861a9a0cfa68727cc3b7bf0416d9d",
+        "candidateGitBlob": "2e8cb157cf051bd3a90f24787c57d4023ccab09d",
+        "candidateMode": "100644"
+      }
+    ],
+    "immutableSourcePins": true,
+    "currentOwnershipReceipt": "artifacts/repository-audits/task-6-source-ownership.json"
   }
 }

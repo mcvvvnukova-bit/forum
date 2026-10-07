@@ -1,4 +1,4 @@
-# audience-pages runtime
+# primer-home runtime
 
 Продуктовые требования: [Outline](https://docs.astforum.ru). Исторические решения/оригиналы связаны в [реестре миграции](../../artifacts/repository-audits/document-migration-manifest.json).
 
@@ -13,8 +13,8 @@ npm test
 npm run build
 ```
 
-Локальный loopback: `http://127.0.0.1:5191/`. Корневой lockfile владеет dependency installation. CI проверяет требуемые workspace scripts; build не выполняет публикацию.
+Локальный loopback: `http://127.0.0.1:5188/`. Корневой lockfile владеет dependency installation. CI проверяет требуемые workspace scripts; build не выполняет публикацию.
 
-`node scripts/package-site.mjs` создаёт `dist/site` с customer/supplier/work/participate entrypoints и изолированными assets. Publisher: [deploy.py](../../scripts/deployment/audience-pages/deploy.py); его проверки запускаются `python3 -m unittest discover -s ../../scripts/deployment/audience-pages -p 'test_*.py' -v`.
+`npm run build:dev` задаёт существующие session/auth build variables. Publisher: [deploy-dev-home.py](../../scripts/deployment/primer-home/deploy-dev-home.py), проверки: `python3 -m unittest discover -s ../../scripts/deployment/primer-home -p 'test_*.py' -v`.
 
 Композиция/navigation/auth-loader согласуются с остальными публичными владельцами через `npm run test:composition` из корня. Публикация, target, backup/rollback и served SHA проверяются по [release runbook](../../deployment/release.md); historical source evidence не подтверждает текущий VPS.

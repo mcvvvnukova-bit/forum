@@ -2,8 +2,7 @@
 
 Source owner: [PROJ-150](https://roadmap.astforum.ru/work_packages/PROJ-150).
 This Primer preview uses only fictional data in `src/fixtures.ts`. It does not
-perform OAuth, fetch provider userinfo, or persist personal data. Keep the
-fixture label visible. Product requirements belong in [Outline](https://docs.astforum.ru).
+perform OAuth, fetch provider userinfo, or persist personal data. Product requirements belong in [Outline](https://docs.astforum.ru).
 
 From this directory, run `npm ci --prefix ../..`, then `npm run dev` for the loopback preview
 at `http://127.0.0.1:5190/`. The port is strict. Direct `/profile/work` navigation
@@ -19,3 +18,5 @@ served hashes and rollback need a separate release gate; no deployment runs
 through this package's checks. Historical release/design evidence and the
 original mixed product README remain preserved in pinned source history and
 the private backup; they are not current acceptance evidence.
+
+Historical product decisions: [preserved source extraction](https://docs.astforum.ru/doc/resheniya-iz-istochnika-readme-3e4aa273-OjazSb3nCk).

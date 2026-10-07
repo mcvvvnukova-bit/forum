@@ -1,0 +1,11 @@
+.superpowers/**
+.secrets/**
+backups/**
+**/*.private.*
+**/node_modules/**
+**/dist/**
+.gitnexus/**
+.gitnexus-cache/**
+.outline-migration/**
+outline-uploads/**
+**/*.private
