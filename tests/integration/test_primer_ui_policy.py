@@ -170,6 +170,22 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
             with self.subTest(declaration=declaration):
                 self.assert_visual_findings("import {Stack as Layout} from '@primer/react';" + declaration, [1])
 
+    def test_lowercase_stack_aliases_render_intrinsic_tags_and_retain_warnings(self):
+        for alias in ('div', 'stack', 'xStack'):
+            with self.subTest(alias=alias):
+                self.assert_visual_findings(f"import {{Stack as {alias}}} from '@primer/react';const C=()=> <{alias} gap=\"normal\"/>", [1])
+
+    def test_lowercase_card_aliases_render_intrinsic_tags_and_retain_warnings(self):
+        for alias in ('section', 'card', 'xCard'):
+            with self.subTest(alias=alias):
+                self.assert_visual_findings(f"import {{Card as {alias}}} from '@primer/react/experimental';const C=()=> <{alias} padding=\"none\" borderRadius=\"medium\"/>", [1, 1])
+
+    def test_same_line_primer_prop_does_not_exempt_intrinsic_alias(self):
+        self.assert_visual_findings("import {Stack,Stack as div} from '@primer/react';const C=()=> <><Stack gap=\"normal\"/><div gap=\"normal\"/></>", [1])
+
+    def test_lowercase_namespace_members_are_runtime_component_references(self):
+        self.assert_visual_findings("import * as p from '@primer/react';import * as e from '@primer/react/experimental';const C=()=> <p.Stack gap=\"normal\"><e.Card padding=\"none\" borderRadius=\"medium\"/></p.Stack>", [])
+
     def test_escaped_namespace_parameters_cannot_prove_imported_component(self):
         for declaration in (
             r'function C(\u0050) {return <P.Stack gap="normal"/>}',

@@ -197,6 +197,11 @@ def scan_with_semantic_values(scanner, root):
         for tag in tags:
             component, _start, _end = tag
             parts = component.split('.')
+            # Bare lowercase/hyphenated JSX names render intrinsic elements,
+            # even when an import has the same local name. Member expressions
+            # (including lowercase namespaces) instead use the runtime binding.
+            if len(parts) == 1 and ('a' <= component[0] <= 'z' or '-' in component):
+                continue
             binding = bindings.get(parts[0])
             if binding is None:
                 continue

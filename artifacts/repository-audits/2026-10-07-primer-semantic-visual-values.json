@@ -52,10 +52,26 @@
         "exitCode": 0,
         "evidence": ".superpowers/sdd/2026-10-07-primer-semantic-visual-values/task-1-fix1-green.log"
       }
+    },
+    "finalReviewFixWave": {
+      "inspectedBaseSha": "05cbf888d822819a7f47142b7662553203291a2e",
+      "issue": "intrinsic JSX tags through lowercase import aliases",
+      "red": {
+        "tests": 25,
+        "failures": 7,
+        "exitCode": 1,
+        "evidence": ".superpowers/sdd/2026-10-07-primer-semantic-visual-values/final-fix-wave-red.log"
+      },
+      "green": {
+        "tests": 25,
+        "failures": 0,
+        "exitCode": 0,
+        "evidence": ".superpowers/sdd/2026-10-07-primer-semantic-visual-values/final-fix-wave-green.log"
+      }
     }
   },
   "verification": {
-    "npm run test:primer": "21 tests pass",
+    "npm run test:primer": "25 tests pass",
     "npm run check:primer": "0 errors / 0 warnings",
     "node scripts/verification/check-repository-layout.mjs": "pass",
     "node --test scripts/verification/checks.test.mjs": "44 tests pass",
