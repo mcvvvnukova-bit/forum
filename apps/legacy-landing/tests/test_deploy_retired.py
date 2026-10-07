@@ -54,13 +54,28 @@ class RetiredDeployTest(unittest.TestCase):
         # A deterministic caller preflight sees no owner. Publication acquires
         # the real common lock and establishes ownership before the invocation
         # resumes. Retirement has no script-side preflight/mutation window.
-        prefix = ''
+        command = ['/bin/sh', str(self.fixture.script), *args]
         if first_owner:
-            prefix = (f'test ! -e {shlex.quote(str(self.marker))} || exit 91; '
-                      f'printf ready >&{ready_w}; read -r resume <&{resume_r}; ')
-        command = prefix + 'exec /bin/sh ' + shlex.quote(str(self.fixture.script)) + ' "$@"'
+            # dash rejects shell redirections for inherited FDs above 9. Use
+            # Python's descriptor API for the barrier, then exec the real shell
+            # with the same PTY stdin and exact deployment arguments.
+            handshake = r"""
+import os
+import sys
+marker, script, ready, resume, *args = sys.argv[1:]
+if os.path.lexists(marker):
+    raise SystemExit(91)
+os.write(int(ready), b'ready')
+if os.read(int(resume), 9) != b'continue\n':
+    raise SystemExit(92)
+os.close(int(ready))
+os.close(int(resume))
+os.execv('/bin/sh', ['/bin/sh', script, *args])
+"""
+            command = [sys.executable, '-c', handshake, str(self.marker),
+                       str(self.fixture.script), str(ready_w), str(resume_r), *args]
         before = self.snapshot()
-        proc = subprocess.Popen(['/bin/sh', '-c', command, 'retirement-test', *args],
+        proc = subprocess.Popen(command,
             env=dict(self.fixture.env, DEV_LANDING_PASSWORD='synthetic-never-write'),
             stdin=slave, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
             pass_fds=(ready_w, resume_r))

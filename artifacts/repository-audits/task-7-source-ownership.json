@@ -1055,7 +1055,7 @@
   "newFiles": [
     {
       "path": "apps/legacy-landing/tests/test_deploy_retired.py",
-      "sha256": "1e28127f774ec8f518a39213d841656518174bdeda56f5adab1cd8c9a3db4736"
+      "sha256": "a24dc2503f7492c61678fe1f3dc035c49c4a6e6eb5bec348b812dafa69d8d2da"
     },
     {
       "path": "apps/web/README.md",
