@@ -123,14 +123,14 @@ completion beyond those claims is a separate feature.
 
 ## Persistence And Operations
 
-**Main database update, 2026-09-15:** `forum` now has migrations 001–003 and all
+**Historical main database observation, 2026-09-15:** the source reported `forum` with migrations001–003 and all
 21 application tables in `public`, applied with `deployment/forum-db/apply-public.psql`.
 This API still uses the legacy Sandbox schema; its migrator runs only 001 and
 refuses installations containing `public.schema_migrations` to prevent recreating IAM.
-The deployed API continues using the unchanged `forum_sber_sandbox`. Update the
+The documented API store uses `forum_sber_sandbox`; freshly verify the deployment target before release. Update the
 store queries to `public.*`, registration transaction and authorization before
 pointing this API at the main database.
-See [the database deployment record](../../deployment/forum-db/PUBLIC-DEPLOYMENT.md).
+See [database ownership and checks](../../deployment/forum-db/README.md).
 The following describes the existing API implementation based on migration 001.
 
 The additive migration creates only the identity/individual-registration subset
@@ -194,7 +194,7 @@ It composes the existing frontend in
 and its Vite config/plugin). From a clean checkout at the repository root:
 
 ```sh
-npm ci --prefix ../..
+npm ci
 cd apps/api
 npx --no-install playwright install chromium
 TEST_DATABASE_URL=postgres://postgres:local-auth-tests@127.0.0.1:55432/forum_auth_test npm run test:browser
@@ -228,54 +228,11 @@ CSS from the earlier implementation; the new feedback uses Primer's Banner and
 the new logout control uses Primer's Button. No new Forum variable mapping was
 introduced or independently checked against Figma in this backend task.
 
-### Sandbox Connection Check (2026-09-11)
+### Sandbox target and TLS boundary
 
-This section records the earlier disabled deployment. On 2026-10-01 (Moscow),
-release `20261001-sber-dns` enabled the dev Sandbox after a live code exchange
-confirmed `issuer=id-sb.sber.ru`. See the current
-[deployment record](../../deployment/forum-api/DEV-DEPLOYMENT.md).
+The September11/October1 connection observations are historical; they do not prove the current deployment. Verify the selected database/schema, configured issuer, redirect origin, provider endpoint/port, certificate chain and runtime grants before an authorized release. The sandbox store is separate from the main `public` schema; a TLS connection alone does not prove OAuth, persistence or account reuse.
 
-The supplied PKCS#12 password was verified; the encrypted PEM private key matches
-the client certificate. The Sandbox client certificate is valid until 2027-07-29.
-Credentials and converted material are stored only in ignored `secrets/` files
-with mode 0600 and a mode 0700 parent. The ignored `.env.sber-test` contains the
-confirmed Client ID and `https://astforum.ru/authorization` callback from the
-partner-portal screenshot; it remains disabled.
-
-The initial checks used port 443 and failed TLS verification. The official
-[Postman collection](https://documenter.getpostman.com/view/10935182/2sA3Qqes13),
-linked from Sber's testing guide, specifies `https://oauth-sb.sber.ru:6443` instead.
-The collection uses that origin for token exchange, userinfo and completion.
-The text guides disagree: Cloud examples omit the port, and the token guide
-lists `oauth-ift.sber.ru`. The latter timed out in the initial checks.
-
-A fresh read-only check from `forum-prod` on port 6443 passed certificate and
-hostname verification with the supplied client certificate and the existing
-Ministry root CA. A temporary Node 24 container negotiated TLS 1.3, reported
-`tlsAuthorized=true`, and received HTTP 400 JSON for a diagnostic GET without
-OAuth parameters. No Client Secret, real authorization code or user data was sent.
-The server chain is `id-sb.sber.ru` (SAN includes `oauth-sb.sber.ru`) ->
-`Russian Trusted Sub CA` -> `Russian Trusted Root CA`.
-No TLS bypass or OS-wide trust change was necessary.
-
-The runtime now selects port 6443; a regression test caught the old port before
-the fix. Release `20260911T185501Z` serves the API for the updated landing through
-`https://dev.astforum.ru`, behind the existing shared-password landing gate.
-The API uses `PUBLIC_ORIGIN=https://dev.astforum.ru` and remains disabled for Sber.
-The registered callback remains on the main domain. Its relay to dev was approved,
-implemented and verified on 2026-09-11. Confirm the exact token issuer before
-enabling real authentication; no issuer has been guessed or accepted dynamically.
-
-The earlier deployment to the main domain was rolled back. Its previous static
-site remains unchanged. Caddy changed only to add the approved callback redirect;
-main-domain session and authentication-start API routes remain absent.
-The new dev API container is healthy and uses the corrected Sandbox endpoint.
-Migrations ran only in the new `forum_sber_sandbox` database, retained after rollback.
-The main `forum` database was not migrated. Real Sber authentication remains disabled
-and no real code exchange succeeded.
-The previous port-443 certificate error does not apply to the verified port 6443.
-See [the dev deployment record](../../deployment/forum-api/DEV-DEPLOYMENT.md) for verification
-results, server paths, remaining blockers and rollback instructions.
+Port6443 and hostname/certificate validation are part of the documented provider configuration. Keep private certificates, converted keys, passwords and session/provider payloads outside Git. Use the owned [deployment runbook](../../deployment/forum-api/README.md) and [release gates](../../deployment/release.md) for target/backup/served-origin/rollback evidence; raw delivery records remain private/history.
 
 Official sources consulted:
 
@@ -286,3 +243,5 @@ Official sources consulted:
 - [Sber test environment](https://developers.sber.ru/docs/ru/sberid/service/how-to-test)
 - [Official Sber ID Postman collection](https://documenter.getpostman.com/view/10935182/2sA3Qqes13)
 - [OIDC ID token validation](https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation)
+
+Product decisions and their exact historical source provenance are in [the migration register](../../artifacts/repository-audits/document-migration-manifest.json); canonical requirements remain in Outline.

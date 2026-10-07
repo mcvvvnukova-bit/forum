@@ -1,12 +1,8 @@
----
-title: "feat: Stabilize architecture baseline and define contracts"
-type: feat
-status: active
-date: 2026-08-14
-deepened: 2026-08-14
----
-
 # feat: Stabilize architecture baseline and define contracts
+
+Исторический технический план от 2026-08-14. Статусы и результаты ниже относятся к исходному наблюдению, не подтверждают текущий runtime и не разрешают новый запуск или публикацию. Перед исполнением сверить актуальный код, канонические требования и отдельно разрешённую задачу.
+
+Происхождение: `docs/plans/2026-08-14-001-feat-architecture-baseline-contracts-plan.md`, SHA-256 `d7898d126981d3ee0996d94f2d771b365eeffcff3cfbb2904ad18af3d3f3339d`. Проверка сохранения указана в [реестре миграции](../../artifacts/repository-audits/document-migration-manifest.json).
 
 ## Overview
 
@@ -20,7 +16,7 @@ However, several active documents still describe the superseded stack and regist
 
 ## Requirements Trace
 
-- R1. Establish a single authoritative MVP architecture baseline consistent with `docs/implementation-plans/M00-technical-requirements.md`.
+- R1. Establish a single authoritative MVP architecture baseline consistent with [продуктовый источник](https://docs.astforum.ru/doc/istochnik-06102026-tehnicheskij-stek-2bd883af-yR3dA36EdP).
 - R2. Preserve participant authentication and access recovery exclusively through Sber ID or Kontur.Diadok, with no participant-local password or registration moderation.
 - R3. Define trusted Sber ID/Kontur.Diadok profiles, platform-session security, identity linking, and foundation REST/OpenAPI contracts for access, participants, and organizations before endpoint implementation.
 - R4. Define foundation domain-event schemas plus governance rules that let later vertical slices add versioned events for local delivery and a future Kafka adapter without changing domain handlers.
@@ -46,11 +42,11 @@ However, several active documents still describe the superseded stack and regist
 
 ### Relevant Code and Patterns
 
-- `docs/implementation-plans/M00-technical-requirements.md` defines the approved MVP stack and container shape.
-- `docs/architecture/module-boundaries-and-data-ownership.md` defines module ownership, synchronous ports, outbox delivery, and the next required architecture artifact.
-- `docs/architecture/postgresql-data-model.md` defines schemas, logical tables, constraints, transaction boundaries, and migration order.
-- `docs/adr/0005-external-identification-without-registration-moderation.md` supersedes manual registration verification.
-- `docs/technical-assignment-contract-appendix-forum.md` is the Markdown source for the contract-oriented technical assignment and must match both DOCX editions.
+- [продуктовый источник](https://docs.astforum.ru/doc/istochnik-06102026-tehnicheskij-stek-2bd883af-yR3dA36EdP) defines the approved MVP stack and container shape.
+- `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md` defines module ownership, synchronous ports, outbox delivery, and the next required architecture artifact.
+- `docs/plans/2026-08-14-postgresql-data-model.md` defines schemas, logical tables, constraints, transaction boundaries, and migration order.
+- [продуктовый источник](https://docs.astforum.ru/doc/istochnik-06102026-external-identification-without-registration-moderation-a4db8eb3-zqS7i9shUo) supersedes manual registration verification.
+- [продуктовый источник](https://docs.astforum.ru/doc/istochnik-06102026-prilozhenie-1-k-dogovoru-na-sozdanie-sistemy-fa7fdc5f-LM39HvHibf) is the Markdown source for the contract-oriented technical assignment and must match both DOCX editions.
 - `docs/plans/2026-07-04-001-feat-construction-platform-mvp-plan.md` is historically useful but technically obsolete and must not remain active.
 - No `docs/solutions/` directory or application-code patterns exist yet.
 
@@ -94,29 +90,9 @@ However, several active documents still describe the superseded stack and regist
 - **Exact provider URLs and credentials:** resolve per environment after the trusted flow, claim, issuer/audience/JWKS, redirect, replay, and organization-binding profiles are approved in Unit 3.
 - **Final Kafka topic naming and registry product:** preserve logical event names and JSON Schema compatibility now; bind them to the selected Platform V environment later.
 
-## Output Structure
+## Artifact ownership after repository ordering
 
-```text
-docs/
-├── adr/
-│   ├── 0006-mvp-application-architecture.md
-│   ├── 0007-platform-session-security.md
-│   └── 0008-direct-sql-migration-strategy.md
-├── api/
-│   ├── openapi.yaml
-│   └── errors.md
-├── architecture/
-│   ├── domain-event-catalog.md
-│   ├── external-identity-profiles.md
-│   ├── platform-v-compatibility-matrix.md
-│   └── architecture-document-precedence.md
-├── events/
-│   └── schemas/
-├── migrations/
-│   └── README.md
-└── plans/
-    └── <replacement-mvp-plan>.md
-```
+Product decisions/formal assignments/backlog and their historical originals are linked in Outline. Technical implementation decisions belong in `docs/plans/*.md`; executable HTTP/event schemas belong to `apps/api/contracts/`; migration runner/SQL belongs to the existing API and database deployment owners. These are planned outputs, not files claimed to exist.
 
 ## High-Level Technical Design
 
@@ -178,8 +154,8 @@ flowchart TB
 **Dependencies:** Access to current official Sber ID and Kontur.Diadok partner documentation; product/legal owner available for a fallback decision
 
 **Files:**
-- Create: `docs/architecture/external-identity-feasibility.md`
-- Modify: `docs/adr/0005-external-identification-without-registration-moderation.md` only if an approved fallback changes its assumptions
+- Create: `docs/plans/2026-08-14-external-identity-feasibility.md`
+- Modify: [продуктовый источник](https://docs.astforum.ru/doc/istochnik-06102026-external-identification-without-registration-moderation-a4db8eb3-zqS7i9shUo) only if an approved fallback changes its assumptions
 
 **Approach:**
 - Time-box provider discovery and record flows, accessible claims/APIs, sandbox/contract prerequisites, and evidence strength separately for a person, organization membership, and organization-administrator authority.
@@ -188,7 +164,7 @@ flowchart TB
 - If organization authority is unavailable, stop downstream identity work and require a product/ADR decision among an additional trusted authority such as КЭП/МЧД, an invitation/bootstrap authority model, a narrowed provider scope, or a revision of the automatic-first-administrator acceptance criterion. Do not silently restore manual registration moderation.
 
 **Patterns to follow:**
-- Registration invariants in ADR-0005 and `docs/architecture/module-boundaries-and-data-ownership.md`.
+- Registration invariants in ADR-0005 and `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`.
 
 **Test scenarios:**
 - Test expectation: none -- this is a provider/legal feasibility decision gate.
@@ -197,39 +173,13 @@ flowchart TB
 - The feasibility document distinguishes verified provider capability from assumptions and records an approved path for the first organization administrator.
 - Unit 1 cannot proceed if the provider capability required by the formal TЗ is unsupported and no replacement decision is approved.
 
-- [ ] **Unit 1: Align normative documents**
+- [ ] **Unit 1: Align canonical normative documents and supersession**
 
-**Goal:** Remove active contradictions in the technical assignment, backlog, and planning status before new contracts are treated as authoritative.
+**Dependencies:** Unit 0. Product owner decisions govern changes to canonical Outline requirements.
 
-**Requirements:** R1, R2
+**Approach:** Compare formal assignments, current canonical registration/session requirements and approved technical contracts. Record architecture precedence and the historical July Next.js/Prisma/manual-verification basis as superseded. Preserve that exact original and its causal link in the migration register rather than create another product Markdown/DOCX copy. Proposed normative changes require a scoped approved Outline task and fresh actor/revision/body check; historical sources never overwrite canonical requirements.
 
-**Dependencies:** Unit 0
-
-**Files:**
-- Modify: `docs/technical-assignment-contract-appendix-forum.md`
-- Modify: `docs/technical-assignment-contract-appendix-forum.docx`
-- Modify: `docs/technical-assignment-gost34-forum.docx`
-- Modify: `docs/backlog.md`
-- Modify: `docs/plans/2026-07-04-001-feat-construction-platform-mvp-plan.md`
-- Create: `docs/architecture/architecture-document-precedence.md`
-
-**Approach:**
-- Replace Next.js full-stack, Prisma, generic S3, and Redis/BullMQ requirements with the approved split web/backend stack, direct `pg`, AWS S3, pg-boss, and outbox/EventBus wording.
-- Reframe the backlog INN check as post-registration enrichment or risk monitoring, not a blocking verification reviewed by a moderator.
-- Mark the old implementation plan `superseded` and point to this architecture milestone; preserve it as historical context.
-- State document precedence and supersession rules so formal TЗ, accepted ADRs, architecture documents, and active plans cannot silently diverge again.
-
-**Patterns to follow:**
-- Version and change-log handling in the current technical-assignment editions.
-- Supersession wording in `docs/adr/0001-manual-provider-verification.md` and ADR-0005.
-
-**Test scenarios:**
-- Test expectation: none -- this unit changes normative documentation, not runtime behavior.
-
-**Verification:**
-- Repository searches find no active requirement for Prisma, Redis/BullMQ, participant-local passwords, or manual registration moderation.
-- Both DOCX editions render without clipping or broken tables and match the Markdown requirement intent.
-- The obsolete MVP implementation plan is `superseded`; this architecture milestone remains the active bridge until Unit 7 publishes exactly one replacement MVP implementation plan.
+**Verification:** The active technical sequence has no competing ORM/queue/auth model. Superseded basis is historical only; sources and canonical requirements remain usable and identify their observation dates. No runtime test applies to the document-alignment step.
 
 - [ ] **Unit 2: Record the MVP architecture baseline as an ADR**
 
@@ -240,12 +190,12 @@ flowchart TB
 **Dependencies:** Unit 1
 
 **Files:**
-- Create: `docs/adr/0006-mvp-application-architecture.md`
-- Create: `docs/architecture/platform-v-compatibility-matrix.md`
-- Modify: `docs/implementation-plans/M00-technical-requirements.md`
-- Modify: `docs/architecture/module-boundaries-and-data-ownership.md`
-- Modify: `docs/architecture/postgresql-data-model.md`
-- Modify: `docs/architecture/architecture-document-precedence.md`
+- Create: `docs/plans/2026-08-14-architecture-baseline-decision.md`
+- Create: `docs/plans/2026-08-14-platform-v-compatibility-matrix.md`
+- Reference: preserved historical source and current canonical Outline requirements; no local product copy.
+- Modify: `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`
+- Modify: `docs/plans/2026-08-14-postgresql-data-model.md`
+- Modify: `docs/plans/2026-08-14-architecture-document-precedence.md`
 
 **Approach:**
 - Record the modular-monolith rationale, container split, NestJS/Fastify backend, direct `pg`, AWS S3 port, pg-boss `JobQueue`, and outbox `EventBus`.
@@ -273,10 +223,10 @@ flowchart TB
 **Dependencies:** Units 0 and 2
 
 **Files:**
-- Create: `docs/architecture/external-identity-profiles.md`
-- Create: `docs/adr/0007-platform-session-security.md`
-- Modify: `docs/architecture/module-boundaries-and-data-ownership.md`
-- Modify: `docs/architecture/postgresql-data-model.md`
+- Create: `docs/plans/2026-08-14-external-identity-profiles.md`
+- Create: `docs/plans/2026-08-14-platform-session-security.md`
+- Modify: `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`
+- Modify: `docs/plans/2026-08-14-postgresql-data-model.md`
 
 **Approach:**
 - For each provider, record supported authorization flow, PKCE/state/nonce requirements, issuer/audience/JWKS and allowed algorithms, redirect allowlist, TTL/replay handling, trusted claims, logout/revocation capability, and access-recovery handoff.
@@ -292,8 +242,8 @@ flowchart TB
 **Execution note:** Treat Unit 0 evidence and negative trust-boundary scenarios as an architecture gate; do not infer claims from provider-neutral OAuth/OIDC assumptions.
 
 **Patterns to follow:**
-- Registration boundaries in `docs/architecture/module-boundaries-and-data-ownership.md`.
-- External identities, sessions, uniqueness, and transaction rules in `docs/architecture/postgresql-data-model.md`.
+- Registration boundaries in `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`.
+- External identities, sessions, uniqueness, and transaction rules in `docs/plans/2026-08-14-postgresql-data-model.md`.
 
 **Required future test scenarios:**
 - Happy path: a valid provider response bound to the initiating browser creates one user/participant, assigns only justified roles, opens one platform session, and emits one event.
@@ -317,9 +267,9 @@ flowchart TB
 **Dependencies:** Unit 3
 
 **Files:**
-- Create: `docs/api/openapi.yaml`
-- Create: `docs/api/errors.md`
-- Modify: `docs/architecture/module-boundaries-and-data-ownership.md`
+- Create: `apps/api/contracts/openapi.yaml`
+- Create: `apps/api/contracts/errors.md`
+- Modify: `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`
 
 **Approach:**
 - Describe endpoints by MVP vertical slice, beginning with provider-neutral authorization initiation/result handling, session, participant/profile, and organization membership. Provider-to-platform callback details follow Unit 3 and are not exposed as a generic public API.
@@ -333,8 +283,8 @@ flowchart TB
 **Execution note:** Start contract validation before endpoint implementation so generated or handwritten handlers cannot drift from the approved surface.
 
 **Patterns to follow:**
-- Synchronous module ports and access rules in `docs/architecture/module-boundaries-and-data-ownership.md`.
-- Data visibility rules in `docs/architecture/postgresql-data-model.md`.
+- Synchronous module ports and access rules in `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`.
+- Data visibility rules in `docs/plans/2026-08-14-postgresql-data-model.md`.
 
 **Required future test scenarios:**
 - Happy path: every documented operation has a success response and references a defined schema.
@@ -357,11 +307,11 @@ flowchart TB
 **Dependencies:** Units 2 and 3
 
 **Files:**
-- Create: `docs/architecture/domain-event-catalog.md`
-- Create: `docs/events/schemas/event-envelope-v1.schema.json`
-- Create: `docs/events/schemas/participant-registered-v1.schema.json`
-- Create: `docs/events/schemas/participant-restricted-v1.schema.json`
-- Modify: `docs/architecture/module-boundaries-and-data-ownership.md`
+- Create: `docs/plans/2026-08-14-domain-event-catalog.md`
+- Create: `apps/api/contracts/events/event-envelope-v1.schema.json`
+- Create: `apps/api/contracts/events/participant-registered-v1.schema.json`
+- Create: `apps/api/contracts/events/participant-restricted-v1.schema.json`
+- Modify: `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`
 
 **Approach:**
 - Define a common envelope with event identifier, event type, schema version, occurrence time, correlation/causation identifiers, producer, and minimal payload.
@@ -376,8 +326,8 @@ flowchart TB
 **Execution note:** Validate examples against JSON Schema before any publisher or consumer is implemented.
 
 **Patterns to follow:**
-- Existing event ownership table and outbox semantics in `docs/architecture/module-boundaries-and-data-ownership.md`.
-- Outbox indexes and delivery semantics in `docs/architecture/postgresql-data-model.md`.
+- Existing event ownership table and outbox semantics in `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`.
+- Outbox indexes and delivery semantics in `docs/plans/2026-08-14-postgresql-data-model.md`.
 
 **Required future test scenarios:**
 - Happy path: valid v1 examples for each foundational event satisfy both the common envelope and payload schema.
@@ -401,9 +351,9 @@ flowchart TB
 **Dependencies:** Unit 2
 
 **Files:**
-- Create: `docs/adr/0008-direct-sql-migration-strategy.md`
-- Create: `docs/migrations/README.md`
-- Modify: `docs/architecture/postgresql-data-model.md`
+- Create: `docs/plans/2026-08-14-direct-sql-migration-strategy.md`
+- Create: `deployment/forum-db/README.md`
+- Modify: `docs/plans/2026-08-14-postgresql-data-model.md`
 
 **Approach:**
 - Record `node-pg-migrate` as the runner and pin its supported major version together with the target PostgreSQL major version.
@@ -421,7 +371,7 @@ flowchart TB
 **Execution note:** Approve ADR-0008 before creating migration filenames or directories whose shape depends on the runner.
 
 **Patterns to follow:**
-- Schema ownership, constraints, and migration ordering in `docs/architecture/postgresql-data-model.md`.
+- Schema ownership, constraints, and migration ordering in `docs/plans/2026-08-14-postgresql-data-model.md`.
 
 **Test scenarios:**
 - Test expectation: none -- this unit records the runner, security model, and operational policy before executable migrations exist.
@@ -439,9 +389,9 @@ flowchart TB
 
 **Files:**
 - Create: `docs/plans/<replacement-mvp-plan>.md`
-- Modify: `docs/technical-assignment-contract-appendix-forum.md`
-- Modify: `docs/technical-assignment-contract-appendix-forum.docx`
-- Modify: `docs/technical-assignment-gost34-forum.docx`
+- Reference: preserved historical source and current canonical Outline requirements; no local product copy.
+- Reference: preserved historical source and current canonical Outline requirements; no local product copy.
+- Reference: preserved historical source and current canonical Outline requirements; no local product copy.
 
 **Approach:**
 - Plan implementation by vertical slices, starting with a minimal Node.js validation scaffold and the external-identification/session/participant foundation.
@@ -523,11 +473,11 @@ flowchart TB
 
 ## Sources & References
 
-- Architecture baseline: `docs/implementation-plans/M00-technical-requirements.md`
-- Module boundaries: `docs/architecture/module-boundaries-and-data-ownership.md`
-- PostgreSQL model: `docs/architecture/postgresql-data-model.md`
-- Authentication decision: `docs/adr/0005-external-identification-without-registration-moderation.md`
-- Formal technical assignment: `docs/technical-assignment-contract-appendix-forum.md`
+- Architecture baseline: [продуктовый источник](https://docs.astforum.ru/doc/istochnik-06102026-tehnicheskij-stek-2bd883af-yR3dA36EdP)
+- Module boundaries: `docs/plans/2026-08-14-module-boundaries-and-data-ownership.md`
+- PostgreSQL model: `docs/plans/2026-08-14-postgresql-data-model.md`
+- Authentication decision: [продуктовый источник](https://docs.astforum.ru/doc/istochnik-06102026-external-identification-without-registration-moderation-a4db8eb3-zqS7i9shUo)
+- Formal technical assignment: [продуктовый источник](https://docs.astforum.ru/doc/istochnik-06102026-prilozhenie-1-k-dogovoru-na-sozdanie-sistemy-fa7fdc5f-LM39HvHibf)
 - Superseded implementation basis: `docs/plans/2026-07-04-001-feat-construction-platform-mvp-plan.md`
 - Product backlog: `docs/backlog.md`
 - node-pg-migrate migration and locking documentation: https://salsita.github.io/node-pg-migrate/migrations/

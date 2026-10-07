@@ -7,11 +7,12 @@ cannot be skipped. Generated dependencies/builds, private JSON and backups must
 be ignored and untracked. `--root PATH` selects a Git fixture for regression
 tests; it does not relax any checks.
 
-The checker reports the current `docs/` inventory. `--strict-docs`, or a later
-explicit change to `documentation.strictPlansOnly`, enforces `docs/plans/`
-only. Enable that policy after the separate Outline migration has saved and
-reopened content and attachments. It is intentionally disabled for this
-candidate; there is no environment-variable bypass.
+The strict documentation policy is enabled after exact Outline originals, readable
+save/reopen and per-source download receipts. `docs/` accepts only Markdown
+technical plans in `docs/plans/`; hidden product directories, component requirement
+copies and raw evidence archives are rejected. `--strict-docs` also selects that
+policy explicitly, with no environment-variable bypass. The migration register
+separates final preserved pages from prepared pages and private/history sources.
 
 The workflow uses Node 24.18.1 and Python 3 stdlib on Ubuntu 24.04. Every owner
 is installed from the canonical root lock with root `npm ci`. API and legacy landing install their

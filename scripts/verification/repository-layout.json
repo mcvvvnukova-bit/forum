@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "documentation": {
     "root": "docs",
-    "strictPlansOnly": false
+    "strictPlansOnly": true
   },
   "packages": [
     {
@@ -229,7 +229,15 @@
     "tests/e2e/mail-resources.mjs",
     "scripts/deployment/forum-db/bootstrap_forum_db.sh",
     "scripts/deployment/forum-db/configure_forum_app_role.sh",
-    "scripts/verification/forum-api/test-callback-relay.mjs"
+    "scripts/verification/forum-api/test-callback-relay.mjs",
+    "README.md",
+    "artifacts/README.md",
+    "artifacts/repository-audits/document-migration-manifest.json",
+    "deployment/release.md",
+    "deployment/forum-db/README.md",
+    "apps/primer-home/README.md",
+    ".gitnexusignore",
+    "artifacts/repository-audits/task-6-source-ownership.json"
   ],
   "ignoredSourceDirectories": [
     ".superpowers",
@@ -237,7 +245,11 @@
     "dist",
     ".test-build",
     "backups",
-    ".secrets"
+    ".secrets",
+    ".outline-migration",
+    "outline-uploads",
+    ".gitnexus",
+    ".gitnexus-cache"
   ],
   "ignoredPrivateSuffix": ".private.json",
   "workspaceRoot": "."

@@ -10,3 +10,10 @@ __pycache__/
 .quality/
 backups/
 *.private.json
+
+*.private.*
+.gitnexus/
+.gitnexus-cache/
+.outline-migration/
+outline-uploads/
+*.private

@@ -1,8 +1,8 @@
 # Partner logo originals
 
-The `logo-color-*` assets are unchanged copies of the 13 original files in
-`~/Downloads/НАМ ДОВЕРЯЮТ ЛОГО`, matching the partner logos collected in
-[Логотипы компаний-партнеров](https://docs.astforum.ru/doc/logotipy-kompanij-partnerov-4lucJSybES).
+The 13 `logo-color-*` runtime assets preserve the accepted historical source bytes. Their source pins and current hashes are recorded in [the accepted source matrix](../../../../../artifacts/repository-audits/accepted-source-matrix.json). Private intake files remain private/history.
+
+The historical Outline reference `logotipy-kompanij-partnerov-4lucJSybES` was freshly verified as a deleted, empty document (22 September2026). It is provenance rather than an active requirements link; no content or replacement asset is inferred from it. Product sources are governed by [the migration register](../../../../../artifacts/repository-audits/document-migration-manifest.json).
 
 `LandingApp.tsx` uses these originals with a CSS grayscale filter at rest.
 Hover removes the filter and restores full opacity. The image blend mode

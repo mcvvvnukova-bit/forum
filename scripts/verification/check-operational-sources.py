@@ -41,12 +41,52 @@ def verify_provenance():
             assert mode == file['candidateMode'], candidate
             accepted += 1
     assert accepted > 0
-    parity = json.loads((ROOT / 'artifacts/repository-audits/task-5-source-parity.json').read_text())
+    parity_path = ROOT / 'artifacts/repository-audits/task-5-source-parity.json'
+    parity = json.loads(parity_path.read_text())
+    documentation = matrix.get('task6', {}).get('currentDocumentationOwnership', [])
+    verification = matrix.get('task6', {}).get('currentVerificationOwnership', [])
+    changes = {item['previousCandidatePath']: item for item in documentation + verification}
+    assert len(changes) == len(documentation) + len(verification), 'Duplicate Task6 ownership override'
+    known_documents = {file['newPath'] for file in parity['files'] if Path(file['newPath']).suffix == '.md'}
+    policy_paths = {'scripts/verification/check-operational-sources.py', 'scripts/verification/check-repository-layout.mjs',
+                    'scripts/verification/repository-layout.json', 'scripts/verification/checks.test.mjs'}
+    for item in documentation:
+        assert item['previousCandidatePath'] in known_documents, 'Unknown or runtime documentation parity override'
+        candidate = Path(item['candidatePath'])
+        assert not candidate.is_absolute() and '..' not in candidate.parts and candidate.suffix == '.md', 'Task6 current owner must be a safe Markdown path'
+        assert item['candidateMode'] == '100644', 'Task6 documentation cannot acquire executable mode'
+    for item in verification:
+        assert item['previousCandidatePath'] in policy_paths, 'Unknown or runtime verification parity override'
+        assert item['candidatePath'] == item['previousCandidatePath'], 'Task6 verification owner cannot move'
+        assert item['candidateMode'] == item['previousMode'], 'Task6 verification mode must stay unchanged'
+    if changes:
+        assert hashlib.sha256(parity_path.read_bytes()).hexdigest() == matrix['task6']['task5SnapshotSha256'], 'Historical Task5 parity snapshot changed'
+    ownership = json.loads((ROOT / 'artifacts/repository-audits/task-6-source-ownership.json').read_text())
+    assert ownership['schemaVersion'] == 1
+    assert hashlib.sha256((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_bytes()).hexdigest() == ownership['acceptedSourceMatrixSha256'], 'Current accepted matrix receipt changed'
+    pins = [{**{key: component[key] for key in ['id', 'pullRequest', 'sourceSha', 'sourcePrefixes', 'taskCodes']},
+             'files': [{key: file[key] for key in ['sourcePath', 'sourceMode', 'sourceGitBlob', 'sourceSha256']} for file in component['files']]}
+            for component in matrix['components']]
+    digest = hashlib.sha256(json.dumps(pins, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
+    assert digest == ownership['immutableSourcePinsSha256'], 'Immutable source pins changed'
     for file in parity['files']:
-        path = ROOT / file['newPath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == file['newSha256'], file['newPath']
+        if file['newPath'] == 'artifacts/repository-audits/accepted-source-matrix.json':
+            assert file['newSha256'] == ownership['previousAcceptedSourceMatrixSha256'], 'Historical accepted matrix pin changed'
+            assert file['newMode'] == ownership['mode'] == '100644'
+            continue
+        change = changes.get(file['newPath'])
+        if change:
+            assert change['previousSha256'] == file['newSha256'] and change['previousMode'] == file['newMode'], file['newPath']
+            # The dated Task5 snapshot stays immutable; verify current ownership separately.
+            path = ROOT / change['candidatePath']
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == change['candidateSha256'], change['candidatePath']
+            expected_mode = change['candidateMode']
+        else:
+            path = ROOT / file['newPath']
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == file['newSha256'], file['newPath']
+            expected_mode = file['newMode']
         mode = '100755' if path.stat().st_mode & 0o111 else '100644'
-        assert mode == file['newMode'], file['newPath']
+        assert mode == expected_mode, file['newPath']
         if file['unchanged']:
             assert file['previousSha256'] == file['newSha256'] and file['previousMode'] == file['newMode']
     return accepted
