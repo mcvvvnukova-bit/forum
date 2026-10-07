@@ -8,7 +8,9 @@
     "typecheck": "npm run typecheck --workspaces",
     "test:mail": "python3 scripts/verification/check-mail-resources.py && node tests/e2e/mail-resources.mjs",
     "check:layout": "node scripts/verification/check-repository-layout.mjs",
-    "test:publishers": "python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v"
+    "test:publishers": "python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v",
+    "check:primer": "python3 scripts/verification/check-primer-ui.py",
+    "test:primer": "python3 -m unittest discover -s tests/integration -p 'test_primer_ui_policy.py' -v"
   },
   "devDependencies": {
     "@primer/react": "38.37.0",

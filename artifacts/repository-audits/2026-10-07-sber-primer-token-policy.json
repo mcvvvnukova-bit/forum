@@ -1,0 +1,514 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-154",
+  "parentTaskCode": "PROJ-35",
+  "baseSha": "7bac00402dbac87e75e762673ac4609a82f2db61",
+  "implementationSha": "73d0d425f606c6811cb8e03ef7bf363290058993",
+  "approval": {
+    "date": "2026-10-07",
+    "providerSource": "apps/web/src/auth/sber-tokens.css",
+    "decision": "Preserve existing Sber ID appearance and approve only this provider token source."
+  },
+  "sourceVerification": {
+    "sberGuide": "https://developers.sber.ru/docs/ru/sberid/guidebook",
+    "inspectedIn": "Codex in-app browser",
+    "restDiagram": {
+      "url": "https://developers.sber.ru/docs/assets/images/button-green-active-ed274d0116caf0e233018cae24554ce4.png",
+      "visibleHexLabel": "#21A038"
+    },
+    "hoverDiagram": {
+      "url": "https://developers.sber.ru/docs/assets/images/button-green-hover-12b8f39011a04f2b5b689e976cc1c64e.png",
+      "visibleHexLabel": "#1E9032"
+    },
+    "figma": {
+      "fileKey": "WT2IPB0eHD9ULCPENEktwp",
+      "nodeId": "33:146",
+      "observedAddedLibrary": "Primer Web (Community)",
+      "forumVariableValuesMatchExistingCss": true,
+      "fullCollectionModeAndAliasGraphVerified": false
+    }
+  },
+  "unchangedBytes": {
+    "appsGitTree": "b9c55e568bc0267085c85ee0bb5c64a7e349c95c",
+    "rootLockfileGitBlob": "b1069edbb58a1830b253ecf3c32a56f3875d1bf8",
+    "sberTokensSha256": "386842b0de5198ec360f3fad3ad0318d9e3b1b78e33d18fefdcf50846eabd182",
+    "comparedToBase": true,
+    "applicationSourceStylesFontsMediaPreserved": true,
+    "historicalMatrixAndTask5Task6Task7ReceiptsPreserved": true
+  },
+  "automatedVerification": {
+    "primer": {
+      "command": "npm run check:primer",
+      "exitCode": 0,
+      "errors": 0,
+      "warnings": {
+        "PDS007": 71
+      },
+      "vendorSha256": "c926222170bb455281ebc2c6f2f279d75ef44143b7e41b18ea0fe0d0841a88e7"
+    },
+    "primerRegressionTests": 7,
+    "governanceRegressionTests": 44,
+    "webUnitTests": 78,
+    "compositionTests": 28,
+    "builtE2eTests": 12,
+    "layoutTypecheckLintBuild": "passed",
+    "e2eBuildEnvironment": {
+      "VITE_FORUM_SESSION": "true",
+      "VITE_LOGIN_URL": "/login",
+      "VITE_START_URL": "/register"
+    },
+    "e2eUsesLocalAuthAndCalendarFixtures": true
+  },
+  "manualVerification": {
+    "browser": "Codex in-app browser",
+    "target": "Local built apps/web with synthetic session endpoint",
+    "widths": [
+      320,
+      390,
+      768,
+      1440
+    ],
+    "horizontalOverflowObserved": false,
+    "providerSubmission": "No real OAuth/provider request; local start endpoint first served a stub page, then 204 to keep redirecting UI observable.",
+    "observations": [
+      {
+        "state": "rest",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 194.8984375,
+          "x": 97.546875,
+          "y": 430.75
+        },
+        "shadow": "rgba(31, 35, 40, 0.04) 0px 1px 1px 0px, rgba(31, 35, 40, 0.03) 0px 1px 2px 0px",
+        "text": "Войти по Сбер ID",
+        "viewport": {
+          "height": 844,
+          "scrollWidth": 390,
+          "width": 390
+        },
+        "route": "/login"
+      },
+      {
+        "state": "hover",
+        "active": false,
+        "bg": "rgb(30, 144, 50)",
+        "border": "rgb(30, 144, 50)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": true,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 194.8984375,
+          "x": 97.546875,
+          "y": 430.75
+        },
+        "shadow": "rgba(31, 35, 40, 0.04) 0px 1px 1px 0px, rgba(31, 35, 40, 0.03) 0px 1px 2px 0px",
+        "text": "Войти по Сбер ID",
+        "viewport": {
+          "height": 844,
+          "scrollWidth": 390,
+          "width": 390
+        },
+        "route": "/login"
+      },
+      {
+        "state": "pressed",
+        "active": true,
+        "bg": "rgb(30, 144, 50)",
+        "border": "rgb(30, 144, 50)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": false,
+        "focused": true,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": true,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 194.8984375,
+          "x": 97.546875,
+          "y": 430.75
+        },
+        "shadow": "none",
+        "text": "Войти по Сбер ID",
+        "viewport": {
+          "height": 844,
+          "scrollWidth": 390,
+          "width": 390
+        },
+        "route": "/login"
+      },
+      {
+        "state": "keyboard-focus",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": true,
+        "focused": true,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(9, 105, 218) solid 2px",
+        "rect": {
+          "height": 54.5,
+          "width": 194.8984375,
+          "x": 97.546875,
+          "y": 430.75
+        },
+        "shadow": "rgb(255, 255, 255) 0px 0px 0px 3px inset",
+        "text": "Войти по Сбер ID",
+        "viewport": {
+          "height": 844,
+          "scrollWidth": 390,
+          "width": 390
+        },
+        "route": "/login"
+      },
+      {
+        "state": "responsive-rest",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": true,
+        "focused": true,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(9, 105, 218) solid 2px",
+        "rect": {
+          "height": 54.5,
+          "width": 190.8984375,
+          "x": 64.546875,
+          "y": 458.75
+        },
+        "shadow": "rgb(255, 255, 255) 0px 0px 0px 3px inset",
+        "text": "Войти по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 320,
+          "width": 320
+        },
+        "route": "/login"
+      },
+      {
+        "state": "responsive-rest",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": true,
+        "focused": true,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(9, 105, 218) solid 2px",
+        "rect": {
+          "height": 54.5,
+          "width": 194.8984375,
+          "x": 286.546875,
+          "y": 458.75
+        },
+        "shadow": "rgb(255, 255, 255) 0px 0px 0px 3px inset",
+        "text": "Войти по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 768,
+          "width": 768
+        },
+        "route": "/login"
+      },
+      {
+        "state": "responsive-rest",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": true,
+        "focused": true,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(9, 105, 218) solid 2px",
+        "rect": {
+          "height": 54.5,
+          "width": 194.8984375,
+          "x": 622.546875,
+          "y": 458.75
+        },
+        "shadow": "rgb(255, 255, 255) 0px 0px 0px 3px inset",
+        "text": "Войти по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 1440,
+          "width": 1440
+        },
+        "route": "/login"
+      },
+      {
+        "state": "responsive-rest",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 305.078125,
+          "x": 567.4609375,
+          "y": 458.75
+        },
+        "shadow": "rgba(31, 35, 40, 0.04) 0px 1px 1px 0px, rgba(31, 35, 40, 0.03) 0px 1px 2px 0px",
+        "text": "Зарегистрироваться по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 1440,
+          "width": 1440
+        },
+        "route": "/register"
+      },
+      {
+        "state": "responsive-rest",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 305.078125,
+          "x": 231.4609375,
+          "y": 458.75
+        },
+        "shadow": "rgba(31, 35, 40, 0.04) 0px 1px 1px 0px, rgba(31, 35, 40, 0.03) 0px 1px 2px 0px",
+        "text": "Зарегистрироваться по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 768,
+          "width": 768
+        },
+        "route": "/register"
+      },
+      {
+        "state": "responsive-rest",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 305.078125,
+          "x": 42.4609375,
+          "y": 458.75
+        },
+        "shadow": "rgba(31, 35, 40, 0.04) 0px 1px 1px 0px, rgba(31, 35, 40, 0.03) 0px 1px 2px 0px",
+        "text": "Зарегистрироваться по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 390,
+          "width": 390
+        },
+        "route": "/register"
+      },
+      {
+        "state": "responsive-rest",
+        "active": false,
+        "bg": "rgb(33, 160, 56)",
+        "border": "rgb(33, 160, 56)",
+        "disabled": false,
+        "fg": "rgb(255, 255, 255)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(255, 255, 255) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 301.078125,
+          "x": 9.4609375,
+          "y": 458.75
+        },
+        "shadow": "rgba(31, 35, 40, 0.04) 0px 1px 1px 0px, rgba(31, 35, 40, 0.03) 0px 1px 2px 0px",
+        "text": "Зарегистрироваться по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 320,
+          "width": 320
+        },
+        "route": "/register"
+      },
+      {
+        "state": "checking-disabled",
+        "active": false,
+        "bg": "rgb(255, 212, 178)",
+        "border": "rgb(255, 212, 178)",
+        "disabled": true,
+        "fg": "rgb(74, 74, 74)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(74, 74, 74) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 301.078125,
+          "x": 9.4609375,
+          "y": 434.75
+        },
+        "shadow": "none",
+        "text": "Зарегистрироваться по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 320,
+          "width": 320
+        },
+        "route": "/register",
+        "visiblePageText": "АСТ Форум\nСоздайте аккаунт\nЗарегистрироваться по Сбер ID\nLoading\nПроверяем вход…\n\nУже есть аккаунт? Войти"
+      },
+      {
+        "state": "unknown-disabled",
+        "active": false,
+        "bg": "rgb(255, 212, 178)",
+        "border": "rgb(255, 212, 178)",
+        "disabled": true,
+        "fg": "rgb(74, 74, 74)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(74, 74, 74) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 301.078125,
+          "x": 9.4609375,
+          "y": 493.25
+        },
+        "shadow": "none",
+        "text": "Зарегистрироваться по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 320,
+          "width": 320
+        },
+        "route": "/register",
+        "visiblePageText": "АСТ Форум\nСоздайте аккаунт\nВход не завершён\nНе удалось проверить вход. Повторите попытку\nЗарегистрироваться по Сбер ID\n\nУже есть аккаунт? Войти\n\nПовторить"
+      },
+      {
+        "state": "redirecting-local-204",
+        "active": false,
+        "bg": "rgb(255, 212, 178)",
+        "border": "rgb(255, 212, 178)",
+        "disabled": true,
+        "fg": "rgb(74, 74, 74)",
+        "focusVisible": false,
+        "focused": false,
+        "fontLoaded": true,
+        "fontSize": "19px",
+        "fontWeight": "700",
+        "hover": false,
+        "outline": "rgb(74, 74, 74) none 3px",
+        "rect": {
+          "height": 54.5,
+          "width": 301.078125,
+          "x": 9.4609375,
+          "y": 434.75
+        },
+        "shadow": "none",
+        "text": "Зарегистрироваться по Сбер ID",
+        "viewport": {
+          "height": 900,
+          "scrollWidth": 320,
+          "width": 320
+        },
+        "route": "/register",
+        "visiblePageText": "АСТ Форум\nСоздайте аккаунт\nЗарегистрироваться по Сбер ID\nПереходим к Сбер ID…\n\nУже есть аккаунт? Войти"
+      },
+      {
+        "state": "authenticated-no-button",
+        "text": "АСТ Форум\nСоздайте аккаунт\n\nВы уже вошли в аккаунт",
+        "route": "/register",
+        "visiblePageText": "АСТ Форум\nСоздайте аккаунт\n\nВы уже вошли в аккаунт"
+      }
+    ],
+    "contrast": {
+      "reference": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html",
+      "foreground": "#ffffff",
+      "restRatio": 3.4145821390240636,
+      "hoverAndPressedRatio": 4.125278605807825,
+      "computedLabelFontSizePx": 19,
+      "computedLabelFontWeight": 700,
+      "fontLoaded": true,
+      "criterion": "WCAG AA contrast minimum for large bold text: 3:1",
+      "scope": "Only the observed label contrast; not a complete accessibility conformance claim."
+    },
+    "existingBehavior": {
+      "disabledBackground": "#ffd4b2",
+      "disabledForeground": "#4a4a4a",
+      "reason": "Existing Primer disabled state inherits Forum tokens. Recorded without changing approved application bytes."
+    },
+    "unverified": [
+      "Screen-reader behavior",
+      "Full fresh Forum collection mode and alias graph validation",
+      "Real Sber authentication flow",
+      "Production browser or deployment state"
+    ]
+  },
+  "deliveryScope": "Branch/PR and CI policy only. No merge or deployment represented by this receipt."
+}

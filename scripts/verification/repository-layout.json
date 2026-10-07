@@ -14,13 +14,17 @@
         "typecheck": "npm run typecheck --workspaces",
         "test:mail": "python3 scripts/verification/check-mail-resources.py && node tests/e2e/mail-resources.mjs",
         "check:layout": "node scripts/verification/check-repository-layout.mjs",
-        "test:publishers": "python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v"
+        "test:publishers": "python3 -m unittest discover -s tests/integration -p 'test_public_site_release.py' -v",
+        "check:primer": "python3 scripts/verification/check-primer-ui.py",
+        "test:primer": "python3 -m unittest discover -s tests/integration -p 'test_primer_ui_policy.py' -v"
       },
       "entrypoints": [
-        "vitest.composition.config.ts"
+        "vitest.composition.config.ts",
+        "scripts/verification/check-primer-ui.py"
       ],
       "tests": [
-        "tests/integration/public-site-composition.test.tsx"
+        "tests/integration/public-site-composition.test.tsx",
+        "tests/integration/test_primer_ui_policy.py"
       ]
     },
     {
@@ -216,7 +220,10 @@
     "tests/e2e/public-site.spec.ts",
     "tests/e2e/public-site.config.ts",
     "tests/e2e/serve-public-site.mjs",
-    "deployment/web/build-config.json"
+    "deployment/web/build-config.json",
+    "scripts/verification/primer-ui/validate_primer_ui.py",
+    "scripts/verification/primer-ui/policy.json",
+    "artifacts/repository-audits/proj-154-verification-ownership.json"
   ],
   "ignoredSourceDirectories": [
     ".superpowers",
