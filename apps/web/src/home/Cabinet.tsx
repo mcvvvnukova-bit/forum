@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react'
-import {Banner, Button, Heading, Link, Spinner, Stack, Text} from '@primer/react'
+import {Banner, Button, Spinner, Stack, Text} from '@primer/react'
 import {ProfilePage} from '../../../profile-preview/src/ProfilePage'
 import {profileScopes, type SberProfile} from '../../../profile-preview/src/profile'
 import {usePublicSession} from '../SessionProvider'
@@ -7,12 +7,9 @@ import type {Session} from '../audience/intent'
 import './cabinet.css'
 
 type ProfileState = {kind:'loading'|'error'|'expired'} | {kind:'ready'; profile:SberProfile}
-function Guest() {
-  return <main id="main" tabIndex={-1} className="container destination-main"><Stack gap="spacious">
-    <Heading as="h1" variant="large">Личный кабинет</Heading>
-    <Text as="p">Войдите через Сбер ID, чтобы открыть личный кабинет</Text>
-    <Button as="a" href="/login" variant="primary">Войти через Сбер ID</Button><Link href="/">На главную</Link>
-  </Stack></main>
+function returnHome(url:string) {
+  history.replaceState(null, '', url)
+  window.dispatchEvent(new PopStateEvent('popstate'))
 }
 function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; onExpired:()=>void; navigate:(url:string)=>void}) {
   const [value,setValue]=useState<ProfileState>({kind:'loading'})
@@ -52,17 +49,20 @@ function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; 
     } catch {setLogoutFailed(true)}
     finally {setLeaving(false)}
   }
-  if(value.kind==='expired')return <Guest/>
+  if(value.kind==='expired')return null
   return <ProfilePage profile={value.kind==='ready'?value.profile:{}} approvedScopes={profileScopes}
     state={value.kind==='ready'?'ready':value.kind==='error'?'error':'loading'} view={view}
     onRetry={()=>{setValue({kind:'loading'});setAttempt(n=>n+1)}}
     account={{root:'/cabinet/',logo:'/assets/brand-logo-horizontal-color.png',displayName:session.user.displayName,
       individual:session.roles?.includes('individual')??false,onLogout:()=>void logout(),leaving,logoutFailed}}/>
 }
-export function Cabinet({navigate=(url:string)=>location.assign(url)}:{navigate?:(url:string)=>void}={}) {
+export function Cabinet({navigate=returnHome}:{navigate?:(url:string)=>void}={}) {
   const {session,loading,unavailable,retry}=usePublicSession()
+  const guest=!loading&&!unavailable&&!session
+  useEffect(()=>{if(guest)navigate('/')},[guest,navigate])
+  if(guest)return null
   if(loading)return <main id="main" className="container destination-main"><Stack direction="horizontal" gap="normal" align="center"><Spinner size="small"/><Text role="status">Проверяем вход…</Text></Stack></main>
   if(unavailable)return <main id="main" className="container destination-main"><Banner title="Не удалось проверить вход" variant="warning"><Button onClick={retry}>Повторить</Button></Banner></main>
-  if(!session)return <Guest/>
+  if(!session)return null
   return <AuthenticatedCabinet key={session.user.id} session={session} onExpired={retry} navigate={navigate}/>
 }

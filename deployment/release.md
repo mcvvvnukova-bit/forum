@@ -176,3 +176,9 @@ to the public homepage. Preserve the independent `/profile/` fixture preview.
 Publisher rollback restores or removes both cabinet HTML files according to the
 exact previous backup, retains immutable assets and restores the old receipt.
 Production remains outside this authorized release.
+
+The reviewed plan was prepared against PROJ-158. Before publication the branch
+was advanced to the actual dev baseline `19ee01ed586f54e00a080844639864bc45278bde`
+(PROJ-159 and PROJ-38). Preserve their public skip-link removal and homepage
+return after successful logout or a confirmed guest cabinet request. Re-run the
+combined navigation and ownership regressions against this exact integration.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "taskCode": "PROJ-160",
-  "baseSha": "89342c05c5d64c2ce83d90b7df84e0677927becb",
+  "baseSha": "19ee01ed586f54e00a080844639864bc45278bde",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -85,18 +85,18 @@
     },
     {
       "previousCandidatePath": "apps/web/src/home/Cabinet.tsx",
-      "previousSha256": "a11c08e19d627bf89559f8dced55cd4a52203720a2e766e986066efb6c786daa",
+      "previousSha256": "05d520198295ea43ae233e842047b03aa9a8c7515de6f302fb6618a0d2ae23c3",
       "previousMode": "100644",
       "candidatePath": "apps/web/src/home/Cabinet.tsx",
-      "candidateSha256": "311c6461c586111c2cb6b5e709e6adb6cbe7e7f23483f3ea4a3333986feeab82",
+      "candidateSha256": "a4bbc41759b7bc5a456ed18a0e4e406b06d6edd5052a83f04f5aef77560e32c6",
       "candidateMode": "100644"
     },
     {
       "previousCandidatePath": "apps/web/src/home/home.test.tsx",
-      "previousSha256": "de874ce0d3f20056f9cbb3581428e8ba84fa44d434cd35d52f6c4d7c0191b4af",
+      "previousSha256": "5eed055258c9fc1eeaf14a68283072148f7a18366b7f1e11d8d757960f0c22fd",
       "previousMode": "100644",
       "candidatePath": "apps/web/src/home/home.test.tsx",
-      "candidateSha256": "0f815e24a9d86dc25a67b0d9c92b46f17d739423ba85b2f9a7ba3498d5f01ef6",
+      "candidateSha256": "78fd687cfed7abff220d73fe24916ce74d9e76253d184b03510a385cf35586b8",
       "candidateMode": "100644"
     },
     {
@@ -112,7 +112,7 @@
       "previousSha256": "1cecca20132ecd0544d87f63456771e6a904af37c3006bfec965ef1b03a7ddbc",
       "previousMode": "100644",
       "candidatePath": "deployment/release.md",
-      "candidateSha256": "0860710f28dd7e89bba89f173eb3a8b8e87b674b1250aa0794035f2bdce65e16",
+      "candidateSha256": "8610b1cafe5d9ffe08036bf14dc07ccad02bb02ae26eb5cafc49f7e6b4195717",
       "candidateMode": "100644"
     },
     {
@@ -133,18 +133,18 @@
     },
     {
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
-      "previousSha256": "a5912850eff842df56c66fbb92f844fc87333f7141371f71167da12730c678b2",
+      "previousSha256": "bd60178ec8a7b5285cfffeed28e5a0f55a8bed5a59e1169b79fd0be727425844",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "632ce1ab7a23d79e709fa56a540d9a770dc65a7a95654691a77c3a36fc06b365",
+      "candidateSha256": "e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a",
       "candidateMode": "100644"
     },
     {
       "previousCandidatePath": "scripts/verification/checks.test.mjs",
-      "previousSha256": "8d7abdf614227301856cb15b11e93af30a2303f5efaf80b0ab5a06c906e5fd42",
+      "previousSha256": "2eb2eae93ecfb4fbaf7eb9987a71393e28821fca1276601776de0ed7fde2295d",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/checks.test.mjs",
-      "candidateSha256": "9954d75b38d8b2036ac906f1ef0806f69e58394c80f0f9ef9455570bfba94b97",
+      "candidateSha256": "d97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8",
       "candidateMode": "100644"
     },
     {
@@ -157,10 +157,10 @@
     },
     {
       "previousCandidatePath": "tests/e2e/public-site.spec.ts",
-      "previousSha256": "bef37e8f613c3d270c660ee25210e4b73d43eea871fec00b33febfac21ce0b09",
+      "previousSha256": "efacc49ef7977a614115b0c2085cff9158873c734490e6d73eb73ae36a517d19",
       "previousMode": "100644",
       "candidatePath": "tests/e2e/public-site.spec.ts",
-      "candidateSha256": "7429cc51ea1ed5b0d262b4b584cfdf89281766da5b7a131eb4aae39b311b408d",
+      "candidateSha256": "cc99dbdd9543ec6b9e41920253188ea0058b33ae850933757e396067b7303966",
       "candidateMode": "100644"
     },
     {
@@ -168,7 +168,7 @@
       "previousSha256": "0fda95b2f163b459c42223cf5a3e06ed46958d70561f22dfcb2288b5d5c4b54f",
       "previousMode": "100644",
       "candidatePath": "tests/integration/test_primer_ui_policy.py",
-      "candidateSha256": "b26ee597a90959cf4d81412ffcd4de74be99721437284350d4155a3523d2f921",
+      "candidateSha256": "112ef317342f3c9671e9db442de282acf171cb383180fae2d019b399efe317a7",
       "candidateMode": "100644"
     },
     {
@@ -183,7 +183,7 @@
   "newFiles": [
     {
       "path": "apps/web/src/home/Cabinet.test.tsx",
-      "sha256": "0e0924a43e39b57b9c9ad2191929526285f979258d8f0276a7ac87ee5c913139",
+      "sha256": "14b84e804da9dbf047dca0d6283849174434cb648544499bbf6e1411a06201ec",
       "mode": "100644"
     },
     {

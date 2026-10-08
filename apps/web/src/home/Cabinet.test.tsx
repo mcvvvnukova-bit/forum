@@ -42,7 +42,7 @@ describe('authenticated profile',()=>{
   it('clears the cabinet on an expired profile session',async()=>{
     let expired=false
     vi.stubGlobal('fetch',async(url:string)=>{if(url==='/api/auth/session')return expired?new Response('',{status:401}):Response.json({user});expired=true;return new Response('',{status:401})});page()
-    expect(await screen.findByText('Войдите через Сбер ID, чтобы открыть личный кабинет')).toBeVisible()
+    await waitFor(()=>expect(location.pathname).toBe('/'))
     expect(screen.queryByText('owner@example.test')).not.toBeInTheDocument()
   })
   it('refuses a response for another user',async()=>{
@@ -78,7 +78,7 @@ describe('authenticated profile',()=>{
     await screen.findByText('owner@example.test')
     fireEvent.click(screen.getByRole('button',{name:'Выйти'}))
     await waitFor(()=>expect(navigate).toHaveBeenCalledWith('/'))
-    await screen.findByText('Войдите через Сбер ID, чтобы открыть личный кабинет')
+    await waitFor(()=>expect(screen.queryByRole('heading',{name:'Личные данные',level:1})).not.toBeInTheDocument())
     expect(screen.queryByText('owner@example.test')).not.toBeInTheDocument()
   })
 })
