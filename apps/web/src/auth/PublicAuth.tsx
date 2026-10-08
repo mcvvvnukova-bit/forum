@@ -8,19 +8,19 @@ import type {SessionState} from './session'
 import sberMark from './sber-mark.svg'
 import {openPublicAuth, publicAuthBackground, publicNavigationEvent} from '../../../../packages/public-navigation'
 
-type Mode = 'login' | 'register'
+type Mode = 'login'
 type View = {mode: Mode; modal: boolean} | null
 const errors: Record<string, string> = {
   access_denied: 'Вы отменили подтверждение. Можно попробовать ещё раз',
   invalid_state: 'Время ожидания входа истекло. Повторите вход ещё раз',
   account_deactivated: 'Необходимо обратиться в тех. поддержку',
   account_conflict: 'Не удалось связать данные с аккаунтом. Обратитесь в тех. поддержку',
-  registration_required: 'Аккаунт не найден. Зарегистрируйтесь со Сбер ID',
+  registration_required: 'Не удалось завершить вход. Повторите вход через Сбер ID',
   account_exists: 'Аккаунт уже существует. Войдите в аккаунт',
 }
 function modeFromPath(): Mode | null {
   const path = location.pathname.replace(/\/$/, '')
-  return path === '/login' ? 'login' : path === '/register' ? 'register' : null
+  return path === '/login' || path === '/register' || path === '/register/index.html' ? 'login' : null
 }
 function linkMode(anchor: HTMLAnchorElement): Mode | null {
   const href = anchor.getAttribute('href')?.trim()
@@ -28,8 +28,7 @@ function linkMode(anchor: HTMLAnchorElement): Mode | null {
   const url = new URL(href, location.origin+'/')
   if (url.origin !== location.origin || anchor.target && anchor.target !== '_self' || anchor.hasAttribute('download')) return null
   const path = url.pathname.replace(/\/$/, '')
-  if (path === '/login' || path === '/register') return path.slice(1) as Mode
-  if (path === '/auth/sber-id/start') return url.searchParams.get('intent') === 'register' ? 'register' : 'login'
+  if (path === '/login' || path === '/register' || path === '/register/index.html' || path === '/auth/sber-id/start') return 'login'
   if (path === '/authorization') return 'login'
   return null
 }
@@ -66,7 +65,7 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
       query.delete('auth'); query.delete('auth_error'); query.delete('error_description'); query.delete('flowId')
       history.replaceState(history.state, '', location.pathname + (query.size ? '?'+query.toString() : '') + location.hash)
       if (returnedError) {
-        const returnedMode = returnedError === 'registration_required' ? 'register' : 'login'
+        const returnedMode = 'login'
         openPublicAuth(returnedMode)
         setView({mode:returnedMode, modal:true})
       }
@@ -100,6 +99,7 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
     let focusTimer: number | undefined
     const onPop = () => {
       const next = modeFromPath()
+      if (next && location.pathname.replace(/\/$/, '') !== '/login') history.replaceState(history.state, '', '/login')
       setView(next ? {mode:next, modal:publicAuthBackground() !== null} : null)
       navigating.current=false; setRedirecting(false)
       window.clearTimeout(focusTimer)
@@ -130,20 +130,13 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
   const platformBlocked = error === 'account_deactivated'
   const unavailable = error === 'sber_unavailable'
   const message = platformBlocked ? errors.account_deactivated : session.kind === 'unknown' ? 'Не удалось проверить вход. Повторите попытку' : unavailable
-    ? mode === 'register' ? 'Регистрация через Сбер ID пока недоступна' : 'Вход через Сбер ID пока недоступен'
+    ? 'Вход через Сбер ID пока недоступен'
     : error ? (Object.hasOwn(errors,error) ? errors[error] : 'Не удалось завершить вход. Попробуйте ещё раз') : null
-  const title = platformBlocked ? 'Вы заблокированы на платформе' : mode === 'register' ? 'Создайте аккаунт' : 'Войти в аккаунт'
-  const switchMode = (event: React.MouseEvent, next: Mode) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-    event.preventDefault(); event.stopPropagation()
-    history.replaceState(history.state, '', '/'+next)
-    setView({...view, mode:next}); setRedirecting(false); navigating.current=false
-    if (!unavailable && error !== 'access_denied') setError(null)
-  }
+  const title = platformBlocked ? 'Вы заблокированы на платформе' : 'Войти в аккаунт'
   const start = () => {
     if (navigating.current || session.kind !== 'guest' || blocked || unavailable) return
     navigating.current=true; setRedirecting(true); clearLegacyIntent()
-    try {navigate('/auth/sber-id/start?intent='+mode+(mode === 'register' ? '&subject=individual' : ''))}
+    try {navigate('/auth/sber-id/start?intent=login')}
     catch {navigating.current=false; setRedirecting(false); setError('temporarily_unavailable')}
   }
   const body = <Stack gap="spacious" className="public-auth-content">
@@ -151,17 +144,12 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
     {platformBlocked ? null : session.kind === 'authenticated' ? <Text as="p" role="status">Вы уже вошли в аккаунт</Text> : <>
       <Button variant="primary" size="large" className="public-auth-sber"
         disabled={session.kind !== 'guest' || redirecting || blocked || unavailable} onClick={start}>
-        <span className="public-auth-label-layout"><img src={sberMark} alt="" aria-hidden className="public-auth-mark" /><span className="public-auth-label">{mode === 'register' ? 'Зарегистрироваться по Сбер ID' : 'Войти по Сбер ID'}</span></span>
+        <span className="public-auth-label-layout"><img src={sberMark} alt="" aria-hidden className="public-auth-mark" /><span className="public-auth-label">Войти по Сбер ID</span></span>
       </Button>
       {session.kind === 'checking' && <Stack direction="horizontal" align="center" gap="normal"><Spinner size="small" /><Text role="status">Проверяем вход…</Text></Stack>}
       {redirecting && <Text role="status">Переходим к Сбер ID…</Text>}
     </>}
-    {blocked ? <Link href="mailto:info@astforum.ru">Тех. поддержка</Link> : session.kind !== 'authenticated' && <Text as="p" className="public-auth-switch">
-      {mode === 'login' ? 'Нет аккаунта? ' : 'Уже есть аккаунт? '}
-      <Link href={mode === 'login' ? '/register' : '/login'} onClick={event => switchMode(event, mode === 'login' ? 'register' : 'login')}>
-        {mode === 'login' ? 'Зарегистрироваться' : 'Войти'}
-      </Link>
-    </Text>}
+    {blocked ? <Link href="mailto:info@astforum.ru">Тех. поддержка</Link> : session.kind !== 'authenticated' && <Text as="p">Если аккаунта ещё нет, он будет создан автоматически после входа через Сбер ID.</Text>}
     {unavailable && <Link href="/#demo">Записаться на демо</Link>}
     {message && !blocked && !unavailable && <Button disabled={redirecting || session.kind === 'checking'} onClick={() => {
       if (session.kind === 'unknown') {if (shared) shared.retry(); else setRetry(value => value+1)}

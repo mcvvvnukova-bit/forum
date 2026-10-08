@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-157",
+  "baseSha": "92e7de0c227de01ecf194aeb57d3713950ed5db1",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "candidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "previousSha256": "6d45b1ce43fbd8405d58de052dc5e5c5d152d2434351d9baf1629ae97eead1c3",
+      "candidateSha256": "15c6a478909d7d3bc51ef365ca021f006ed611ce41614a331f7adf6c283889ae",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tests/test_auth_gateway.py",
+      "candidatePath": "apps/legacy-landing/tests/test_auth_gateway.py",
+      "previousSha256": "140836d2f34751b89b3ddd276ac6d515490d686074f961d48898b1e70ad1d3ca",
+      "candidateSha256": "ed4d0fc32196a60fb7f055479bb12a2bdd3c40968e222f63a729adab94698883",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/README.md",
+      "candidatePath": "apps/web/README.md",
+      "previousSha256": "23e30f5c96e8b623de6856e848ce0aed224e226fa977b5e454b8a9293b7e2c9e",
+      "candidateSha256": "5962891bf01a066b89969a9ed1fb0fa0ca1d922993858996b9e8dc7f9844e813",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/App.test.tsx",
+      "candidatePath": "apps/web/src/App.test.tsx",
+      "previousSha256": "9ad1b11f3d354be35435576da8ec92f5179c464ffef45e91ca7528b0e6ea1c5f",
+      "candidateSha256": "4ff2edc337de53a085b9704ee320f85b3c5d76ac98d274a612d2291e66b83bd5",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/App.tsx",
+      "candidatePath": "apps/web/src/App.tsx",
+      "previousSha256": "030effa81e9ff3b334b946003cdd4917234757bd9fe4ce11beb32080ee2a3f13",
+      "candidateSha256": "3b2a6560dda2e40233a14226eaa1186d152d3892e1ea1e05eefe2273c7d4ec05",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/App.tsx",
+      "candidatePath": "apps/web/src/audience/App.tsx",
+      "previousSha256": "94fc764dcb4bd9300538145b50cff84e5c9ba8238c68978dc70e888fd8c8d3fd",
+      "candidateSha256": "bd7f1650f761d1410d6e5e89e0ababd89de464097801037438c491f81f6dde06",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/Participation.tsx",
+      "candidatePath": "apps/web/src/audience/Participation.tsx",
+      "previousSha256": "1c56a916c9fd31a2ffd5382f7c7661239f11efebf03761ed1cc6a4328cae399e",
+      "candidateSha256": "aad5fc3b0afa730a29b3f15e09b24e34ad1740fbc671091a8364cec3ffb7ef8e",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/audience.test.tsx",
+      "candidatePath": "apps/web/src/audience/audience.test.tsx",
+      "previousSha256": "0a0eda5a1b78f87e5efa8b21bf9617f1958ab84b5371b15c241b75c5febfab53",
+      "candidateSha256": "38e6b6eefe0f17e45dd3a52f4d3d32a0c91cc7d809816ff417de0615f169fa95",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/config.ts",
+      "candidatePath": "apps/web/src/audience/config.ts",
+      "previousSha256": "04a7f952c1144b4a458a84d9c27d65d20d89584f061ea1f433d7d3b421b31731",
+      "candidateSha256": "65c234c3bec659813296947053403593fdfb068431b6180f8aa4cb9ff070046a",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/auth/PublicAuth.test.tsx",
+      "candidatePath": "apps/web/src/auth/PublicAuth.test.tsx",
+      "previousSha256": "58bc26881f5bb8a22823b2feeadf50f163372d900fd71c0a41f28c8134928103",
+      "candidateSha256": "64bb7f7dda62ad91b9e40e86dbc6402cb84700c7021782a74bbb8bbe978e8b55",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/auth/PublicAuth.tsx",
+      "candidatePath": "apps/web/src/auth/PublicAuth.tsx",
+      "previousSha256": "dcc0a5f465bfe347fd4a5b9a9fe82753fd43588bc8fb76cdd798fb164fafa0c5",
+      "candidateSha256": "baec806612dd5a2c33050133aae42b2dd2bbfd45ef4bbb954e701d8bee0c1887",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/AuthNotice.tsx",
+      "candidatePath": "apps/web/src/home/AuthNotice.tsx",
+      "previousSha256": "178e654377037475aae81cb6e17a8a0da604b497abf74b1fdce01d03c237a053",
+      "candidateSha256": "e9b37434505c4ecb99730c993ce69356f9fdbd3c10de21486deb95518994e7cf",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/home.test.tsx",
+      "candidatePath": "apps/web/src/home/home.test.tsx",
+      "previousSha256": "7c952a9eacf79bdb36323dca951b04e07bf8b91ec70e3d6026f8185f1db868ff",
+      "candidateSha256": "de874ce0d3f20056f9cbb3581428e8ba84fa44d434cd35d52f6c4d7c0191b4af",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/release-manifest.schema.json",
+      "candidatePath": "deployment/release-manifest.schema.json",
+      "previousSha256": "3b01b7f89bd0e70bcb3af4279d70b6f692892a289b0472701def9ccb80623ca8",
+      "candidateSha256": "30ec51003705b6d9bc3161d608f10d689ba1768f9d83aeb762a27c4c9ef0a421",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "packages/public-navigation.ts",
+      "candidatePath": "packages/public-navigation.ts",
+      "previousSha256": "d37db7b0d1c9b615c4b444e2942fcb0911f3bbe1842d00a2f4137c4fb024be78",
+      "candidateSha256": "cd763291b32cb12c58a6803aad57d426fd16219f9d1a4b5c1abad0ceb5cc282c",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/build-web-release.mjs",
+      "candidatePath": "scripts/deployment/build-web-release.mjs",
+      "previousSha256": "045b17b3d7635565cadee0f296da1a86a81f60f19838eee0e15ef01445988c73",
+      "candidateSha256": "383650dba4ca7ce5bd1732ed9f33c7793848abb5f045acd987353a9cf4fb2c6e",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/web_release.py",
+      "candidatePath": "scripts/deployment/web_release.py",
+      "previousSha256": "813230c302550f49ba86651317cb4e0bbee890bb4026767d5378c6ee4506589e",
+      "candidateSha256": "53f0cb8abd529c923dec711da740d4a740676b03e22b6fc2334da0739aaa7e2a",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "252a29ea3c19a38fc65860619116ef8baf77b2abff8a7b45c2842b2a2ff38ba8",
+      "candidateSha256": "4c1a5b9dcf7a478a39ef84070b3d700c1240005f2528c275e8c2cf043cb02958",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "086877fbe5f865cd192bbc4209ba8fe061976341fc5a04b5574e5dd5a872367f",
+      "candidateSha256": "ab7b1373d4feeb2f8dcf9f9a8a634f53633e37846da901b4e3a72866861f3ff4",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/public-site.spec.ts",
+      "candidatePath": "tests/e2e/public-site.spec.ts",
+      "previousSha256": "991b2c85c70755a86a1e7588992128543199debb6d9fae95955c832f5addcd10",
+      "candidateSha256": "e053231ee88d91d06a328531592bcbed3507c6f072cc9ff746f5bafd416a32b1",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/public-site-composition.test.tsx",
+      "candidatePath": "tests/integration/public-site-composition.test.tsx",
+      "previousSha256": "5c1f97740e2bc475f39dd377d823ece10c61feadd4b5790dc7f00150709b63f5",
+      "candidateSha256": "efc6f298c860a22ff09583c458523092ca29ce4d8bc3bd91ec3fa0f142c5ba85",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/test_web_release.py",
+      "candidatePath": "tests/integration/test_web_release.py",
+      "previousSha256": "d9ef6d440062f2a9a07ac7e91d6bb41f8eec5fa12c7f923a8a0b8d1d5e54e980",
+      "candidateSha256": "bcec665377eb323cb4052f98292307601aa362239c92260c79d0b65762524f90",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "docs/plans/2026-10-08-gitnexus-plan-unified-login-entry.md",
+      "sha256": "6f55006d36ff6c608c7347181e2ab1842e33c39b7b31914d9a72299c754f9d0a",
+      "mode": "100644"
+    }
+  ]
+}

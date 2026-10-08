@@ -16,8 +16,8 @@ export function Participation({intent, session, loading, unavailable, onDemo, on
       {context !== 'anonymous' && <Banner title="Выберите подходящий контекст" variant="info"><Text as="p">Вы уже вошли в аккаунт. Для этого действия нужен {individual ? 'личный профиль исполнителя' : intent.audience === 'customer' ? 'участник компании-заказчика' : 'участник компании-исполнителя'}. Текущий участник не переключается автоматически.</Text></Banner>}
       {unavailable && <Banner title="Не удалось проверить вход" variant="warning"><Text as="p">Попробуйте позже. Выбранное направление сохранено.</Text></Banner>}
       {individual && context === 'anonymous' ? <>
-        <Text as="p">Войдите в существующий аккаунт или зарегистрируйтесь через Сбер ID. После входа подтвердите электронную почту и заполните профиль.</Text>
-        <Stack gap="normal"><Button as="a" href="/auth/sber-id/start?intent=register&subject=individual" variant="primary">Зарегистрироваться через Сбер ID</Button><Button as="a" href="/auth/sber-id/start?intent=login">Войти через Сбер ID</Button></Stack>
+        <Text as="p">Войдите через Сбер ID. Если аккаунта ещё нет, он будет создан автоматически. После входа подтвердите электронную почту и заполните профиль.</Text>
+        <Button as="a" href="/login" variant="primary">Войти через Сбер ID</Button>
       </> : !individual ? <Banner title="Регистрация компаний — скоро" variant="info"><Text as="p">Мы готовим регистрацию через Контур.Диадок. Пока можно познакомиться с платформой на демонстрации.</Text></Banner> : null}
       {!individual && <Button onClick={e => onDemo(e.currentTarget, intent.audience === 'customer' ? 'Заказчик' : 'Компания-исполнитель')}>Записаться на демо</Button>}
     </>}

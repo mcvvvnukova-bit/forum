@@ -113,26 +113,26 @@ describe('actual audience + public authentication composition', () => {
     expect(document.title).toBe(pageTitle)
     await waitFor(() => expect(opener).toHaveFocus())
   })
-  it('replaces modal mode while preserving background URL, foreign history fields and one Back entry', async () => {
+  it('keeps a single login while preserving background URL, foreign history fields and one Back entry', async () => {
     mount(); const heading=customerHeading(); const opener=await openLogin()
     const length=history.length
     const background=history.state.publicAuthBackground
     expect(background).toBe('/customers/?campaign=fixture#benefits')
     expect(history.state.foreign).toEqual({retained:42})
-    fireEvent.click(screen.getByRole('link', {name:'Зарегистрироваться'}))
-    expect(location.pathname).toBe('/register')
-    expect(screen.getByRole('dialog', {name:'Создайте аккаунт'})).toBeInTheDocument()
+    expect(screen.queryByRole('link', {name:'Зарегистрироваться'})).not.toBeInTheDocument()
+    expect(location.pathname).toBe('/login')
+    expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
     expect(history.length).toBe(length)
     expect(history.state.publicAuthBackground).toBe(background)
     expect(history.state.foreign).toEqual({retained:42})
-    await settle(0); await settle(2)
+    await settle(0); await settle(1)
     expect(customerHeading()).toBe(heading)
     expect(document.title).toBe(pageTitle)
     await traverse('back', '/customers/')
     expect(history.state).toEqual({foreign:{retained:42}})
     await waitFor(() => expect(opener).toHaveFocus())
-    await traverse('forward', '/register')
-    expect(screen.getByRole('dialog', {name:'Создайте аккаунт'})).toBeInTheDocument()
+    await traverse('forward', '/login')
+    expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
     expect(customerHeading()).toBe(heading)
     expect(navigate).not.toHaveBeenCalled()
   })
@@ -230,18 +230,18 @@ describe('work examples and modal hash restoration', () => {
 })
 
 describe('standalone and history validation', () => {
-  it.each(['/login','/register'])('keeps direct %s standalone and foreign history fields during mode switches', async path => {
+  it.each(['/login','/register','/register/index.html'])('keeps direct %s as standalone login and retains foreign history fields', async path => {
     history.replaceState({foreign:'keep'}, '', path+'?returnTo=https://outside.invalid')
     mount(false); await settle(0)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(history.state).toEqual({foreign:'keep'})
     expect(location.search).toBe('')
-    fireEvent.click(screen.getByRole('link', {name:path==='/login'?'Зарегистрироваться':'Войти'}))
-    expect(location.pathname).toBe(path==='/login'?'/register':'/login')
+    expect(screen.queryByRole('link', {name:'Зарегистрироваться'})).not.toBeInTheDocument()
+    expect(location.pathname).toBe('/login')
     expect(history.state).toEqual({foreign:'keep'})
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
-  it.each(['https://outside.invalid/customers/','//outside.invalid/customers/','/register'])('rejects invalid modal background %s', async background => {
+  it.each(['https://outside.invalid/customers/','//outside.invalid/customers/','/register','/register/index.html'])('rejects invalid modal background %s', async background => {
     history.replaceState({publicAuth:true,publicAuthBackground:background,foreign:'keep'}, '', '/login')
     mount(false); await settle(0)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -269,33 +269,30 @@ describe('actual homepage + public authentication composition', () => {
     vi.stubEnv('VITE_FORUM_SESSION', 'true')
     history.replaceState({foreign:{retained:42}}, '', background)
   })
-  it('opens login from Start, with the homepage retained and registration offered inside the form', async () => {
+  it('opens login from Start, with the homepage retained and automatic account creation explained', async () => {
     mountHome(); const heading=homeHeading()
     fireEvent.click(screen.getByRole('link', {name:'Начать работу'}))
     expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
     expect(location.pathname).toBe('/login')
-    expect(screen.getByRole('link', {name:'Зарегистрироваться'})).toHaveAttribute('href','/register')
+    expect(screen.queryByRole('link', {name:'Зарегистрироваться'})).not.toBeInTheDocument()
+    expect(screen.getByText('Если аккаунта ещё нет, он будет создан автоматически после входа через Сбер ID.')).toBeInTheDocument()
     retainedHome(heading)
   })
   it.each([
-    ['login', 'Close'], ['login', 'Back'], ['register', 'Close'], ['register', 'Back'],
-  ])('retains the homepage through pending successful session, %s modal, %s and Forward', async (mode, action) => {
+    ['Войти', 'Close'], ['Войти', 'Back'], ['Начать работу', 'Close'], ['Начать работу', 'Back'],
+  ])('retains the homepage through pending successful session, %s entry, %s and Forward', async (entry, action) => {
     mountHome(); const heading=homeHeading()
     expect(requests).toHaveLength(1)
-    if (mode==='login') await openLogin()
-    else {
-      fireEvent.click(screen.getByRole('link', {name:'Начать работу'}))
-      expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
-      fireEvent.click(screen.getByRole('link', {name:'Зарегистрироваться'}))
-      await screen.findByRole('dialog', {name:'Создайте аккаунт'})
-    }
-    expect(location.pathname).toBe('/'+mode)
+    if (entry==='Войти') await openLogin()
+    else fireEvent.click(screen.getByRole('link', {name:'Начать работу'}))
+    expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
+    expect(location.pathname).toBe('/login')
     retainedHome(heading)
     await settle(0,200)
     retainedHome(heading)
     // The independent auth session stays guest, so provider controls remain testable.
     await settle(requests.length-1)
-    expect(screen.getByRole('button', {name:mode==='login'?'Войти по Сбер ID':'Зарегистрироваться по Сбер ID'})).toBeEnabled()
+    expect(screen.getByRole('button', {name:'Войти по Сбер ID'})).toBeEnabled()
     if (action==='Close') {
       fireEvent.click(screen.getByRole('button', {name:'Закрыть окно'}))
       await waitFor(() => expect(location.pathname+location.search+location.hash).toBe(background))
@@ -303,26 +300,24 @@ describe('actual homepage + public authentication composition', () => {
     expect(location.pathname+location.search+location.hash).toBe(background)
     expect(homeHeading()).toBe(heading)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    await traverse('forward', '/'+mode)
+    await traverse('forward', '/login')
     retainedHome(heading)
-    expect(screen.getByRole('dialog', {name:mode==='login'?'Войти в аккаунт':'Создайте аккаунт'})).toBeInTheDocument()
+    expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
     await settle(requests.length-1)
     await traverse('back', '/')
     expect(homeHeading()).toBe(heading)
     expect(location.pathname+location.search+location.hash).toBe(background)
     expect(navigate).not.toHaveBeenCalled()
   })
-  it('retains the homepage when switching modes before its successful session resolves', async () => {
+  it('retains the homepage before its successful session resolves with one login entry', async () => {
     mountHome(); const heading=homeHeading(); await openLogin()
     const length=history.length
-    fireEvent.click(screen.getByRole('link', {name:'Зарегистрироваться'}))
-    expect(location.pathname).toBe('/register')
-    expect(history.length).toBe(length)
-    await settle(0,200); await settle(2)
-    retainedHome(heading)
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('link', {name:'Войти'}))
+    expect(screen.queryByRole('link', {name:'Зарегистрироваться'})).not.toBeInTheDocument()
     expect(location.pathname).toBe('/login')
-    await settle(3)
+    expect(history.length).toBe(length)
+    await settle(0,200); await settle(1)
+    retainedHome(heading)
+    expect(location.pathname).toBe('/login')
     retainedHome(heading)
     expect(history.state.foreign).toEqual({retained:42})
     await traverse('back', '/')
@@ -338,7 +333,7 @@ describe('actual homepage + public authentication composition', () => {
     expect(within(screen.getByRole('banner', {hidden:true})).getByRole('link', {name:'Войти', hidden:true})).toBeInTheDocument()
     expect(screen.getByRole('button', {name:'Войти по Сбер ID'})).toHaveProperty('disabled',status!==401)
   })
-  it.each(['/login','/register'])('restores the saved homepage background on remount at %s', async path => {
+  it.each(['/login','/register','/register/index.html'])('restores the saved homepage background on remount at %s', async path => {
     history.replaceState({publicAuth:true,publicAuthBackground:background}, '', path)
     mountHome(); const heading=homeHeading()
     await settle(0,200); await settle(1)

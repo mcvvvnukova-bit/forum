@@ -7,7 +7,7 @@ import {usePublicPageUrl} from './navigation'
 export function App() {
   const page = new URL(usePublicPageUrl(), location.origin)
   const path = page.pathname.replace(/\/$/, '')
-  const standalone = path === '/login' || path === '/register'
+  const standalone = path === '/login'
   const audience = ['/customers', '/suppliers', '/work', '/participate'].includes(path)
   return <SessionProvider>
     {!standalone && (audience ? <Audience /> : <Home />)}

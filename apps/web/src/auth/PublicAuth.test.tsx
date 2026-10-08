@@ -24,28 +24,27 @@ describe('public authentication', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument()
     expect(await screen.findByRole('button', {name: 'Войти по Сбер ID'})).toBeEnabled()
   })
-  it('switches mode without starting IAM, then submits only registration parameters once', async () => {
+  it('submits only login once and clears obsolete product intent', async () => {
     history.replaceState(null, '', '/login'); sessionStorage.setItem('forum.public.intent', '{"action":"find-jobs"}')
     const navigate=mount()
-    fireEvent.click(await screen.findByRole('link', {name:'Зарегистрироваться'}))
-    expect(location.pathname).toBe('/register')
-    expect(screen.getByRole('heading', {name:'Создайте аккаунт'})).toBeInTheDocument()
+    expect(screen.queryByRole('link', {name:'Зарегистрироваться'})).not.toBeInTheDocument()
     expect(navigate).not.toHaveBeenCalled()
-    const button=await screen.findByRole('button', {name:'Зарегистрироваться по Сбер ID'})
+    const button=await screen.findByRole('button', {name:'Войти по Сбер ID'})
     await waitFor(() => expect(button).toBeEnabled())
     fireEvent.click(button); fireEvent.click(button)
-    expect(navigate).toHaveBeenCalledExactlyOnceWith('/auth/sber-id/start?intent=register&subject=individual')
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/auth/sber-id/start?intent=login')
     expect(sessionStorage.getItem('forum.public.intent')).toBeNull()
     expect(button).toBeDisabled()
   })
-  it('renders a standalone form on a direct registration URL', async () => {
-    history.replaceState(null, '', '/register?returnTo=https://outside.invalid')
+  it.each(['/register','/register/','/register/index.html'])('canonicalizes obsolete %s to standalone login', async path => {
+    history.replaceState(null, '', path+'?returnTo=https://outside.invalid')
     mount()
-    expect(screen.getByRole('heading', {name:'Создайте аккаунт'})).toBeInTheDocument()
+    expect(screen.getByRole('heading', {name:'Войти в аккаунт'})).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('link', {name:'АСТ Форум'})).toHaveAttribute('href','/')
+    expect(location.pathname).toBe('/login')
     expect(location.search).toBe('')
-    expect(await screen.findByRole('button', {name:'Зарегистрироваться по Сбер ID'})).toBeEnabled()
+    expect(await screen.findByRole('button', {name:'Войти по Сбер ID'})).toBeEnabled()
   })
   it('shows a retry when the session cannot be verified instead of enabling IAM', async () => {
     history.replaceState(null, '', '/login')
@@ -89,8 +88,8 @@ describe('public authentication', () => {
   })
   it('treats sber unavailability as a disabled provider with manual retry', async () => {
     history.replaceState(null, '', '/register?auth_error=sber_unavailable'); mount()
-    expect(await screen.findByText('Регистрация через Сбер ID пока недоступна')).toBeInTheDocument()
-    expect(screen.getByRole('button', {name:'Зарегистрироваться по Сбер ID'})).toBeDisabled()
+    expect(await screen.findByText('Вход через Сбер ID пока недоступен')).toBeInTheDocument()
+    expect(screen.getByRole('button', {name:'Войти по Сбер ID'})).toBeDisabled()
     expect(screen.getByRole('link', {name:'Записаться на демо'})).toHaveAttribute('href', '/#demo')
   })
   it('closes a modal after Back and retains public content', async () => {
@@ -102,18 +101,51 @@ describe('public authentication', () => {
   })
 })
 
-it('preserves page anchors while opening and switching the auth dialog', async () => {
+it('preserves page anchors while opening the auth dialog', async () => {
   const a=trigger(); const section=document.createElement('a'); section.href='#demo'; section.textContent='Демо'; a.append(section)
   mount(); fireEvent.click(a); await screen.findByRole('dialog')
   await act(async () => {await Promise.resolve()})
   expect(section.getAttribute('href')).toBe('#demo')
-  fireEvent.click(screen.getByRole('link',{name:'Зарегистрироваться'}));
-  await act(async () => {await Promise.resolve()})
-  expect(section.getAttribute('href')).toBe('#demo')
+  expect(screen.queryByRole('link',{name:'Зарегистрироваться'})).not.toBeInTheDocument()
 })
 it('retries a completed provider attempt on explicit retry exactly once', async () => {
   history.replaceState(null, '', '/login?auth_error=access_denied'); const navigate=mount()
   await waitFor(() => expect(screen.getByRole('button',{name:'Войти по Сбер ID'})).toBeEnabled())
   const retry=screen.getByRole('button',{name:'Повторить'}); fireEvent.click(retry); fireEvent.click(retry)
   expect(navigate).toHaveBeenCalledExactlyOnceWith('/auth/sber-id/start?intent=login')
+})
+
+it('canonical login retires direct registration and uses the same Sber entry', async () => {
+  history.replaceState({foreign:42}, '', '/register?returnTo=https://outside.invalid')
+  const navigate=mount()
+  expect(screen.getByRole('heading', {name:'Войти в аккаунт'})).toBeInTheDocument()
+  expect(screen.queryByRole('link', {name:'Зарегистрироваться'})).not.toBeInTheDocument()
+  expect(location.pathname).toBe('/login')
+  expect(history.state.foreign).toBe(42)
+  expect(location.search).toBe('')
+  const button=screen.getByRole('button', {name:'Войти по Сбер ID'})
+  await waitFor(() => expect(button).toBeEnabled())
+  fireEvent.click(button); fireEvent.click(button)
+  expect(navigate).toHaveBeenCalledExactlyOnceWith('/auth/sber-id/start?intent=login')
+})
+
+it.each(['/register','/register/','/register/index.html','/auth/sber-id/start?intent=register&subject=individual'])('canonical login rewrites obsolete %s links before opening login', async path => {
+  const a=trigger(); a.href=path; mount()
+  expect(a).toHaveAttribute('href','/login')
+  fireEvent.click(a)
+  expect(await screen.findByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
+  expect(location.pathname).toBe('/login')
+  expect(screen.queryByRole('link', {name:'Зарегистрироваться'})).not.toBeInTheDocument()
+})
+
+it('canonicalizes a saved registration entry on browser history restoration', async () => {
+  mount()
+  await act(async () => {
+    history.replaceState({foreign:'keep',publicAuth:true,publicAuthBackground:'/customers/#benefits'}, '', '/register/index.html')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  })
+  expect(screen.getByRole('dialog',{name:'Войти в аккаунт'})).toBeInTheDocument()
+  expect(location.pathname).toBe('/login')
+  expect(history.state.publicAuthBackground).toBe('/customers/#benefits')
+  expect(history.state.foreign).toBe('keep')
 })

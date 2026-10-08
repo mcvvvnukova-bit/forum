@@ -5,9 +5,11 @@ for(const width of [320,390,1440]){
   await page.setViewportSize({width,height:1000})
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message))
   await page.route('**/api/auth/session',route=>route.fulfill({status:401,body:''}))
-  for(const path of ['/','/customers/','/suppliers/','/work/','/participate/','/login','/register','/cabinet/']){
+  for(const path of ['/','/customers/','/suppliers/','/work/','/participate/','/login','/register','/register/','/register/index.html','/cabinet/']){
    await page.goto(path);await expect(page.locator('h1')).toBeVisible()
    await page.reload();await expect(page.locator('h1')).toBeVisible()
+   await expect(page.locator('a[href="/register"]')).toHaveCount(0)
+   if(path.startsWith('/register')) await expect(page).toHaveURL(/\/login$/)
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
   }
   expect(errors).toEqual([])
@@ -23,8 +25,8 @@ for(const width of [320,390,1440]){
    const opener=entry==='Войти'?page.locator('.site-header').getByRole('link',{name:'Войти',exact:true}):page.getByRole('link',{name:'Начать работу',exact:true})
    await opener.click()
    await expect(page.getByRole('dialog',{name:'Войти в аккаунт',exact:true})).toBeVisible()
-   await page.getByRole('dialog').getByRole('link',{name:'Зарегистрироваться',exact:true}).click()
-   await page.getByRole('dialog').getByRole('link',{name:'Войти',exact:true}).click()
+   await expect(page.getByRole('dialog').getByRole('link',{name:'Зарегистрироваться',exact:true})).toHaveCount(0)
+   await expect(page).toHaveURL(/\/login$/)
    release()
    await expect(page.getByRole('dialog').getByText('Вы уже вошли в аккаунт')).toBeVisible()
    await expect(page.locator('.site-header')).toContainText('В кабинет')

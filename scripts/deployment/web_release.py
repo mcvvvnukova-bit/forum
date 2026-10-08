@@ -61,7 +61,7 @@ def validate_artifact(artifact, source_sha, environment):
             raise ValueError('Hidden artifact file')
     if fingerprint(manifest['inputs']) != manifest['sourceFingerprint'] or fingerprint(manifest['config']) != manifest['configFingerprint']:
         raise ValueError('Input/config fingerprint mismatch')
-    routes = ['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/register'] if environment == 'dev' else ['/']
+    routes = ['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login'] if environment == 'dev' else ['/']
     if manifest['routes'] != routes:
         raise ValueError('Route inventory mismatch')
     pages = {('index.html' if route == '/' else route.strip('/') + '/index.html') for route in routes}
@@ -103,6 +103,9 @@ def deploy(artifact, target, backups, *, source_sha, expected_target, environmen
                     install_asset(prepared / name, data)
                     # Available to newly opened pages even after rollback.
                     install_asset(target / name, data)
+            # Retire only the previously owned page in the prepared tree. Its
+            # absence activates the gateway alias; exchanging back restores it.
+            (prepared / 'register/index.html').unlink(missing_ok=True)
             (prepared / '.public-auth.json').unlink(missing_ok=True)
             atomic_write(prepared / '.web-release.json', (artifact / 'manifest.json').read_bytes())
             previous = inventory(target)

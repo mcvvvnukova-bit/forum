@@ -28,6 +28,6 @@ describe('Audience landing behavior', () => {
     fireEvent(window,new Event('hashchange'))
     expect(screen.getByRole('group',{name:/Заказы и подработка/})).toBeInTheDocument()
   })
-  it('keeps ordinary login available after closing a company action', () => {sessionStorage.setItem('forum.public.intent',JSON.stringify({audience:'customer',action:'create-order',returnTo:'/customers/'}));open('/participate/');expect(screen.getByRole('link',{name:'Войти через Сбер ID'})).toHaveAttribute('href','/auth/sber-id/start?intent=login');expect(screen.getByRole('link',{name:'Я ищу работу'})).toBeInTheDocument()})
+  it('keeps ordinary login available after closing a company action', () => {sessionStorage.setItem('forum.public.intent',JSON.stringify({audience:'customer',action:'create-order',returnTo:'/customers/'}));open('/participate/');expect(screen.getByRole('link',{name:'Войти через Сбер ID'})).toHaveAttribute('href','/login');expect(screen.getByRole('link',{name:'Я ищу работу'})).toBeInTheDocument()})
   it('routes handoff navigation to an existing explanation', () => {open('/participate/');expect(screen.getByRole('link',{name:'О платформе'})).toHaveAttribute('href','/#rules')})
 })

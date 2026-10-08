@@ -171,6 +171,41 @@ def main_auth_file(path, expected_hash, expected_mode):
     change = next((x for x in main_auth_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-156 chain mismatch: ' + candidate
+        return login_entry_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return login_entry_file(ROOT / candidate, expected_hash, expected_mode)
+
+
+# PROJ-157 retires the registration page without rewriting previous receipts.
+LOGIN_ENTRY_PREDECESSORS = {'apps/web/README.md': '23e30f5c96e8b623de6856e848ce0aed224e226fa977b5e454b8a9293b7e2c9e', 'apps/dev-gateway/forum_dev_auth.py': '6d45b1ce43fbd8405d58de052dc5e5c5d152d2434351d9baf1629ae97eead1c3', 'apps/legacy-landing/tests/test_auth_gateway.py': '140836d2f34751b89b3ddd276ac6d515490d686074f961d48898b1e70ad1d3ca', 'apps/web/src/App.test.tsx': '9ad1b11f3d354be35435576da8ec92f5179c464ffef45e91ca7528b0e6ea1c5f', 'apps/web/src/App.tsx': '030effa81e9ff3b334b946003cdd4917234757bd9fe4ce11beb32080ee2a3f13', 'apps/web/src/audience/App.tsx': '94fc764dcb4bd9300538145b50cff84e5c9ba8238c68978dc70e888fd8c8d3fd', 'apps/web/src/audience/Participation.tsx': '1c56a916c9fd31a2ffd5382f7c7661239f11efebf03761ed1cc6a4328cae399e', 'apps/web/src/audience/audience.test.tsx': '0a0eda5a1b78f87e5efa8b21bf9617f1958ab84b5371b15c241b75c5febfab53', 'apps/web/src/audience/config.ts': '04a7f952c1144b4a458a84d9c27d65d20d89584f061ea1f433d7d3b421b31731', 'apps/web/src/auth/PublicAuth.test.tsx': '58bc26881f5bb8a22823b2feeadf50f163372d900fd71c0a41f28c8134928103', 'apps/web/src/auth/PublicAuth.tsx': 'dcc0a5f465bfe347fd4a5b9a9fe82753fd43588bc8fb76cdd798fb164fafa0c5', 'apps/web/src/home/AuthNotice.tsx': '178e654377037475aae81cb6e17a8a0da604b497abf74b1fdce01d03c237a053', 'apps/web/src/home/home.test.tsx': '7c952a9eacf79bdb36323dca951b04e07bf8b91ec70e3d6026f8185f1db868ff', 'deployment/release-manifest.schema.json': '3b01b7f89bd0e70bcb3af4279d70b6f692892a289b0472701def9ccb80623ca8', 'packages/public-navigation.ts': 'd37db7b0d1c9b615c4b444e2942fcb0911f3bbe1842d00a2f4137c4fb024be78', 'scripts/deployment/build-web-release.mjs': '045b17b3d7635565cadee0f296da1a86a81f60f19838eee0e15ef01445988c73', 'scripts/deployment/web_release.py': '813230c302550f49ba86651317cb4e0bbee890bb4026767d5378c6ee4506589e', 'scripts/verification/check-operational-sources.py': '252a29ea3c19a38fc65860619116ef8baf77b2abff8a7b45c2842b2a2ff38ba8', 'scripts/verification/checks.test.mjs': '086877fbe5f865cd192bbc4209ba8fe061976341fc5a04b5574e5dd5a872367f', 'tests/e2e/public-site.spec.ts': '991b2c85c70755a86a1e7588992128543199debb6d9fae95955c832f5addcd10', 'tests/integration/public-site-composition.test.tsx': '5c1f97740e2bc475f39dd377d823ece10c61feadd4b5790dc7f00150709b63f5', 'tests/integration/test_web_release.py': 'd9ef6d440062f2a9a07ac7e91d6bb41f8eec5fa12c7f923a8a0b8d1d5e54e980'}
+LOGIN_ENTRY_NEW_PATHS = {'docs/plans/2026-10-08-gitnexus-plan-unified-login-entry.md'}
+
+
+def login_entry_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-157-login-entry-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-157'
+    assert receipt['baseSha'] == '92e7de0c227de01ecf194aeb57d3713950ed5db1', 'PROJ-157 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(LOGIN_ENTRY_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(LOGIN_ENTRY_PREDECESSORS), 'Out-of-scope PROJ-157 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        assert item['candidatePath'] == path and item['previousSha256'] == LOGIN_ENTRY_PREDECESSORS[path], 'PROJ-157 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-157 mode mismatch'
+        assert len(item['candidateSha256']) == 64 and all(c in '0123456789abcdef' for c in item['candidateSha256']), 'Invalid PROJ-157 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(LOGIN_ENTRY_NEW_PATHS) and {x['path'] for x in sources} == LOGIN_ENTRY_NEW_PATHS, 'Out-of-scope PROJ-157 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-157 source hash mismatch'
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-157 source mode mismatch'
+    return receipt
+
+
+def login_entry_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in login_entry_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-157 chain mismatch: ' + candidate
         return ROOT / candidate, change['candidateSha256'], change['candidateMode']
     return ROOT / candidate, expected_hash, expected_mode
 
@@ -328,10 +363,15 @@ def verify_provenance():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-155 successor hash mismatch'
         assert not path.stat().st_mode & 0o111, 'PROJ-155 successor mode mismatch'
     for item in main_auth_receipt()['changes']:
+        path, digest, _ = login_entry_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-156 successor hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-156 successor mode mismatch'
+    for item in login_entry_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-156 current hash mismatch'
-        assert not path.stat().st_mode & 0o111, 'PROJ-156 current mode mismatch'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-157 current hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-157 current mode mismatch'
     return accepted
 
 

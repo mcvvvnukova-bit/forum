@@ -115,6 +115,33 @@ class AuthGatewayTest(unittest.TestCase):
         self.assertEqual(headers["x-robots-tag"], "noindex, nofollow, noarchive")
         self.assertEqual(headers["content-type"], "text/html")
 
+    def test_retired_registration_redirects_to_login_and_rollback_restores_legacy_page(self):
+        (self.landing_root / 'login').mkdir()
+        (self.landing_root / 'login/index.html').write_text('Canonical login')
+        with GatewayServer(self.make_handler()) as server:
+            _, response_headers, _ = server.request('POST', '/auth/login',
+                urlencode({'password': 'correct horse battery staple'}),
+                {'Content-Type': 'application/x-www-form-urlencoded'})
+            cookie = response_headers['set-cookie'].split(';', 1)[0]
+            for path in ['/register', '/register/', '/register/index.html']:
+                for method in ['GET', 'HEAD']:
+                    with self.subTest(path=path, method=method):
+                        status, headers, body = server.request(method,
+                            path+'?auth_error=account_deactivated&returnTo=https://outside.invalid&intent=register',
+                            headers={'Cookie': cookie})
+                        self.assertEqual(status, 303)
+                        self.assertEqual(headers['location'], '/login?auth_error=account_deactivated')
+                        self.assertEqual(headers['cache-control'], 'no-store')
+                        self.assertEqual(body, '')
+                status, headers, _ = server.request('GET', path, headers={'Cookie': cookie})
+                self.assertEqual(status, 303)
+                self.assertEqual(headers['location'], '/login')
+            (self.landing_root / 'register').mkdir()
+            (self.landing_root / 'register/index.html').write_text('Legacy rollback page')
+            status, _, body = server.request('GET', '/register', headers={'Cookie': cookie})
+            self.assertEqual(status, 200)
+            self.assertEqual(body, 'Legacy rollback page')
+
     def test_wrong_password_redirects_back_to_password_screen_without_session_cookie(self):
         body = urlencode({"password": "wrong"}).encode("utf-8")
         headers = {"Content-Type": "application/x-www-form-urlencoded"}

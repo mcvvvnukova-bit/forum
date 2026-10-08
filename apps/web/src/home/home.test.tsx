@@ -53,12 +53,12 @@ describe('PUB.01.01.01', () => {
     expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Заказы, исполнители и работа в строительстве')
   })
 
-  it('offers registration when the existing login API requires it', () => {
+  it('retries login for an obsolete registration-required callback', () => {
     vi.stubEnv('VITE_FORUM_SESSION', 'true')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ok: false}))
     renderPage('/?auth_error=registration_required')
-    expect(screen.getByRole('link', {name: 'Зарегистрироваться через Сбер ID'})).toBeInTheDocument()
-    expect(screen.getByText('Аккаунт ещё не создан. Зарегистрируйтесь через Сбер ID.')).toBeInTheDocument()
+    expect(screen.getByRole('link', {name: 'Повторить вход'})).toHaveAttribute('href','/login')
+    expect(screen.getByText('Не удалось завершить вход. Повторите вход через Сбер ID.')).toBeInTheDocument()
   })
   it('preserves required section order, headline, metrics and company contacts', () => {
     const {container} = renderPage()
