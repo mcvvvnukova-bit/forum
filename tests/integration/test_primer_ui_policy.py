@@ -267,9 +267,11 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         findings = json.loads(result.stdout)
-        # Cabinet adds two valid Primer Stack gap props; the pinned upstream
-        # scanner still warns, while our narrow semantic binding gate accepts them.
-        self.assertEqual(len(findings), 73)
+        # Removing the registration action also removes one valid Stack gap.
+        # The pinned upstream scanner still warns on 72 accepted props; our
+        # narrow semantic binding gate accepts them, including both cabinet gaps.
+        self.assertEqual(len(findings), 72)
+        self.assertEqual(sum(f['path'] == 'src/home/Cabinet.tsx' for f in findings), 2)
         self.assertTrue(all(f['code'] == 'PDS007' and f['severity'] == 'warning' for f in findings))
 
     def test_default_target_independent_of_working_directory(self):
