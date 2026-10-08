@@ -456,3 +456,47 @@ test('database failure during registration rolls back the user and participant',
     await pool.query('DROP TRIGGER reject_test_event ON public.outbox_events; DROP FUNCTION public.reject_test_event()');
   }
 });
+
+test('profile endpoint returns only current owner data and cannot select another user', async () => {
+  // Profile acceptance has its own rate-limit window, with production limits unchanged.
+  await app.close();
+  app=await createApp({publicOrigin:'https://forum.example',databaseUrl:process.env.TEST_DATABASE_URL ?? 'postgres://postgres:local-auth-tests@127.0.0.1:55432/forum_auth_test',secureCookies:true,sessionTtlSeconds:3600,sber:provider.sber},pool);
+  const cookie = sessionCookie(await finish(await begin(), {}, {middle_name:'Сергеевна',phone_number:'+79000000001'}));
+  const otherCookie = sessionCookie(await finish(await begin(), {sub:'sber-person-2'}, {given_name:'Борис',family_name:'Другой',email:'other@example.test'}));
+  const response = await app.inject({method:'GET',url:'/api/profile',headers:{cookie}});
+  assert.equal(response.statusCode,200,response.body);
+  assert.equal(response.headers['cache-control'],'no-store');
+  const value=response.json();
+  assert.equal(value.profile.email,'anna@example.test');
+  assert.equal(value.profile.family_name,'Иванова');
+  assert.equal(value.profile.given_name,'Анна');
+  assert.equal(value.profile.middle_name,'Сергеевна');
+  assert.equal(value.profile.phone_number,'+79000000001');
+  assert.equal(value.userId,(await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie}})).json().user.id);
+  assert.equal('sub' in value.profile,false);
+  assert.equal(response.body.includes('access_token'),false);
+  const other=await app.inject({method:'GET',url:'/api/profile',headers:{cookie:otherCookie}});
+  assert.equal(other.json().profile.email,'other@example.test');
+  assert.equal((await app.inject({method:'GET',url:'/api/profile?userId='+other.json().userId,headers:{cookie}})).statusCode,400);
+});
+
+test('profile rejects anonymous malformed expired revoked and deactivated access', async () => {
+  for(const cookie of ['', '__Host-forum_session=malformed']) {
+    assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie}})).statusCode,401);
+  }
+  const cookie=sessionCookie(await finish(await begin()));
+  await pool.query("UPDATE public.sessions SET expires_at=now()-interval '1 second'");
+  assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie}})).statusCode,401);
+  const renewed=sessionCookie(await finish(await begin('login')));
+  await pool.query("UPDATE public.participant_memberships SET status='revoked'");
+  assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie:renewed}})).statusCode,401);
+});
+
+test('profile access stops after logout and blocked user', async () => {
+  const cookie=sessionCookie(await finish(await begin()));
+  await app.inject({method:'POST',url:'/api/auth/logout',headers:{cookie,origin:'https://forum.example'}});
+  assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie}})).statusCode,401);
+  const renewed=sessionCookie(await finish(await begin('login')));
+  await pool.query("UPDATE public.users SET status='deactivated'");
+  assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie:renewed}})).statusCode,401);
+});

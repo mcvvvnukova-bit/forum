@@ -268,9 +268,9 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
         self.assertEqual(result.returncode, 0, result.stderr)
         findings = json.loads(result.stdout)
         # Removing the registration action also removes one valid Stack gap.
-        # The pinned upstream scanner still warns on 72 accepted props; our
-        # narrow semantic binding gate accepts them, including both cabinet gaps.
-        self.assertEqual(len(findings), 72)
+        # The pinned upstream scanner still warns on 75 accepted props; our
+        # narrow semantic binding gate accepts them, including both cabinet gaps and test harnesses.
+        self.assertEqual(len(findings), 75)
         self.assertEqual(sum(f['path'] == 'src/home/Cabinet.tsx' for f in findings), 2)
         self.assertTrue(all(f['code'] == 'PDS007' and f['severity'] == 'warning' for f in findings))
 

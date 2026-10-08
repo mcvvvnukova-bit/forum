@@ -87,6 +87,8 @@ export class SberClient {
         alternateSubjects: [...new Set(aliases)].filter(sub => sub !== claims.sub),
         displayName, email, emailConfirmed: Boolean(email && profile.email_verified === true),
         claims: {schemaVersion: 1, sub: claims.sub, displayName, email,
+          familyName: textClaim(profile.family_name, 128), givenName: textClaim(profile.given_name, 128),
+          middleName: textClaim(profile.middle_name, 128),
           emailVerified: profile.email_verified === true, phoneNumber: textClaim(profile.phone_number, 64),
           acr: textClaim(claims.acr, 128)},
       },

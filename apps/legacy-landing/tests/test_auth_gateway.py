@@ -213,6 +213,33 @@ class AuthGatewayTest(unittest.TestCase):
         self.assertEqual(status, 503)
         self.assertIn("sber_unavailable", payload)
 
+    def test_profile_proxy_forwards_only_the_cookie_and_denies_dev_password_only(self):
+        requests = []
+        class ApiHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                cookie = self.headers.get("Cookie", "")
+                requests.append((self.path, cookie))
+                authenticated = "forum_session=opaque" in cookie
+                self.send_response(200 if authenticated else 401)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"userId":"owner","profile":{}}' if authenticated else b'{"code":"unauthorized"}')
+            def log_message(self, *_):
+                pass
+        with GatewayServer(ApiHandler) as api:
+            with GatewayServer(self.make_handler(f"http://127.0.0.1:{api.port}")) as gateway:
+                for cookie, status in [("forum_dev_auth=synthetic",401),("forum_session=opaque",200)]:
+                    connection = http.client.HTTPConnection("127.0.0.1", gateway.port)
+                    try:
+                        connection.request("GET","/api/profile",headers={"Cookie":cookie,"Accept":"application/json"})
+                        response = connection.getresponse()
+                        self.assertEqual(response.status,status)
+                        self.assertEqual(response.getheader("Cache-Control"),"no-store")
+                        response.read()
+                    finally:
+                        connection.close()
+        self.assertEqual(requests,[("/api/profile","forum_dev_auth=synthetic"),("/api/profile","forum_session=opaque")])
+
     def test_api_proxy_preserves_cookies_and_redirects_without_logging_auth_codes(self):
         requests = []
 

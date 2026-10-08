@@ -12,7 +12,7 @@ function renderPage(url = '/') {
 
 describe('PUB.01.01.01', () => {
   it('opens the cabinet from a real session and shows the assigned individual role', async () => {
-    vi.stubGlobal('fetch', async () => Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
+    vi.stubGlobal('fetch', async (url:string) => url==='/api/profile' ? Response.json({userId:'person-one',profile:{given_name:'Анна',family_name:'Иванова'}}) : Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
     renderPage('/cabinet/?auth=success')
     expect(await screen.findByText('Анна Иванова')).toBeInTheDocument()
     expect(screen.getByText('Физлицо')).toBeInTheDocument()
@@ -29,6 +29,7 @@ describe('PUB.01.01.01', () => {
     let loggedIn=true
     vi.stubGlobal('fetch',async (url: string, init?: RequestInit) => {
       if (url==='/api/auth/logout' && init?.method==='POST') {loggedIn=false;return new Response(null,{status:204})}
+      if(url==='/api/profile')return loggedIn?Response.json({userId:'person-one',profile:{given_name:'Анна',family_name:'Иванова'}}):new Response('',{status:401})
       return loggedIn ? Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}) : new Response('',{status:401})
     })
     renderPage('/cabinet/')
@@ -40,7 +41,7 @@ describe('PUB.01.01.01', () => {
     vi.stubGlobal('fetch',async () => new Response('',{status:503}))
     renderPage('/cabinet/')
     expect(await screen.findByText('Не удалось проверить вход')).toBeInTheDocument()
-    vi.stubGlobal('fetch',async () => Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
+    vi.stubGlobal('fetch',async (url:string) => url==='/api/profile'?Response.json({userId:'person-one',profile:{given_name:'Анна',family_name:'Иванова'}}):Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
     fireEvent.click(screen.getByRole('button',{name:'Повторить'}))
     expect(await screen.findByText('Анна Иванова')).toBeInTheDocument()
   })

@@ -112,6 +112,16 @@ export class AuthController {
     } catch (error) { return this.failure(reply, error); }
   }
 
+  @Get('/api/profile')
+  async profile(@Req() req: FastifyRequest, @Res() reply: FastifyReply) {
+    try {
+      parameters(req, []);
+      const token = req.cookies[this.runtime.sessionCookie];
+      if (!token || !/^[\w-]{43}$/.test(token) || !this.runtime.store) throw new AuthError('unauthenticated', 401);
+      return reply.send(await this.runtime.store.profile(token));
+    } catch (error) { return this.failure(reply, error); }
+  }
+
   private available() {
     const {sber, store} = this.runtime;
     if (!sber || !store) throw new AuthError('sber_unavailable', 503);

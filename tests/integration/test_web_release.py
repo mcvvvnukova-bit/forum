@@ -36,6 +36,9 @@ class Release(unittest.TestCase):
         self.artifact=Path('/artifact')
         self.manifest=json.loads((self.artifact/'manifest.json').read_text())
         self.sha=self.manifest['sourceSha']
+        # The previous release relied on SPA fallback and owned no cabinet HTML.
+        for name in ['cabinet/index.html','cabinet/work/index.html']:
+            (self.target/name).unlink()
         self.backups=self.parent/'backups'
         (self.parent/'auth').mkdir();(self.parent/'auth/index.html').write_text('Synthetic gateway login')
         password=Path('/tmp/test-web-password');password.write_text('synthetic-only')
@@ -116,6 +119,8 @@ class Release(unittest.TestCase):
         report=self.run_deploy(self.verify)
         def verify_old(_):
             self.assertEqual(self.get('index.html'),self.old)
+            for name in ['cabinet/index.html','cabinet/work/index.html']:
+                self.assertFalse((self.target/name).exists())
             self.assertEqual(self.registration_response(),(200,None,self.old_registration))
             for name in self.manifest['files']:
                 if name.startswith(('web-assets/','web-media/')):self.assertEqual(self.get(name),(self.artifact/'site'/name).read_bytes())

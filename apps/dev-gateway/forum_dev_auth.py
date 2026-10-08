@@ -59,7 +59,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
 
-            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session"}:
+            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session", "/api/profile"}:
                 self._proxy_api(send_body=send_body)
                 return
 

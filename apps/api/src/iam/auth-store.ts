@@ -57,7 +57,10 @@ export class AuthStore {
       // The reduced verified snapshot contains only these userinfo attributes.
       // Profile ownership must exist before the personal participant FK is checked.
       const profile = {sub: identity.subject, email: identity.email,
-        email_verified: identity.emailConfirmed, phone_number: identity.claims.phoneNumber ?? null};
+        email_verified: identity.emailConfirmed, phone_number: identity.claims.phoneNumber ?? null,
+        ...Object.fromEntries([['family_name','familyName'],['given_name','givenName'],['middle_name','middleName']]
+          .filter(([, claim]) => typeof identity.claims[claim] === 'string')
+          .map(([field, claim]) => [field, identity.claims[claim]]))};
       await client.query(`INSERT INTO public.persons(user_id, sber_profile, identified_at, profile_received_at)
         VALUES ($1,$2,now(),now()) ON CONFLICT (user_id) DO UPDATE
         SET sber_profile=public.persons.sber_profile || EXCLUDED.sber_profile,
@@ -104,5 +107,18 @@ export class AuthStore {
 
   async logout(token: string) {
     await this.pool.query('UPDATE public.sessions SET revoked_at = now() WHERE token_hash = $1 AND revoked_at IS NULL', [hashToken(token)]);
+  }
+
+  async profile(token: string) {
+    // No caller-supplied user identifier: the existing active membership/session
+    // contract is the only source of ownership, including legacy sessions.
+    const {user} = await this.session(token);
+    const result = await this.pool.query<{sber_profile: Record<string, unknown>}>(
+      'SELECT sber_profile FROM public.persons WHERE user_id=$1', [user.id]);
+    if (!result.rows[0]) throw new AuthError('profile_unavailable', 503);
+    const profile = {...result.rows[0].sber_profile};
+    delete profile.sub;
+    delete profile.email_verified;
+    return {userId: user.id, profile};
   }
 }

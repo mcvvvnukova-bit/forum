@@ -2,6 +2,7 @@
 """Validate selected operational source offline; never invoke its administrators."""
 import ast
 import hashlib
+from functools import lru_cache
 from html.parser import HTMLParser
 import json
 from pathlib import Path
@@ -126,7 +127,8 @@ def sber_auth_receipt():
     for item in sources:
         source = ROOT / item['path']
         assert source.is_file() and not source.is_symlink(), item['path']
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-155 source hash mismatch: ' + item['path']
+        path, digest, _ = cabinet_profile_file(source, item['sha256'], item['mode'])
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-155 source hash mismatch: ' + item['path']
         assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-155 source mode mismatch'
     return receipt
 
@@ -276,6 +278,42 @@ def skip_link_file(path, expected_hash, expected_mode):
     change = next((x for x in skip_link_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-159 chain mismatch: ' + candidate
+        return cabinet_profile_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return cabinet_profile_file(ROOT / candidate, expected_hash, expected_mode)
+
+
+# PROJ-160 adds only authenticated profile presentation and its serving boundary.
+CABINET_PROFILE_PREDECESSORS = {'apps/api/README.md': 'c32210389388fb6de09242473e9aed20cd2ba2fb37dc52075283557fc822d0ee', 'apps/api/src/iam/auth-store.ts': '1e6c5d12a4725694b660a643d4455a8a0a2dfa88034e3b2d5c7e704c932e3d5b', 'apps/api/src/iam/auth.controller.ts': '90f5f5d31faa4fd5deab671fff092070d5a62ca0095014d480e65899dc97410b', 'apps/api/src/iam/sber-client.ts': 'b7079506bb6354585d6133ca904037b0314e3fe2071ffe33f737b58a2e2ad57a', 'apps/api/test/auth.test.ts': '5db68460957a3563aa891073a4f3ee629761ffae7e437e9ac4ab40e1b736e882', 'apps/dev-gateway/forum_dev_auth.py': '15c6a478909d7d3bc51ef365ca021f006ed611ce41614a331f7adf6c283889ae', 'apps/legacy-landing/tests/test_auth_gateway.py': 'ed4d0fc32196a60fb7f055479bb12a2bdd3c40968e222f63a729adab94698883', 'apps/profile-preview/src/ProfilePage.tsx': '6ff286610858bdd8154acc71d4382411ccf4bff6e4560bb4a286b043dfcbe180', 'apps/profile-preview/src/profile.ts': '2d6c70032bdb742414776af911d54bf28ddcb0f6c58cf242a0ce7da29f143464', 'apps/web/src/home/App.tsx': '53238ebe3046b1b7a96d9fdc15ed297837b5a569e49cee737a010974694e6b11', 'apps/web/src/home/Cabinet.tsx': 'a11c08e19d627bf89559f8dced55cd4a52203720a2e766e986066efb6c786daa', 'apps/web/src/home/home.test.tsx': 'de874ce0d3f20056f9cbb3581428e8ba84fa44d434cd35d52f6c4d7c0191b4af', 'deployment/release-manifest.schema.json': '30ec51003705b6d9bc3161d608f10d689ba1768f9d83aeb762a27c4c9ef0a421', 'deployment/release.md': '1cecca20132ecd0544d87f63456771e6a904af37c3006bfec965ef1b03a7ddbc', 'scripts/deployment/build-web-release.mjs': '383650dba4ca7ce5bd1732ed9f33c7793848abb5f045acd987353a9cf4fb2c6e', 'scripts/deployment/web_release.py': '53f0cb8abd529c923dec711da740d4a740676b03e22b6fc2334da0739aaa7e2a', 'scripts/verification/check-operational-sources.py': 'a5912850eff842df56c66fbb92f844fc87333f7141371f71167da12730c678b2', 'scripts/verification/checks.test.mjs': '8d7abdf614227301856cb15b11e93af30a2303f5efaf80b0ab5a06c906e5fd42', 'scripts/verification/web-build-inputs.test.mjs': '23d7097d46e873f97910eef12ec4ed5a31f3f086e2f21caef51bf1dd177b3765', 'tests/e2e/public-site.spec.ts': 'bef37e8f613c3d270c660ee25210e4b73d43eea871fec00b33febfac21ce0b09', 'tests/integration/test_primer_ui_policy.py': '0fda95b2f163b459c42223cf5a3e06ed46958d70561f22dfcb2288b5d5c4b54f', 'tests/integration/test_web_release.py': 'bcec665377eb323cb4052f98292307601aa362239c92260c79d0b65762524f90'}
+CABINET_PROFILE_NEW_PATHS = {'apps/web/src/home/cabinet.css', 'apps/web/src/home/Cabinet.test.tsx', 'docs/plans/2026-10-09-gitnexus-plan-cabinet-profile-integration.md'}
+
+# Receipts and source remain fixed during this offline checker invocation.
+@lru_cache(maxsize=1)
+def cabinet_profile_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-160-cabinet-profile-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-160'
+    assert receipt['baseSha'] == '89342c05c5d64c2ce83d90b7df84e0677927becb', 'PROJ-160 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(CABINET_PROFILE_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(CABINET_PROFILE_PREDECESSORS), 'Out-of-scope PROJ-160 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        assert item['candidatePath'] == path and item['previousSha256'] == CABINET_PROFILE_PREDECESSORS[path], 'PROJ-160 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-160 mode mismatch'
+        assert len(item['candidateSha256']) == 64 and all(c in '0123456789abcdef' for c in item['candidateSha256']), 'Invalid PROJ-160 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(CABINET_PROFILE_NEW_PATHS) and {x['path'] for x in sources} == CABINET_PROFILE_NEW_PATHS, 'Out-of-scope PROJ-160 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-160 source hash mismatch'
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-160 source mode mismatch'
+    return receipt
+
+
+def cabinet_profile_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in cabinet_profile_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-160 chain mismatch: ' + candidate
         return ROOT / candidate, change['candidateSha256'], change['candidateMode']
     return ROOT / candidate, expected_hash, expected_mode
 
@@ -446,12 +484,17 @@ def verify_provenance():
         path, digest, _ = skip_link_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-158 successor hash mismatch'
-        assert not path.stat().st_mode & 0o111, 'PROJ-158 successor mode mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-158 current mode mismatch'
     for item in skip_link_receipt()['changes']:
+        path, digest, _ = cabinet_profile_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-159 successor hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-159 current mode mismatch'
+    for item in cabinet_profile_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-159 current hash mismatch'
-        assert not path.stat().st_mode & 0o111, 'PROJ-159 current mode mismatch'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-160 current hash mismatch: ' + item['candidatePath']
+        assert not path.stat().st_mode & 0o111, 'PROJ-160 current mode mismatch'
     return accepted
 
 

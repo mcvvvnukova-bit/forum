@@ -105,6 +105,7 @@ routes it to the API without requiring the separate shared-password cookie.
 | `GET /authorization?code=...&state=...` | Registered Forum callback: consumes the attempt once, exchanges code, verifies identity, commits account/session, redirects to `/cabinet/?auth=success`. |
 | `GET /auth/sber-id/callback?code=...&state=...` | Alternative callback, enabled only when selected in `SBER_ID_REDIRECT_URI`. |
 | `GET /api/auth/session` | User, individual participant, `roles` for that personal participant and expiry; 401 without an active session. |
+| `GET /api/profile` | Current session owner's persisted Sber profile and `userId`; no query selectors. 401 for expired/revoked/blocked access, 503 when the person snapshot is unavailable. Responses use `no-store`. |
 | `POST /api/auth/logout` | Revokes the current session and clears its cookie; exact matching `Origin` required. |
 | `GET /health/live` | Process liveness. |
 | `GET /health/ready` | Database/schema readiness and `sberConfigured` boolean. |
@@ -139,7 +140,12 @@ person snapshot, personal provider participant, active membership, `individual`
 IAM grant, audit/outbox records and session. A revoked membership denies new login
 and existing sessions without being reactivated. Provider aliases retain ownership;
 email/phone are never used to link accounts. The current reduced userinfo snapshot
-provides sub, email confirmation and phone; missing Professional attributes remain absent.
+provides validated name parts, email confirmation and phone; missing Professional attributes remain absent.
+The profile DTO excludes provider subject and email-confirmation metadata. Existing
+users acquire newly supported name parts after the next verified Sber login.
+The authenticated `/cabinet/` and `/cabinet/work/` use the approved profile
+presentation with this DTO; missing values display «Не передано». The separate
+`/profile/` preview retains its fictional-data banner and never supplies cabinet data.
 
 Run migrations only with an explicitly selected schema-owner connection, never at
 API startup. Runtime uses restricted `forum_app` and the allowlist in
