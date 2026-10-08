@@ -241,6 +241,41 @@ def provider_button_file(path, expected_hash, expected_mode):
     change = next((x for x in provider_button_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-158 chain mismatch: ' + candidate
+        return skip_link_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return skip_link_file(ROOT / candidate, expected_hash, expected_mode)
+
+
+# PROJ-159 removes only the shared public skip link and its CSS.
+SKIP_LINK_PREDECESSORS = {'apps/web/src/audience/SharedLayout.tsx': '2f38e56b2b3f65309e8878f70d0f077b526d72c8e4edddfb6aff85edd3cccc8d', 'apps/web/src/audience/layout.css': '5845c782969970ee0d9be9124a628454130d2d546d9b0305af1ac3642be021b4', 'apps/web/src/home/SharedLayout.tsx': '17cc498bb4c65c0193812105a009a3aaa72538faa8b95d99ec618fc82084e081', 'apps/web/src/home/layout.css': 'd9acb62f164beb4865790059d3b90b79758dc6182fef2d70753e44ccb6d2e6b8', 'scripts/verification/check-operational-sources.py': '624ff27e719fde958c8597bc662fff89d1462262a39941efe75b659970e6bac3', 'scripts/verification/checks.test.mjs': '4dd1abe28c1163b1dff11e56eca0cd16c864c608c207d990aca61bd7150087e8'}
+SKIP_LINK_NEW_PATHS = {'docs/plans/2026-10-08-remove-public-skip-link.md'}
+
+
+def skip_link_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-159-skip-link-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-159'
+    assert receipt['baseSha'] == '069932594b6c1b19c7e0d4e28f8fd821f717029e', 'PROJ-159 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(SKIP_LINK_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(SKIP_LINK_PREDECESSORS), 'Out-of-scope PROJ-159 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        assert item['candidatePath'] == path and item['previousSha256'] == SKIP_LINK_PREDECESSORS[path], 'PROJ-159 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-159 mode mismatch'
+        assert len(item['candidateSha256']) == 64 and all(c in '0123456789abcdef' for c in item['candidateSha256']), 'Invalid PROJ-159 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(SKIP_LINK_NEW_PATHS) and {x['path'] for x in sources} == SKIP_LINK_NEW_PATHS, 'Out-of-scope PROJ-159 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-159 source hash mismatch'
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-159 source mode mismatch'
+    return receipt
+
+
+def skip_link_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in skip_link_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-159 chain mismatch: ' + candidate
         return ROOT / candidate, change['candidateSha256'], change['candidateMode']
     return ROOT / candidate, expected_hash, expected_mode
 
@@ -408,10 +443,15 @@ def verify_provenance():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-157 successor hash mismatch'
         assert not path.stat().st_mode & 0o111, 'PROJ-157 current mode mismatch'
     for item in provider_button_receipt()['changes']:
+        path, digest, _ = skip_link_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-158 successor hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-158 successor mode mismatch'
+    for item in skip_link_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-158 current hash mismatch'
-        assert not path.stat().st_mode & 0o111, 'PROJ-158 current mode mismatch'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-159 current hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-159 current mode mismatch'
     return accepted
 
 

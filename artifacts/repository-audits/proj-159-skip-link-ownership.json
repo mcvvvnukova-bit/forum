@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-159",
+  "baseSha": "069932594b6c1b19c7e0d4e28f8fd821f717029e",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/web/src/audience/SharedLayout.tsx",
+      "candidatePath": "apps/web/src/audience/SharedLayout.tsx",
+      "previousSha256": "2f38e56b2b3f65309e8878f70d0f077b526d72c8e4edddfb6aff85edd3cccc8d",
+      "candidateSha256": "a40aa12825e3d02a58700f0d41e3f25e3334d7e5434ea7eda291377362c4bff5",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/layout.css",
+      "candidatePath": "apps/web/src/audience/layout.css",
+      "previousSha256": "5845c782969970ee0d9be9124a628454130d2d546d9b0305af1ac3642be021b4",
+      "candidateSha256": "ee336424e33f56948221fbb5583102e080e82ad52ace2880e771eb267789a1a0",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/SharedLayout.tsx",
+      "candidatePath": "apps/web/src/home/SharedLayout.tsx",
+      "previousSha256": "17cc498bb4c65c0193812105a009a3aaa72538faa8b95d99ec618fc82084e081",
+      "candidateSha256": "fbcc2337c6a03721a8ce3d1e7b27730250a03fc76fa626bb27162bdbe960b0c0",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/layout.css",
+      "candidatePath": "apps/web/src/home/layout.css",
+      "previousSha256": "d9acb62f164beb4865790059d3b90b79758dc6182fef2d70753e44ccb6d2e6b8",
+      "candidateSha256": "b25cb28deec9cab46bdcc70904b3163696778c51751be01ffa4ea56c5a627b26",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "624ff27e719fde958c8597bc662fff89d1462262a39941efe75b659970e6bac3",
+      "candidateSha256": "a5912850eff842df56c66fbb92f844fc87333f7141371f71167da12730c678b2",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "4dd1abe28c1163b1dff11e56eca0cd16c864c608c207d990aca61bd7150087e8",
+      "candidateSha256": "8d7abdf614227301856cb15b11e93af30a2303f5efaf80b0ab5a06c906e5fd42",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "docs/plans/2026-10-08-remove-public-skip-link.md",
+      "sha256": "31bf34902ba1479e3aa3908518ae9175d54a009c1bf7576d3b26b636ab0f928e",
+      "mode": "100644"
+    }
+  ]
+}
