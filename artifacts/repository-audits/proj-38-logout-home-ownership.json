@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "taskCode": "PROJ-38",
-  "baseSha": "069932594b6c1b19c7e0d4e28f8fd821f717029e",
+  "baseSha": "89342c05c5d64c2ce83d90b7df84e0677927becb",
   "changes": [
     {
       "previousCandidatePath": "apps/web/src/home/Cabinet.tsx",
@@ -30,16 +30,16 @@
     {
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "previousSha256": "624ff27e719fde958c8597bc662fff89d1462262a39941efe75b659970e6bac3",
-      "candidateSha256": "faf9fed26dea1da604efa2758e4b2b826fa0c3539b7f6c945f9c1c53b293a156",
+      "previousSha256": "a5912850eff842df56c66fbb92f844fc87333f7141371f71167da12730c678b2",
+      "candidateSha256": "bd60178ec8a7b5285cfffeed28e5a0f55a8bed5a59e1169b79fd0be727425844",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
     {
       "previousCandidatePath": "scripts/verification/checks.test.mjs",
       "candidatePath": "scripts/verification/checks.test.mjs",
-      "previousSha256": "4dd1abe28c1163b1dff11e56eca0cd16c864c608c207d990aca61bd7150087e8",
-      "candidateSha256": "b5641b61eec142701737ef1543f07a796c0b08fd19b4ae3acb7b6fa1621dee8a",
+      "previousSha256": "8d7abdf614227301856cb15b11e93af30a2303f5efaf80b0ab5a06c906e5fd42",
+      "candidateSha256": "2eb2eae93ecfb4fbaf7eb9987a71393e28821fca1276601776de0ed7fde2295d",
       "previousMode": "100644",
       "candidateMode": "100644"
     }

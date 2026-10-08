@@ -241,19 +241,54 @@ def provider_button_file(path, expected_hash, expected_mode):
     change = next((x for x in provider_button_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-158 chain mismatch: ' + candidate
+        return skip_link_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return skip_link_file(ROOT / candidate, expected_hash, expected_mode)
+
+
+# PROJ-159 removes only the shared public skip link and its CSS.
+SKIP_LINK_PREDECESSORS = {'apps/web/src/audience/SharedLayout.tsx': '2f38e56b2b3f65309e8878f70d0f077b526d72c8e4edddfb6aff85edd3cccc8d', 'apps/web/src/audience/layout.css': '5845c782969970ee0d9be9124a628454130d2d546d9b0305af1ac3642be021b4', 'apps/web/src/home/SharedLayout.tsx': '17cc498bb4c65c0193812105a009a3aaa72538faa8b95d99ec618fc82084e081', 'apps/web/src/home/layout.css': 'd9acb62f164beb4865790059d3b90b79758dc6182fef2d70753e44ccb6d2e6b8', 'scripts/verification/check-operational-sources.py': '624ff27e719fde958c8597bc662fff89d1462262a39941efe75b659970e6bac3', 'scripts/verification/checks.test.mjs': '4dd1abe28c1163b1dff11e56eca0cd16c864c608c207d990aca61bd7150087e8'}
+SKIP_LINK_NEW_PATHS = {'docs/plans/2026-10-08-remove-public-skip-link.md'}
+
+
+def skip_link_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-159-skip-link-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-159'
+    assert receipt['baseSha'] == '069932594b6c1b19c7e0d4e28f8fd821f717029e', 'PROJ-159 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(SKIP_LINK_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(SKIP_LINK_PREDECESSORS), 'Out-of-scope PROJ-159 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        assert item['candidatePath'] == path and item['previousSha256'] == SKIP_LINK_PREDECESSORS[path], 'PROJ-159 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-159 mode mismatch'
+        assert len(item['candidateSha256']) == 64 and all(c in '0123456789abcdef' for c in item['candidateSha256']), 'Invalid PROJ-159 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(SKIP_LINK_NEW_PATHS) and {x['path'] for x in sources} == SKIP_LINK_NEW_PATHS, 'Out-of-scope PROJ-159 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-159 source hash mismatch'
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-159 source mode mismatch'
+    return receipt
+
+
+def skip_link_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in skip_link_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-159 chain mismatch: ' + candidate
         return logout_home_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
     return logout_home_file(ROOT / candidate, expected_hash, expected_mode)
 
 
 # PROJ-38 replaces the guest cabinet with the existing public homepage.
-LOGOUT_HOME_PREDECESSORS = {'apps/web/src/home/Cabinet.tsx': 'a11c08e19d627bf89559f8dced55cd4a52203720a2e766e986066efb6c786daa', 'apps/web/src/home/home.test.tsx': 'de874ce0d3f20056f9cbb3581428e8ba84fa44d434cd35d52f6c4d7c0191b4af', 'tests/e2e/public-site.spec.ts': 'bef37e8f613c3d270c660ee25210e4b73d43eea871fec00b33febfac21ce0b09', 'scripts/verification/check-operational-sources.py': '624ff27e719fde958c8597bc662fff89d1462262a39941efe75b659970e6bac3', 'scripts/verification/checks.test.mjs': '4dd1abe28c1163b1dff11e56eca0cd16c864c608c207d990aca61bd7150087e8'}
+LOGOUT_HOME_PREDECESSORS = {'apps/web/src/home/Cabinet.tsx': 'a11c08e19d627bf89559f8dced55cd4a52203720a2e766e986066efb6c786daa', 'apps/web/src/home/home.test.tsx': 'de874ce0d3f20056f9cbb3581428e8ba84fa44d434cd35d52f6c4d7c0191b4af', 'tests/e2e/public-site.spec.ts': 'bef37e8f613c3d270c660ee25210e4b73d43eea871fec00b33febfac21ce0b09', 'scripts/verification/check-operational-sources.py': 'a5912850eff842df56c66fbb92f844fc87333f7141371f71167da12730c678b2', 'scripts/verification/checks.test.mjs': '8d7abdf614227301856cb15b11e93af30a2303f5efaf80b0ab5a06c906e5fd42'}
 LOGOUT_HOME_NEW_PATHS = {'docs/plans/2026-10-08-logout-home-design.md', 'docs/plans/2026-10-08-logout-home-plan.md'}
 
 
 def logout_home_receipt():
     receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-38-logout-home-ownership.json').read_text())
     assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-38'
-    assert receipt['baseSha'] == '069932594b6c1b19c7e0d4e28f8fd821f717029e', 'PROJ-38 baseline mismatch'
+    assert receipt['baseSha'] == '89342c05c5d64c2ce83d90b7df84e0677927becb', 'PROJ-38 baseline mismatch'
     changes = receipt['changes']
     assert len(changes) == len(LOGOUT_HOME_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(LOGOUT_HOME_PREDECESSORS), 'Out-of-scope PROJ-38 owner'
     for item in changes:
@@ -443,10 +478,15 @@ def verify_provenance():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-157 successor hash mismatch'
         assert not path.stat().st_mode & 0o111, 'PROJ-157 current mode mismatch'
     for item in provider_button_receipt()['changes']:
-        path, digest, _ = logout_home_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        path, digest, _ = skip_link_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-158 successor hash mismatch'
-        assert not path.stat().st_mode & 0o111, 'PROJ-158 current mode mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-158 successor mode mismatch'
+    for item in skip_link_receipt()['changes']:
+        path, digest, _ = logout_home_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-159 successor hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-159 successor mode mismatch'
     for item in logout_home_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
