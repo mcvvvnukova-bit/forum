@@ -33,12 +33,17 @@ for(const width of [320,390,1440]){
    await expect(sber).toHaveCSS('color','rgb(255, 255, 255)')
    releaseSession();await expect(sber).toBeEnabled()
    await sber.hover();await expect(sber).toHaveCSS('background-color','rgb(30, 144, 50)')
+   const renderedSber=await sber.elementHandle();const renderedForum=await forumAction.elementHandle()
+   if(!renderedSber || !renderedForum)throw new Error('Expected rendered provider and Forum buttons')
    await sber.click({noWaitAfter:true})
-   await expect(sber).toBeDisabled()
-   await expect(page.getByRole('status')).toHaveText('Переходим к Сбер ID…')
-   for(const property of ['background-color','border-top-color'])await expect(sber).toHaveCSS(property,'rgb(33, 160, 56)')
-   await expect(sber).toHaveCSS('color','rgb(255, 255, 255)')
-   await expect(forumAction).toHaveCSS('background-color','rgb(255, 85, 26)')
+   // Locators wait for pending document navigation; captured nodes can inspect
+   // the still-rendered page while the isolated provider response is held.
+   await expect.poll(()=>renderedSber.evaluate(button=>{
+    const style=getComputedStyle(button)
+    return {disabled:button.matches(':disabled'),background:style.backgroundColor,border:style.borderTopColor,color:style.color}
+   })).toEqual({disabled:true,background:'rgb(33, 160, 56)',border:'rgb(33, 160, 56)',color:'rgb(255, 255, 255)'})
+   await expect.poll(()=>page.evaluate(()=>document.querySelector('[role="status"]')?.textContent)).toBe('Переходим к Сбер ID…')
+   expect(await renderedForum.evaluate(button=>getComputedStyle(button).backgroundColor)).toBe('rgb(255, 85, 26)')
    await page.keyboard.press('Enter');await expect.poll(()=>starts).toBe(1)
   }finally{releaseSession();releaseStart()}
   await expect(page.getByText('Isolated provider destination')).toBeVisible()

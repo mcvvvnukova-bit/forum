@@ -15,7 +15,7 @@
       "previousCandidatePath": "tests/e2e/public-site.spec.ts",
       "candidatePath": "tests/e2e/public-site.spec.ts",
       "previousSha256": "e053231ee88d91d06a328531592bcbed3507c6f072cc9ff746f5bafd416a32b1",
-      "candidateSha256": "089ff346b68529c2f0c4b1de8fb399cbcdbb66c21ca8027a59ed8268f7bc60be",
+      "candidateSha256": "cb6c5856289e09164e5ca0ac88952872c6a1e993fad26ff9afdafd15d9333943",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
