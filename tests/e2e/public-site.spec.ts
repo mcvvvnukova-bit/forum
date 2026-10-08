@@ -14,6 +14,35 @@ for(const width of [320,390,1440]){
   }
   expect(errors).toEqual([])
  })
+ test(`built Sber button stays green while checking and redirecting at ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:1000})
+  let releaseSession!:()=>void;const sessionHeld=new Promise<void>(resolve=>{releaseSession=resolve})
+  let releaseStart!:()=>void;const startHeld=new Promise<void>(resolve=>{releaseStart=resolve});let starts=0
+  await page.route('**/api/auth/session',async route=>{await sessionHeld;await route.fulfill({status:401,body:''})})
+  await page.route('**/auth/sber-id/start?intent=login',async route=>{
+   starts++;await startHeld;await route.fulfill({status:200,contentType:'text/html',body:'<p>Isolated provider destination</p>'})
+  })
+  try{
+   await page.goto('/')
+   const forumAction=page.getByRole('link',{name:'Начать работу',exact:true,includeHidden:true})
+   await expect(forumAction).toHaveCSS('background-color','rgb(255, 85, 26)')
+   await page.locator('.site-header').getByRole('link',{name:'Войти',exact:true}).click()
+   const sber=page.getByRole('button',{name:'Войти по Сбер ID',exact:true})
+   await expect(sber).toBeDisabled()
+   for(const property of ['background-color','border-top-color'])await expect(sber).toHaveCSS(property,'rgb(33, 160, 56)')
+   await expect(sber).toHaveCSS('color','rgb(255, 255, 255)')
+   releaseSession();await expect(sber).toBeEnabled()
+   await sber.hover();await expect(sber).toHaveCSS('background-color','rgb(30, 144, 50)')
+   await sber.click({noWaitAfter:true})
+   await expect(sber).toBeDisabled()
+   await expect(page.getByRole('status')).toHaveText('Переходим к Сбер ID…')
+   for(const property of ['background-color','border-top-color'])await expect(sber).toHaveCSS(property,'rgb(33, 160, 56)')
+   await expect(sber).toHaveCSS('color','rgb(255, 255, 255)')
+   await expect(forumAction).toHaveCSS('background-color','rgb(255, 85, 26)')
+   await page.keyboard.press('Enter');await expect.poll(()=>starts).toBe(1)
+  }finally{releaseSession();releaseStart()}
+  await expect(page.getByText('Isolated provider destination')).toBeVisible()
+ })
  for(const entry of ['Войти','Начать работу']){
   test(`built held 200 ${entry} history and focus at ${width}`,async({page})=>{
    await page.setViewportSize({width,height:1000})

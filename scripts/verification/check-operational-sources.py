@@ -206,6 +206,41 @@ def login_entry_file(path, expected_hash, expected_mode):
     change = next((x for x in login_entry_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-157 chain mismatch: ' + candidate
+        return provider_button_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return provider_button_file(ROOT / candidate, expected_hash, expected_mode)
+
+
+# PROJ-158 adds only local provider disabled styling and its regression evidence.
+PROVIDER_BUTTON_PREDECESSORS = {'apps/web/src/auth/auth.css': 'dfc6756b17d1cf4115838451c84b5270326ab33b7b4c9bcbe03b378162ded57a', 'tests/e2e/public-site.spec.ts': 'e053231ee88d91d06a328531592bcbed3507c6f072cc9ff746f5bafd416a32b1', 'scripts/verification/check-operational-sources.py': 'e13ba31013ef5bd5dc1973515c88b0b205bbba81bf5c36e7f1dde9fe70848303', 'scripts/verification/checks.test.mjs': 'ab7b1373d4feeb2f8dcf9f9a8a634f53633e37846da901b4e3a72866861f3ff4'}
+PROVIDER_BUTTON_NEW_PATHS = {'docs/plans/2026-10-08-sber-disabled-button.md'}
+
+
+def provider_button_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-158-sber-button-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-158'
+    assert receipt['baseSha'] == '7e686ffc0bdc56ca6d72f27ec69349d6949a887f', 'PROJ-158 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(PROVIDER_BUTTON_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(PROVIDER_BUTTON_PREDECESSORS), 'Out-of-scope PROJ-158 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        assert item['candidatePath'] == path and item['previousSha256'] == PROVIDER_BUTTON_PREDECESSORS[path], 'PROJ-158 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-158 mode mismatch'
+        assert len(item['candidateSha256']) == 64 and all(c in '0123456789abcdef' for c in item['candidateSha256']), 'Invalid PROJ-158 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(PROVIDER_BUTTON_NEW_PATHS) and {x['path'] for x in sources} == PROVIDER_BUTTON_NEW_PATHS, 'Out-of-scope PROJ-158 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-158 source hash mismatch'
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-158 source mode mismatch'
+    return receipt
+
+
+def provider_button_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in provider_button_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-158 chain mismatch: ' + candidate
         return ROOT / candidate, change['candidateSha256'], change['candidateMode']
     return ROOT / candidate, expected_hash, expected_mode
 
@@ -368,10 +403,15 @@ def verify_provenance():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-156 successor hash mismatch'
         assert not path.stat().st_mode & 0o111, 'PROJ-156 successor mode mismatch'
     for item in login_entry_receipt()['changes']:
+        path, digest, _ = provider_button_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-157 successor hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-157 current mode mismatch'
+    for item in provider_button_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-157 current hash mismatch'
-        assert not path.stat().st_mode & 0o111, 'PROJ-157 current mode mismatch'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-158 current hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-158 current mode mismatch'
     return accepted
 
 
