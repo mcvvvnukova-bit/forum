@@ -116,7 +116,7 @@ test('built cabinet uses a confirmed session and blocked callback opens a suppor
  await page.goto('/cabinet/?auth=success')
  await expect(page.getByRole('heading',{name:'Личные данные',exact:true,level:1})).toBeVisible()
  await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
- await expect(page.getByText('Тестовый пользователь',{exact:true})).toBeVisible()
+ await expect(page.getByRole('link',{name:'Тестовый пользователь',exact:true})).toBeVisible()
  await expect(page.getByText('Физлицо',{exact:true})).toBeVisible()
  await page.goto('/?auth_error=account_deactivated')
  const blocked=page.getByRole('dialog',{name:'Вы заблокированы на платформе',exact:true})
