@@ -124,9 +124,9 @@ def sber_auth_receipt():
     sources = receipt['newFiles']
     assert len(sources) == len(SBER_AUTH_NEW_PATHS) and {x['path'] for x in sources} == SBER_AUTH_NEW_PATHS, 'Out-of-scope PROJ-155 source'
     for item in sources:
-        source = ROOT / item['path']
+        source, digest, _ = logout_home_file(ROOT / item['path'], item['sha256'], item['mode'])
         assert source.is_file() and not source.is_symlink(), item['path']
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-155 source hash mismatch: ' + item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-155 source hash mismatch: ' + item['path']
         assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-155 source mode mismatch'
     return receipt
 
@@ -241,6 +241,41 @@ def provider_button_file(path, expected_hash, expected_mode):
     change = next((x for x in provider_button_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-158 chain mismatch: ' + candidate
+        return logout_home_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return logout_home_file(ROOT / candidate, expected_hash, expected_mode)
+
+
+# PROJ-38 replaces the guest cabinet with the existing public homepage.
+LOGOUT_HOME_PREDECESSORS = {'apps/web/src/home/Cabinet.tsx': 'a11c08e19d627bf89559f8dced55cd4a52203720a2e766e986066efb6c786daa', 'apps/web/src/home/home.test.tsx': 'de874ce0d3f20056f9cbb3581428e8ba84fa44d434cd35d52f6c4d7c0191b4af', 'tests/e2e/public-site.spec.ts': 'bef37e8f613c3d270c660ee25210e4b73d43eea871fec00b33febfac21ce0b09', 'scripts/verification/check-operational-sources.py': '624ff27e719fde958c8597bc662fff89d1462262a39941efe75b659970e6bac3', 'scripts/verification/checks.test.mjs': '4dd1abe28c1163b1dff11e56eca0cd16c864c608c207d990aca61bd7150087e8'}
+LOGOUT_HOME_NEW_PATHS = {'docs/plans/2026-10-08-logout-home-design.md', 'docs/plans/2026-10-08-logout-home-plan.md'}
+
+
+def logout_home_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-38-logout-home-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-38'
+    assert receipt['baseSha'] == '069932594b6c1b19c7e0d4e28f8fd821f717029e', 'PROJ-38 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(LOGOUT_HOME_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(LOGOUT_HOME_PREDECESSORS), 'Out-of-scope PROJ-38 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        assert item['candidatePath'] == path and item['previousSha256'] == LOGOUT_HOME_PREDECESSORS[path], 'PROJ-38 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-38 mode mismatch'
+        assert len(item['candidateSha256']) == 64 and all(c in '0123456789abcdef' for c in item['candidateSha256']), 'Invalid PROJ-38 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(LOGOUT_HOME_NEW_PATHS) and {x['path'] for x in sources} == LOGOUT_HOME_NEW_PATHS, 'Out-of-scope PROJ-38 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-38 source hash mismatch'
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-38 source mode mismatch'
+    return receipt
+
+
+def logout_home_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in logout_home_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-38 chain mismatch: ' + candidate
         return ROOT / candidate, change['candidateSha256'], change['candidateMode']
     return ROOT / candidate, expected_hash, expected_mode
 
@@ -408,10 +443,15 @@ def verify_provenance():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-157 successor hash mismatch'
         assert not path.stat().st_mode & 0o111, 'PROJ-157 current mode mismatch'
     for item in provider_button_receipt()['changes']:
+        path, digest, _ = logout_home_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-158 successor hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-158 current mode mismatch'
+    for item in logout_home_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-158 current hash mismatch'
-        assert not path.stat().st_mode & 0o111, 'PROJ-158 current mode mismatch'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-38 current hash mismatch'
+        assert not path.stat().st_mode & 0o111, 'PROJ-38 current mode mismatch'
     return accepted
 
 

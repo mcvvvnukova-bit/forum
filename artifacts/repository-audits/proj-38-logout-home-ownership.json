@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-38",
+  "baseSha": "069932594b6c1b19c7e0d4e28f8fd821f717029e",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/web/src/home/Cabinet.tsx",
+      "candidatePath": "apps/web/src/home/Cabinet.tsx",
+      "previousSha256": "a11c08e19d627bf89559f8dced55cd4a52203720a2e766e986066efb6c786daa",
+      "candidateSha256": "05d520198295ea43ae233e842047b03aa9a8c7515de6f302fb6618a0d2ae23c3",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/home.test.tsx",
+      "candidatePath": "apps/web/src/home/home.test.tsx",
+      "previousSha256": "de874ce0d3f20056f9cbb3581428e8ba84fa44d434cd35d52f6c4d7c0191b4af",
+      "candidateSha256": "5eed055258c9fc1eeaf14a68283072148f7a18366b7f1e11d8d757960f0c22fd",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/public-site.spec.ts",
+      "candidatePath": "tests/e2e/public-site.spec.ts",
+      "previousSha256": "bef37e8f613c3d270c660ee25210e4b73d43eea871fec00b33febfac21ce0b09",
+      "candidateSha256": "efacc49ef7977a614115b0c2085cff9158873c734490e6d73eb73ae36a517d19",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "624ff27e719fde958c8597bc662fff89d1462262a39941efe75b659970e6bac3",
+      "candidateSha256": "faf9fed26dea1da604efa2758e4b2b826fa0c3539b7f6c945f9c1c53b293a156",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "4dd1abe28c1163b1dff11e56eca0cd16c864c608c207d990aca61bd7150087e8",
+      "candidateSha256": "b5641b61eec142701737ef1543f07a796c0b08fd19b4ae3acb7b6fa1621dee8a",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "docs/plans/2026-10-08-logout-home-design.md",
+      "sha256": "39fe15ea5e577ca9e8ade7b32770bf69e28da9bd6309fa6a37c7c907c4811cd8",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-08-logout-home-plan.md",
+      "sha256": "734af66a953a7b3704a05a989989b8eb54678903c91188ef79be8f7db041c341",
+      "mode": "100644"
+    }
+  ]
+}
