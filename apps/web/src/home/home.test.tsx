@@ -7,6 +7,8 @@ import {SessionProvider} from '../SessionProvider'
 afterEach(() => {vi.unstubAllEnvs(); vi.unstubAllGlobals()})
 
 function renderPage(url = '/', sharedSession = false) {
+  // jsdom has no layout; built-site E2E verifies the real scroll position.
+  vi.stubGlobal('scrollTo',vi.fn())
   window.history.replaceState(null, '', url)
   return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles>{sharedSession ? <SessionProvider><App /></SessionProvider> : <App />}</BaseStyles></ThemeProvider>)
 }

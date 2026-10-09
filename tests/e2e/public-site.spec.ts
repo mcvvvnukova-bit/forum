@@ -165,9 +165,15 @@ for(const width of [320,390,1440])test(`built logout returns home and reopens st
  await page.goto('/cabinet/')
  await expect(page.getByRole('link',{name:'Тестовый пользователь',exact:true})).toBeVisible()
  await page.goto('/cabinet/?auth=success')
+ await expect(page.getByRole('heading',{name:'Личные данные',exact:true,level:1})).toBeVisible()
+ // Logout lives below the long personal profile. Preserve that real starting
+ // position so replacing the URL alone cannot satisfy the homepage contract.
+ await page.getByRole('button',{name:'Выйти',exact:true}).scrollIntoViewIfNeeded()
+ expect(await page.evaluate(()=>window.scrollY)).toBeGreaterThan(0)
  await page.getByRole('button',{name:'Выйти',exact:true}).click()
  await expect(page).toHaveURL(new URL('/',page.url()).href)
  await expect(page.getByRole('heading',{name:'Заказы, исполнители и работа в строительстве',exact:true})).toBeVisible()
+ await expect.poll(()=>page.evaluate(()=>({x:window.scrollX,y:window.scrollY}))).toEqual({x:0,y:0})
  await expect(page.locator('.site-header').getByRole('link',{name:'Войти',exact:true})).toBeVisible()
  await expect(page.getByRole('link',{name:'Тестовый пользователь',exact:true})).toHaveCount(0)
  await expect(page.getByText('Физлицо',{exact:true})).toHaveCount(0)

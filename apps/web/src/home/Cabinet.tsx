@@ -9,6 +9,7 @@ import './cabinet.css'
 type ProfileState = {kind:'loading'|'error'|'expired'} | {kind:'ready'; profile:SberProfile}
 function returnHome(url:string) {
   history.replaceState(null, '', url)
+  window.scrollTo({left:0,top:0,behavior:'instant'})
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; onExpired:()=>void; navigate:(url:string)=>void}) {

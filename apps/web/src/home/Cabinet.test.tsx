@@ -7,6 +7,8 @@ afterEach(() => vi.unstubAllGlobals())
 const user = {id:'owner-one',displayName:'Анна Иванова'}
 const profile = {family_name:'Иванова',given_name:'Анна',email:'owner@example.test',place_of_work:'Настоящее место работы'}
 function page(path='/cabinet/') {
+  // jsdom has no layout; built-site E2E verifies the real scroll position.
+  vi.stubGlobal('scrollTo',vi.fn())
   history.replaceState(null,'',path)
   return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><Cabinet/></BaseStyles></ThemeProvider>)
 }

@@ -182,3 +182,9 @@ was advanced to the actual dev baseline `19ee01ed586f54e00a080844639864bc45278bd
 (PROJ-159 and PROJ-38). Preserve their public skip-link removal and homepage
 return after successful logout or a confirmed guest cabinet request. Re-run the
 combined navigation and ownership regressions against this exact integration.
+
+Logout must reset both window scroll coordinates to zero immediately. Reproduce
+from the footer of the long personal profile: replacing the SPA history URL alone
+retains its scroll offset, while the public auth focus restoration deliberately
+uses `preventScroll`. Check the homepage position at 320/390/1440 px in addition
+to the URL, revoked session, history guard and standard login modal.

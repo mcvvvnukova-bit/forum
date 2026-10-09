@@ -88,7 +88,7 @@
       "previousSha256": "05d520198295ea43ae233e842047b03aa9a8c7515de6f302fb6618a0d2ae23c3",
       "previousMode": "100644",
       "candidatePath": "apps/web/src/home/Cabinet.tsx",
-      "candidateSha256": "a4bbc41759b7bc5a456ed18a0e4e406b06d6edd5052a83f04f5aef77560e32c6",
+      "candidateSha256": "e93e6188ba580c0ef19568697ec914a8988a5307fde5fa9e6c0999d973f0872a",
       "candidateMode": "100644"
     },
     {
@@ -96,7 +96,7 @@
       "previousSha256": "5eed055258c9fc1eeaf14a68283072148f7a18366b7f1e11d8d757960f0c22fd",
       "previousMode": "100644",
       "candidatePath": "apps/web/src/home/home.test.tsx",
-      "candidateSha256": "78fd687cfed7abff220d73fe24916ce74d9e76253d184b03510a385cf35586b8",
+      "candidateSha256": "56ab6f6044e72fdc3232ce9f8e1382376c8b8596430b4371a45669788f1df9b3",
       "candidateMode": "100644"
     },
     {
@@ -112,7 +112,7 @@
       "previousSha256": "1cecca20132ecd0544d87f63456771e6a904af37c3006bfec965ef1b03a7ddbc",
       "previousMode": "100644",
       "candidatePath": "deployment/release.md",
-      "candidateSha256": "8610b1cafe5d9ffe08036bf14dc07ccad02bb02ae26eb5cafc49f7e6b4195717",
+      "candidateSha256": "6632698baf097123ff882ee93e94d6deec360a3fdc0611766ff942ebc2f0ee6e",
       "candidateMode": "100644"
     },
     {
@@ -160,7 +160,7 @@
       "previousSha256": "efacc49ef7977a614115b0c2085cff9158873c734490e6d73eb73ae36a517d19",
       "previousMode": "100644",
       "candidatePath": "tests/e2e/public-site.spec.ts",
-      "candidateSha256": "cc99dbdd9543ec6b9e41920253188ea0058b33ae850933757e396067b7303966",
+      "candidateSha256": "a1b9280920896e11bf0e705ff52d17b99aa4e9a0ae377fd8e6050c2f6a721711",
       "candidateMode": "100644"
     },
     {
@@ -183,7 +183,7 @@
   "newFiles": [
     {
       "path": "apps/web/src/home/Cabinet.test.tsx",
-      "sha256": "14b84e804da9dbf047dca0d6283849174434cb648544499bbf6e1411a06201ec",
+      "sha256": "fa2794f0d3ea4410d1b92c36622859d1a2d09bd0aa11bbd852085845a5d82fdc",
       "mode": "100644"
     },
     {
