@@ -152,7 +152,7 @@
       "previousSha256": "e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "67e3640b7c9b5187f934d060d8e9eb0464d7f228565a5e55f4776de933295032",
+      "candidateSha256": "4cd8ae9f1bd7cafee6a102aafec836502b72c1e26bae5bbf6febab2a10a82816",
       "candidateMode": "100644"
     },
     {
@@ -161,6 +161,14 @@
       "previousMode": "100644",
       "candidatePath": "scripts/verification/checks.test.mjs",
       "candidateSha256": "d26163b9793cef1b4fa81d0f5a76d066a39d84418a5bedac44fa0d8e1301cc51",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": ".github/workflows/quality.yml",
+      "previousSha256": "4e6f77be04839cb75711089d19404eb8dd35231ccb2bd90ea3aa368f3b583ce0",
+      "previousMode": "100644",
+      "candidatePath": ".github/workflows/quality.yml",
+      "candidateSha256": "2e7afb0a0e1de0720923b180170c310d25d57d095b9275bbfad3da480c347652",
       "candidateMode": "100644"
     }
   ],
