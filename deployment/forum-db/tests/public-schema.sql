@@ -33,6 +33,7 @@ BEGIN
     ('external_identities', ARRAY['SELECT','INSERT','UPDATE']),
     ('persons', ARRAY['SELECT','INSERT','UPDATE']),
     ('organizations', ARRAY['SELECT','INSERT','UPDATE']),
+    ('organization_additions', ARRAY['SELECT','INSERT']),
     ('participants', ARRAY['SELECT','INSERT','UPDATE']),
     ('participant_memberships', ARRAY['SELECT','INSERT','UPDATE']),
     ('sessions', ARRAY['SELECT','INSERT','UPDATE','DELETE']),

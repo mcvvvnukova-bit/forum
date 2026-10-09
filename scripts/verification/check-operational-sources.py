@@ -160,9 +160,9 @@ def main_auth_receipt():
     sources = receipt['newFiles']
     assert len(sources) == len(MAIN_AUTH_NEW_PATHS) and {x['path'] for x in sources} == MAIN_AUTH_NEW_PATHS, 'Out-of-scope PROJ-156 source'
     for item in sources:
-        source = ROOT / item['path']
+        source, digest, _ = my_organizations_file(ROOT / item['path'], item['sha256'], item['mode'])
         assert source.is_file() and not source.is_symlink(), item['path']
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-156 source hash mismatch'
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-156 source hash mismatch'
         assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-156 source mode mismatch'
     return receipt
 
@@ -316,6 +316,42 @@ def logout_home_file(path, expected_hash, expected_mode):
     return cabinet_profile_file(ROOT / candidate, expected_hash, expected_mode)
 
 
+# PROJ-162 owns only its integrated API, Primer cabinet and immutable route seams.
+MY_ORGANIZATION_PREDECESSORS = {'apps/api/src/app.ts': 'df88c043361aad5ecfbf3f6dffe362ce5594b88117209be434a20d5db35f1304', 'apps/api/src/migrate.ts': '4c487e02489eb76a2bab63fc16439ff5a21847b7d908024d597048bc29712b39', 'apps/api/test/auth.test.ts': '424f6a579df3df4383de00127a2e808bd47b8379121d24d6d775a59ba239a54d', 'apps/api/test/consolidation.test.ts': '6c616fd510d7330fb83dfd36cdb0c18024c29869810b7239fdc4e0505eb28d24', 'apps/profile-preview/src/ProfilePage.tsx': '3d91e55258c56e5cfcb14d1461c2a343261e88cf1b13c0cc84ba41ce00fac52f', 'apps/web/src/home/App.tsx': 'f558a815f42f23f74f2c917cc265a49d240dd7290f0b943ad153fc6134d9f9f8', 'apps/web/src/home/Cabinet.tsx': 'e93e6188ba580c0ef19568697ec914a8988a5307fde5fa9e6c0999d973f0872a', 'deployment/forum-api/grant-runtime.sql': '2c27de747e5e853d6d86883a816a4dbd395076befe148ef15e395318e21a0667', 'deployment/forum-db/apply-public.psql': '55459ee9277042b63e0281ee15ed9a1f864cef6832d39b676fc7dc05e109a1a8', 'deployment/forum-db/tests/public-schema.sql': 'a0d17def597548cbad2c0eb34f7a54d81982e0763cdf85e9637a9adcdc2c67df', 'deployment/forum-db/tests/test_configure_role_contract.py': 'd53d633f1be92590341fd1e28b41f8fd3849fd943105314c99b5dd8bd484bb37', 'deployment/release-manifest.schema.json': '7e0c4ba0a2c749fc2e1c1656b112acceaa2b1ebab44d310d0910c53611d78318', 'scripts/deployment/build-web-release.mjs': '42ed103cbe8604869dcbd1fa07fe995951ee40d87ca74e108df2294ac3262c91', 'scripts/deployment/web_release.py': 'bdb0b1bd626af9e138262e4b669775e4eff9288be30d9f8881221e9377711bd9', 'scripts/verification/check-operational-sources.py': 'e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a', 'scripts/verification/checks.test.mjs': 'd97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8', 'scripts/verification/web-build-inputs.test.mjs': '028c4776a27c27997adcfdae8cabbaf78ae6940cd4bc21968f98d7263915a724', 'tests/e2e/public-site.spec.ts': 'a1b9280920896e11bf0e705ff52d17b99aa4e9a0ae377fd8e6050c2f6a721711', 'tests/integration/test_primer_ui_policy.py': '112ef317342f3c9671e9db442de282acf171cb383180fae2d019b399efe317a7', 'tests/integration/test_web_release.py': '021c4627b9ce3eb1074e7f52febe39785e0a96254a826b9e70da17f9187d8176'}
+MY_ORGANIZATION_NEW_PATHS = {'apps/api/migrations/007_my_organizations.sql', 'apps/api/src/organizations/inn.ts', 'apps/api/src/organizations/organization-store.ts', 'apps/api/src/organizations/organizations.controller.ts', 'apps/api/test/organizations.test.ts', 'apps/web/src/home/Organizations.test.tsx', 'apps/web/src/home/Organizations.tsx', 'apps/web/src/home/organizations.css'}
+
+
+@lru_cache(maxsize=1)
+def my_organizations_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-162-my-organizations-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-162'
+    assert receipt['baseSha'] == 'e6a910c4aa7f5795a1c178a47c64a1dc5aea9875', 'PROJ-162 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(MY_ORGANIZATION_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(MY_ORGANIZATION_PREDECESSORS), 'Out-of-scope PROJ-162 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        assert item['candidatePath'] == path and item['previousSha256'] == MY_ORGANIZATION_PREDECESSORS[path], 'PROJ-162 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-162 mode mismatch'
+        assert len(item['candidateSha256']) == 64 and all(c in '0123456789abcdef' for c in item['candidateSha256']), 'Invalid PROJ-162 hash'
+    sources = receipt['newFiles']
+    assert len(sources) == len(MY_ORGANIZATION_NEW_PATHS) and {x['path'] for x in sources} == MY_ORGANIZATION_NEW_PATHS, 'Out-of-scope PROJ-162 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-162 source hash mismatch'
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-162 source mode mismatch'
+    return receipt
+
+
+def my_organizations_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in my_organizations_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-162 chain mismatch: ' + candidate
+        return ROOT / candidate, change['candidateSha256'], change['candidateMode']
+    return ROOT / candidate, expected_hash, expected_mode
+
+
 # PROJ-154 changes verification governance only. The old Task5/6/7 receipts
 # stay immutable; this exact-path layer pins the resolved current predecessor.
 GOVERNANCE_PATHS = {
@@ -371,8 +407,8 @@ def cabinet_profile_file(path, expected_hash, expected_mode):
     change = next((x for x in cabinet_profile_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-160 chain mismatch: ' + candidate
-        return ROOT / candidate, change['candidateSha256'], change['candidateMode']
-    return ROOT / candidate, expected_hash, expected_mode
+        return my_organizations_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return my_organizations_file(ROOT / candidate, expected_hash, expected_mode)
 
 
 # PROJ-154 changes verification governance only. The old Task5/6/7 receipts
@@ -553,10 +589,15 @@ def verify_provenance():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-38 successor hash mismatch'
         assert not path.stat().st_mode & 0o111, 'PROJ-38 successor mode mismatch'
     for item in cabinet_profile_receipt()['changes']:
+        path, digest, _ = my_organizations_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-160 current hash mismatch: ' + item['candidatePath']
+        assert not path.stat().st_mode & 0o111, 'PROJ-160 current mode mismatch'
+    for item in my_organizations_receipt()['changes']:
         path = ROOT / item['candidatePath']
         assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-160 current hash mismatch: ' + item['candidatePath']
-        assert not path.stat().st_mode & 0o111, 'PROJ-160 current mode mismatch'
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-162 current hash mismatch: ' + item['candidatePath']
+        assert not path.stat().st_mode & 0o111, 'PROJ-162 current mode mismatch'
     return accepted
 
 

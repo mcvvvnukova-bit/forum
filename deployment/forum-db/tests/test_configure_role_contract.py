@@ -143,6 +143,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
                  "INSERT INTO iam.schema_migrations VALUES ('001_sber_identity'),('002_profiles');")
         self.sql((migrations / '002_profiles.sql').read_text())
         self.sql((migrations / '003_public_schema.sql').read_text())
+        self.sql((migrations / '007_my_organizations.sql').read_text())
         self.sql("INSERT INTO public.schema_migrations VALUES ('003_public_schema');"
                  "CREATE TABLE public.unrelated_data(id bigserial PRIMARY KEY);"
                  "GRANT SELECT ON public.unrelated_data TO unrelated_role;"
@@ -192,7 +193,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
             'authorization_attempts': {'SELECT', 'INSERT', 'UPDATE', 'DELETE'},
             'role_assignments': {'SELECT', 'INSERT', 'DELETE'},
             'audit_events': {'SELECT', 'INSERT'}, 'outbox_events': {'SELECT', 'INSERT'},
-            'schema_migrations': set(), 'unrelated_data': set(),
+            'schema_migrations': set(), 'unrelated_data': set(), 'organization_additions': {'SELECT', 'INSERT'},
         }
         for table, allowed in expected.items():
             for privilege in ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']:

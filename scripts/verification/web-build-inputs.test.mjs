@@ -26,7 +26,7 @@ test('real exact-source release ignores inherited development mode',()=>{
    assert.equal(builds[0].inputs[name],createHash('sha256').update(readFileSync(join(root,name))).digest('hex'))
   }
   assert.equal(builds[0].inputs['apps/profile-preview/src/fixtures.ts'],undefined)
-  for(const name of ['cabinet/index.html','cabinet/work/index.html'])assert.equal(builds[0].files[name],builds[0].files['index.html'])
+  for(const name of ['cabinet/index.html','cabinet/work/index.html','cabinet/organizations/index.html'])assert.equal(builds[0].files[name],builds[0].files['index.html'])
  }finally{rmSync(temporary,{recursive:true,force:true})}
 })
 test('real Vite serve returns both public asset families byte-for-byte',async()=>{

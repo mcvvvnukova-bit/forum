@@ -22,7 +22,7 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  await pool.query('TRUNCATE public.authorization_attempts, public.sessions, public.role_assignments, public.external_identities, public.users, public.participants, public.audit_events, public.outbox_events, public.persons, public.participant_memberships');
+  await pool.query('TRUNCATE public.organization_additions, public.authorization_attempts, public.sessions, public.role_assignments, public.external_identities, public.users, public.participants, public.audit_events, public.outbox_events, public.persons, public.participant_memberships');
   provider.calls.length = 0;
   Object.assign(provider.faults, {tokenStatus: 200, profileStatus: 200, completionStatus: 204});
 });

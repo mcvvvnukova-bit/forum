@@ -5,7 +5,7 @@ for(const width of [320,390,1440]){
   await page.setViewportSize({width,height:1000})
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message))
   await page.route('**/api/auth/session',route=>route.fulfill({status:401,body:''}))
-  for(const path of ['/','/customers/','/suppliers/','/work/','/participate/','/login','/register','/register/','/register/index.html','/cabinet/','/cabinet/work/']){
+  for(const path of ['/','/customers/','/suppliers/','/work/','/participate/','/login','/register','/register/','/register/index.html','/cabinet/','/cabinet/work/','/cabinet/organizations/']){
    await page.goto(path);await expect(page.locator('h1')).toBeVisible()
    await page.reload();await expect(page.locator('h1')).toBeVisible()
    await expect(page.locator('a[href="/register"]')).toHaveCount(0)
@@ -237,4 +237,29 @@ test('built work carousel survives modal history and demo keeps its actual embed
  await expect(frame).toBeVisible()
  await expect(frame).toHaveAttribute('src',/^https:\/\/cal\.astforum\.ru\/.+\?embed=true&layout=month_view&theme=light$/)
  await expect(page.getByText('Загрузка календаря…')).toHaveCount(0)
+})
+
+for(const width of [320,390,768,1440])test(`built organizations save, reload, history and accessible scrolling at ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:1000})
+ let saved=false
+ const pending={id:'addition',inn:'9709128511',name:null,status:'pending',members:[]}
+ await page.route('**/api/auth/session',route=>route.fulfill({status:200,json:{user:{id:'owner',displayName:'Анна Иванова'}}}))
+ await page.route('**/api/profile',route=>route.fulfill({status:503,body:''}))
+ await page.route('**/api/me/organizations',route=>{
+  if(route.request().method()==='POST'){saved=true;return route.fulfill({status:201,json:{userId:'owner',item:pending}})}
+  return route.fulfill({status:200,json:{userId:'owner',items:saved?[pending]:[],nextCursor:null}})
+ })
+ await page.goto('/cabinet/organizations/')
+ await expect(page.getByRole('heading',{level:1,name:'Мои организации',exact:true})).toBeVisible()
+ await page.getByLabel('ИНН',{exact:true}).fill('9709128511');await page.getByLabel('ИНН',{exact:true}).press('Enter')
+ await expect(page.getByText('Организация сохранена',{exact:true})).toBeVisible()
+ await expect(page.getByText('9709128511',{exact:true})).toBeVisible()
+ await page.reload();await expect(page.getByText('9709128511',{exact:true})).toBeVisible()
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+ await expect(page.getByRole('region',{name:'Мои организации',exact:true})).toHaveCount(width===1440?0:1)
+ if(width<768)await page.getByRole('button',{name:'Открыть меню профиля'}).click()
+ await page.getByRole('link',{name:'Работа',exact:true}).filter({visible:true}).click()
+ await expect(page.getByRole('heading',{level:1,name:'Работа',exact:true})).toBeVisible()
+ await page.goBack();await expect(page.getByText('9709128511',{exact:true})).toBeVisible()
+ await page.goForward();await expect(page.getByRole('heading',{level:1,name:'Работа',exact:true})).toBeVisible()
 })

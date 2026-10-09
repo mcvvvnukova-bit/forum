@@ -36,4 +36,14 @@ SELECT to_regclass('public.schema_migrations') IS NOT NULL AS consolidated \gset
   \ir ../../apps/api/migrations/003_public_schema.sql
   INSERT INTO public.schema_migrations(name) VALUES ('003_public_schema');
 \endif
+SELECT NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='005_public_individual_role') AS apply_individual \gset
+\if :apply_individual
+  \ir ../../apps/api/migrations/005_public_individual_role.sql
+  INSERT INTO public.schema_migrations(name) VALUES ('005_public_individual_role');
+\endif
+SELECT NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='007_my_organizations') AS apply_organizations \gset
+\if :apply_organizations
+  \ir ../../apps/api/migrations/007_my_organizations.sql
+  INSERT INTO public.schema_migrations(name) VALUES ('007_my_organizations');
+\endif
 COMMIT;
