@@ -117,7 +117,9 @@ test('built cabinet uses a confirmed session and blocked callback opens a suppor
  await expect(page.getByRole('heading',{name:'Личные данные',exact:true,level:1})).toBeVisible()
  await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
  await expect(page.getByRole('link',{name:'Тестовый пользователь',exact:true})).toBeVisible()
- await expect(page.getByText('Физлицо',{exact:true})).toBeVisible()
+ await expect(page.getByText('Физлицо',{exact:true})).toHaveCount(0)
+ await expect(page.getByRole('banner').getByRole('button',{name:'Выйти',exact:true})).toBeVisible()
+ await expect(page.locator('footer.profile-footer')).toHaveCount(0)
  await page.goto('/?auth_error=account_deactivated')
  const blocked=page.getByRole('dialog',{name:'Вы заблокированы на платформе',exact:true})
  await expect(blocked).toBeVisible()
@@ -142,6 +144,8 @@ for(const width of [320,390,1440])test(`built personal profile, work, reload and
  await expect(page).toHaveURL(/\/cabinet\/work\/#main$/)
  await expect(page.getByText('Реальное место работы',{exact:true})).toBeVisible()
  await page.reload();await expect(page.getByRole('heading',{name:'Работа',level:1,exact:true})).toBeVisible()
+ await expect(page.getByRole('banner').getByRole('button',{name:'Выйти',exact:true})).toBeVisible()
+ await expect(page.locator('footer.profile-footer')).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.getByRole('button',{name:'Выйти',exact:true}).click()
  await expect(page).toHaveURL(new URL('/',page.url()).href)
@@ -166,6 +170,13 @@ for(const width of [320,390,1440])test(`built settings toggle persists and remai
  await page.getByRole('link',{name:'Настройки',exact:true}).filter({visible:true}).click()
  await expect(page).toHaveURL(/\/cabinet\/settings\/#main$/)
  await expect(page.getByRole('heading',{name:'Настройки',level:1,exact:true})).toBeVisible()
+ const logout=page.getByRole('banner').getByRole('button',{name:'Выйти',exact:true})
+ await expect(logout).toBeVisible()
+ await expect(logout).toHaveText('')
+ await expect(page.getByRole('button',{name:'Выйти',exact:true})).toHaveCount(1)
+ await expect(page.locator('footer.profile-footer')).toHaveCount(0)
+ await expect(page.getByText('Физлицо',{exact:true})).toHaveCount(0)
+ await expect(page.getByRole('link',{name:'На главную',exact:true})).toHaveCount(0)
  const checkbox=page.getByRole('checkbox',{name:'Хочу работать на площадке как физическое лицо',exact:true})
  await expect(page.getByRole('checkbox')).toHaveCount(1)
  await checkbox.focus();await page.keyboard.press('Space')
@@ -193,9 +204,11 @@ for(const width of [320,390,1440])test(`built logout returns home and reopens st
  await expect(page.getByRole('link',{name:'Тестовый пользователь',exact:true})).toBeVisible()
  await page.goto('/cabinet/?auth=success')
  await expect(page.getByRole('heading',{name:'Личные данные',exact:true,level:1})).toBeVisible()
- // Logout lives below the long personal profile. Preserve that real starting
- // position so replacing the URL alone cannot satisfy the homepage contract.
- await page.getByRole('button',{name:'Выйти',exact:true}).scrollIntoViewIfNeeded()
+ // The header logout stays visible while the long personal profile is scrolled.
+ // Preserve that starting position so replacing the URL alone cannot satisfy
+ // the homepage scroll-reset contract.
+ await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
+ await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}))
  expect(await page.evaluate(()=>window.scrollY)).toBeGreaterThan(0)
  await page.getByRole('button',{name:'Выйти',exact:true}).click()
  await expect(page).toHaveURL(new URL('/',page.url()).href)

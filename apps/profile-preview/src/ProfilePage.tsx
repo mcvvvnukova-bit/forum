@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react'
 import type {ReactNode} from 'react'
 import {Banner, Button, Dialog, Heading, Link, IconButton, NavList, Spinner, Stack, Text} from '@primer/react'
-import {BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PersonIcon, QuestionIcon, ShieldLockIcon, ThreeBarsIcon} from '@primer/octicons-react'
+import {BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PersonIcon, QuestionIcon, ShieldLockIcon, SignOutIcon, ThreeBarsIcon} from '@primer/octicons-react'
 import {buildProfileSections, type ProfileSection, type SberProfile} from './profile'
 
 type ProfileView = 'profile' | 'work' | 'settings'
@@ -51,7 +51,10 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
       <div className="header-brand"><IconButton ref={menuRef} className="mobile-menu" icon={ThreeBarsIcon} aria-label="Открыть меню профиля" onClick={() => setDialog('menu')}/>
         <Link href={`${profileRoot}#main`} aria-label="АСТ Форум: личный кабинет" className="brand-link"><img src={account?.logo ?? `${profileRoot}assets/forum-logo.png`} width="144" height="48" alt="АСТ Форум"/></Link>
       </div>
-      <Link href={`${profileRoot}#main`} className="account-link" aria-current={view === 'profile' ? 'page' : undefined}><PersonIcon/><Text>{accountName}</Text></Link>
+      <Stack direction="horizontal" gap="condensed" align="center" className="header-account">
+        <Link href={`${profileRoot}#main`} className="account-link" aria-current={view === 'profile' ? 'page' : undefined}><PersonIcon/><Text>{accountName}</Text></Link>
+        {account && <IconButton icon={SignOutIcon} aria-label="Выйти" variant="invisible" onClick={account.onLogout} disabled={account.leaving} aria-busy={account.leaving}/>}
+      </Stack>
     </header>
     <div className="cabinet-body">
       <aside className="sidebar">
@@ -71,7 +74,7 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
         {state === 'loading' && <div className="state-content" role="status"><Spinner size="medium"/><Heading as="h2" variant="small">Загружаем профиль</Heading><Text className="muted">Подготавливаем ваши данные.</Text></div>}
         {state === 'error' && <div className="state-content"><Banner variant="critical" title="Не удалось загрузить профиль" description="Попробуйте ещё раз. Если ошибка повторится, обратитесь в поддержку." primaryAction={<Button onClick={onRetry}>Повторить</Button>}/></div>}
         {state === 'ready' && (view==='settings'?settingsContent:<div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>)}
-        <footer className="profile-footer"><Text size="small" className="muted">© 2026 АСТ Форум</Text>{account && <Stack direction="horizontal" gap="normal" align="center">{account.individual && <Text size="small">Физлицо</Text>}<Link href="/">На главную</Link><Button onClick={account.onLogout} disabled={account.leaving}>{account.leaving ? 'Выходим…' : 'Выйти'}</Button></Stack>}</footer>
+        {!account && <footer className="profile-footer"><Text size="small" className="muted">© 2026 АСТ Форум</Text></footer>}
       </main>
     </div>
     {dialog === 'edit' && <Dialog title="Изменение данных профиля" onClose={close} returnFocusRef={editRef} width="large" footerButtons={[{content: 'Понятно', onClick: close}]}>

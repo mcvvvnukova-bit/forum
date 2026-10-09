@@ -1,4 +1,4 @@
-import {act, fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react'
 import {BaseStyles, ThemeProvider} from '@primer/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 import {App} from './App'
@@ -27,6 +27,13 @@ describe('individual participation settings',()=>{
     expect(screen.getAllByRole('checkbox')).toHaveLength(1)
     expect(screen.getByRole('heading',{name:'Настройки'})).toBeInTheDocument()
     expect(screen.getByRole('link',{name:'Настройки'})).toHaveAttribute('aria-current','page')
+    const logout=within(screen.getByRole('banner')).getByRole('button',{name:'Выйти'})
+    expect(logout.textContent).toBe('')
+    expect(logout.querySelector('svg')).not.toBeNull()
+    expect(screen.getAllByRole('button',{name:'Выйти'})).toHaveLength(1)
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Физлицо')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link',{name:'На главную'})).not.toBeInTheDocument()
     expect(document.title).toBe('Настройки | АСТ Форум')
   })
   it('waits for server confirmation and restores the choice on remount',async()=>{
