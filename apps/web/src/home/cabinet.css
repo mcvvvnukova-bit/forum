@@ -10,6 +10,8 @@
 .cabinet .brand-link {display: flex; flex-shrink: 0;}
 .cabinet .brand-link img {object-fit: contain;}
 .cabinet .account-link {color: var(--fgColor-default); white-space: nowrap;}
+.cabinet .header-account {min-width: 0;}
+.cabinet .header-account .account-link {min-width: 0; overflow-wrap: anywhere;}
 .cabinet .cabinet-body {display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: calc(100vh - var(--profile-header-height));}
 .cabinet .sidebar {display: flex; flex-direction: column; gap: var(--base-size-24); padding: var(--base-size-32) var(--base-size-16) var(--base-size-24); border-right: var(--borderWidth-thin) solid var(--borderColor-default); background: var(--bgColor-muted); position: sticky; top: var(--profile-header-height); align-self: start; min-height: calc(100vh - var(--profile-header-height));}
 .cabinet .workspace-heading {padding: 0 var(--base-size-12); color: var(--fgColor-default);}
@@ -55,4 +57,7 @@
 .cabinet .page-heading {margin-bottom: var(--base-size-24); gap: var(--base-size-16);}
 .cabinet .profile-card {padding: var(--base-size-20);}
 .cabinet .profile-footer {flex-direction: column; align-items: start; gap: var(--base-size-12);}
+}
+@media (max-width: 360px) {
+.cabinet .brand-link img {width: 96px;}
 }
