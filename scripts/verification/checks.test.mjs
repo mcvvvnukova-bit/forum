@@ -80,7 +80,7 @@ for (const file of ['.outline-migration/payload.json', 'outline-uploads/form.jso
 }
 test('final quality check requires every exact result to be success', () => {
   const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database', 'profile', 'operational', 'web-release']
-  const results = Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))
+  const results = {changes: {result: 'success', outputs: {selection: JSON.stringify(Object.fromEntries(jobs.map(job => [job, true])))}}, ...Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))}
   const gate = data => spawnSync(process.execPath, [join(root, 'scripts/verification/quality-gate.mjs')], {
     env: {...process.env, QUALITY_RESULTS: JSON.stringify(data)}, encoding: 'utf8',
   })
@@ -96,7 +96,7 @@ test('final quality check requires every exact result to be success', () => {
 test('every checkout uses the explicit candidate head expression', () => {
   const workflow = readFileSync(join(root, '.github/workflows/quality.yml'), 'utf8')
   const checkouts = [...workflow.matchAll(/- uses: actions\/checkout@[^\n]+\n([\s\S]*?)(?=      - |\n  \w|$)/g)]
-  assert.equal(checkouts.length, 10)
+  assert.equal(checkouts.length, 11)
   for (const [, block] of checkouts) assert.match(block, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/)
 })
 
@@ -396,5 +396,65 @@ else:
     raise SystemExit('Revalidation ignored changed '+sys.argv[2])
 `,path,mutation],{encoding:'utf8'})
     assert.equal(result.status,0,result.stderr)
+  })
+}
+
+for (const mutation of ['none','settings-pin','ci-pin','scope','mode','path','duplicate','base','source','bytes']) {
+  test(`PROJ-163 main integration keeps both ownership chains: ${mutation}`, t => {
+    const path=fixture(t)
+    const clean=provenance(path)
+    assert.equal(clean.status,0,clean.stderr)
+    if(mutation==='none')return
+    const file=join(path,'artifacts/repository-audits/proj-163-main-integration-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='settings-pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='ci-pin')receipt.changes[0].mainSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='package.json'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='bytes')writeFileSync(join(path,'scripts/verification/checks.test.mjs'),'unowned merge drift')
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+
+test('PROJ-163 main integration revalidation observes changed ROOT and recovers after failure', t => {
+  const first=fixture(t), second=fixture(t)
+  const result=spawnSync('python3',['-c',`
+import importlib.util,json,pathlib,sys
+first,second=map(pathlib.Path,sys.argv[1:])
+spec=importlib.util.spec_from_file_location('checker',first/'scripts/verification/check-operational-sources.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.ROOT=first
+m.verify_provenance()
+file=second/'artifacts/repository-audits/proj-163-main-integration-ownership.json'
+original=file.read_text();receipt=json.loads(original);receipt['changes'][0]['candidateSha256']='0'*64
+file.write_text(json.dumps(receipt));m.ROOT=second
+try:
+    m.verify_provenance()
+except AssertionError:
+    pass
+else:
+    raise SystemExit('Revalidation ignored changed ROOT and receipt')
+file.write_text(original)
+m.verify_provenance()
+m.ROOT=first
+m.verify_provenance()
+`,first,second],{encoding:'utf8'})
+  assert.equal(result.status,0,result.stderr)
+})
+
+for (const candidate of ['scripts/verification/check-operational-sources.py','scripts/verification/checks.test.mjs']) {
+  test(`PROJ-163 main integration rejects changed historical CI predecessor: ${candidate}`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-164-ci-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    receipt.changes.find(item=>item.previousCandidatePath===candidate).previousSha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
   })
 }
