@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-158",
+  "baseSha": "7e686ffc0bdc56ca6d72f27ec69349d6949a887f",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/web/src/auth/auth.css",
+      "candidatePath": "apps/web/src/auth/auth.css",
+      "previousSha256": "dfc6756b17d1cf4115838451c84b5270326ab33b7b4c9bcbe03b378162ded57a",
+      "candidateSha256": "64c98c3ccb52f3e783e85f6f08c2f2ecbf8ddfd5cb2a5a99e023f6da12c7d288",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/public-site.spec.ts",
+      "candidatePath": "tests/e2e/public-site.spec.ts",
+      "previousSha256": "e053231ee88d91d06a328531592bcbed3507c6f072cc9ff746f5bafd416a32b1",
+      "candidateSha256": "bef37e8f613c3d270c660ee25210e4b73d43eea871fec00b33febfac21ce0b09",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "e13ba31013ef5bd5dc1973515c88b0b205bbba81bf5c36e7f1dde9fe70848303",
+      "candidateSha256": "624ff27e719fde958c8597bc662fff89d1462262a39941efe75b659970e6bac3",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "ab7b1373d4feeb2f8dcf9f9a8a634f53633e37846da901b4e3a72866861f3ff4",
+      "candidateSha256": "4dd1abe28c1163b1dff11e56eca0cd16c864c608c207d990aca61bd7150087e8",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "docs/plans/2026-10-08-sber-disabled-button.md",
+      "sha256": "ee3b28389cbad24019874e529c2c30e3de69dd753a49fb5504e43b296dae98c7",
+      "mode": "100644"
+    }
+  ]
+}

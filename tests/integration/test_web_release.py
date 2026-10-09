@@ -30,9 +30,15 @@ class Release(unittest.TestCase):
         (self.target/'profile').mkdir();(self.target/'profile/index.html').write_text('retained profile fixture')
         (self.target/'._legacy').write_bytes(b'retained AppleDouble fixture')
         (self.target/'assets').mkdir();(self.target/'assets/old-delayed.js').write_bytes(b'old delayed fixture')
+        (self.target/'register').mkdir(exist_ok=True)
+        self.old_registration=b'Legacy registration rollback fixture'
+        (self.target/'register/index.html').write_bytes(self.old_registration)
         self.artifact=Path('/artifact')
         self.manifest=json.loads((self.artifact/'manifest.json').read_text())
         self.sha=self.manifest['sourceSha']
+        # The previous release relied on SPA fallback and owned no cabinet HTML.
+        for name in ['cabinet/index.html','cabinet/work/index.html','cabinet/settings/index.html']:
+            (self.target/name).unlink()
         self.backups=self.parent/'backups'
         (self.parent/'auth').mkdir();(self.parent/'auth/index.html').write_text('Synthetic gateway login')
         password=Path('/tmp/test-web-password');password.write_text('synthetic-only')
@@ -52,9 +58,20 @@ class Release(unittest.TestCase):
         with urllib.request.urlopen(request) as response:
             self.assertEqual(response.headers['Cache-Control'],'no-store')
             return response.read()
+    def registration_response(self,method='GET',path='/register'):
+        connection=http.client.HTTPConnection('127.0.0.1',self.server.server_port)
+        connection.request(method,path,headers={'Cookie':self.cookie})
+        response=connection.getresponse()
+        result=(response.status,response.getheader('Location'),response.read())
+        connection.close()
+        return result
     def run_deploy(self,verify):
         return deploy(self.artifact,self.target,self.backups,source_sha=self.sha,expected_target=fingerprint(self.before),environment='dev',verifier=verify)
     def verify(self,_):
+        self.assertFalse((self.target/'register/index.html').exists())
+        for path in ['/register','/register/','/register/index.html']:
+            for method in ['GET','HEAD']:
+                self.assertEqual(self.registration_response(method,path),(303,'/login',b''))
         for name in self.manifest['files']:
             self.assertEqual(self.get(name),(self.artifact/'site'/name).read_bytes())
         self.assertEqual(self.get('assets/old-delayed.js'),b'old delayed fixture')
@@ -71,6 +88,7 @@ class Release(unittest.TestCase):
         def fail(report):self.verify(report);raise RuntimeError('forced post-switch failure')
         with self.assertRaisesRegex(RuntimeError,'forced'):self.run_deploy(fail)
         self.assertEqual(self.get('index.html'),self.old)
+        self.assertEqual(self.registration_response(),(200,None,self.old_registration))
         for name,digest in self.before.items():self.assertEqual(inventory(self.target)[name],digest)
         for name in self.manifest['files']:
             if name.startswith(('web-assets/','web-media/')):self.assertEqual(self.get(name),(self.artifact/'site'/name).read_bytes())
@@ -101,6 +119,9 @@ class Release(unittest.TestCase):
         report=self.run_deploy(self.verify)
         def verify_old(_):
             self.assertEqual(self.get('index.html'),self.old)
+            for name in ['cabinet/index.html','cabinet/work/index.html','cabinet/settings/index.html']:
+                self.assertFalse((self.target/name).exists())
+            self.assertEqual(self.registration_response(),(200,None,self.old_registration))
             for name in self.manifest['files']:
                 if name.startswith(('web-assets/','web-media/')):self.assertEqual(self.get(name),(self.artifact/'site'/name).read_bytes())
             return {'oldGatewayCookieAndLateAssets':True}

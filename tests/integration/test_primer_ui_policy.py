@@ -258,7 +258,7 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
         self.assertEqual(result.returncode, 1)
         self.assertEqual(sorted(f['code'] for f in findings if f['path'] == 'src/Semantic.tsx'), ['PDS004', 'PDS005'])
 
-    def test_upstream_snapshot_retains_original_71_visual_warnings(self):
+    def test_upstream_snapshot_retains_visual_warnings_including_cabinet_props(self):
         result = subprocess.run([sys.executable, str(VENDOR), str(REPO / 'apps/web'),
                                  '--format', 'json',
                                  '--allow-token-file', 'src/home/forum-tokens.css',
@@ -267,7 +267,13 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         findings = json.loads(result.stdout)
-        self.assertEqual(len(findings), 71)
+        # Removing the registration action also removes one valid Stack gap.
+        # Preserve all 74 predecessor warnings and account separately for the
+        # new Primer settings Stack/Spinner props accepted by the semantic gate.
+        settings = [f for f in findings if f['path'] == 'src/home/SettingsSection.tsx']
+        self.assertEqual(len(findings) - len(settings), 74)
+        self.assertEqual(len(settings), 2)
+        self.assertEqual(sum(f['path'] == 'src/home/Cabinet.tsx' for f in findings), 1)
         self.assertTrue(all(f['code'] == 'PDS007' and f['severity'] == 'warning' for f in findings))
 
     def test_default_target_independent_of_working_directory(self):

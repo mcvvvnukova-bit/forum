@@ -4,11 +4,15 @@
   --button-primary-bgColor-rest: var(--sber-button-rest);
   --button-primary-bgColor-hover: var(--sber-button-hover);
   --button-primary-bgColor-active: var(--sber-button-hover);
+  --button-primary-bgColor-disabled: var(--sber-button-rest);
   --button-primary-borderColor-rest: var(--sber-button-rest);
   --button-primary-borderColor-hover: var(--sber-button-hover);
   --button-primary-borderColor-active: var(--sber-button-hover);
+  --button-primary-borderColor-disabled: var(--sber-button-rest);
   --button-primary-fgColor-rest: var(--sber-button-label);
+  --button-primary-fgColor-disabled: var(--sber-button-label);
   --button-primary-iconColor-rest: var(--sber-button-label);
+  --button-primary-iconColor-disabled: var(--sber-button-label);
   min-width: 0;
   max-width: 100%;
   align-self: center;

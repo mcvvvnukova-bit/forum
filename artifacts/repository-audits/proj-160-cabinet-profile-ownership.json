@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-160",
+  "baseSha": "19ee01ed586f54e00a080844639864bc45278bde",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/api/README.md",
+      "previousSha256": "c32210389388fb6de09242473e9aed20cd2ba2fb37dc52075283557fc822d0ee",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/README.md",
+      "candidateSha256": "f785acd9d7fe41382bd4e768de3d689d8b9cf273ee9955c4e3123cb8411e9bd2",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/auth-store.ts",
+      "previousSha256": "1e6c5d12a4725694b660a643d4455a8a0a2dfa88034e3b2d5c7e704c932e3d5b",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/auth-store.ts",
+      "candidateSha256": "7e1c8cc45c049318b1704f2fb7e47813862bcaeb3a5eba2bf8056ecab2a0bee5",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/auth.controller.ts",
+      "previousSha256": "90f5f5d31faa4fd5deab671fff092070d5a62ca0095014d480e65899dc97410b",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/auth.controller.ts",
+      "candidateSha256": "4093d44727567977965f3309c098587dc992fec37e46df4826fffd6574653f15",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/sber-client.ts",
+      "previousSha256": "b7079506bb6354585d6133ca904037b0314e3fe2071ffe33f737b58a2e2ad57a",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/sber-client.ts",
+      "candidateSha256": "249ff6fb8aa4ddccc7c1e53bb9560710dcd074aca0c540871bf167408077b1e5",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/auth.test.ts",
+      "previousSha256": "5db68460957a3563aa891073a4f3ee629761ffae7e437e9ac4ab40e1b736e882",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/auth.test.ts",
+      "candidateSha256": "424f6a579df3df4383de00127a2e808bd47b8379121d24d6d775a59ba239a54d",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "previousSha256": "15c6a478909d7d3bc51ef365ca021f006ed611ce41614a331f7adf6c283889ae",
+      "previousMode": "100644",
+      "candidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "candidateSha256": "c88c6729652613ae92b2bce4dd43954826b76e255593e48db3086c52b685fffa",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tests/test_auth_gateway.py",
+      "previousSha256": "ed4d0fc32196a60fb7f055479bb12a2bdd3c40968e222f63a729adab94698883",
+      "previousMode": "100644",
+      "candidatePath": "apps/legacy-landing/tests/test_auth_gateway.py",
+      "candidateSha256": "bb1a42cfed0b8f447d94039c30a4de3ea79580e032ffa138735578690970ad72",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/profile-preview/src/ProfilePage.tsx",
+      "previousSha256": "6ff286610858bdd8154acc71d4382411ccf4bff6e4560bb4a286b043dfcbe180",
+      "previousMode": "100644",
+      "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
+      "candidateSha256": "3d91e55258c56e5cfcb14d1461c2a343261e88cf1b13c0cc84ba41ce00fac52f",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/profile-preview/src/profile.ts",
+      "previousSha256": "2d6c70032bdb742414776af911d54bf28ddcb0f6c58cf242a0ce7da29f143464",
+      "previousMode": "100644",
+      "candidatePath": "apps/profile-preview/src/profile.ts",
+      "candidateSha256": "de732f5dd8a133d547442d3453a87fec7abd30c657177a6f6ab42a67f5ce91fe",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/App.tsx",
+      "previousSha256": "53238ebe3046b1b7a96d9fdc15ed297837b5a569e49cee737a010974694e6b11",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/App.tsx",
+      "candidateSha256": "f558a815f42f23f74f2c917cc265a49d240dd7290f0b943ad153fc6134d9f9f8",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/Cabinet.tsx",
+      "previousSha256": "05d520198295ea43ae233e842047b03aa9a8c7515de6f302fb6618a0d2ae23c3",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/Cabinet.tsx",
+      "candidateSha256": "e93e6188ba580c0ef19568697ec914a8988a5307fde5fa9e6c0999d973f0872a",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/home.test.tsx",
+      "previousSha256": "5eed055258c9fc1eeaf14a68283072148f7a18366b7f1e11d8d757960f0c22fd",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/home.test.tsx",
+      "candidateSha256": "56ab6f6044e72fdc3232ce9f8e1382376c8b8596430b4371a45669788f1df9b3",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/release-manifest.schema.json",
+      "previousSha256": "30ec51003705b6d9bc3161d608f10d689ba1768f9d83aeb762a27c4c9ef0a421",
+      "previousMode": "100644",
+      "candidatePath": "deployment/release-manifest.schema.json",
+      "candidateSha256": "7e0c4ba0a2c749fc2e1c1656b112acceaa2b1ebab44d310d0910c53611d78318",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/release.md",
+      "previousSha256": "1cecca20132ecd0544d87f63456771e6a904af37c3006bfec965ef1b03a7ddbc",
+      "previousMode": "100644",
+      "candidatePath": "deployment/release.md",
+      "candidateSha256": "6632698baf097123ff882ee93e94d6deec360a3fdc0611766ff942ebc2f0ee6e",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/build-web-release.mjs",
+      "previousSha256": "383650dba4ca7ce5bd1732ed9f33c7793848abb5f045acd987353a9cf4fb2c6e",
+      "previousMode": "100644",
+      "candidatePath": "scripts/deployment/build-web-release.mjs",
+      "candidateSha256": "42ed103cbe8604869dcbd1fa07fe995951ee40d87ca74e108df2294ac3262c91",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/web_release.py",
+      "previousSha256": "53f0cb8abd529c923dec711da740d4a740676b03e22b6fc2334da0739aaa7e2a",
+      "previousMode": "100644",
+      "candidatePath": "scripts/deployment/web_release.py",
+      "candidateSha256": "bdb0b1bd626af9e138262e4b669775e4eff9288be30d9f8881221e9377711bd9",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "bd60178ec8a7b5285cfffeed28e5a0f55a8bed5a59e1169b79fd0be727425844",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "2eb2eae93ecfb4fbaf7eb9987a71393e28821fca1276601776de0ed7fde2295d",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "d97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/web-build-inputs.test.mjs",
+      "previousSha256": "23d7097d46e873f97910eef12ec4ed5a31f3f086e2f21caef51bf1dd177b3765",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/web-build-inputs.test.mjs",
+      "candidateSha256": "028c4776a27c27997adcfdae8cabbaf78ae6940cd4bc21968f98d7263915a724",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/public-site.spec.ts",
+      "previousSha256": "efacc49ef7977a614115b0c2085cff9158873c734490e6d73eb73ae36a517d19",
+      "previousMode": "100644",
+      "candidatePath": "tests/e2e/public-site.spec.ts",
+      "candidateSha256": "a1b9280920896e11bf0e705ff52d17b99aa4e9a0ae377fd8e6050c2f6a721711",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/test_primer_ui_policy.py",
+      "previousSha256": "0fda95b2f163b459c42223cf5a3e06ed46958d70561f22dfcb2288b5d5c4b54f",
+      "previousMode": "100644",
+      "candidatePath": "tests/integration/test_primer_ui_policy.py",
+      "candidateSha256": "112ef317342f3c9671e9db442de282acf171cb383180fae2d019b399efe317a7",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/test_web_release.py",
+      "previousSha256": "bcec665377eb323cb4052f98292307601aa362239c92260c79d0b65762524f90",
+      "previousMode": "100644",
+      "candidatePath": "tests/integration/test_web_release.py",
+      "candidateSha256": "021c4627b9ce3eb1074e7f52febe39785e0a96254a826b9e70da17f9187d8176",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/web/src/home/Cabinet.test.tsx",
+      "sha256": "fa2794f0d3ea4410d1b92c36622859d1a2d09bd0aa11bbd852085845a5d82fdc",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/cabinet.css",
+      "sha256": "771890dc9d0528d7dcb12323888466ce45ceddcbc3cab859deae73250c92a580",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-09-gitnexus-plan-cabinet-profile-integration.md",
+      "sha256": "dd65e30dc426d1dd11c5ce07b3692751c0fdd85cd1bebf7b0a57b2ce8671e315",
+      "mode": "100644"
+    }
+  ]
+}

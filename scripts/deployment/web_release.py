@@ -61,14 +61,14 @@ def validate_artifact(artifact, source_sha, environment):
             raise ValueError('Hidden artifact file')
     if fingerprint(manifest['inputs']) != manifest['sourceFingerprint'] or fingerprint(manifest['config']) != manifest['configFingerprint']:
         raise ValueError('Input/config fingerprint mismatch')
-    routes = ['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/register'] if environment == 'dev' else ['/']
+    routes = ['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/cabinet/', '/cabinet/work/', '/cabinet/settings/'] if environment == 'dev' else ['/']
     if manifest['routes'] != routes:
         raise ValueError('Route inventory mismatch')
     pages = {('index.html' if route == '/' else route.strip('/') + '/index.html') for route in routes}
     if {name for name in files if name.endswith('.html')} != pages:
         raise ValueError('Unexpected page ownership')
     if environment == 'dev':
-        if manifest['config'] != {'VITE_FORUM_SESSION':'true','VITE_LOGIN_URL':'/login','VITE_START_URL':'/register'}:
+        if manifest['config'] != {'VITE_FORUM_SESSION':'true','VITE_LOGIN_URL':'/login','VITE_START_URL':'/login'}:
             raise ValueError('Dev configuration mismatch')
         for name in files:
             if name not in pages and not name.startswith(('web-assets/', 'web-media/')):
@@ -103,6 +103,9 @@ def deploy(artifact, target, backups, *, source_sha, expected_target, environmen
                     install_asset(prepared / name, data)
                     # Available to newly opened pages even after rollback.
                     install_asset(target / name, data)
+            # Retire only the previously owned page in the prepared tree. Its
+            # absence activates the gateway alias; exchanging back restores it.
+            (prepared / 'register/index.html').unlink(missing_ok=True)
             (prepared / '.public-auth.json').unlink(missing_ok=True)
             atomic_write(prepared / '.web-release.json', (artifact / 'manifest.json').read_bytes())
             previous = inventory(target)
@@ -162,7 +165,7 @@ def rollback(target, release_backup, backups, *, expected_target, verifier):
         os.chmod(receipt, 0o700)
         prepared = target.parent / ('.web-rollback-' + operation)
         shutil.copytree(target, prepared)
-        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register']]
+        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register','cabinet','cabinet/work','cabinet/settings']]
         for name in pages + ['.public-auth.json', '.web-release.json']:
             source = before_source / name
             if source.exists(): atomic_write(prepared / name, source.read_bytes())

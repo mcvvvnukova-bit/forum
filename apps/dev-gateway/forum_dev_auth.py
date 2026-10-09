@@ -14,7 +14,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Callable
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 
 @dataclass(frozen=True)
@@ -59,7 +59,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
 
-            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session"}:
+            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session", "/api/profile", "/api/settings"}:
                 self._proxy_api(send_body=send_body)
                 return
 
@@ -108,6 +108,12 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
                 self._redirect("/", clear_cookie=True)
                 return
 
+            self._send_text(HTTPStatus.NOT_FOUND, "Not found")
+
+        def do_PUT(self) -> None:
+            if urlsplit(self.path).path == "/api/settings":
+                self._proxy_api(send_body=True)
+                return
             self._send_text(HTTPStatus.NOT_FOUND, "Not found")
 
         def log_message(self, format: str, *args: object) -> None:
@@ -223,6 +229,14 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
             self._serve_file(config.login_index, cache_control="no-store", send_body=send_body)
 
         def _serve_landing(self, request_path: str, *, send_body: bool = True) -> None:
+            # File ownership switches atomically with the web release. An older
+            # rollback that restores register/index.html keeps its old routing.
+            if (request_path.rstrip('/') in {'/register', '/register/index.html'}
+                    and (config.landing_root / 'login/index.html').is_file()
+                    and not (config.landing_root / 'register/index.html').exists()):
+                error = parse_qs(urlsplit(self.path).query).get('auth_error', [''])[0]
+                self._redirect('/login' + ('?' + urlencode({'auth_error': error}) if error else ''))
+                return
             target = _safe_static_target(config.landing_root, request_path)
             if target is None:
                 target = config.landing_root / "index.html"

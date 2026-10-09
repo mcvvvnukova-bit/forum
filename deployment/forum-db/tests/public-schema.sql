@@ -4,8 +4,8 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname NOT IN ('public','information_schema')) THEN
     RAISE EXCEPTION 'Application schemas outside public remain';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='003_public_schema') THEN
-    RAISE EXCEPTION 'Missing consolidation migration marker';
+  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships') THEN
+    RAISE EXCEPTION 'Missing person-memberships migration marker';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace='public'::regnamespace AND prosrc ~ '\m(iam|profiles|audit|integration)\.') THEN
     RAISE EXCEPTION 'Stale schema reference in function source';
@@ -13,8 +13,8 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_constraint WHERE connamespace='public'::regnamespace AND NOT convalidated) THEN
     RAISE EXCEPTION 'Unvalidated constraint';
   END IF;
-  IF (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='persons' AND is_generated='ALWAYS') <> 32 THEN
-    RAISE EXCEPTION 'Profile projections were lost';
+  IF (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='persons' AND is_generated='ALWAYS') <> 0 THEN
+    RAISE EXCEPTION 'Canonical profile attributes must be ordinary columns';
   END IF;
   IF has_schema_privilege('forum_app','public','CREATE')
      OR NOT has_table_privilege('forum_app','public.persons','INSERT')
@@ -32,6 +32,10 @@ BEGIN
     ('users', ARRAY['SELECT','INSERT','UPDATE']),
     ('external_identities', ARRAY['SELECT','INSERT','UPDATE']),
     ('persons', ARRAY['SELECT','INSERT','UPDATE']),
+    ('identity_profiles', ARRAY['SELECT','INSERT','UPDATE']),
+    ('identity_providers', ARRAY['SELECT']),
+    ('organization_memberships', ARRAY['SELECT']),
+    ('organization_authorities', ARRAY['SELECT']),
     ('organizations', ARRAY['SELECT','INSERT','UPDATE']),
     ('participants', ARRAY['SELECT','INSERT','UPDATE']),
     ('participant_memberships', ARRAY['SELECT','INSERT','UPDATE']),
@@ -51,6 +55,13 @@ BEGIN
       END IF;
     END LOOP;
   END LOOP;
+  IF NOT has_column_privilege('forum_app','public.schema_migrations','name','SELECT')
+      OR has_column_privilege('forum_app','public.schema_migrations','applied_at','SELECT')
+      OR NOT has_column_privilege('forum_app','public.role_assignments','status','UPDATE')
+      OR NOT has_column_privilege('forum_app','public.role_assignments','revoked_at','UPDATE')
+      OR has_column_privilege('forum_app','public.role_assignments','role','UPDATE') THEN
+    RAISE EXCEPTION 'Runtime ledger/readiness or grant lifecycle column boundary changed';
+  END IF;
   IF EXISTS (SELECT 1 FROM pg_default_acl d, LATERAL aclexplode(d.defaclacl) a
       WHERE d.defaclnamespace='public'::regnamespace AND d.defaclobjtype IN ('r','S')
         AND a.grantee='forum_app_role'::regrole) THEN
@@ -62,4 +73,4 @@ BEGIN
     RAISE EXCEPTION 'Runtime outbox sequence boundary changed';
   END IF;
 END $$;
-\echo Public schema, profile projections, constraints and runtime permissions passed.
+\echo Public schema, canonical profiles, constraints and runtime permissions passed.

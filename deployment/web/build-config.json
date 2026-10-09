@@ -2,7 +2,7 @@
   "dev": {
     "VITE_FORUM_SESSION": "true",
     "VITE_LOGIN_URL": "/login",
-    "VITE_START_URL": "/register"
+    "VITE_START_URL": "/login"
   },
   "production": {}
 }

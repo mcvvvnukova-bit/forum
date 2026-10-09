@@ -23,7 +23,6 @@ export function SiteHeader() {
 
   return (
     <header ref={headerRef} className="site-header" id="top">
-      <Link className="skip-link" href="#main">Перейти к содержанию</Link>
       <div className="container header-layout">
         <Link href="/" className="brand" aria-label="АСТ Форум — главная">
           <img src="/audience-assets/media/brand-logo-horizontal-color.png" alt="АСТ Форум" width="144" height="48" />

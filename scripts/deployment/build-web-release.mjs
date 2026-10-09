@@ -39,7 +39,7 @@ const buildEnv={
  npm_config_globalconfig:resolve(root,'deployment/web/build-global.npmrc'),
  ...config,
 }
-const owned=git('ls-files','-z','apps/web','packages/public-navigation.ts','package.json','package-lock.json','deployment/web','deployment/release-manifest.schema.json','scripts/deployment/build-web-release.mjs').split('\0').filter(Boolean).sort()
+const owned=git('ls-files','-z','apps/web','apps/profile-preview/src/ProfilePage.tsx','apps/profile-preview/src/profile.ts','packages/public-navigation.ts','package.json','package-lock.json','deployment/web','deployment/release-manifest.schema.json','scripts/deployment/build-web-release.mjs').split('\0').filter(Boolean).sort()
 const inputs=Object.fromEntries(owned.map(name=>[name,sha(readFileSync(resolve(root,name)))]))
 // Fingerprint installed payloads, including native build tools. Exclude only npm's
 // mutable lock receipt, root-level tool caches and executable symlinks; resolve package symlink workspaces
@@ -64,14 +64,14 @@ const site=resolve(output,'site')
 if(environment==='dev'){
  execFileSync('npm',['run','build','--workspace','@astforum/web'],{cwd:root,env:buildEnv,stdio:'inherit'})
  cpSync(resolve(root,'apps/web/dist'),site,{recursive:true})
- for(const route of ['customers','suppliers','work','participate','login','register']){
+ for(const route of ['customers','suppliers','work','participate','login','cabinet','cabinet/work','cabinet/settings']){
   mkdirSync(resolve(site,route),{recursive:true});cpSync(resolve(site,'index.html'),resolve(site,route,'index.html'))
  }
 }else cpSync(resolve(root,'apps/web/production-static'),site,{recursive:true})
 const files=inventory(site)
-for(const name of Object.keys(files)) assert(/^(?:index\.html|(?:customers|suppliers|work|participate|login|register)\/index\.html|(?:web-assets|web-media|fonts)\/[a-zA-Z0-9_./-]+\.(?:js|css|png|svg|webp|jpg|woff2)|favicon\.png|forum-hard-hat\.png)$/.test(name),'Unexpected artifact file: '+name)
+for(const name of Object.keys(files)) assert(/^(?:index\.html|(?:customers|suppliers|work|participate|login|cabinet(?:\/(?:work|settings))?)\/index\.html|(?:web-assets|web-media|fonts)\/[a-zA-Z0-9_./-]+\.(?:js|css|png|svg|webp|jpg|woff2)|favicon\.png|forum-hard-hat\.png)$/.test(name),'Unexpected artifact file: '+name)
 assert.equal(git('status','--porcelain','--untracked-files=all'),'','Build modified committed source')
-const manifest={schemaVersion:2,recordKind:'build',reconciliationStatus:'build-only',environment,sourceSha:expectedSha,sourceTree:git('rev-parse','HEAD^{tree}'),sourceFingerprint:fingerprint(inputs),inputs,config,configFingerprint:fingerprint(config),lockFingerprint:sha(readFileSync(resolve(root,'package-lock.json'))),installedDependencyFingerprint:dependencyFingerprint,toolchain:{node:process.version,npm:execFileSync('npm',['--version'],{cwd:root,env:buildEnv,encoding:'utf8'}).trim(),vite:JSON.parse(readFileSync(resolve(root,'node_modules/vite/package.json'))).version},buildMode:environment==='dev'?'vite':'static-copy',files,artifactFingerprint:fingerprint(files),routes:environment==='dev'?['/','/customers/','/suppliers/','/work/','/participate/','/login','/register']:['/']}
+const manifest={schemaVersion:2,recordKind:'build',reconciliationStatus:'build-only',environment,sourceSha:expectedSha,sourceTree:git('rev-parse','HEAD^{tree}'),sourceFingerprint:fingerprint(inputs),inputs,config,configFingerprint:fingerprint(config),lockFingerprint:sha(readFileSync(resolve(root,'package-lock.json'))),installedDependencyFingerprint:dependencyFingerprint,toolchain:{node:process.version,npm:execFileSync('npm',['--version'],{cwd:root,env:buildEnv,encoding:'utf8'}).trim(),vite:JSON.parse(readFileSync(resolve(root,'node_modules/vite/package.json'))).version},buildMode:environment==='dev'?'vite':'static-copy',files,artifactFingerprint:fingerprint(files),routes:environment==='dev'?['/','/customers/','/suppliers/','/work/','/participate/','/login','/cabinet/','/cabinet/work/','/cabinet/settings/']:['/']}
 const schema=JSON.parse(readFileSync(resolve(root,'deployment/release-manifest.schema.json')))
 const validate=new Ajv({strict:false,validateFormats:false}).compile(schema)
 assert(validate(manifest),JSON.stringify(validate.errors))
