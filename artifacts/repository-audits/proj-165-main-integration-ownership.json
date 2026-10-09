@@ -323,7 +323,7 @@
       ],
       "action": "change",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "e8a7fcf47a8a3fa0cb1c31c19206ca1531ec16579cb6ebaf0365823a1cc0fca8",
+      "candidateSha256": "69ce838cd8bd61d9c7c84f4fac123b67e640de164e78ab71241d2d0b5396c427",
       "candidateMode": "100644"
     },
     {
@@ -347,7 +347,7 @@
       ],
       "action": "change",
       "candidatePath": "scripts/verification/checks.test.mjs",
-      "candidateSha256": "dcdf4b00a5bdf283a185f378a7f74e1d4b76fe2f19b028b7a2f8b8f89f7bbc2e",
+      "candidateSha256": "40d8f8ee13bffcf24c2c2b737b685e341153923ddd6779ee49cd15c1771538b7",
       "candidateMode": "100644"
     },
     {

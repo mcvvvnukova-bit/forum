@@ -739,7 +739,7 @@ def retirement_file(path, expected_hash, expected_mode):
 
 
 # Authenticate integration predecessors, actions, destinations and immutable history.
-# Candidate hashes are the only editable current part of this new successor.
+# Current candidate hashes remain subject to independently approved asset pins.
 INTEGRATION_MANIFEST_SHA256 = 'fa2378f2c3d6b98f7fa67612f96b7aa0517c81f3e3cec51d3493c2eac1af564e'
 
 
@@ -764,6 +764,9 @@ def integration_file(path, expected_hash, expected_mode):
     if not item:
         return CurrentSource(path, expected_hash, expected_mode)
     assert any(p['sha256'] == expected_hash and p['mode'] == expected_mode for p in item['predecessors']), 'PROJ-165 integration predecessor mismatch: ' + candidate
+    if candidate in TRADING_LOGO_ASSETS:
+        approved = next(x['candidateSha256'] for x in trading_logo_receipt()['changes'] if x['candidatePath'] == candidate)
+        assert item['candidateSha256'] == approved, 'PROJ-144 approved final logo pin mismatch: ' + candidate
     if item['action'] in {'delete', 'move'}:
         assert not path.exists() and not path.is_symlink(), 'Retired source resurrected: ' + candidate
     if item['action'] == 'delete':

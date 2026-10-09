@@ -18,7 +18,8 @@ for (const mutation of ['hash', 'pin', 'scope', 'path', 'mode', 'duplicate', 'ba
     const path = fixture(t)
     assert.equal(provenance(path).status, 0)
     const file = join(path, 'artifacts/repository-audits/proj-144-logo-ownership.json')
-    const receipt = JSON.parse(readFileSync(file))
+    const originalReceipt = readFileSync(file)
+    const receipt = JSON.parse(originalReceipt)
     if (mutation === 'hash') receipt.changes[0].candidateSha256 = '0'.repeat(64)
     if (mutation === 'pin') receipt.changes[0].previousSha256 = '0'.repeat(64)
     if (mutation === 'scope') receipt.changes[0].previousCandidatePath = 'package.json'
@@ -27,9 +28,17 @@ for (const mutation of ['hash', 'pin', 'scope', 'path', 'mode', 'duplicate', 'ba
     if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
     if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
     if (mutation === 'logo-bytes') writeFileSync(join(path, 'apps/web/public/assets/brand-logo-horizontal-color.png'), 'unapproved logo')
-    if (mutation === 'checker-bytes') writeFileSync(join(path, 'scripts/verification/check-operational-sources.py'), 'unowned checker')
-    writeFileSync(file, JSON.stringify(receipt))
-    assert.notEqual(provenance(path).status, 0)
+    const checkerSource = join(path, 'scripts/verification/check-operational-sources.py')
+    if (mutation === 'checker-bytes') writeFileSync(checkerSource, readFileSync(checkerSource, 'utf8') + '\n# unapproved checker drift\n')
+    const sourceOnly = ['logo-bytes', 'checker-bytes'].includes(mutation)
+    if (!sourceOnly) writeFileSync(file, JSON.stringify(receipt))
+    else assert.deepEqual(readFileSync(file), originalReceipt)
+    const result = provenance(path)
+    assert.notEqual(result.status, 0)
+    if (sourceOnly) {
+      assert.match(result.stderr, /current source hash mismatch/)
+      assert.ok(result.stderr.includes(mutation === 'logo-bytes' ? 'apps/web/public/assets/brand-logo-horizontal-color.png' : 'scripts/verification/check-operational-sources.py'))
+    }
   })
 }
 
@@ -491,7 +500,8 @@ for (const mutation of ['omitted-delete', 'omitted-move', 'predecessor-hash', 'p
   test(`PROJ-165 retirement rejects ${mutation}`, t => {
     const path = fixture(t)
     const file = join(path, retirementReceipt)
-    const receipt = JSON.parse(readFileSync(join(root, retirementReceipt)))
+    const originalReceipt = readFileSync(file)
+    const receipt = JSON.parse(originalReceipt)
     const baseline = provenance(path)
     assert.equal(baseline.status, 0, baseline.stderr)
     const deleted = receipt.changes.find(item => item.action === 'delete')
@@ -512,8 +522,24 @@ for (const mutation of ['omitted-delete', 'omitted-move', 'predecessor-hash', 'p
     if (mutation === 'tampered-destination') writeFileSync(join(path, moved.candidatePath), 'tampered source')
     if (mutation === 'current-owner') writeFileSync(join(path, 'package.json'), 'tampered current owner')
     if (mutation === 'unrelated-missing') rmSync(join(path, 'scripts/deployment/mail/stalwart_api.py'))
-    writeFileSync(file, JSON.stringify(receipt))
-    assert.notEqual(provenance(path).status, 0)
+    const sourceOnly = ['resurrected', 'missing-destination', 'tampered-destination', 'current-owner', 'unrelated-missing'].includes(mutation)
+    if (!sourceOnly) writeFileSync(file, JSON.stringify(receipt))
+    else assert.deepEqual(readFileSync(file), originalReceipt)
+    const result = provenance(path)
+    assert.notEqual(result.status, 0)
+    if (mutation === 'resurrected') assert.match(result.stderr, /Retired (?:landing directory|source) resurrected/)
+    if (mutation === 'missing-destination') {
+      assert.match(result.stderr, /Missing current source/)
+      assert.ok(result.stderr.includes(moved.candidatePath))
+    }
+    if (mutation === 'tampered-destination' || mutation === 'current-owner') {
+      assert.match(result.stderr, /current source hash mismatch/)
+      assert.ok(result.stderr.includes(mutation === 'current-owner' ? 'package.json' : moved.candidatePath))
+    }
+    if (mutation === 'unrelated-missing') {
+      assert.match(result.stderr, /Missing current source/)
+      assert.ok(result.stderr.includes('scripts/deployment/mail/stalwart_api.py'))
+    }
   })
 }
 
@@ -539,5 +565,27 @@ for (const mutation of ['hash', 'predecessor', 'mode', 'destination', 'action', 
     const result = provenance(path)
     assert.notEqual(result.status, 0)
     assert.match(result.stderr, /PROJ-165/)
+  })
+}
+
+// The new current-owner layer cannot approve replacement brand assets.
+for (const logo of ['apps/web/public/assets/brand-logo-horizontal-color.png', 'apps/web/public/audience-assets/media/brand-logo-horizontal-color.png']) {
+  test(`PROJ-144 rejects paired logo bytes and integration hash replacement: ${logo}`, t => {
+    const path = fixture(t)
+    const baseline = provenance(path)
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const historical = join(path, 'artifacts/repository-audits/proj-144-logo-ownership.json')
+    const historicalBytes = readFileSync(historical)
+    const file = join(path, 'artifacts/repository-audits/proj-165-main-integration-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    const replacement = Buffer.from('unapproved paired logo replacement')
+    writeFileSync(join(path, logo), replacement)
+    receipt.changes.find(item => item.candidatePath === logo).candidateSha256 = createHash('sha256').update(replacement).digest('hex')
+    writeFileSync(file, JSON.stringify(receipt))
+    assert.deepEqual(readFileSync(historical), historicalBytes)
+    const result = provenance(path)
+    assert.notEqual(result.status, 0, 'Paired replacement must not be approved by the terminal integration override')
+    assert.match(result.stderr, /PROJ-144 approved final logo pin mismatch/)
+    assert.ok(result.stderr.includes(logo))
   })
 }
