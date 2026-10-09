@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-163",
+  "baseSha": "07600076bac07037a5ec22f9405b89d2fbbf7c09",
+  "headSha": "b87cfb3ac8e2bdfe0d993d7016875c2a3a6ee60d",
+  "changes": [
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "26bef688cff270cd8337a14d70c7024132496ffb8ac91bd852155f61b6be6d11",
+      "mainSha256": "489a7d3a33ca9d966804892e84fdfb2994b7732ef7045987f9d27c3de7534a18",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "f7fca4a3cd7a46923006f92f54f71e4d284044e35b7f0a3d4f123e0a2d625540",
+      "mainSha256": "33436986e4a8ecfbadbaa1a157626ee69d1979b9c7ff277634be6a6478741b7a",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "ae5f8a55f75ca7d74456b7976b08fa9cef9191ee25609f34f18a7dea442a1f03",
+      "candidateMode": "100644"
+    }
+  ]
+}

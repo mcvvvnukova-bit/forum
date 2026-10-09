@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-161",
+  "baseSha": "e6a910c4aa7f5795a1c178a47c64a1dc5aea9875",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/api/README.md",
+      "previousSha256": "f785acd9d7fe41382bd4e768de3d689d8b9cf273ee9955c4e3123cb8411e9bd2",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/README.md",
+      "candidateSha256": "d1fd862c6245c92bcb639087d3f2a1e7407d58e07e3bb0d36026ce1e430e9e21",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/app.ts",
+      "previousSha256": "df88c043361aad5ecfbf3f6dffe362ce5594b88117209be434a20d5db35f1304",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/app.ts",
+      "candidateSha256": "050e327353cbe920601894e7adda74582b00b5fce2e4d5c76a719c29fd751c5f",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/consolidate-auth.ts",
+      "previousSha256": "40e8aefada5ddce2009f5448b9e9c01069ad5a47b22f8367ef045d312ebacb9d",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/consolidate-auth.ts",
+      "candidateSha256": "65314645c69da80419a8af6789e44dc06edc5efe63bd780af74f90ca4b3f30b4",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/auth-store.ts",
+      "previousSha256": "7e1c8cc45c049318b1704f2fb7e47813862bcaeb3a5eba2bf8056ecab2a0bee5",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/auth-store.ts",
+      "candidateSha256": "8e644dba361d14298303278263866fd8e27be8747fd1d959d5455ed9964e572e",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/sber-client.ts",
+      "previousSha256": "249ff6fb8aa4ddccc7c1e53bb9560710dcd074aca0c540871bf167408077b1e5",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/sber-client.ts",
+      "candidateSha256": "4c8d6945ddea32bf6a5af98d722a39f72b8ad52b6dce8422719dcfa109453c6a",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/migrate.ts",
+      "previousSha256": "4c487e02489eb76a2bab63fc16439ff5a21847b7d908024d597048bc29712b39",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/migrate.ts",
+      "candidateSha256": "67a33df22c981aac279b5b708846166fe002c79d143dc72345c527cbacdb2f84",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/auth.test.ts",
+      "previousSha256": "424f6a579df3df4383de00127a2e808bd47b8379121d24d6d775a59ba239a54d",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/auth.test.ts",
+      "candidateSha256": "a1ce21614bed0b38d77e18bfeb942a48f4db68418295766ca186e5a5260443db",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/consolidation.test.ts",
+      "previousSha256": "6c616fd510d7330fb83dfd36cdb0c18024c29869810b7239fdc4e0505eb28d24",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/consolidation.test.ts",
+      "candidateSha256": "242d8293898ac37c9e74845e1a35b5403706cb38bc699256bdf83d3d80e7de35",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/intent.test.ts",
+      "previousSha256": "cfeb6847b5847527859d36547d63dfaad9fd4c5e1bb3d39b404dad979aa73234",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/audience/intent.test.ts",
+      "candidateSha256": "8bcf0c9cc9d1a2c3907575f708694dea4513341c27e2c71099edd6b00f71e9f0",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/intent.ts",
+      "previousSha256": "a7fb3118f22e95fc15ad73dc0bd1a8a5bb6275846338725c71d00ae46f8e3db9",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/audience/intent.ts",
+      "candidateSha256": "14627ca08d33d582ec04ff0607d4c48edecb44f53159c509dea74e70b0f8cfbc",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-api/grant-runtime.sql",
+      "previousSha256": "2c27de747e5e853d6d86883a816a4dbd395076befe148ef15e395318e21a0667",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-api/grant-runtime.sql",
+      "candidateSha256": "312768e6d6e430fda89f21bcf710bce1bd21a3cc852cd1618c2eb468473485a8",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-db/README.md",
+      "previousSha256": "dc7a6729b70091237d0a09bad231c99d8a43a562249589e9e2379d081deb0281",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-db/README.md",
+      "candidateSha256": "6002d28f7425d2d524fd2c769880292c5a504389c9a7aeef57fa2967b3f6fd06",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-db/apply-public.psql",
+      "previousSha256": "55459ee9277042b63e0281ee15ed9a1f864cef6832d39b676fc7dc05e109a1a8",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-db/apply-public.psql",
+      "candidateSha256": "331c13bcc4940ed16aff39960506c6cc2c8351ecfcf0ba8b20d781438a70a81e",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-db/tests/profiles.sql",
+      "previousSha256": "a950bdec1a0e4c88025315eb178c422e88d641060fb5fd0dde02d2590ed6dd04",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-db/tests/profiles.sql",
+      "candidateSha256": "a30094c3b551a6d72257eab67d853ef1f1f65e891731ccf2c3fc123d97c553e1",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-db/tests/public-schema.sql",
+      "previousSha256": "a0d17def597548cbad2c0eb34f7a54d81982e0763cdf85e9637a9adcdc2c67df",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-db/tests/public-schema.sql",
+      "candidateSha256": "4bf0c47b1534f220890ac4dad872e1d3be3ce4c25cefd922309af54eae2b35be",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "previousSha256": "d53d633f1be92590341fd1e28b41f8fd3849fd943105314c99b5dd8bd484bb37",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "candidateSha256": "1a9d5fc502d36cb21066589b2534fc5a265829120ec82fcc420317858c72d295",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
+      "previousSha256": "43ded821bb9d2bb6e47aa7ac0122aedf26809790ed5abc8f4b7aed2869e5ea90",
+      "previousMode": "100755",
+      "candidatePath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
+      "candidateSha256": "9dda236c2869836832776f4f2f8214739a70f86a6f9d5e617fd954550e930c44",
+      "candidateMode": "100755"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-api.sh",
+      "previousSha256": "44255908ab14debdc66ca2ba836b6e226ad6c33b743bace384be4e42334c9a0f",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-api.sh",
+      "candidateSha256": "be4bc67c8669b439102fc43011ccb0c68b7941d9e0cc72cc8fd3cbd1c0340352",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "67e3640b7c9b5187f934d060d8e9eb0464d7f228565a5e55f4776de933295032",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "d97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "d26163b9793cef1b4fa81d0f5a76d066a39d84418a5bedac44fa0d8e1301cc51",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/api/migrations/006_person_memberships.sql",
+      "sha256": "6fe84ea063406bc8ec9033a62217df98e99e84bfe9d49274cf1e1366653be6c4",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/iam/person-profile.ts",
+      "sha256": "f5d13ff7fbd2d2bb51c86e9dd207724e52a2dbda951cbfdb9c1475d5bbeee37c",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/party/business-access.ts",
+      "sha256": "fe57177f0bc99c84410d780736a734309ad76a1b31a72a5c224e5a35f707d16f",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/person-memberships.test.ts",
+      "sha256": "ec4df2cd6ef3c7ff3997c36f3b7e7a7c0d9cdea366fb74977d6805a01053a2cd",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-09-PROJ-161-person-memberships.md",
+      "sha256": "143f7686f9ef31b6507c62b52a6e5eb36f4a22288c25dfdba477edeb2e73d49e",
+      "mode": "100644"
+    }
+  ]
+}

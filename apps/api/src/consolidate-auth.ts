@@ -77,23 +77,32 @@ export async function consolidateAuth(pool: Pool, snapshot: LegacyAuthSnapshot, 
     if (database !== expectedDatabase) throw new Error('Wrong destination database');
     const marker = await client.query("SELECT name FROM public.schema_migrations WHERE name='005_public_individual_role'");
     if (!marker.rowCount) throw new Error('Apply public migration005 before importing');
-    const tables = [...Object.keys(columns), 'persons','organizations','participant_memberships'];
+    const modern=(await client.query("SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships'")).rowCount;
+    const tables = [...Object.keys(columns), 'persons','organizations','participant_memberships',...(modern ? ['identity_profiles','organization_memberships','organization_authorities'] : [])];
     await client.query(`LOCK TABLE ${tables.map(table => `public.${table}`).join(',')} IN ACCESS EXCLUSIVE MODE`);
     for (const table of tables) {
       if ((await client.query(`SELECT 1 FROM public.${table} LIMIT 1`)).rowCount) throw new Error('Destination identity tables must be empty');
     }
     const insert = async (table: Table) => {
-      await client.query(`INSERT INTO public.${table} (${columns[table]}) OVERRIDING SYSTEM VALUE
-        SELECT ${columns[table]} FROM jsonb_populate_recordset(NULL::public.${table},$1::jsonb)`, [JSON.stringify(snapshot.tables[table])]);
+      const provenance=modern && table==='role_assignments';
+      await client.query(`INSERT INTO public.${table} (${columns[table]}${provenance ? ',basis_type,basis_reference' : ''}) OVERRIDING SYSTEM VALUE
+        SELECT ${columns[table]}${provenance ? ", 'legacy','legacy-consolidation:role_assignments'" : ''} FROM jsonb_populate_recordset(NULL::public.${table},$1::jsonb)`, [JSON.stringify(snapshot.tables[table])]);
     };
     await insert('users');
     await insert('external_identities');
-    await client.query(`INSERT INTO public.persons(user_id,sber_profile,identified_at,profile_received_at,created_at,updated_at)
-      SELECT user_id,sber_profile,identified_at,profile_received_at,created_at,updated_at
+    await client.query(`INSERT INTO public.persons(user_id,sber_profile,identified_at,profile_received_at,created_at,updated_at${modern ? ',sub,identity_provider,email,phone_number' : ''})
+      SELECT user_id,sber_profile,identified_at,profile_received_at,created_at,updated_at${modern ? ",sber_profile->>'sub','sber_id',sber_profile->>'email',sber_profile->>'phone_number'" : ''}
       FROM jsonb_populate_recordset(NULL::public.persons,$1::jsonb)`, [JSON.stringify(persons)]);
+    if(modern) {
+      // The owner-only importer also supports the independent canonical layout;
+      // every value and time still comes from the reviewed legacy snapshot.
+      await client.query(`INSERT INTO public.identity_profiles(identity_id,user_id,snapshot,requested_scopes,granted_scopes,identified_at,received_at)
+        SELECT e.id,p.user_id,p.sber_profile,p.requested_scopes,p.granted_scopes,p.identified_at,p.profile_received_at
+        FROM public.persons p JOIN public.external_identities e ON e.user_id=p.user_id AND e.provider='sber_id' AND e.subject=p.sub`);
+    }
     await insert('participants');
-    await client.query(`INSERT INTO public.participant_memberships(user_id,participant_id)
-      SELECT individual_user_id,id FROM public.participants`);
+    await client.query(`INSERT INTO public.participant_memberships(user_id,participant_id${modern ? ',basis_type,basis_reference' : ''})
+      SELECT individual_user_id,id${modern ? ",'legacy','legacy-consolidation:participant_memberships'" : ''} FROM public.participants`);
     for (const table of ['role_assignments','sessions','authorization_attempts','audit_events','outbox_events'] as Table[]) await insert(table);
     // Compare typed values of every original column, including revoked/expired sessions.
     for (const table of Object.keys(columns) as Table[]) {

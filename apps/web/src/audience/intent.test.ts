@@ -17,4 +17,6 @@ it('rejects a stored external redirect',()=>{sessionStorage.setItem('forum.publi
 it('rejects a company intent disguised as the individual path',()=>{sessionStorage.setItem('forum.public.intent',JSON.stringify({audience:'customer',action:'find-orders',direction:'orders',returnTo:'/work/'}));expect(readIntent()).toBeNull()})
 it('rejects malformed storage without breaking the landing',()=>{sessionStorage.setItem('forum.public.intent','{');expect(readIntent()).toBeNull()})
 it('does not mistake a company executor for the personal work context',()=>{expect(sessionContext({user:{id:'u',displayName:'Name'},participant:{id:'p',role:'executor',status:'active',kind:'company'}})).toBe('other')})
-it('accepts only the documented individual participant context',()=>{expect(sessionContext({user:{id:'u',displayName:'Name'},participant:{id:'p',role:'provider',status:'active',legalStatus:'individual_person'}})).toBe('individual')})
+it('accepts the documented individual participant context',()=>{expect(sessionContext({user:{id:'u',displayName:'Name'},participant:{id:'p',role:'provider',status:'active',legalStatus:'individual_person'}})).toBe('individual')})
+
+it.each([null,{id:'p',role:'provider',status:'deactivated',legalStatus:'individual_person'}])('baseline individual account does not require an active business participant',participant=>{expect(sessionContext({user:{id:'u',displayName:'Name'},roles:['individual'],participant})).toBe('individual')})

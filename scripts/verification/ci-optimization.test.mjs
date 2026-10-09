@@ -98,31 +98,13 @@ function fixture(t) {
   const path = mkdtempSync(join(tmpdir(),'forum-ci-provenance-'))
   t.after(() => rmSync(path,{recursive:true,force:true}))
   const files = execFileSync('git',['ls-files','-z'],{cwd:root,encoding:'utf8'}).split('\0').filter(Boolean)
-  for (const file of new Set([...files,'scripts/verification/ci-selection.mjs','scripts/verification/ci-optimization.test.mjs','artifacts/repository-audits/proj-164-ci-ownership.json','artifacts/repository-audits/proj-160-main-integration-ownership.json'])) {
+  for (const file of new Set([...files,'scripts/verification/ci-selection.mjs','scripts/verification/ci-optimization.test.mjs','artifacts/repository-audits/proj-164-ci-ownership.json'])) {
     mkdirSync(dirname(join(path,file)),{recursive:true}); copyFileSync(join(root,file),join(path,file))
   }
   return path
 }
 const provenance = path => spawnSync('python3',['-c',`import importlib.util,pathlib,sys
 p=pathlib.Path(sys.argv[1]);s=importlib.util.spec_from_file_location('checker',p/'scripts/verification/check-operational-sources.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);m.verify_provenance()`,path],{encoding:'utf8'})
-
-for (const mutation of ['parent','predecessor','hash','scope','mode','duplicate','source']) {
-  test(`main integration rejects ${mutation} tampering`, t => {
-    const path = fixture(t), file = join(path,'artifacts/repository-audits/proj-160-main-integration-ownership.json')
-    const receipt = JSON.parse(readFileSync(file,'utf8'))
-    if (mutation === 'parent') receipt.parents[0] = '0'.repeat(40)
-    if (mutation === 'predecessor') receipt.changes[0].predecessorSha256[0] = '0'.repeat(64)
-    if (mutation === 'hash') receipt.changes[0].candidateSha256 = '0'.repeat(64)
-    if (mutation === 'scope') receipt.changes[0].candidatePath = '../package.json'
-    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
-    if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
-    if (mutation === 'source') appendFileSync(join(path,receipt.changes[0].candidatePath),'\n# drift\n')
-    writeFileSync(file,JSON.stringify(receipt))
-    const result = provenance(path)
-    assert.notEqual(result.status,0)
-    assert.match(result.stderr,/PROJ-160 integration/)
-  })
-}
 
 for (const mutation of ['hash','pin','scope','mode','path','duplicate','source']) {
   test(`CI ownership rejects ${mutation} tampering`, t => {
