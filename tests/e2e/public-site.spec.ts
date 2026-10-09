@@ -168,9 +168,11 @@ for(const width of [320,390,1440])test(`built logout returns home and reopens st
  await expect(page.getByRole('link',{name:'Тестовый пользователь',exact:true})).toBeVisible()
  await page.goto('/cabinet/?auth=success')
  await expect(page.getByRole('heading',{name:'Личные данные',exact:true,level:1})).toBeVisible()
- // Logout lives below the long personal profile. Preserve that real starting
- // position so replacing the URL alone cannot satisfy the homepage contract.
- await page.getByRole('button',{name:'Выйти',exact:true}).scrollIntoViewIfNeeded()
+ // The header logout stays visible while the long personal profile is scrolled.
+ // Preserve that starting position so replacing the URL alone cannot satisfy
+ // the homepage scroll-reset contract.
+ await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
+ await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}))
  expect(await page.evaluate(()=>window.scrollY)).toBeGreaterThan(0)
  await page.getByRole('button',{name:'Выйти',exact:true}).click()
  await expect(page).toHaveURL(new URL('/',page.url()).href)
