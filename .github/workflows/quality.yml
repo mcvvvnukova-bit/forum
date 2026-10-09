@@ -53,7 +53,9 @@ jobs:
       - name: Candidate repository layout
         run: node scripts/verification/check-repository-layout.mjs
       - name: Verification and CI regressions
-        run: node --test scripts/verification/checks.test.mjs scripts/verification/ci-optimization.test.mjs
+        run: |
+          node --test scripts/verification/checks.test.mjs scripts/verification/ci-optimization.test.mjs
+          python3 -m unittest discover -s scripts/verification -p test_local_ci.py -v
       - name: Install mail-check Chromium
         run: npx --no-install playwright install --with-deps chromium
       - name: Mail resource regressions
@@ -78,7 +80,7 @@ jobs:
   api:
     needs: changes
     if: ${{ fromJSON(needs.changes.outputs.selection).api }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON((github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.ASTFORUM_CI_DOCKER_RUNNERS || '["ubuntu-24.04"]') }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -245,7 +247,7 @@ jobs:
   database:
     needs: changes
     if: ${{ fromJSON(needs.changes.outputs.selection).database }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON((github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.ASTFORUM_CI_DOCKER_RUNNERS || '["ubuntu-24.04"]') }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -257,7 +259,9 @@ jobs:
           node-version: 24.18.1
       - name: Network-isolated disposable PostgreSQL ACL regressions
         run: |
-          docker pull --platform linux/amd64 "$FORUM_TEST_POSTGRES_IMAGE"
+          if [ "$(docker image inspect --platform linux/amd64 --format '{{.Os}}/{{.Architecture}}' "$FORUM_TEST_POSTGRES_IMAGE" 2>/dev/null || true)" != linux/amd64 ]; then
+            docker pull --platform linux/amd64 "$FORUM_TEST_POSTGRES_IMAGE"
+          fi
           python3 -m unittest discover -s deployment/forum-db/tests -p 'test_*.py' -v
       # Only a status receipt is uploaded. Raw application logs, environment,
       # generated sites and private worktree contents stay out of artifacts.
@@ -301,7 +305,7 @@ jobs:
   operational:
     needs: changes
     if: ${{ fromJSON(needs.changes.outputs.selection).operational }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON((github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.ASTFORUM_CI_DOCKER_RUNNERS || '["ubuntu-24.04"]') }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -314,7 +318,7 @@ jobs:
   web-release:
     needs: changes
     if: ${{ fromJSON(needs.changes.outputs.selection)['web-release'] }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ fromJSON((github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && vars.ASTFORUM_CI_DOCKER_RUNNERS || '["ubuntu-24.04"]') }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

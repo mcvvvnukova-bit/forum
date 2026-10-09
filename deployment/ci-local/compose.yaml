@@ -1,0 +1,74 @@
+name: astforum-ci-local
+x-runner: &runner
+  image: astforum-ci-local-runner:2.338.0
+  build: .
+  platform: linux/arm64
+  init: true
+  restart: unless-stopped
+  network_mode: service:daemon
+  depends_on:
+    daemon:
+      condition: service_healthy
+  cpus: 1.75
+  mem_limit: 1280m
+  environment: &runner-environment
+    DOCKER_HOST: unix:///docker/docker.sock
+    ImageOS: ubuntu24
+    ACTIONS_RUNNER_HOOK_JOB_STARTED: /opt/astforum-ci/job-started.sh
+    RUNNER_TOOL_CACHE: /cache/tools
+    PLAYWRIGHT_BROWSERS_PATH: /cache/browsers
+    npm_config_cache: /cache/npm
+services:
+  daemon:
+    image: astforum-ci-local-runner:2.338.0
+    build: .
+    platform: linux/arm64
+    privileged: true
+    command: [daemon]
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    volumes:
+      - docker-data:/var/lib/docker
+      - docker-socket:/docker
+      - workspace:/ci
+    healthcheck:
+      test: [CMD, docker, -H, unix:///docker/docker.sock, info]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+  runner1:
+    <<: *runner
+    environment:
+      <<: *runner-environment
+      RUNNER_NAME: astforum-mac-ci-01
+      RUNNER_SLOT: '01'
+      TMPDIR: /ci/01/tmp
+      FORUM_WEB_E2E_PORT: '5297'
+    volumes:
+      - runner1-home:/home/runner
+      - runner1-cache:/cache
+      - docker-socket:/docker
+      - workspace:/ci
+  runner2:
+    <<: *runner
+    environment:
+      <<: *runner-environment
+      RUNNER_NAME: astforum-mac-ci-02
+      RUNNER_SLOT: '02'
+      TMPDIR: /ci/02/tmp
+      FORUM_WEB_E2E_PORT: '5298'
+    volumes:
+      - runner2-home:/home/runner
+      - runner2-cache:/cache
+      - docker-socket:/docker
+      - workspace:/ci
+volumes:
+  docker-data:
+  docker-socket:
+  workspace:
+  runner1-home:
+  runner2-home:
+  runner1-cache:
+  runner2-cache:

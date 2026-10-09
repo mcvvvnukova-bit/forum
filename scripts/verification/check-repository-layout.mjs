@@ -56,12 +56,17 @@ const ignored = new Set(execFileSync('git', ['-C', root, 'check-ignore', '--no-i
 }).split('\0').filter(Boolean))
 for (const probe of probes) assert(ignored.has(probe), `Missing ignore protection: ${probe}`)
 const docs = [...tracked].filter(p => p.startsWith(manifest.documentation.root + '/'))
-const outsidePlans = docs.filter(p => !p.startsWith(manifest.documentation.root + '/plans/'))
+const technicalPlanPaths = [
+  'docs/superpowers/specs/2026-10-10-local-ci-runner-design.md',
+  'docs/superpowers/plans/2026-10-10-local-ci-runner.md',
+]
+assert.deepEqual(manifest.documentation.technicalPlanPaths, technicalPlanPaths, 'Only approved exact technical plan paths may be registered')
+const outsidePlans = docs.filter(p => !p.startsWith(manifest.documentation.root + '/plans/') && !technicalPlanPaths.includes(p))
 if (strict || manifest.documentation.strictPlansOnly) {
   assert.deepEqual(outsidePlans, [], 'Strict docs/plans-only policy: migrate documents with Outline proof first')
   assert.deepEqual(docs.filter(p => !p.endsWith('.md')), [], 'Technical plans must be Markdown')
   const productDirectories = new Set(['product', 'requirements', 'specs', 'specifications', 'design', 'brandbook', 'research', 'architecture', 'adr', 'runbooks', 'reviews', 'archive'])
-  assert.deepEqual(docs.filter(p => p.split('/').slice(2, -1).some(part => productDirectories.has(part.toLowerCase()))), [], 'Product archives cannot be hidden inside plans')
+  assert.deepEqual(docs.filter(p => !technicalPlanPaths.includes(p) && p.split('/').slice(2, -1).some(part => productDirectories.has(part.toLowerCase()))), [], 'Product archives cannot be hidden inside plans')
   assert.deepEqual([...tracked].filter(p => /^(?:apps|deployment|local-previews)\/.*\/(?:docs|requirements|evidence)\//.test(p) || /^artifacts\/(?:requirements|diagrams|product|design)\//.test(p)), [], 'Product copies and private report archives belong outside Git')
 }
 console.log(JSON.stringify({packages: manifest.packages.map(p => p.path), documentation: {
