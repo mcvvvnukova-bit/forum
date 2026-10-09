@@ -3,6 +3,7 @@
   "taskCode": "PROJ-165",
   "baseSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
   "mainSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+  "liveSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
   "changes": [
     {
       "previousCandidatePath": ".github/workflows/quality.yml",
@@ -15,6 +16,11 @@
         {
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "5f0e523b6ef1cabc6aaa77355f2dd46262de5ab891c77d6f8ac080634062e7fc",
           "mode": "100644"
         }
       ],
@@ -33,6 +39,11 @@
         },
         {
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "01df750b58e425200e775908702761d1a2b5157963973c257fb5118f308c9ba9",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
           "sha256": "01df750b58e425200e775908702761d1a2b5157963973c257fb5118f308c9ba9",
           "mode": "100644"
         }
@@ -54,6 +65,11 @@
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "293c95b680444f3978ae41ee2160f5922043a52f2efdf8941924f82733d1ea13",
           "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "293c95b680444f3978ae41ee2160f5922043a52f2efdf8941924f82733d1ea13",
+          "mode": "100644"
         }
       ],
       "action": "change",
@@ -73,6 +89,11 @@
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "4a009077e2088eb1bae3ce13d1068d1cd7ce530c25b34c16b380980436a8b8a1",
           "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "4a009077e2088eb1bae3ce13d1068d1cd7ce530c25b34c16b380980436a8b8a1",
+          "mode": "100644"
         }
       ],
       "action": "change",
@@ -90,6 +111,11 @@
         },
         {
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "6e8c1dbbbed6f2dfd46866ac666ab0ca5cb1b70ac2e188940a7a65cb1b539535",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
           "sha256": "6e8c1dbbbed6f2dfd46866ac666ab0ca5cb1b70ac2e188940a7a65cb1b539535",
           "mode": "100644"
         }
@@ -120,11 +146,64 @@
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "30914c6901443969ad65aa348b0268595c2493a56d4fc884d548436b0c1ae849",
           "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "30914c6901443969ad65aa348b0268595c2493a56d4fc884d548436b0c1ae849",
+          "mode": "100644"
         }
       ],
       "action": "move",
       "candidatePath": "apps/dev-gateway/tests/test_auth_gateway.py",
       "candidateSha256": "f7fbba31f7a66f008a67bd9816faef929021224fb8763f0504a5ef5f520b97ba",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/public/assets/brand-logo-horizontal-color.png",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "apps/web/public/assets/brand-logo-horizontal-color.png",
+      "candidateSha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/public/audience-assets/media/brand-logo-horizontal-color.png",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "apps/web/public/audience-assets/media/brand-logo-horizontal-color.png",
+      "candidateSha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
       "candidateMode": "100644"
     },
     {
@@ -137,6 +216,11 @@
         },
         {
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "315457910c280991d124a7e1ebcc0f8196184d951c6b08db2811b7acab5d0a5a",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
           "sha256": "315457910c280991d124a7e1ebcc0f8196184d951c6b08db2811b7acab5d0a5a",
           "mode": "100644"
         }
@@ -158,6 +242,11 @@
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "6129529b156384a535b93bcdba332a9d97aff14f50e96b7ba996e4dabb69da38",
           "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "6129529b156384a535b93bcdba332a9d97aff14f50e96b7ba996e4dabb69da38",
+          "mode": "100644"
         }
       ],
       "action": "change",
@@ -175,6 +264,11 @@
         },
         {
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "a23caeea3300b68808ccd35c6a1ce35a3cb566d022c8ac570f78c4cbd445410e",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
           "sha256": "a23caeea3300b68808ccd35c6a1ce35a3cb566d022c8ac570f78c4cbd445410e",
           "mode": "100644"
         }
@@ -196,6 +290,11 @@
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "c4deabdec4fbbf35a8bd582d6378d9c71c0eaf6a3707230860c77f1f68b8d9be",
           "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "c4deabdec4fbbf35a8bd582d6378d9c71c0eaf6a3707230860c77f1f68b8d9be",
+          "mode": "100644"
         }
       ],
       "action": "change",
@@ -215,11 +314,16 @@
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759",
           "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "31ea7bcdfed1949e4c54b8338b8ba6eb0bcfaeecb967d165c35aba7e952451cb",
+          "mode": "100644"
         }
       ],
       "action": "change",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "f3f74ebd7c72791fad8ba30ad3f921589d13222f38bf994d68ce7d4e41b21fc7",
+      "candidateSha256": "e8a7fcf47a8a3fa0cb1c31c19206ca1531ec16579cb6ebaf0365823a1cc0fca8",
       "candidateMode": "100644"
     },
     {
@@ -234,11 +338,16 @@
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "ae5f8a55f75ca7d74456b7976b08fa9cef9191ee25609f34f18a7dea442a1f03",
           "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "90bf8a298598beae6d886948b456b797da80b9d8320ae324dfa670748bf156ab",
+          "mode": "100644"
         }
       ],
       "action": "change",
       "candidatePath": "scripts/verification/checks.test.mjs",
-      "candidateSha256": "2ca78ee6d14c2fa5c1c4764d4d7fbbd7686fb5d8de62a8ec7ea25b7c02cd391e",
+      "candidateSha256": "dcdf4b00a5bdf283a185f378a7f74e1d4b76fe2f19b028b7a2f8b8f89f7bbc2e",
       "candidateMode": "100644"
     },
     {
@@ -246,6 +355,11 @@
       "predecessors": [
         {
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "c004958e76aff7aa3d610bf3849aca896eacd5399778e1d3f4b2304907b33e66",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
           "sha256": "c004958e76aff7aa3d610bf3849aca896eacd5399778e1d3f4b2304907b33e66",
           "mode": "100644"
         }
@@ -267,6 +381,11 @@
           "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
           "sha256": "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99",
           "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99",
+          "mode": "100644"
         }
       ],
       "action": "change",
@@ -279,6 +398,11 @@
     {
       "path": "artifacts/repository-audits/accepted-source-matrix.json",
       "sha256": "1bcd9dff8cc7c42da2234e020ddc1f4f45e12029a911cf7963785b0ad0c2c895",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-144-logo-ownership.json",
+      "sha256": "54931af6f10039dbe521d6da27d1aaeb054781eee9cf9223ba74e63f763187f9",
       "mode": "100644"
     },
     {
