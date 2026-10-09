@@ -55,32 +55,25 @@
       ]
     },
     {
-      "path": "apps/legacy-landing",
-      "name": "@astforum/legacy-landing",
+      "path": "apps/dev-gateway",
+      "name": "@astforum/dev-gateway",
       "scripts": {
-        "build": "node scripts/prepare-runtime.mjs && vite build && vite build --config vite.landing.config.ts && node scripts/finalize-landing-build.mjs",
+        "dev": "vite",
+        "build": "vite build",
         "typecheck": "tsc --noEmit",
-        "test": "npm run test:frontend && npm run test:gateway && npm run test:layout",
         "test:frontend": "vitest run src",
         "test:gateway": "python3 -m unittest discover -s tests -p 'test_*.py'",
-        "test:layout": "npm run build && node ../../tests/e2e/legacy-landing-layout.mjs"
+        "test": "npm run test:frontend && npm run test:gateway"
       },
       "entrypoints": [
         "index.html",
-        "landing.html",
-        "vite.landing.config.ts",
+        "vite.config.ts",
         "src/main.tsx",
-        "src/landing/LandingApp.tsx"
+        "forum_dev_auth.py"
       ],
       "tests": [
         "src/AuthScreen.test.tsx",
-        "src/customers/CustomerLanding.test.tsx",
-        "src/customers/customer-intent.test.ts",
-        "src/landing/LandingApp.test.tsx",
-        "src/landing/cal-diy-embed.test.ts",
-        "src/landing/landing-screen.test.tsx",
         "tests/test_auth_gateway.py",
-        "tests/test_deploy_rollback.py",
         "tests/test_origin_login_check.py"
       ]
     },
@@ -135,6 +128,9 @@
     }
   ],
   "requiredFiles": [
+    "scripts/verification/ci-selection.mjs",
+    "scripts/verification/ci-optimization.test.mjs",
+    "artifacts/repository-audits/proj-164-ci-ownership.json",
     "scripts/deployment/public_site.py",
     "tests/integration/test_public_site_release.py",
     "deployment/forum-db/tests/test_configure_role_contract.py",
@@ -188,10 +184,8 @@
     "scripts/verification/check-operational-sources.py",
     "artifacts/repository-audits/accepted-source-matrix.json",
     "artifacts/repository-audits/accepted-source-matrix.md",
-    "tests/e2e/legacy-landing-layout.mjs",
     "scripts/deployment/primer-home/deploy-dev-home.py",
     "packages/public-navigation.ts",
-    "scripts/deployment/legacy-landing/deploy.sh",
     "scripts/verification/check_origin_login.py",
     "apps/dev-gateway/forum_dev_auth.py",
     "scripts/deployment/audience-pages/deploy.py",

@@ -30,7 +30,7 @@ npm run test:publishers
 npm run test:mail
 ```
 
-Один корневой lockfile владеет четырьмя npm workspaces. Команды отдельного приложения: `npm run <script> --workspace @astforum/<owner>`. `apps/dev-gateway` проверяется Python-тестами; `apps/web/production-static` отдельно упаковывается владельцем `apps/web`. Браузерная layout-проверка legacy находится в [tests/e2e](tests/e2e/legacy-landing-layout.mjs), CI — в [quality workflow](.github/workflows/quality.yml).
+Один корневой lockfile владеет четырьмя npm workspaces. Команды отдельного приложения: `npm run <script> --workspace @astforum/<owner>`. `apps/dev-gateway` владеет экраном пароля и проверяется frontend/Python-тестами; `apps/web/production-static` отдельно упаковывается владельцем `apps/web`. Удалённый лендинг больше не является workspace; CI проверяет gateway и текущий web в [quality workflow](.github/workflows/quality.yml).
 
 ## Источники и выпуск
 

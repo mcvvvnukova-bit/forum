@@ -12,6 +12,8 @@ export interface SberIdentity {
   email: string | null;
   emailConfirmed: boolean;
   claims: Record<string, unknown>;
+  requestedScopes?: string[];
+  grantedScopes?: string[];
 }
 
 export class SberClient {
@@ -75,6 +77,7 @@ export class SberClient {
       if (list.length > 20 || !list.every(isSubject)) invalid();
       aliases.push(...list);
     }
+    const grantedScope=textClaim(token.scope,2048);
     const names = ['family_name', 'given_name', 'middle_name'].map(k => textClaim(profile[k], 128)).filter(Boolean);
     const email = textClaim(profile.email, 254);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) invalid();
@@ -84,6 +87,8 @@ export class SberClient {
       rquid,
       identity: {
         subject: claims.sub,
+        requestedScopes:this.config.scope.split(/\s+/).filter(Boolean),
+        ...(grantedScope ? {grantedScopes:grantedScope.split(/\s+/).filter(Boolean)} : {}),
         alternateSubjects: [...new Set(aliases)].filter(sub => sub !== claims.sub),
         displayName, email, emailConfirmed: Boolean(email && profile.email_verified === true),
         claims: {schemaVersion: 1, sub: claims.sub, displayName, email,

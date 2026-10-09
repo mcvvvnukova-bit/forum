@@ -7,6 +7,41 @@ import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {test} from 'node:test'
 
+test('PROJ-144 accepts the approved logo without changing historical ownership', t => {
+  const path = fixture(t)
+  const result = provenance(path)
+  assert.equal(result.status, 0, result.stderr)
+})
+
+for (const mutation of ['hash', 'pin', 'scope', 'path', 'mode', 'duplicate', 'base', 'logo-bytes', 'checker-bytes']) {
+  test(`PROJ-144 logo ownership rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    assert.equal(provenance(path).status, 0)
+    const file = join(path, 'artifacts/repository-audits/proj-144-logo-ownership.json')
+    const originalReceipt = readFileSync(file)
+    const receipt = JSON.parse(originalReceipt)
+    if (mutation === 'hash') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'pin') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes[0].previousCandidatePath = 'package.json'
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    if (mutation === 'logo-bytes') writeFileSync(join(path, 'apps/web/public/assets/brand-logo-horizontal-color.png'), 'unapproved logo')
+    const checkerSource = join(path, 'scripts/verification/check-operational-sources.py')
+    if (mutation === 'checker-bytes') writeFileSync(checkerSource, readFileSync(checkerSource, 'utf8') + '\n# unapproved checker drift\n')
+    const sourceOnly = ['logo-bytes', 'checker-bytes'].includes(mutation)
+    if (!sourceOnly) writeFileSync(file, JSON.stringify(receipt))
+    else assert.deepEqual(readFileSync(file), originalReceipt)
+    const result = provenance(path)
+    assert.notEqual(result.status, 0)
+    if (sourceOnly) {
+      assert.match(result.stderr, /current source hash mismatch/)
+      assert.ok(result.stderr.includes(mutation === 'logo-bytes' ? 'apps/web/public/assets/brand-logo-horizontal-color.png' : 'scripts/verification/check-operational-sources.py'))
+    }
+  })
+}
+
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const checker = join(root, 'scripts/verification/check-repository-layout.mjs')
 const files = execFileSync('git', ['ls-files', '-z'], {cwd: root, encoding: 'utf8'}).split('\0').filter(Boolean)
@@ -43,7 +78,7 @@ for (const [file, error] of [
     assert.match(run(path).stderr, error)
   })
 }
-for (const missing of ['apps/legacy-landing/package.json', 'package-lock.json', 'apps/web/src/auth/PublicAuth.test.tsx', 'apps/profile-preview/package.json', 'apps/profile-preview/src/profile.test.ts', 'apps/web/production-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml', 'scripts/deployment/forum-db/bootstrap_forum_db.sh', 'scripts/deployment/forum-db/configure_forum_app_role.sh', 'scripts/deployment/pgadmin/configure-admin.py', 'scripts/deployment/mail/stalwart_api.py', 'scripts/maintenance/mail/backup.sh', 'scripts/maintenance/openproject/backup.sh', 'scripts/verification/mail/verify.py', 'scripts/verification/forum-api/test-callback-relay.mjs']) {
+for (const missing of ['apps/dev-gateway/package.json', 'package-lock.json', 'apps/web/src/auth/PublicAuth.test.tsx', 'apps/profile-preview/package.json', 'apps/profile-preview/src/profile.test.ts', 'apps/web/production-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml', 'scripts/deployment/forum-db/bootstrap_forum_db.sh', 'scripts/deployment/forum-db/configure_forum_app_role.sh', 'scripts/deployment/pgadmin/configure-admin.py', 'scripts/deployment/mail/stalwart_api.py', 'scripts/maintenance/mail/backup.sh', 'scripts/maintenance/openproject/backup.sh', 'scripts/verification/mail/verify.py', 'scripts/verification/forum-api/test-callback-relay.mjs']) {
   test(`required source cannot be skipped: ${missing}`, t => {
     const path = fixture(t)
     rmSync(join(path, missing))
@@ -80,7 +115,7 @@ for (const file of ['.outline-migration/payload.json', 'outline-uploads/form.jso
 }
 test('final quality check requires every exact result to be success', () => {
   const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database', 'profile', 'operational', 'web-release']
-  const results = Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))
+  const results = {changes: {result: 'success', outputs: {selection: JSON.stringify(Object.fromEntries(jobs.map(job => [job, true])))}}, ...Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))}
   const gate = data => spawnSync(process.execPath, [join(root, 'scripts/verification/quality-gate.mjs')], {
     env: {...process.env, QUALITY_RESULTS: JSON.stringify(data)}, encoding: 'utf8',
   })
@@ -96,7 +131,7 @@ test('final quality check requires every exact result to be success', () => {
 test('every checkout uses the explicit candidate head expression', () => {
   const workflow = readFileSync(join(root, '.github/workflows/quality.yml'), 'utf8')
   const checkouts = [...workflow.matchAll(/- uses: actions\/checkout@[^\n]+\n([\s\S]*?)(?=      - |\n  \w|$)/g)]
-  assert.equal(checkouts.length, 10)
+  assert.equal(checkouts.length, 11)
   for (const [, block] of checkouts) assert.match(block, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/)
 })
 
@@ -328,6 +363,271 @@ for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','s
   })
 }
 
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source','source-scope','bytes']) {
+  test(`PROJ-161 person membership ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    const clean=provenance(path)
+    assert.equal(clean.status,0,clean.stderr)
+    const file=join(path,'artifacts/repository-audits/proj-161-person-memberships-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='package.json'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    if(mutation==='source-scope')receipt.newFiles[0].path='package.json'
+    if(mutation==='bytes')writeFileSync(join(path,'apps/api/src/consolidate-auth.ts'),'unowned source drift')
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source','source-scope','bytes']) {
+  test(`PROJ-163 cabinet settings ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    const clean=provenance(path)
+    assert.equal(clean.status,0,clean.stderr)
+    const file=join(path,'artifacts/repository-audits/proj-163-cabinet-settings-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='package.json'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    if(mutation==='source-scope')receipt.newFiles[0].path='package.json'
+    if(mutation==='bytes')writeFileSync(join(path,'apps/api/src/iam/settings-store.ts'),'unowned source drift')
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['receipt','source']) {
+  test(`PROJ-163 revalidation observes ${mutation} changes in the same process`, t => {
+    const path=fixture(t)
+    const result=spawnSync('python3',['-c',`
+import importlib.util,json,pathlib,sys
+root=pathlib.Path(sys.argv[1])
+spec=importlib.util.spec_from_file_location('checker',root/'scripts/verification/check-operational-sources.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.ROOT=root
+m.verify_provenance()
+if sys.argv[2]=='receipt':
+    file=root/'artifacts/repository-audits/proj-163-cabinet-settings-ownership.json'
+    receipt=json.loads(file.read_text());receipt['changes'][0]['candidateSha256']='0'*64
+    file.write_text(json.dumps(receipt))
+else:
+    (root/'apps/api/src/iam/settings-store.ts').write_text('unowned source drift')
+try:
+    m.verify_provenance()
+except AssertionError:
+    pass
+else:
+    raise SystemExit('Revalidation ignored changed '+sys.argv[2])
+`,path,mutation],{encoding:'utf8'})
+    assert.equal(result.status,0,result.stderr)
+  })
+}
+
+for (const mutation of ['none','settings-pin','ci-pin','scope','mode','path','duplicate','base','source','bytes']) {
+  test(`PROJ-163 main integration keeps both ownership chains: ${mutation}`, t => {
+    const path=fixture(t)
+    const clean=provenance(path)
+    assert.equal(clean.status,0,clean.stderr)
+    if(mutation==='none')return
+    const file=join(path,'artifacts/repository-audits/proj-163-main-integration-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='settings-pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='ci-pin')receipt.changes[0].mainSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='package.json'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='bytes')writeFileSync(join(path,'scripts/verification/checks.test.mjs'),'unowned merge drift')
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+
+test('PROJ-163 main integration revalidation observes changed ROOT and recovers after failure', t => {
+  const first=fixture(t), second=fixture(t)
+  const result=spawnSync('python3',['-c',`
+import importlib.util,json,pathlib,sys
+first,second=map(pathlib.Path,sys.argv[1:])
+spec=importlib.util.spec_from_file_location('checker',first/'scripts/verification/check-operational-sources.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.ROOT=first
+m.verify_provenance()
+file=second/'artifacts/repository-audits/proj-163-main-integration-ownership.json'
+original=file.read_text();receipt=json.loads(original);receipt['changes'][0]['candidateSha256']='0'*64
+file.write_text(json.dumps(receipt));m.ROOT=second
+try:
+    m.verify_provenance()
+except AssertionError:
+    pass
+else:
+    raise SystemExit('Revalidation ignored changed ROOT and receipt')
+file.write_text(original)
+m.verify_provenance()
+m.ROOT=first
+m.verify_provenance()
+`,first,second],{encoding:'utf8'})
+  assert.equal(result.status,0,result.stderr)
+})
+
+for (const candidate of ['scripts/verification/check-operational-sources.py','scripts/verification/checks.test.mjs']) {
+  test(`PROJ-163 main integration rejects changed historical CI predecessor: ${candidate}`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-164-ci-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    receipt.changes.find(item=>item.previousCandidatePath===candidate).previousSha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+// A receipt must never authorize a missing, resurrected or altered protected source.
+const retirementReceipt = 'artifacts/repository-audits/proj-165-legacy-retirement-ownership.json'
+for (const mutation of ['omitted-delete', 'omitted-move', 'predecessor-hash', 'predecessor-mode', 'base', 'task', 'duplicate', 'scope', 'resurrected', 'missing-destination', 'tampered-destination', 'current-owner', 'unrelated-missing']) {
+  test(`PROJ-165 retirement rejects ${mutation}`, t => {
+    const path = fixture(t)
+    const file = join(path, retirementReceipt)
+    const originalReceipt = readFileSync(file)
+    const receipt = JSON.parse(originalReceipt)
+    const baseline = provenance(path)
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const deleted = receipt.changes.find(item => item.action === 'delete')
+    const moved = receipt.changes.find(item => item.action === 'move')
+    if (mutation === 'omitted-delete') receipt.changes.splice(receipt.changes.indexOf(deleted), 1)
+    if (mutation === 'omitted-move') receipt.changes.splice(receipt.changes.indexOf(moved), 1)
+    if (mutation === 'predecessor-hash') deleted.previousSha256 = '0'.repeat(64)
+    if (mutation === 'predecessor-mode') deleted.previousMode = '100755'
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    if (mutation === 'task') receipt.taskCode = 'PROJ-999'
+    if (mutation === 'duplicate') receipt.changes.push(deleted)
+    if (mutation === 'scope') deleted.previousCandidatePath = 'apps/api/src/app.ts'
+    if (mutation === 'resurrected') {
+      mkdirSync(dirname(join(path, deleted.previousCandidatePath)), {recursive:true})
+      writeFileSync(join(path, deleted.previousCandidatePath), 'resurrected source')
+    }
+    if (mutation === 'missing-destination') rmSync(join(path, moved.candidatePath))
+    if (mutation === 'tampered-destination') writeFileSync(join(path, moved.candidatePath), 'tampered source')
+    if (mutation === 'current-owner') writeFileSync(join(path, 'package.json'), 'tampered current owner')
+    if (mutation === 'unrelated-missing') rmSync(join(path, 'scripts/deployment/mail/stalwart_api.py'))
+    const sourceOnly = ['resurrected', 'missing-destination', 'tampered-destination', 'current-owner', 'unrelated-missing'].includes(mutation)
+    if (!sourceOnly) writeFileSync(file, JSON.stringify(receipt))
+    else assert.deepEqual(readFileSync(file), originalReceipt)
+    const result = provenance(path)
+    assert.notEqual(result.status, 0)
+    if (mutation === 'resurrected') assert.match(result.stderr, /Retired (?:landing directory|source) resurrected/)
+    if (mutation === 'missing-destination') {
+      assert.match(result.stderr, /Missing current source/)
+      assert.ok(result.stderr.includes(moved.candidatePath))
+    }
+    if (mutation === 'tampered-destination' || mutation === 'current-owner') {
+      assert.match(result.stderr, /current source hash mismatch/)
+      assert.ok(result.stderr.includes(mutation === 'current-owner' ? 'package.json' : moved.candidatePath))
+    }
+    if (mutation === 'unrelated-missing') {
+      assert.match(result.stderr, /Missing current source/)
+      assert.ok(result.stderr.includes('scripts/deployment/mail/stalwart_api.py'))
+    }
+  })
+}
+
+// Integration can replace authenticated current owners, never its history or scope.
+for (const mutation of ['hash', 'predecessor', 'mode', 'destination', 'action', 'omitted', 'duplicate', 'history', 'extra-source']) {
+  test(`PROJ-165 main integration rejects ${mutation}`, t => {
+    const path = fixture(t)
+    const baseline = provenance(path)
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const file = join(path, 'artifacts/repository-audits/proj-165-main-integration-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    const owner = receipt.changes[0]
+    if (mutation === 'hash') owner.candidateSha256 = '0'.repeat(64)
+    if (mutation === 'predecessor') owner.predecessors[0].sha256 = '0'.repeat(64)
+    if (mutation === 'mode') owner.candidateMode = '100755'
+    if (mutation === 'destination') owner.candidatePath = '../package.json'
+    if (mutation === 'action') owner.action = 'delete'
+    if (mutation === 'omitted') receipt.changes.shift()
+    if (mutation === 'duplicate') receipt.changes.push(owner)
+    if (mutation === 'history') receipt.historicalReceipts[0].sha256 = '0'.repeat(64)
+    if (mutation === 'extra-source') receipt.newFiles.push({path:'unrelated.py',sha256:'0'.repeat(64),mode:'100644'})
+    writeFileSync(file, JSON.stringify(receipt))
+    const result = provenance(path)
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /PROJ-165/)
+  })
+}
+
+// The new current-owner layer cannot approve replacement brand assets.
+for (const logo of ['apps/web/public/assets/brand-logo-horizontal-color.png', 'apps/web/public/audience-assets/media/brand-logo-horizontal-color.png']) {
+  test(`PROJ-144 rejects paired logo bytes and integration hash replacement: ${logo}`, t => {
+    const path = fixture(t)
+    const baseline = provenance(path)
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const historical = join(path, 'artifacts/repository-audits/proj-144-logo-ownership.json')
+    const historicalBytes = readFileSync(historical)
+    const file = join(path, 'artifacts/repository-audits/proj-165-main-integration-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    const replacement = Buffer.from('unapproved paired logo replacement')
+    writeFileSync(join(path, logo), replacement)
+    receipt.changes.find(item => item.candidatePath === logo).candidateSha256 = createHash('sha256').update(replacement).digest('hex')
+    writeFileSync(file, JSON.stringify(receipt))
+    assert.deepEqual(readFileSync(historical), historicalBytes)
+    const result = provenance(path)
+    assert.notEqual(result.status, 0, 'Paired replacement must not be approved by the terminal integration override')
+    assert.match(result.stderr, /PROJ-144 approved final logo pin mismatch/)
+    assert.ok(result.stderr.includes(logo))
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source']) {
+  test(`PROJ-159 skip link ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-159-skip-link-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source']) {
+  test(`PROJ-38 logout homepage ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-38-logout-home-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
 for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source']) {
   test(`PROJ-162 organization ownership rejects ${mutation} tampering`, t => {
     const path=fixture(t)
@@ -346,3 +646,33 @@ for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','s
     assert.notEqual(provenance(path).status,0)
   })
 }
+
+for (const source of ['apps/api/src/iam/crypto.ts', 'apps/web/public/assets/brand-logo-horizontal-color.png']) {
+  test(`PROJ-162 dev integration rejects paired arbitrary source and candidate repin: ${source}`, t => {
+    const path=fixture(t)
+    const baseline=provenance(path)
+    assert.equal(baseline.status,0,baseline.stderr)
+    const receiptPath=join(path,'artifacts/repository-audits/proj-162-dev-integration-ownership.json')
+    const receipt=JSON.parse(readFileSync(receiptPath))
+    const predecessor=createHash('sha256').update(readFileSync(join(path,source))).digest('hex')
+    const bytes=Buffer.from('unapproved paired source replacement')
+    writeFileSync(join(path,source),bytes)
+    receipt.changes.push({candidatePath:source,candidateMode:'100644',candidateSha256:createHash('sha256').update(bytes).digest('hex'),predecessors:[{sha256:predecessor,mode:'100644'}]})
+    writeFileSync(receiptPath,JSON.stringify(receipt))
+    const result=provenance(path)
+    assert.notEqual(result.status,0)
+    assert.match(result.stderr,/PROJ-162 dev integration scope\/predecessor\/candidate pin mismatch/)
+  })
+}
+
+test('PROJ-162 dev integration rejects paired hash replacement inside its approved scope', t => {
+  const path=fixture(t)
+  assert.equal(provenance(path).status,0)
+  const receiptPath=join(path,'artifacts/repository-audits/proj-162-dev-integration-ownership.json')
+  const receipt=JSON.parse(readFileSync(receiptPath))
+  const source='apps/dev-gateway/forum_dev_auth.py', bytes=Buffer.from('unapproved gateway replacement')
+  writeFileSync(join(path,source),bytes)
+  receipt.changes.find(x=>x.candidatePath===source).candidateSha256=createHash('sha256').update(bytes).digest('hex')
+  writeFileSync(receiptPath,JSON.stringify(receipt))
+  assert.notEqual(provenance(path).status,0)
+})

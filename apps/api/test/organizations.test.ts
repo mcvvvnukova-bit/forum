@@ -30,13 +30,15 @@ function add(inn:unknown,cookie=alice,origin:string|undefined='https://forum.exa
 }
 function list(cookie=alice,cursor=''){return app.inject({method:'GET',url:'/api/me/organizations'+cursor,headers:{cookie}})}
 async function organization(inn='9709128511'){
- const id=randomUUID();await pool.query(`INSERT INTO public.organizations(id,legal_status,inn,legal_name,provider_organization_id,identified_at) VALUES($1,'legal_entity',$2,'Проверенная компания',$3,now())`,[id,inn,id]);
+ const id=randomUUID();await pool.query(`INSERT INTO public.organizations(id,legal_status,inn,legal_name,provider_organization_id,identified_at,registration_state,registered_at) VALUES($1,'legal_entity',$2,'Проверенная компания',$3,now(),'registered',now())`,[id,inn,id]);
  const p=(await pool.query(`INSERT INTO public.participants(kind,role,legal_status,organization_id) VALUES('organization','provider','legal_entity',$1) RETURNING id`,[id])).rows[0].id;
  return {id,p};
 }
 async function member(userId:string,p:string,admin=false){
  await pool.query('INSERT INTO public.participant_memberships(user_id,participant_id) VALUES($1,$2)',[userId,p]);
  await pool.query(`INSERT INTO public.role_assignments(user_id,scope_type,scope_id,role) VALUES($1,'participant',$2,'provider')`,[userId,p]);
+ await pool.query(`INSERT INTO public.organization_memberships(user_id,organization_id,status,basis_type,basis_reference,effective_from) SELECT $1,organization_id,'active','legacy','test-existing-evidence',now() FROM public.participants WHERE id=$2`,[userId,p]);
+ if(admin)await pool.query(`INSERT INTO public.organization_authorities(user_id,organization_id,authority_type,status,basis_type,basis_reference,approved_by_user_id,decided_at,effective_from) SELECT $1,organization_id,'administrator','confirmed','test','test-existing-evidence',$1,now(),now() FROM public.participants WHERE id=$2`,[userId,p]);
  if(admin)await pool.query(`INSERT INTO public.role_assignments(user_id,scope_type,scope_id,role) VALUES($1,'participant',$2,'organization_admin')`,[userId,p]);
 }
 test('saves a pending INN, rereads only own cards, and emits a single authored audit under races',async()=>{
@@ -91,27 +93,18 @@ test('cursor pages are stable, owner scoped and not a product count limit',async
  assert.equal((await list(bob,'?cursor='+encodeURIComponent(first.nextCursor))).statusCode,400);
 });
 test('partial newer schema fails closed on reads and additions, including empty incompatible tables',async()=>{
- await pool.query('CREATE TABLE public.organization_memberships(foo text)');
+ await pool.query('ALTER TABLE public.organization_memberships RENAME TO organization_memberships_complete; CREATE TABLE public.organization_memberships(foo text)');
  try{
   assert.equal((await list()).statusCode,503);
   assert.equal((await add('9709128511')).statusCode,503);
   assert.equal((await pool.query('SELECT count(*) FROM public.organization_additions')).rows[0].count,'0');
- }finally{await pool.query('DROP TABLE public.organization_memberships')}
+ }finally{await pool.query('DROP TABLE public.organization_memberships; ALTER TABLE public.organization_memberships_complete RENAME TO organization_memberships')}
 });
 test('complete newer guard honors organizational revocation and requires current confirmed admin authority',async()=>{
  const o=await organization();await member(aliceId,o.p,true);await member(bobId,o.p,true);
- await pool.query(`ALTER TABLE public.organizations ADD COLUMN registration_state text DEFAULT 'registered', ADD COLUMN status text DEFAULT 'active';
- CREATE TABLE public.organization_memberships(user_id uuid,organization_id uuid,status text,effective_from timestamptz,effective_until timestamptz,revoked_at timestamptz);
- CREATE TABLE public.organization_authorities(user_id uuid,organization_id uuid,authority_type text,status text,effective_from timestamptz,effective_until timestamptz,revoked_at timestamptz);
- CREATE FUNCTION public.effective_business_access(requested_user uuid,requested_participant uuid,requested_role text,write_access boolean) RETURNS boolean LANGUAGE sql AS $$
- SELECT EXISTS(SELECT 1 FROM public.participants p JOIN public.organizations o ON o.id=p.organization_id JOIN public.organization_memberships m ON m.organization_id=o.id
- WHERE p.id=requested_participant AND m.user_id=requested_user AND m.status='active' AND m.revoked_at IS NULL AND m.effective_from<=now() AND (m.effective_until IS NULL OR m.effective_until>now()) AND o.status='active' AND o.registration_state='registered'
- AND (requested_role<>'organization_admin' OR EXISTS(SELECT 1 FROM public.organization_authorities a WHERE a.user_id=requested_user AND a.organization_id=o.id AND a.authority_type='administrator' AND a.status='confirmed' AND a.revoked_at IS NULL AND a.effective_from<=now() AND (a.effective_until IS NULL OR a.effective_until>now())))) $$;`);
- try{
-  await pool.query("INSERT INTO public.organization_memberships VALUES($1,$3,'active',now(),NULL,NULL),($2,$3,'active',now(),NULL,NULL)",[aliceId,bobId,o.id]);
-  await pool.query("INSERT INTO public.organization_authorities VALUES($1,$3,'administrator','pending',now(),NULL,NULL),($2,$3,'administrator','confirmed',now(),NULL,NULL)",[aliceId,bobId,o.id]);
+ await pool.query("UPDATE public.organization_authorities SET status='pending',effective_from=NULL,decided_at=NULL,approved_by_user_id=NULL WHERE user_id=$1",[aliceId]);
   const first=(await list()).json().items[0];assert.deepEqual(first.members.find((m:{userId:string;roles:string[]})=>m.userId===aliceId).roles,['organization_employee']);assert.deepEqual(first.members.find((m:{userId:string;roles:string[]})=>m.userId===bobId).roles,['organization_admin']);
-  await pool.query("UPDATE public.organization_authorities SET effective_until=now()-interval '1 second' WHERE user_id=$1",[bobId]);
+  await pool.query("UPDATE public.organization_authorities SET effective_from=now()-interval '2 seconds',effective_until=now()-interval '1 second' WHERE user_id=$1",[bobId]);
   assert.deepEqual((await list()).json().items[0].members.find((m:{userId:string;roles:string[]})=>m.userId===bobId).roles,['organization_employee']);
   await pool.query("UPDATE public.organization_memberships SET status='revoked',revoked_at=now() WHERE user_id=$1",[bobId]);
   assert.equal((await list()).json().items[0].members.length,1);
@@ -122,13 +115,11 @@ test('complete newer guard honors organizational revocation and requires current
   await pool.query("UPDATE public.organizations SET status='active'; UPDATE public.organization_memberships SET status='active',revoked_at=NULL");
   await pool.query('DELETE FROM public.role_assignments WHERE user_id=$1 AND scope_id=$2',[bobId,o.p]);
   assert.equal((await list(bob)).json().items.length,0,'General organization membership alone supplies no participant access');
- }finally{
-  await pool.query('DROP FUNCTION public.effective_business_access(uuid,uuid,text,boolean); DROP TABLE public.organization_authorities,public.organization_memberships; ALTER TABLE public.organizations DROP COLUMN registration_state,DROP COLUMN status');
- }
+
 });
 
 test('an incompatible newer guard function alone is partial schema and never a legacy fallback',async()=>{
- await pool.query('CREATE FUNCTION public.effective_business_access() RETURNS boolean LANGUAGE sql AS $$ SELECT true $$');
+ await pool.query('ALTER FUNCTION public.effective_business_access(uuid,uuid,text,boolean) RENAME TO saved_effective_business_access; CREATE FUNCTION public.effective_business_access() RETURNS boolean LANGUAGE sql AS $$ SELECT true $$');
  try{assert.equal((await list()).statusCode,503);assert.equal((await add('9709128511')).statusCode,503)}
- finally{await pool.query('DROP FUNCTION public.effective_business_access()')}
+ finally{await pool.query('DROP FUNCTION public.effective_business_access(); ALTER FUNCTION public.saved_effective_business_access(uuid,uuid,text,boolean) RENAME TO effective_business_access')}
 });

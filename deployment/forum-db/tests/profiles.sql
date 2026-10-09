@@ -25,27 +25,21 @@ INSERT INTO public.external_identities(id,user_id,provider,subject,claims_snapsh
  ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','sber_id','synthetic-sber-a','{}'),
  ('10000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000002','sber_id','synthetic-sber-b','{}');
 
-INSERT INTO public.persons(user_id,sber_profile,identified_at,profile_received_at)
-VALUES ('00000000-0000-4000-8000-000000000001',
-'{"sub":"synthetic-sber-a","email":"a@example.invalid","phone_number":"+70000000000","birthdate":"2000-02-29","family_name":"Synthetic","given_name":"A","middle_name":"Test","gender":1,"identification":{"series":"0010","number":"000001","issued_by":"TEST","issued_date":"2020-01-01","code":"000-001"},"inn":{"number":"000000000001"},"snils":{"number":"00000000001"},"driving_license":{"number":"000001"},"international_passport":{"series":"01","number":"000002","issued_by":"TEST","issued_date":"2020-01-01","planned_end_date":"2030-01-01","name":"A","surname":"Synthetic"},"priority_doc":{"type":17,"series":"0010","number":"000001","issued_by":"TEST","issued_date":"2020-01-01","code":"000-001"},"citizenship":{"country_code":"RUS","country_name":"Test"},"place_of_birth":"Test","address_reg":{"full_address":"Test 1","fias_code":"test","post_index":"000001","country":"Test","region":"Test","district":"Test","city":"Test","settlement":"Test","street":"Test","house":"1","building":"2","bulk":"3","apartment":"4"},"work_address":{"full_address":"Test 2"},"address_of_actual_residence":{"full_address":"Test 3"},"delivery_address":{"full_address":"Test 4"},"address":{"full_address":"Test legacy"},"sts":{"number":"000003"},"previous_identification":{"series":"0010","number":"000004","issued_by":"TEST","issued_date":"2015-01-01","code":"000-002"},"previous_family_name":"Before","previous_given_name":"Before A","previous_middle_name":"Before Test","education":{"code":"1","description":"Test"},"place_of_work":"Test Org","job_title":"Test Job","marital_status":{"code":1,"description":"Test"},"is_self_employed":false}',now(),now());
-
-DO $$ DECLARE profile public.persons%ROWTYPE; column_count integer; BEGIN
- SELECT * INTO profile FROM public.persons WHERE user_id='00000000-0000-4000-8000-000000000001';
- PERFORM pg_temp.assert_true(profile.inn->>'number'='000000000001' AND profile.identification->>'series'='0010','leading zeroes were lost');
- PERFORM pg_temp.assert_true(profile.birthdate=DATE '2000-02-29' AND profile.is_self_employed=false,'typed values incorrect');
- PERFORM pg_temp.assert_true(profile.international_passport->>'surname'='Synthetic' AND profile.address_reg->>'apartment'='4' AND profile.previous_identification->>'code'='000-002','nested data lost');
- PERFORM pg_temp.assert_true((to_jsonb(profile)-ARRAY['user_id','sber_profile','identity_provider','profile_schema_version','requested_scopes','granted_scopes','identified_at','profile_received_at','created_at','updated_at'])=profile.sber_profile,'a package field was lost or mapped to the wrong column');
- SELECT count(*) INTO column_count FROM information_schema.columns WHERE table_schema='public' AND table_name='persons' AND is_generated='ALWAYS' AND column_name <> 'identity_provider';
- PERFORM pg_temp.assert_true(column_count=31,'all 30 attributes and legacy address must be projected');
-END $$;
-UPDATE public.persons SET sber_profile=jsonb_set(sber_profile,'{is_self_employed}','true') WHERE user_id='00000000-0000-4000-8000-000000000001';
-SELECT pg_temp.assert_true(is_self_employed=true,'self-employment true was lost') FROM public.persons WHERE user_id='00000000-0000-4000-8000-000000000001';
-UPDATE public.persons SET sber_profile='{"sub":"synthetic-sber-a","birthdate":"29.02.2000"}' WHERE user_id='00000000-0000-4000-8000-000000000001';
-SELECT pg_temp.assert_true(is_self_employed IS NULL AND inn IS NULL AND birthdate=DATE '2000-02-29','missing data or dotted date incorrect') FROM public.persons WHERE user_id='00000000-0000-4000-8000-000000000001';
-SELECT pg_temp.must_fail($q$UPDATE public.persons SET sber_profile='{"sub":"synthetic-sber-a","access_token":"never-store"}' WHERE user_id='00000000-0000-4000-8000-000000000001'$q$,'23514');
-SELECT pg_temp.must_fail($q$UPDATE public.persons SET sber_profile='{"sub":"synthetic-sber-a","identification":{"access_token":"never-store"}}' WHERE user_id='00000000-0000-4000-8000-000000000001'$q$,'23514');
-SELECT pg_temp.must_fail($q$UPDATE public.persons SET sber_profile='{"sub":"synthetic-sber-b"}' WHERE user_id='00000000-0000-4000-8000-000000000001'$q$,'23503');
-SELECT pg_temp.must_fail($q$INSERT INTO public.persons(user_id,sber_profile,identified_at,profile_received_at) VALUES ('00000000-0000-4000-8000-000000000001','{"sub":"synthetic-sber-a"}',now(),now())$q$,'23505');
+-- Canonical person data is independent of provider snapshots and participation.
+INSERT INTO public.persons(user_id,family_name,birthdate,inn,is_self_employed) VALUES
+ ('00000000-0000-4000-8000-000000000001','Canonical',DATE '2000-02-29','{"number":"000000000001"}',false),
+ ('00000000-0000-4000-8000-000000000002','Generic',NULL,NULL,NULL);
+INSERT INTO public.identity_profiles(identity_id,user_id,snapshot,requested_scopes,granted_scopes,identified_at,received_at) VALUES
+ ('10000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000001','{"sub":"synthetic-sber-a","family_name":"Source","birthdate":"29.02.2000"}','{openid,name}','{openid}',now(),now());
+SELECT pg_temp.assert_true(family_name='Canonical' AND birthdate=DATE '2000-02-29' AND inn->>'number'='000000000001' AND is_self_employed=false,'canonical values incorrect') FROM public.persons WHERE user_id='00000000-0000-4000-8000-000000000001';
+UPDATE public.identity_profiles SET snapshot=jsonb_set(snapshot,'{family_name}','"New source"') WHERE identity_id='10000000-0000-4000-8000-000000000001';
+SELECT pg_temp.assert_true(family_name='Canonical','returning source snapshot replaced canonical data') FROM public.persons WHERE user_id='00000000-0000-4000-8000-000000000001';
+UPDATE public.persons SET family_name='Edited canonical' WHERE user_id='00000000-0000-4000-8000-000000000001';
+SELECT pg_temp.assert_true(snapshot->>'family_name'='New source','canonical edit changed source data') FROM public.identity_profiles WHERE identity_id='10000000-0000-4000-8000-000000000001';
+SELECT pg_temp.must_fail($q$UPDATE public.identity_profiles SET user_id='00000000-0000-4000-8000-000000000002'$q$,'23514');
+SELECT pg_temp.must_fail($q$INSERT INTO public.identity_profiles(identity_id,user_id,snapshot,identified_at,received_at) VALUES ('10000000-0000-4000-8000-000000000002','00000000-0000-4000-8000-000000000001','{}',now(),now())$q$,'23503');
+SELECT pg_temp.must_fail($q$INSERT INTO public.persons(user_id) VALUES ('00000000-0000-4000-8000-000000000001')$q$,'23505');
+SELECT pg_temp.assert_true(count(*)=0,'account unexpectedly required a participant') FROM public.participants;
 
 INSERT INTO public.participants(id,kind,role,legal_status,individual_user_id) VALUES
  ('20000000-0000-4000-8000-000000000001','individual','provider','individual_person','00000000-0000-4000-8000-000000000001');
@@ -71,12 +65,16 @@ INSERT INTO public.role_assignments(id,user_id,scope_type,scope_id,role) VALUES
 SELECT pg_temp.must_fail($q$INSERT INTO public.role_assignments(id,user_id,scope_type,scope_id,role) VALUES ('40000000-0000-4000-8000-000000000009','00000000-0000-4000-8000-000000000001','participant','20000000-0000-4000-8000-000000000001','organization_admin')$q$,'23514');
 SELECT pg_temp.must_fail($q$INSERT INTO public.role_assignments(id,user_id,scope_type,scope_id,role) VALUES ('40000000-0000-4000-8000-000000000009','00000000-0000-4000-8000-000000000001','participant','20000000-0000-4000-8000-000000000002','customer')$q$,'23514');
 SELECT pg_temp.must_fail($q$INSERT INTO public.role_assignments(id,user_id,scope_type,scope_id,role) VALUES ('40000000-0000-4000-8000-000000000009','00000000-0000-4000-8000-000000000002','participant','20000000-0000-4000-8000-000000000002','provider')$q$,'23503');
+SELECT pg_temp.assert_true(NOT public.effective_business_access('00000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000003','customer',true),'pending corporate registration granted business access');
+UPDATE public.role_assignments SET status='revoked',revoked_at=now() WHERE id='40000000-0000-4000-8000-000000000003';
+SELECT pg_temp.assert_true(status='revoked' AND revoked_at IS NOT NULL,'grant lifecycle mutation failed') FROM public.role_assignments WHERE id='40000000-0000-4000-8000-000000000003';
+SELECT pg_temp.assert_true(status='active','grant revocation changed membership') FROM public.participant_memberships WHERE user_id='00000000-0000-4000-8000-000000000001' AND participant_id='20000000-0000-4000-8000-000000000003';
 UPDATE public.participant_memberships SET status='revoked' WHERE user_id='00000000-0000-4000-8000-000000000001' AND participant_id='20000000-0000-4000-8000-000000000003';
 SELECT pg_temp.assert_true(count(DISTINCT r.scope_id)=2,'revocation leaked to other participants or still grants revoked organization') FROM public.role_assignments r JOIN public.participant_memberships m ON (m.user_id,m.participant_id)=(r.user_id,r.scope_id) WHERE r.user_id='00000000-0000-4000-8000-000000000001' AND m.status='active';
 SELECT pg_temp.assert_true(status='active','another employee lost access') FROM public.participant_memberships WHERE user_id='00000000-0000-4000-8000-000000000002';
 SELECT pg_temp.must_fail($q$UPDATE public.participants SET role='provider' WHERE id='20000000-0000-4000-8000-000000000003'$q$,'23514');
 SELECT pg_temp.must_fail($q$UPDATE public.participant_memberships SET user_id='00000000-0000-4000-8000-000000000002' WHERE participant_id='20000000-0000-4000-8000-000000000002'$q$,'23514');
-SELECT pg_temp.must_fail($q$INSERT INTO public.persons(user_id,sber_profile,identified_at,profile_received_at) VALUES ('00000000-0000-4000-8000-000000000002','{"sub":"synthetic-sber-b"}',now(),now()); SET CONSTRAINTS ALL IMMEDIATE$q$,'23514');
+SELECT pg_temp.assert_true(count(*)=0,'generic person acquired a mandatory personal participant') FROM public.participants WHERE individual_user_id='00000000-0000-4000-8000-000000000002';
 SET CONSTRAINTS ALL IMMEDIATE;
 ROLLBACK;
 \echo 'Profiles behavioral checks passed; synthetic records rolled back.'

@@ -15,7 +15,11 @@ export async function migrate(pool: Pool): Promise<void> {
     if (layout?.public_ledger) {
       const marker = await client.query("SELECT name FROM public.schema_migrations WHERE name='003_public_schema'");
       if (!marker.rowCount) throw new Error('Public installation is missing migration003');
+      const oldSchemas=await client.query("SELECT 1 FROM pg_namespace WHERE nspname IN ('iam','profiles','audit','integration','party')");
+      if(oldSchemas.rowCount) throw new Error('Legacy schemas remain despite consolidation marker');
     } else {
+      const oldSchemas=await client.query("SELECT 1 FROM pg_namespace WHERE nspname IN ('iam','profiles','audit','integration','party')");
+      if(oldSchemas.rowCount) throw new Error('Legacy schemas require the reviewed consolidation transfer');
       await client.query('CREATE SCHEMA iam');
       await client.query('CREATE TABLE iam.schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
       for (const name of ['001_sber_identity','002_profiles','003_public_schema']) {
@@ -24,7 +28,7 @@ export async function migrate(pool: Pool): Promise<void> {
         await client.query(`INSERT INTO ${ledger}.schema_migrations(name) VALUES ($1)`, [name]);
       }
     }
-    for (const name of ['005_public_individual_role','007_my_organizations']) {
+    for (const name of ['005_public_individual_role','006_person_memberships','007_my_organizations']) {
       const applied = await client.query('SELECT name FROM public.schema_migrations WHERE name = $1', [name]);
       if (!applied.rowCount) {
         const sql = await readFile(resolve(`migrations/${name}.sql`), 'utf8');

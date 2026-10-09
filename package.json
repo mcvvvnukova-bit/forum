@@ -29,7 +29,7 @@
   },
   "workspaces": [
     "apps/api",
-    "apps/legacy-landing",
+    "apps/dev-gateway",
     "apps/profile-preview",
     "apps/web"
   ],

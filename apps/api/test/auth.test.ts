@@ -22,7 +22,10 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  await pool.query('TRUNCATE public.organization_additions, public.authorization_attempts, public.sessions, public.role_assignments, public.external_identities, public.users, public.participants, public.audit_events, public.outbox_events, public.persons, public.participant_memberships');
+  // Every test has its own production rate-limit window.
+  await app.close();
+  app=await createApp({publicOrigin:'https://forum.example',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:true,sessionTtlSeconds:3600,sber:provider.sber},pool);
+  await pool.query('TRUNCATE public.organization_additions,public.identity_profiles,public.organization_memberships,public.organization_authorities,public.organizations,public.authorization_attempts, public.sessions, public.role_assignments, public.external_identities, public.users, public.participants, public.audit_events, public.outbox_events, public.persons, public.participant_memberships');
   provider.calls.length = 0;
   Object.assign(provider.faults, {tokenStatus: 200, profileStatus: 200, completionStatus: 204});
 });
@@ -53,23 +56,39 @@ function sessionCookie(response: Awaited<ReturnType<typeof finish>>) {
 
 async function userCount() { return Number((await pool.query('SELECT count(*) FROM public.users')).rows[0].count); }
 
-test('registration persists a validated public person and active personal membership', async () => {
-  const response = await finish(await begin());
-  assert.equal(response.headers.location, '/cabinet/?auth=success');
-  const person = (await pool.query('SELECT sub, email, identified_at, profile_received_at FROM public.persons')).rows[0];
-  assert.equal(person.sub, 'sber-person-1');
-  assert.equal(person.email, 'anna@example.test');
-  assert.ok(person.identified_at && person.profile_received_at);
-  assert.equal((await pool.query('SELECT status FROM public.participant_memberships')).rows[0].status, 'active');
+test('new login creates a person and baseline role without a business participant', async () => {
+  const response = await finish(await begin('login'));
+  const me = await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie:sessionCookie(response)}});
+  assert.equal(me.statusCode,200);
+  assert.deepEqual(me.json().roles,['individual']);
+  assert.equal((await pool.query('SELECT count(*) FROM public.participants')).rows[0].count,'0');
+  assert.equal((await pool.query('SELECT count(*) FROM public.persons')).rows[0].count,'1');
+  assert.equal(me.json().participant,null);
 });
 
-test('revoked personal membership denies an old session and new login without reactivation', async () => {
-  const cookie = sessionCookie(await finish(await begin()));
-  await pool.query("UPDATE public.participant_memberships SET status='revoked'");
-  assert.equal((await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie}})).statusCode,401);
-  assert.equal((await finish(await begin('login'))).headers.location,'/?auth_error=account_deactivated');
-  assert.equal((await pool.query('SELECT status FROM public.participant_memberships')).rows[0].status,'revoked');
-});
+async function personalParticipant(userId: string) {
+  const existing=(await pool.query('SELECT id FROM public.participants WHERE individual_user_id=$1',[userId])).rows[0];
+  if(existing) return existing.id as string;
+  const id = randomUUID();
+  await pool.query("INSERT INTO public.participants(id,kind,role,legal_status,individual_user_id) VALUES ($1,'individual','provider','individual_person',$2)",[id,userId]);
+  await pool.query('INSERT INTO public.participant_memberships(user_id,participant_id) VALUES ($1,$2)',[userId,id]);
+  return id;
+}
+
+for (const state of ['absent','revoked','restricted','deactivated']) {
+  test(`personal participant ${state} does not invalidate the account or login`, async () => {
+    const cookie = sessionCookie(await finish(await begin()));
+    const me = (await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie}})).json();
+    if (state !== 'absent') {
+      await personalParticipant(me.user.id);
+      if (state === 'revoked') await pool.query("UPDATE public.participant_memberships SET status='revoked'");
+      else await pool.query('UPDATE public.participants SET status=$1',[state]);
+    }
+    assert.equal((await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie}})).statusCode,200);
+    assert.equal((await finish(await begin('login'))).headers.location,'/cabinet/?auth=success');
+    if (state === 'revoked') assert.equal((await pool.query('SELECT status FROM public.participant_memberships')).rows[0].status,'revoked');
+  });
+}
 
 test('Sber start reports unavailable until partner credentials are configured', async () => {
   const app = await createApp();
@@ -112,12 +131,14 @@ test('registration persists identity, individual IAM role, outbox and an opaque 
   assert.equal(me.statusCode, 200);
   assert.equal(me.json().user.displayName, 'Иванова Анна');
   assert.equal(me.json().user.emailConfirmed, true);
-  assert.equal(me.json().participant.legalStatus, 'individual_person');
+  assert.equal(me.json().participant, null);
   assert.equal(await userCount(), 1);
   assert.deepEqual(me.json().roles, ['individual']);
-  assert.equal((await pool.query('SELECT role FROM public.role_assignments')).rows[0].role, 'individual');
-  assert.equal((await pool.query('SELECT event_type FROM public.outbox_events')).rows[0].event_type, 'ParticipantRegistered');
+  assert.equal((await pool.query('SELECT count(*) FROM public.role_assignments')).rows[0].count, '0');
+  assert.equal((await pool.query('SELECT event_type FROM public.outbox_events')).rows[0].event_type, 'UserRegistered');
   assert.equal((await pool.query('SELECT count(*) FROM public.authorization_attempts')).rows[0].count, '0');
+  const source=(await pool.query('SELECT requested_scopes,granted_scopes FROM public.identity_profiles')).rows[0];
+  assert.deepEqual(source,{requested_scopes:['openid','name','email','mobile'],granted_scopes:null});
   const tokenCall = provider.calls.find(c => c.path.endsWith('/oidc'))!;
   assert.equal(tokenCall.form.get('client_secret'), 'synthetic-secret');
   assert.equal(tokenCall.form.get('redirect_uri'), provider.sber.redirectUri);
@@ -144,7 +165,7 @@ test('returning login and repeated registration reuse the account and rotate the
   assert.equal((await app.inject({method: 'GET', url: '/api/auth/session', headers: {cookie: oldCookie}})).statusCode, 401);
   await finish(await begin());
   assert.equal(await userCount(), 1);
-  assert.equal((await pool.query('SELECT count(*) FROM public.participants')).rows[0].count, '1');
+  assert.equal((await pool.query('SELECT count(*) FROM public.participants')).rows[0].count, '0');
 });
 
 test('each authentication keeps one rquid across token, userinfo and completion retries', async () => {
@@ -277,12 +298,13 @@ test('first login creates one individual account and opens its cabinet', async (
   assert.equal(me.statusCode, 200);
   assert.deepEqual(me.json().roles, ['individual']);
   assert.equal(await userCount(), 1);
-  assert.equal((await pool.query('SELECT count(*) FROM public.role_assignments')).rows[0].count, '1');
+  assert.equal((await pool.query('SELECT count(*) FROM public.role_assignments')).rows[0].count, '0');
 });
 
 test('legacy personal assignments migrate once without changing the participant or its status', async () => {
   const created = await finish(await begin());
   const me = (await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie:sessionCookie(created)}})).json();
+  me.participant={id:await personalParticipant(me.user.id)};
   await pool.query("DELETE FROM public.role_assignments; INSERT INTO public.role_assignments(user_id,scope_type,scope_id,role) SELECT individual_user_id,'participant',id,'provider' FROM public.participants");
   await pool.query("UPDATE public.users SET status='deactivated'");
   await pool.query("DELETE FROM public.schema_migrations WHERE name='005_public_individual_role'");
@@ -374,8 +396,8 @@ test('concurrent login and registration create one identity, participant and ind
   const responses = await Promise.all([finish(one), finish(two)]);
   for (const response of responses) assert.equal(response.headers.location, '/cabinet/?auth=success');
   assert.equal(await userCount(), 1);
-  assert.equal((await pool.query('SELECT count(*) FROM public.participants')).rows[0].count, '1');
-  assert.deepEqual((await pool.query('SELECT role FROM public.role_assignments')).rows.map(row=>row.role), ['individual']);
+  assert.equal((await pool.query('SELECT count(*) FROM public.participants')).rows[0].count, '0');
+  assert.deepEqual((await pool.query('SELECT role FROM public.role_assignments')).rows, []);
 });
 
 test('session endpoint rejects missing, expired and deactivated sessions; logout enforces origin', async () => {
@@ -480,7 +502,7 @@ test('profile endpoint returns only current owner data and cannot select another
   assert.equal((await app.inject({method:'GET',url:'/api/profile?userId='+other.json().userId,headers:{cookie}})).statusCode,400);
 });
 
-test('profile rejects anonymous malformed expired revoked and deactivated access', async () => {
+test('profile rejects anonymous malformed expired access but survives revoked business membership', async () => {
   for(const cookie of ['', '__Host-forum_session=malformed']) {
     assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie}})).statusCode,401);
   }
@@ -488,8 +510,10 @@ test('profile rejects anonymous malformed expired revoked and deactivated access
   await pool.query("UPDATE public.sessions SET expires_at=now()-interval '1 second'");
   assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie}})).statusCode,401);
   const renewed=sessionCookie(await finish(await begin('login')));
+  const me=(await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie:renewed}})).json();
+  await personalParticipant(me.user.id);
   await pool.query("UPDATE public.participant_memberships SET status='revoked'");
-  assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie:renewed}})).statusCode,401);
+  assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie:renewed}})).statusCode,200);
 });
 
 test('profile access stops after logout and blocked user', async () => {
@@ -499,4 +523,28 @@ test('profile access stops after logout and blocked user', async () => {
   const renewed=sessionCookie(await finish(await begin('login')));
   await pool.query("UPDATE public.users SET status='deactivated'");
   assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie:renewed}})).statusCode,401);
+});
+
+
+test('canonical profile edits survive login and never expose source identity metadata', async () => {
+  const cookie=sessionCookie(await finish(await begin()));
+  await pool.query("UPDATE public.persons SET family_name='Измененная', job_title='Инженер'");
+  const response=await app.inject({method:'GET',url:'/api/profile',headers:{cookie}});
+  assert.equal(response.json().profile.family_name,'Измененная');
+  assert.equal(response.json().profile.job_title,'Инженер');
+  const renewed=sessionCookie(await finish(await begin('login')));
+  const profile=(await app.inject({method:'GET',url:'/api/profile',headers:{cookie:renewed}})).json().profile;
+  assert.equal(profile.family_name,'Измененная');
+  assert.equal(profile.job_title,'Инженер');
+  for(const key of ['sub','identity_provider','requested_scopes','granted_scopes','claims_snapshot','sber_profile']) assert.equal(key in profile,false);
+});
+
+test('readiness detects unavailable identity storage and corporate access function',async()=>{
+  assert.equal((await app.inject({method:'GET',url:'/health/ready'})).statusCode,200);
+  await pool.query('ALTER TABLE public.identity_profiles RENAME TO unavailable_profiles');
+  try {assert.equal((await app.inject({method:'GET',url:'/health/ready'})).statusCode,503);}
+  finally {await pool.query('ALTER TABLE public.unavailable_profiles RENAME TO identity_profiles');}
+  await pool.query('ALTER FUNCTION public.effective_business_access(uuid,uuid,text,boolean) RENAME TO unavailable_business_access');
+  try {assert.equal((await app.inject({method:'GET',url:'/health/ready'})).statusCode,503);}
+  finally {await pool.query('ALTER FUNCTION public.unavailable_business_access(uuid,uuid,text,boolean) RENAME TO effective_business_access');}
 });

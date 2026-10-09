@@ -27,7 +27,7 @@ docker exec -e PGPASSWORD=quality-tests-only "$container" createdb -h 127.0.0.1 
 docker exec -e PGPASSWORD=quality-tests-only "$container" createdb -h 127.0.0.1 -U postgres forum_quality_browser_test
 npm run typecheck --prefix apps/api
 npm run build --prefix apps/api
-TEST_DATABASE_URL="postgres://postgres:quality-tests-only@127.0.0.1:$port/forum_quality_auth_test" npm test --prefix apps/api
+TEST_DATABASE_CONTAINER="$container" TEST_DATABASE_URL="postgres://postgres:quality-tests-only@127.0.0.1:$port/forum_quality_auth_test" npm test --prefix apps/api
 node --test apps/api/diagnostics/issuer-probe.test.mjs
 node scripts/verification/forum-api/test-callback-relay.mjs
 TEST_DATABASE_URL="postgres://postgres:quality-tests-only@127.0.0.1:$port/forum_quality_browser_test" npm run test:browser --prefix apps/api

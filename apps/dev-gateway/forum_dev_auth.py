@@ -59,8 +59,12 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
 
-            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session", "/api/profile"}:
+            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session", "/api/profile", "/api/settings", "/api/me/organizations"}:
                 self._proxy_api(send_body=send_body)
+                return
+
+            if path.startswith("/api/me/organizations"):
+                self._send_text(HTTPStatus.NOT_FOUND, "Not found", send_body=send_body)
                 return
 
             if path == "/_landing_health":
@@ -96,7 +100,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def do_POST(self) -> None:
             path = urlsplit(self.path).path
 
-            if path == "/api/auth/logout":
+            if path in {"/api/auth/logout", "/api/me/organizations"}:
                 self._proxy_api(send_body=True)
                 return
 
@@ -108,6 +112,12 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
                 self._redirect("/", clear_cookie=True)
                 return
 
+            self._send_text(HTTPStatus.NOT_FOUND, "Not found")
+
+        def do_PUT(self) -> None:
+            if urlsplit(self.path).path == "/api/settings":
+                self._proxy_api(send_body=True)
+                return
             self._send_text(HTTPStatus.NOT_FOUND, "Not found")
 
         def log_message(self, format: str, *args: object) -> None:

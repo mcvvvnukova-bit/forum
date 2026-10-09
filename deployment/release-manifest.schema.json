@@ -1110,9 +1110,11 @@
                 "const": "vite"
               },
               "routes": {
-                "description": "Current builds also own the organizations cabinet route; historical receipts remain valid.",
+                "description": "Current builds own cabinet settings and organizations; historical receipts remain valid.",
                 "enum": [
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/organizations/"],
+                  ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/", "/cabinet/organizations/"],
+                  ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/register"]

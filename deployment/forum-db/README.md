@@ -6,7 +6,7 @@ The historical September15 observation is preserved by source pins and private/h
 
 ## Owned entrypoints and checks
 
-[apply-public.psql](apply-public.psql) runs migrations001–003 in one transaction with `lock_timeout`, `statement_timeout`, advisory locking and the migration ledger. [apply-profiles.psql](apply-profiles.psql) is the compatibility redirect to that entrypoint. It refuses conflicting public/legacy ledgers and inconsistent consolidation markers. Original migrations remain unchanged in [the API owner](../../apps/api/migrations/003_public_schema.sql).
+[apply-public.psql](apply-public.psql) runs migrations001–003,005 and006 in one transaction with `lock_timeout`, `statement_timeout`, advisory locking and the migration ledger. [apply-profiles.psql](apply-profiles.psql) is the compatibility redirect to that entrypoint. It refuses conflicting public/legacy ledgers and inconsistent consolidation markers. Original migrations remain unchanged in [the API owner](../../apps/api/migrations/003_public_schema.sql).
 
 From the repository root, using an explicitly selected authorized schema-owner connection:
 
@@ -14,9 +14,11 @@ From the repository root, using an explicitly selected authorized schema-owner c
 psql -X -v ON_ERROR_STOP=1 -d forum -f deployment/forum-db/apply-public.psql
 ```
 
-Do not copy migrator credentials into the runtime role. Main `public` grants in [grant-runtime.sql](../forum-api/grant-runtime.sql) are not adapted to sandbox by a name substitution. The API owner migrator installs001–003 and005 on a clean database or applies005 to the consolidated003 layout; it rejects existing legacy ledgers rather than attempt migration002 on populated users.
+Do not copy migrator credentials into the runtime role. Main `public` grants in [grant-runtime.sql](../forum-api/grant-runtime.sql) are not adapted to sandbox by a name substitution. The API owner migrator installs001–003,005 and006 on a clean database or applies missing005/006 to a consolidated public layout; it rejects existing legacy ledgers rather than attempt migration002 on populated users.
 
-## Legacy authentication transfer and cutover
+## Historical PROJ-156 legacy authentication transfer and cutover
+
+The following records the completed PROJ-156 transfer contract; its migration005 precondition belongs to that historical release. Current importer/readiness require006.
 
 1. Verify database names, owners, ledgers, table inventory, counts, runtime consumers and grants. Save private full custom-format dumps of both databases plus runtime/credential-file configuration. Restore both into isolated PostgreSQL with the original owner and grant roles; do not use `--no-owner` or `--no-privileges` as recovery proof.
 2. Build the exact checked/committed API source. Apply the public migration005 explicitly as owner; keep original001–004 unchanged. Verify the existing `forum_app` allowlist and isolation without resetting its password or widening database access.
@@ -30,6 +32,22 @@ Before source deletion, a failed cutover stops the new API, restores its previou
 [bootstrap](../../scripts/deployment/forum-db/bootstrap_forum_db.sh) and [runtime-role configuration](../../scripts/deployment/forum-db/configure_forum_app_role.sh) retain explicit ownership. Before applying verify current database/user/schema/ledger/role and preserve a private restorable dump plus ownership/ACL evidence. Check grants with isolated synthetic data rather than actual user payloads.
 
 SQL checks: [profiles.sql](tests/profiles.sql), [public-schema.sql](tests/public-schema.sql), [role contract](tests/test_configure_role_contract.py). Restore and migration checks must cover clean install, repeat apply, conflict refusal, transaction rollback, schema/table/function/sequence identity, ownership/ACL and separate sandbox-role denial. Historical test counts are not a passing result for a changed candidate.
+
+## Current person and membership migration
+
+Apply006 as schema owner after a verified restorable backup. It preserves canonical
+person values and recorded source timestamps, backfills explicit legacy provenance,
+and keeps existing grants active. New accounts need no participant. Runtime profiles
+read canonical data; returning login updates provider snapshots independently.
+Corporate registration, membership, administrator authority and scoped grant state
+have separate bases and lifecycles; a company creator receives no implicit authority.
+
+[grant-runtime.sql](../forum-api/grant-runtime.sql) reconciles a fresh installation's
+explicit allowlist and requires006 before any mutation. For an existing installation
+with unrelated reference-table ACLs, use a reviewed narrow incremental grant transaction
+for the new tables/functions, SELECT(name) ledger read and UPDATE(status,revoked_at)
+columns; do not apply the blanket public ACL reconciliation to those live policies.
+Readiness must reject missing006 or any of these required source/grant write privileges.
 
 ## Recovery
 

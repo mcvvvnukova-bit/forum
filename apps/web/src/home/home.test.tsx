@@ -14,12 +14,16 @@ function renderPage(url = '/', sharedSession = false) {
 }
 
 describe('PUB.01.01.01', () => {
-  it('opens the cabinet from a real session and shows the assigned individual role', async () => {
+  it('opens the cabinet with an icon-only logout in its header and no footer', async () => {
     vi.stubGlobal('fetch', async (url:string) => url==='/api/profile' ? Response.json({userId:'person-one',profile:{given_name:'Анна',family_name:'Иванова'}}) : Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
     renderPage('/cabinet/?auth=success')
     expect(await screen.findByRole('link',{name:'Анна Иванова'})).toBeInTheDocument()
-    expect(screen.getByText('Физлицо')).toBeInTheDocument()
-    expect(screen.getByRole('button',{name:'Выйти'})).toBeInTheDocument()
+    const logout=within(screen.getByRole('banner')).getByRole('button',{name:'Выйти'})
+    expect(logout.textContent).toBe('')
+    expect(logout.querySelector('svg')).not.toBeNull()
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Физлицо')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link',{name:'На главную'})).not.toBeInTheDocument()
     expect(screen.queryByText('В этой локальной версии вход и создание учётной записи не подключены.')).not.toBeInTheDocument()
   })
   it('returns a confirmed guest cabinet visit to the homepage', async () => {
