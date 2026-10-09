@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-144",
+  "baseSha": "ad71174b6b677dd910d19db6f250c006723230c4",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/web/public/assets/brand-logo-horizontal-color.png",
+      "previousSha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/public/assets/brand-logo-horizontal-color.png",
+      "candidateSha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/public/audience-assets/media/brand-logo-horizontal-color.png",
+      "previousSha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/public/audience-assets/media/brand-logo-horizontal-color.png",
+      "candidateSha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "31ea7bcdfed1949e4c54b8338b8ba6eb0bcfaeecb967d165c35aba7e952451cb",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "ae5f8a55f75ca7d74456b7976b08fa9cef9191ee25609f34f18a7dea442a1f03",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "90bf8a298598beae6d886948b456b797da80b9d8320ae324dfa670748bf156ab",
+      "candidateMode": "100644"
+    }
+  ]
+}

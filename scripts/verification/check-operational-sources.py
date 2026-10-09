@@ -65,7 +65,10 @@ def current_file(candidate, expected_hash, expected_mode):
         resolved = (change['candidatePath'], change['candidateSha256'], change['candidateMode'])
     else:
         resolved = (candidate, expected_hash, expected_mode)
-    return public_entry_file(*governance_file(*resolved))
+    path, digest, mode = public_entry_file(*governance_file(*resolved))
+    if str(path.relative_to(ROOT)) in TRADING_LOGO_ASSETS:
+        return trading_logo_file(path, digest, mode)
+    return path, digest, mode
 
 
 # Preserve all dated predecessor receipts. This task can replace only these
@@ -397,7 +400,7 @@ def merged_verification_receipt():
         assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-163 main integration mode mismatch'
         digest = item['candidateSha256']
         assert isinstance(digest, str) and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), 'Invalid PROJ-163 main integration hash'
-        source = ROOT / candidate
+        source, digest, _ = trading_logo_file(ROOT / candidate, digest, item['candidateMode'])
         assert source.is_file() and not source.is_symlink(), candidate
         assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-163 main integration hash mismatch: ' + candidate
         assert not source.stat().st_mode & 0o111, 'PROJ-163 main integration source mode mismatch'
@@ -410,6 +413,48 @@ def merged_verification_file(path, expected_hash, expected_mode):
         return path, expected_hash, expected_mode
     assert expected_hash in MERGED_VERIFICATION_PREDECESSORS[candidate] and expected_mode == '100644', 'PROJ-163 main integration chain mismatch: ' + candidate
     change = next(x for x in merged_verification_receipt()['changes'] if x['previousCandidatePath'] == candidate)
+    return trading_logo_file(path, change['candidateSha256'], change['candidateMode'])
+
+
+# Restore the approved logo through a new successor; dated ownership is immutable.
+TRADING_LOGO_ASSETS = {
+    'apps/web/public/assets/brand-logo-horizontal-color.png',
+    'apps/web/public/audience-assets/media/brand-logo-horizontal-color.png',
+}
+TRADING_LOGO_PREDECESSORS = {
+    **{path: '51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63' for path in TRADING_LOGO_ASSETS},
+    'scripts/verification/check-operational-sources.py': '2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759',
+    'scripts/verification/checks.test.mjs': 'ae5f8a55f75ca7d74456b7976b08fa9cef9191ee25609f34f18a7dea442a1f03',
+}
+
+
+@lru_cache(maxsize=1)
+def trading_logo_receipt():
+    path = ROOT / 'artifacts/repository-audits/proj-144-logo-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing PROJ-144 logo receipt'
+    receipt = json.loads(path.read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-144'
+    assert receipt['baseSha'] == 'ad71174b6b677dd910d19db6f250c006723230c4', 'PROJ-144 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(TRADING_LOGO_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(TRADING_LOGO_PREDECESSORS), 'Out-of-scope PROJ-144 owner'
+    for item in changes:
+        candidate = item['previousCandidatePath']
+        assert item['candidatePath'] == candidate, 'PROJ-144 owner cannot move'
+        assert item['previousSha256'] == TRADING_LOGO_PREDECESSORS[candidate], 'PROJ-144 predecessor pin mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-144 mode mismatch'
+        digest = item['candidateSha256']
+        assert isinstance(digest, str) and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), 'Invalid PROJ-144 hash'
+        if candidate in TRADING_LOGO_ASSETS:
+            assert digest == '3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c', 'PROJ-144 approved logo pin mismatch'
+    return receipt
+
+
+def trading_logo_file(path, expected_hash, expected_mode):
+    candidate = str(path.relative_to(ROOT))
+    if candidate not in TRADING_LOGO_PREDECESSORS:
+        return path, expected_hash, expected_mode
+    assert expected_hash == TRADING_LOGO_PREDECESSORS[candidate] and expected_mode == '100644', 'PROJ-144 predecessor mismatch: ' + candidate
+    change = next(x for x in trading_logo_receipt()['changes'] if x['previousCandidatePath'] == candidate)
     return path, change['candidateSha256'], change['candidateMode']
 
 
@@ -636,7 +681,8 @@ def verify_provenance():
                     login_entry_receipt, provider_button_receipt, skip_link_receipt,
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, cabinet_settings_receipt,
-                    governance_receipt, ci_receipt, merged_verification_receipt):
+                    governance_receipt, ci_receipt, merged_verification_receipt,
+                    trading_logo_receipt):
         receipt.cache_clear()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
     assert matrix['schemaVersion'] == 1
@@ -706,6 +752,8 @@ def verify_provenance():
             verify_current(item['previousCandidatePath'], item['previousSha256'], item['previousMode'])
         for item in receipt['newFiles']:
             path, digest, _ = public_entry_file(ROOT / item['path'], item['sha256'], '100644')
+            if item['path'] in TRADING_LOGO_ASSETS:
+                path, digest, _ = trading_logo_file(path, digest, '100644')
             assert path.is_file() and not path.is_symlink(), item['path']
             assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, item['path']
     governance = governance_receipt(verify_history=True)
@@ -762,6 +810,11 @@ def verify_provenance():
         assert mode == '100644' and not path.stat().st_mode & 0o111, 'PROJ-163 current mode mismatch'
     ci_receipt()
     merged_verification_receipt()
+    for item in trading_logo_receipt()['changes']:
+        source = ROOT / item['candidatePath']
+        assert source.is_file() and not source.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-144 current hash mismatch: ' + item['candidatePath']
+        assert not source.stat().st_mode & 0o111, 'PROJ-144 current mode mismatch'
     return accepted
 
 

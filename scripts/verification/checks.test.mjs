@@ -7,6 +7,32 @@ import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {test} from 'node:test'
 
+test('PROJ-144 accepts the approved logo without changing historical ownership', t => {
+  const path = fixture(t)
+  const result = provenance(path)
+  assert.equal(result.status, 0, result.stderr)
+})
+
+for (const mutation of ['hash', 'pin', 'scope', 'path', 'mode', 'duplicate', 'base', 'logo-bytes', 'checker-bytes']) {
+  test(`PROJ-144 logo ownership rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    assert.equal(provenance(path).status, 0)
+    const file = join(path, 'artifacts/repository-audits/proj-144-logo-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    if (mutation === 'hash') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'pin') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes[0].previousCandidatePath = 'package.json'
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    if (mutation === 'logo-bytes') writeFileSync(join(path, 'apps/web/public/assets/brand-logo-horizontal-color.png'), 'unapproved logo')
+    if (mutation === 'checker-bytes') writeFileSync(join(path, 'scripts/verification/check-operational-sources.py'), 'unowned checker')
+    writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}
+
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const checker = join(root, 'scripts/verification/check-repository-layout.mjs')
 const files = execFileSync('git', ['ls-files', '-z'], {cwd: root, encoding: 'utf8'}).split('\0').filter(Boolean)
