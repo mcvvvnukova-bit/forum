@@ -64,7 +64,7 @@
       "previousSha256": "6ff286610858bdd8154acc71d4382411ccf4bff6e4560bb4a286b043dfcbe180",
       "previousMode": "100644",
       "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
-      "candidateSha256": "3d91e55258c56e5cfcb14d1461c2a343261e88cf1b13c0cc84ba41ce00fac52f",
+      "candidateSha256": "02d0cd9af420e75180ead3d4709a53f3a96273a2b41d5699597669df07126c93",
       "candidateMode": "100644"
     },
     {
@@ -96,7 +96,7 @@
       "previousSha256": "5eed055258c9fc1eeaf14a68283072148f7a18366b7f1e11d8d757960f0c22fd",
       "previousMode": "100644",
       "candidatePath": "apps/web/src/home/home.test.tsx",
-      "candidateSha256": "56ab6f6044e72fdc3232ce9f8e1382376c8b8596430b4371a45669788f1df9b3",
+      "candidateSha256": "73863f8f3fde473e2af54bbbc770021f5840417824b821625fcad7b1b1972890",
       "candidateMode": "100644"
     },
     {
@@ -188,7 +188,7 @@
     },
     {
       "path": "apps/web/src/home/cabinet.css",
-      "sha256": "771890dc9d0528d7dcb12323888466ce45ceddcbc3cab859deae73250c92a580",
+      "sha256": "1782f836fda51ca98050d80b5ad89d09e95119f7ddaf3d0b7201a0e6bfd004fe",
       "mode": "100644"
     },
     {
