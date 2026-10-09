@@ -131,7 +131,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [legacy-landing, web]
+        package: [dev-gateway, web]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -143,10 +143,6 @@ jobs:
           cache: npm
       - name: Clean install
         run: npm ci
-      - name: Install landing-owned Chromium for its layout test
-        if: matrix.package == 'legacy-landing'
-        working-directory: apps/legacy-landing
-        run: npx --no-install playwright install --with-deps chromium
       - name: Tracked Primer policy and negative regressions
         if: matrix.package == 'web'
         run: |
@@ -158,10 +154,9 @@ jobs:
           FRONTEND_PACKAGE: ${{ matrix.package }}
         run: |
           npm run typecheck
-          if [ "$FRONTEND_PACKAGE" != legacy-landing ]; then npm run lint; fi
+          if [ "$FRONTEND_PACKAGE" = web ]; then npm run lint; fi
           npm test
-          # dev-landing's declared test:layout already builds both entrypoints.
-          if [ "$FRONTEND_PACKAGE" != legacy-landing ]; then npm run build; fi
+          npm run build
       # Only a status receipt is uploaded. Raw application logs, environment,
       # generated sites and private worktree contents stay out of artifacts.
       - name: Sanitized failure receipt

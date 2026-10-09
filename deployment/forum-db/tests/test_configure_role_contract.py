@@ -144,7 +144,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql((migrations / '002_profiles.sql').read_text())
         self.sql((migrations / '003_public_schema.sql').read_text())
         self.sql("INSERT INTO public.schema_migrations(name) VALUES ('003_public_schema');")
-        for name in ['005_public_individual_role','006_person_memberships']:
+        for name in ['005_public_individual_role','006_person_memberships','007_my_organizations']:
             self.sql((migrations / (name + '.sql')).read_text())
             self.sql(f"INSERT INTO public.schema_migrations(name) VALUES ('{name}');")
         self.sql("CREATE TABLE public.unrelated_data(id bigserial PRIMARY KEY);"
@@ -196,7 +196,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
             'authorization_attempts': {'SELECT', 'INSERT', 'UPDATE', 'DELETE'},
             'role_assignments': {'SELECT', 'INSERT', 'DELETE'},
             'audit_events': {'SELECT', 'INSERT'}, 'outbox_events': {'SELECT', 'INSERT'},
-            'schema_migrations': set(), 'unrelated_data': set(),
+            'schema_migrations': set(), 'unrelated_data': set(), 'organization_additions': {'SELECT', 'INSERT'},
         }
         for table, allowed in expected.items():
             for privilege in ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']:

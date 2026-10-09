@@ -318,13 +318,15 @@ class Ownership(unittest.TestCase):
         checker.verify_provenance()
 
     def test_provenance_rejects_exact_layer_and_source_tampering(self):
-        for mutation in ['hash','pin','scope','mode','path','duplicate','new-hash','new-path','missing','source','symlink','history']:
+        for mutation in ['hash','pin','scope','mode','path','duplicate','new-hash','new-path','missing','source','symlink','history','main-pin','main-scope']:
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
                 root=self.fixture(directory)
                 self.provenance(root)
                 file=root/'artifacts/repository-audits/proj-168-local-ci-ownership.json'
                 receipt=json.loads(file.read_text())
-                if mutation=='hash': receipt['changes'][0]['candidateSha256']='0'*64
+                if mutation=='main-pin': receipt['mainPredecessors']['.github/workflows/quality.yml']='0'*64
+                elif mutation=='main-scope': receipt['mainPredecessors']['package.json']='0'*64
+                elif mutation=='hash': receipt['changes'][0]['candidateSha256']='0'*64
                 elif mutation=='pin': receipt['changes'][0]['previousSha256']='0'*64
                 elif mutation=='scope': receipt['changes'][0]['previousCandidatePath']='package.json'
                 elif mutation=='mode': receipt['changes'][0]['candidateMode']='100755'
@@ -421,7 +423,8 @@ class ImmutableGate(unittest.TestCase):
                     if name.startswith('Built route'):
                         self.assertEqual(commands[1],'--no-install playwright test --config tests/e2e/public-site.config.ts')
         self.assertIn('      - name: Install mail-check Chromium\n        run: npx --no-install playwright install --with-deps chromium',workflow)
-        self.assertIn("      - name: Install landing-owned Chromium for its layout test\n        if: matrix.package == 'legacy-landing'\n        working-directory: apps/legacy-landing\n        run: npx --no-install playwright install --with-deps chromium",workflow)
+        self.assertNotIn('legacy-landing',workflow)
+        self.assertIn('dev-gateway',workflow)
 
 
 if __name__ == '__main__':

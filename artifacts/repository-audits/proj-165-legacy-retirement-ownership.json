@@ -1,0 +1,809 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-165",
+  "baseSha": "31594281c0506952ab83873ff59d5879c24c0713",
+  "changes": [
+    {
+      "previousCandidatePath": ".github/workflows/quality.yml",
+      "previousSha256": "4e6f77be04839cb75711089d19404eb8dd35231ccb2bd90ea3aa368f3b583ce0",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": ".github/workflows/quality.yml",
+      "candidateSha256": "8e76f019a43098fe1bb7b98c39ce8bcc11df2b9bc4cfd23ef8553edf1b7fb58d",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "README.md",
+      "previousSha256": "01df750b58e425200e775908702761d1a2b5157963973c257fb5118f308c9ba9",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "README.md",
+      "candidateSha256": "957874837ac29699ce21c45ceed5f5ea44aea8bf329cdc0afe63793587008fdf",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/Dockerfile",
+      "previousSha256": "293c95b680444f3978ae41ee2160f5922043a52f2efdf8941924f82733d1ea13",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "apps/api/Dockerfile",
+      "candidateSha256": "da8a510fdab41bffa9e77d66012b654389008a667e54878eb08aa7a4d9878b38",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/README.md",
+      "previousSha256": "f1bb07c5838ca1751ee619ff2790adb043bfbbe84b9c719ed0b3856b3a20828c",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "apps/api/README.md",
+      "candidateSha256": "c39fb607a9dfe8a8675632b10a8fe8eeb9a49c6b6c5b5abd4379fca9fd0dce52",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/browser-smoke.mjs",
+      "previousSha256": "f8f486e185e5de44f7f277940d7d9d9a864c345b6b0b11a7e97374564a2329c3",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "apps/api/test/browser-smoke.mjs",
+      "candidateSha256": "0006902792e4bcc4ba0693b5d42276b595d51ff299ad0bd32ef7a6da14ce967f",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/README.md",
+      "previousSha256": "b33674692a5fccdc4e0bcd6556ea58e1557b45a36907c241a175353452582406",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/customers/index.html",
+      "previousSha256": "382bd1fccf7c590c1d21aed12be233c79503e7b76f6d8c14cb539921227a45a0",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/index.html",
+      "previousSha256": "ccf9429c7b1095a7fa3fb3d9623ae6a4a07513666bb79a0b05d9c707b243339f",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/index.html",
+      "candidateSha256": "ccf9429c7b1095a7fa3fb3d9623ae6a4a07513666bb79a0b05d9c707b243339f",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/landing.html",
+      "previousSha256": "ea8b772fd928610dae563689c81ab92dbbda96ceb3e60be5f19ac07da257aefc",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/package.json",
+      "previousSha256": "6f243f07a7ae1e8853ded29415725d80927ada30b881661d162691f608a1cccc",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/package.json",
+      "candidateSha256": "3fef9ff8d6b546d680b49f00ade152c17422d31b55d0fb422bfcaef6758dee63",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/public/forum-logo-square.svg",
+      "previousSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/public/auth-assets/forum-logo-square.svg",
+      "candidateSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/scripts/finalize-landing-build.mjs",
+      "previousSha256": "f3c529fd122c56831789335c4cbdbc3f411d8990e2843d12fa40282287e91e43",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/scripts/prepare-runtime.mjs",
+      "previousSha256": "b3c36e169f005b5ee6a87510368f1e5fb01a368e7ebb3cd98014a6ff4b049fce",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/AuthScreen.test.tsx",
+      "previousSha256": "00abfb1caef863463de352cb6d843cb63aefb9547aa6836120595396be413bd6",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/src/AuthScreen.test.tsx",
+      "candidateSha256": "9b1293d17dc2a30c0e832f8128601816253d85090abb8018e17e80a5d1ca60a4",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/AuthScreen.tsx",
+      "previousSha256": "61b6b26b77585c78c64636fe9938cb2a4a3ef967f46d570eaedbba26bbfad834",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/src/AuthScreen.tsx",
+      "candidateSha256": "f5e1a52098b6dc6dfccd7e1f1e197e2bb0c9a2e8f23104d86f9bc3955ee354fe",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/auth-screen.css",
+      "previousSha256": "0a9a5b2fcc84df688dc0bef98defb01562fe8024bf3b6fe8629d8443bf6419dc",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/src/auth-screen.css",
+      "candidateSha256": "0a9a5b2fcc84df688dc0bef98defb01562fe8024bf3b6fe8629d8443bf6419dc",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/customers/CustomerLanding.test.tsx",
+      "previousSha256": "d53aac7fe22a8d5f145fad12e227c8d97e5db316244b31ced6ab20c06a565dfc",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/customers/CustomerLanding.tsx",
+      "previousSha256": "a6c5d05530a1b0530d49de2716e640fee9ba4fc5b73beaf654fa826614753a74",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/customers/customer-content.ts",
+      "previousSha256": "74788b6012605ae08a06d1fa3f3290d1bee06a8cfc066ad5f7501bdff3a668f1",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/customers/customer-intent.test.ts",
+      "previousSha256": "849cf233e57c06d259bb86a757b3d374a85cccbd6fd0ade9c9ded381cdb210dc",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/customers/customer-intent.ts",
+      "previousSha256": "695aae1f530bad083b232c674841f2d11de1078495cea669f6cf60634fb346ce",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/customers/customer-screen.css",
+      "previousSha256": "5fbfe2c11e03bc139cb4029f83142155234bc0b700c286c0729a44db9c78adb5",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/customers/main.tsx",
+      "previousSha256": "4ab58a9c892d0462842e03d984e869403cd451d9902458809388a4c3d69e0091",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/forum-tokens.css",
+      "previousSha256": "9ad363edbffd21f513a527204e54a2b09664c8f84b60637cb4feffca8be81edc",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/LandingApp.test.tsx",
+      "previousSha256": "8140792675dca56931c23a31dd6cec2688a32111e706e772b9a3b193f0ebe675",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/LandingApp.tsx",
+      "previousSha256": "cfb68fe9da3bfbc7bc67ca4ff2598e883ce290d2caddf195bec4258249eadd75",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/PARTNER_LOGOS.md",
+      "previousSha256": "9d625d1bdfba17eed640d90f8ad8b1dfc444996da50a2596ff4ccc20e12f3478",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/audience-contractor.png",
+      "previousSha256": "6be40519a84946ee207299bd3bbbe34796dba6259506014352bea607387b5da7",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/audience-customer.png",
+      "previousSha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/audience-specialist-left-mirrored.png",
+      "previousSha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/audience-supplier.png",
+      "previousSha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/brand-logo-horizontal-color.webp",
+      "previousSha256": "2a908e49dfcb6df3d7a1ad85691ba310eb96ac2fdde86bdc27a78b0e9322ed6e",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/chevron-down.svg",
+      "previousSha256": "e8dd3dcded76a10e2261de56320b2cba1b64c98f37034e57688be51ecdd56738",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/hero-illustration-process-interface-v1.png",
+      "previousSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-bin-leasing.png",
+      "previousSha256": "f2f2b1dc9c208503c3fc99ac5837bd412ebb5fbdbcb87b43d1f4f5ffa66c905e",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-bk-resource.png",
+      "previousSha256": "2bc0b419b2f4d843a76e79125f6e643814b0466b295cdf9a1b0f5e09af7e8067",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-geoprom.webp",
+      "previousSha256": "a53083977cc3ee7fabc4f0dd0038d0170969a4e65d3b837530a1d0fafb990ae5",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-polycorr.svg",
+      "previousSha256": "c85f107340967720f694b22708901f5831e2516948e742fa64381f5a44707004",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-profmaster.svg",
+      "previousSha256": "51e95c2d8511805d4cb914677c5883317e295fdb3e95af67d72c6ff7175e20f3",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-rentaero.svg",
+      "previousSha256": "89a7231e22b90d677cb1cb83e3e9138c2c84a7e8f15ace7acc1bd4bd19a5e0e4",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-sfera-snab.svg",
+      "previousSha256": "665e761aeefea6b35909d96329f99d7ff8378d651898c127104f5309452eb516",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-spectransservice.png",
+      "previousSha256": "fd34b7e78401de9aaca881cc27d2ae74aaab7f8760cbc6ba80304404b69a1a5e",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-tahoban.svg",
+      "previousSha256": "77adde45b651355508c7a7ce4117e235fbae1fbee8294336b1090a00f0cb048b",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-tool-tech.jpg",
+      "previousSha256": "b9d97d630fa1521e1d0180665a6735fa700870c80e67ee7cb0f9f68690161c55",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-vostok-service.svg",
+      "previousSha256": "6d1b3f7e5df60edaa03e1abd85093afd71abe5a4dbb10c82aa629f3cb0d0a396",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-vseinstrumenti.svg",
+      "previousSha256": "addbeb0efffbebccc05a9cf91cbafd153ca56a08975b3e784ba5edf4ad019893",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-color-zelenaya-doroga.png",
+      "previousSha256": "32bfa3d723a2d07a1203b35f998eb19dc022e9ec4c2456770393b97ced7918c3",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-bin-leasing.png",
+      "previousSha256": "06edb1acc3c23683c43d260b8242a0d619487aaec9059139a30b391ef7705aed",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-bk-resource.png",
+      "previousSha256": "71235fd5161658b2245a4a4375dda1e4258309a9b3b93d51d4d4afd0c8e4882f",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-geoprom.png",
+      "previousSha256": "c2a0fd60efb75fd28fd1aa6c45cf847ac44e0f8917c772d9c412f835d34f7920",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-profmaster.png",
+      "previousSha256": "7dcacbb3dbc779112bc4f858af04442c9c1148be90a3d584011c31f5746c6158",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-sfera-snab.png",
+      "previousSha256": "c5e3f9c2ba161652c2fa24b9ea243401eae805e6fc08f36cb56b95196d7da4e6",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-spectransservice.png",
+      "previousSha256": "8d6962764c875a3561aac1557da2c40427e920adf5b6e50daecc1c43aaf13bab",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-tahoban.png",
+      "previousSha256": "7fd5100d3666b7fee59b555099d5a6cecfa0d9742b94360e997e0d3454721f76",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-vostok-service.png",
+      "previousSha256": "6c3c28709edc5b97966fcafcbe99ff2b5e0ea401a178c2aa4e5b5427fd6426fc",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-vseinstrumenti.png",
+      "previousSha256": "45164385ce2bee7fd97960f7247746a08b156e2263372d6cfa141ff4f53139da",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-gray-zelenaya-doroga.png",
+      "previousSha256": "28d5b90e35065a79a3130e747753fa5ad0442193d996696434107aeec8295236",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-polycorr-gray.png",
+      "previousSha256": "18d32712f350cab1c0624ae109f86fa473cc9028b2000d93189185f91231f0f1",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-rentaero-gray.png",
+      "previousSha256": "969e3f750d2e6cde9c84ca72ca8a940e3dee494540f747ec6e8c38a0910bcccc",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/logo-tool-tech-gray.png",
+      "previousSha256": "ab3fc9fd222d118b48790121e72ba10bee302fec2f4f5712f987a2cc2d51891e",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/sber-id-official-mark.svg",
+      "previousSha256": "ddc6ab8713ea03141c440a2c5ccda7bf158f96ee8ac7f1c01e675445749ce73a",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/assets/vortex-selected-concept-01.png",
+      "previousSha256": "200425ba9e284d55ea816ab28849de4d0556bc9d3112a1fb11061b3fa1c19c19",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/cal-diy-embed.test.ts",
+      "previousSha256": "038d9a1474e905f7b70c605b76283a603b707059c12395ed5a444edc30e840c9",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/cal-diy-embed.ts",
+      "previousSha256": "0dff77da4270719d8a2d8f29f93453a321e4f9841bd9375fd1a9ffc028a6014d",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/landing-screen.css",
+      "previousSha256": "6432b03f842ca2e3787f90156c519a733cc2ec5c93fa7d94e1328e88abfc8348",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/landing-screen.test.tsx",
+      "previousSha256": "81ee385a5b9788eb997ceff1bfc10e586fc46e0c9b19008ec2b53e785ec87b8d",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/main.tsx",
+      "previousSha256": "631dac05a76d75147a475023b56dd0ee8eb99940235fad1151d2fd78a546a89a",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/landing/use-landing-session.ts",
+      "previousSha256": "2b535134ff3d8c65437c2273e6f6c15748d25be153c6f96c086b86b6d27bbf39",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/main.tsx",
+      "previousSha256": "89fde870fd25bc2fbbbc0a143df1ae127814925c4be8f6c5cd640da890cb1d3d",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/src/main.tsx",
+      "candidateSha256": "847517542457755daec3cad62aacaaed7bc8303133d3794765f151cb09ff812b",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/shared/DemoSection.tsx",
+      "previousSha256": "706ecff544f29e26a79e795a98e8f4b1deef2a3a3e1e49b84b457b612f9a2f82",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/shared/demo-section.css",
+      "previousSha256": "1b8d7f6f1e6ee509e466db1915ee55fa91d561afcaa9dd2731e299d5aabda2f6",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/test-setup.ts",
+      "previousSha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/src/test-setup.ts",
+      "candidateSha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/src/vite-env.d.ts",
+      "previousSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/src/vite-env.d.ts",
+      "candidateSha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/favicon.png",
+      "previousSha256": "7e2322606d37cad93045474c333320a7362c94c4541e061a2f237922c4682a19",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/fonts/golos-text-cyrillic.woff2",
+      "previousSha256": "2f175b8fc40ed4e826742879f92ec903256fc2612d8d95c7c287232fd7138e4b",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/fonts/golos-text-latin.woff2",
+      "previousSha256": "f8d71091110f0113ba8bd16bee2ac68b51dd6491c5b9404e9fbb82b20ae632f1",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/fonts/unbounded-cyrillic.woff2",
+      "previousSha256": "001908755f2abe8f6979e43d15475151483fbee9ea3ebc023dd7b83c86eae762",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/fonts/unbounded-latin.woff2",
+      "previousSha256": "3787ee52a39256a57d7c8fc347e3dcf27bce97c37e36a0d94646136b195d1fc9",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/forum-hard-hat.png",
+      "previousSha256": "12f6a2ea755c0aedcb7fa1a83e9fbd07c31d38bebdcac3837839c93d38bf0717",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/forum-logo-square.svg",
+      "previousSha256": "59335a6de40e5b0b419e0d4bde9d95ec3e5f9f3ada05581c2176dbfd9f697ef6",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/audience-contractor.png",
+      "previousSha256": "6be40519a84946ee207299bd3bbbe34796dba6259506014352bea607387b5da7",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/audience-customer.png",
+      "previousSha256": "1536d6c3d018ba22f7fd6ade5af50cca0ff1d9190ce3cc319eee6031e5971610",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/audience-specialist-left-mirrored.png",
+      "previousSha256": "a4a5e078730841f0f6fe4546deb16ce4f8d2cfb85c8c683960f50b14e8876d04",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/audience-supplier.png",
+      "previousSha256": "36a52830780f078428926fe03a2b3fc7b850ef798db986266135452fb0b55c1d",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/brand-logo-horizontal-color.webp",
+      "previousSha256": "2a908e49dfcb6df3d7a1ad85691ba310eb96ac2fdde86bdc27a78b0e9322ed6e",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/chevron-down.svg",
+      "previousSha256": "e8dd3dcded76a10e2261de56320b2cba1b64c98f37034e57688be51ecdd56738",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/hero-illustration-process-interface-v1.png",
+      "previousSha256": "2943e50bdc7583e460a78f6f7855d16fe70809d696b91680e1d8a2bebf925ee6",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-bin-leasing.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-bk-resource.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-geoprom.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-profmaster.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-sfera-snab.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-spectransservice.png",
+      "previousSha256": "652f5a02a5a898d4f74ba1314f9c4718e0f0bd4c5c9565660e174c5178f27ce4",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-tahoban.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-vostok-service.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-vseinstrumenti.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-gray-zelenaya-doroga.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-polycorr-gray.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-rentaero-gray.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/logo-tool-tech-gray.png",
+      "previousSha256": "338a795f06e30f0216c162fb0e188db9595cb2cbc90557524e4dc28c670b6531",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing-assets/vortex-selected-concept-01.png",
+      "previousSha256": "200425ba9e284d55ea816ab28849de4d0556bc9d3112a1fb11061b3fa1c19c19",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/landing/index.html",
+      "previousSha256": "167c122e1ef9c2f1464219feb00d77008a00d91a2327fe65ac649e1cc3b550a6",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/static/robots.txt",
+      "previousSha256": "331ea9090db0c9f6f597bd9840fd5b171830f6e0b3ba1cb24dfa91f0c95aedc1",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tests/test_auth_gateway.py",
+      "previousSha256": "140836d2f34751b89b3ddd276ac6d515490d686074f961d48898b1e70ad1d3ca",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/tests/test_auth_gateway.py",
+      "candidateSha256": "8f824ca516d8b5a6e4c69ef6ca2008ab289ae2ac06b1133ab2d21d678a5ae531",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tests/test_deploy_retired.py",
+      "previousSha256": "a24dc2503f7492c61678fe1f3dc035c49c4a6e6eb5bec348b812dafa69d8d2da",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tests/test_deploy_rollback.py",
+      "previousSha256": "0794668da5debfa3b38faeb41c4ca476c88326640e463e0e6d8303a28f1f2457",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tests/test_origin_login_check.py",
+      "previousSha256": "54f359d18659f721860459cec45f6a860a4708e356800de3fb14f4ec0c70ec1c",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/tests/test_origin_login_check.py",
+      "candidateSha256": "54f359d18659f721860459cec45f6a860a4708e356800de3fb14f4ec0c70ec1c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tsconfig.json",
+      "previousSha256": "a590c6d45eb6afa9fc72c39ad1553478382b809071ab7b88061b021063a6c2c5",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/tsconfig.json",
+      "candidateSha256": "a590c6d45eb6afa9fc72c39ad1553478382b809071ab7b88061b021063a6c2c5",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/vite.config.ts",
+      "previousSha256": "5e5358fcfb1c0be86e47f54cf9941ecca1ee3527dc5cfd745ab527bb287fd336",
+      "previousMode": "100644",
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/vite.config.ts",
+      "candidateSha256": "55908ca3a4d56a6c3a7069bec5a40f943cef2e0649cc92aa0c9df4112d2ea5d9",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/vite.landing.config.ts",
+      "previousSha256": "d151d7dd9593f497b6de23d113ddcee8025eda8cdf9c0c942bf5b2b5441bfe36",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/vitest.config.ts",
+      "previousSha256": "1a00ac6456530348177835b6b798e0799804ecfc4143ac2f7cbdb4580abbd583",
+      "previousMode": "100644",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "deployment/mail/templates/README.md",
+      "previousSha256": "315457910c280991d124a7e1ebcc0f8196184d951c6b08db2811b7acab5d0a5a",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "deployment/mail/templates/README.md",
+      "candidateSha256": "7ddfd9487ebc379374daa9c600e4cc7ac5def9278fa5b0fa4682b2bac08910ab",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "package-lock.json",
+      "previousSha256": "6129529b156384a535b93bcdba332a9d97aff14f50e96b7ba996e4dabb69da38",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "package-lock.json",
+      "candidateSha256": "001c8b83f831a6c61137b5205c145845e15b4bfd26acee99d5002491284a77ad",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "package.json",
+      "previousSha256": "a23caeea3300b68808ccd35c6a1ce35a3cb566d022c8ac570f78c4cbd445410e",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "package.json",
+      "candidateSha256": "9b730ec6c1d23d54b3127ce1cb768008cc0aaab484d372f63cf0eb08eef85992",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/legacy-landing/deploy.sh",
+      "previousSha256": "b92f52de94ed74317fdf0d1e3a78e22fd20b83ace2a8c131ecb0d1455fa70439",
+      "previousMode": "100755",
+      "action": "delete"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-mail-resources.py",
+      "previousSha256": "c4deabdec4fbbf35a8bd582d6378d9c71c0eaf6a3707230860c77f1f68b8d9be",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "scripts/verification/check-mail-resources.py",
+      "candidateSha256": "1f5ab6424983808e39e2d52005796cb589e28a21ddbb4d688df7a4b15fa44490",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "75389cf4d7b6047ffa107cea3ef83620e2c9e15dbcac81b09545263f9c99c608",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "c2431f09a13746d441ab661ba9d62616beb0a04ac71bd67695caa3c8e62e93b6",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "b18f228e48fafec474638de15722dee2257bf33a344bc2aed2beee33bfa70ad3",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "71d1a6113574299794bda680c204b5d815da4b96a071a936730bd358fb9bf781",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/repository-layout.json",
+      "previousSha256": "e6debbf43df842f10b738e65eda0baa12b59f39bd95ff2aadead7d66b43b5ab7",
+      "previousMode": "100644",
+      "action": "change",
+      "candidatePath": "scripts/verification/repository-layout.json",
+      "candidateSha256": "fc343f1eeb5887394ffd78d8bde1fb76aae4a789121f43184364100cf1dbe08d",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/legacy-landing-layout.mjs",
+      "previousSha256": "807649804c5b34512c4869992de0bce898ded0e84ff5e368925ec27e7e937715",
+      "previousMode": "100644",
+      "action": "delete"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/dev-gateway/README.md",
+      "sha256": "9d127c38597f8caed88fbb75fc603958ed2c2f25b573e91071f11f58934a839d",
+      "mode": "100644"
+    }
+  ]
+}

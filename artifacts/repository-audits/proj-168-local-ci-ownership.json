@@ -8,7 +8,7 @@
       "previousSha256": "3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b",
       "previousMode": "100644",
       "candidatePath": ".github/workflows/quality.yml",
-      "candidateSha256": "08e5de6cfc36d47a729f79eb2b366cb32054584c591b04897dca400ecbd22e5a",
+      "candidateSha256": "a7f91427aa0877a72ae8dbf602c35d3b71c91102e9b8dba2150a0b224182c43d",
       "candidateMode": "100644"
     },
     {
@@ -16,7 +16,7 @@
       "previousSha256": "2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "ddddef6d7dc2818accc45cba555e920e314f30055cb6590df045445b48455337",
+      "candidateSha256": "703cd650da8fe72c750585667f476ec871ed5eba1e193d149c256d950eb7878f",
       "candidateMode": "100644"
     },
     {
@@ -32,7 +32,7 @@
       "previousSha256": "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/repository-layout.json",
-      "candidateSha256": "4b8a5a8e9ccc962a5d4df70e86ffe37aaccf131418e72c88dc3e2daf31cb0048",
+      "candidateSha256": "cba98f440ac1aac2d9f8ef78249b33dbdbd21da09f8e393793a1be37ba47d248",
       "candidateMode": "100644"
     },
     {
@@ -90,7 +90,7 @@
     },
     {
       "path": "scripts/verification/test_local_ci.py",
-      "sha256": "784dbdd26e169d1e3de99465457ae2ba1b7d8d23c07d05188b5e1de8dd2fe580",
+      "sha256": "2850bdb516ab2cb0d55a739e67aeca791a9d9081a600b34a56182b74a16ee91f",
       "mode": "100644"
     },
     {
@@ -103,5 +103,11 @@
       "sha256": "928375cf0f0ad15ada5f4b0a04a6aa12a198d66f102c4d5fd83e23b5703d6058",
       "mode": "100644"
     }
-  ]
+  ],
+  "mainSha": "070ffbd4e7495d313f01ac3e3f7956b090c19628",
+  "mainPredecessors": {
+    ".github/workflows/quality.yml": "11aa1141da514d37148e5c4a7cfb391cff279c2c6bcb1b6c217ecf22f1e341c4",
+    "scripts/verification/check-operational-sources.py": "02bfbfb44591b9d14403a198d52326f6d60ee34eadc4eabb8a21f3eeffc179dd",
+    "scripts/verification/repository-layout.json": "8754aca93f00ac76c7046432a373a68bef1138f86412dd0bcf5b9492ae44cee2"
+  }
 }

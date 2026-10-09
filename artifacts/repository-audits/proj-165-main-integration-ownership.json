@@ -1,0 +1,500 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-165",
+  "baseSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+  "mainSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+  "liveSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+  "changes": [
+    {
+      "previousCandidatePath": ".github/workflows/quality.yml",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "8e76f019a43098fe1bb7b98c39ce8bcc11df2b9bc4cfd23ef8553edf1b7fb58d",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "5f0e523b6ef1cabc6aaa77355f2dd46262de5ab891c77d6f8ac080634062e7fc",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": ".github/workflows/quality.yml",
+      "candidateSha256": "11aa1141da514d37148e5c4a7cfb391cff279c2c6bcb1b6c217ecf22f1e341c4",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "README.md",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "957874837ac29699ce21c45ceed5f5ea44aea8bf329cdc0afe63793587008fdf",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "01df750b58e425200e775908702761d1a2b5157963973c257fb5118f308c9ba9",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "01df750b58e425200e775908702761d1a2b5157963973c257fb5118f308c9ba9",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "README.md",
+      "candidateSha256": "957874837ac29699ce21c45ceed5f5ea44aea8bf329cdc0afe63793587008fdf",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/Dockerfile",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "da8a510fdab41bffa9e77d66012b654389008a667e54878eb08aa7a4d9878b38",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "293c95b680444f3978ae41ee2160f5922043a52f2efdf8941924f82733d1ea13",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "293c95b680444f3978ae41ee2160f5922043a52f2efdf8941924f82733d1ea13",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "apps/api/Dockerfile",
+      "candidateSha256": "da8a510fdab41bffa9e77d66012b654389008a667e54878eb08aa7a4d9878b38",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/README.md",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "c39fb607a9dfe8a8675632b10a8fe8eeb9a49c6b6c5b5abd4379fca9fd0dce52",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "4a009077e2088eb1bae3ce13d1068d1cd7ce530c25b34c16b380980436a8b8a1",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "4a009077e2088eb1bae3ce13d1068d1cd7ce530c25b34c16b380980436a8b8a1",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "apps/api/README.md",
+      "candidateSha256": "5c7a061491ac54a4d864bab0d70c9e45ca8de176e3e35f0cdd532d46beed0818",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/browser-smoke.mjs",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "0006902792e4bcc4ba0693b5d42276b595d51ff299ad0bd32ef7a6da14ce967f",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "6e8c1dbbbed6f2dfd46866ac666ab0ca5cb1b70ac2e188940a7a65cb1b539535",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "6e8c1dbbbed6f2dfd46866ac666ab0ca5cb1b70ac2e188940a7a65cb1b539535",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "apps/api/test/browser-smoke.mjs",
+      "candidateSha256": "6e8c1dbbbed6f2dfd46866ac666ab0ca5cb1b70ac2e188940a7a65cb1b539535",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/dev-gateway/tests/test_auth_gateway.py",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "8f824ca516d8b5a6e4c69ef6ca2008ab289ae2ac06b1133ab2d21d678a5ae531",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "apps/dev-gateway/tests/test_auth_gateway.py",
+      "candidateSha256": "f7fbba31f7a66f008a67bd9816faef929021224fb8763f0504a5ef5f520b97ba",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/legacy-landing/tests/test_auth_gateway.py",
+      "predecessors": [
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "30914c6901443969ad65aa348b0268595c2493a56d4fc884d548436b0c1ae849",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "30914c6901443969ad65aa348b0268595c2493a56d4fc884d548436b0c1ae849",
+          "mode": "100644"
+        }
+      ],
+      "action": "move",
+      "candidatePath": "apps/dev-gateway/tests/test_auth_gateway.py",
+      "candidateSha256": "f7fbba31f7a66f008a67bd9816faef929021224fb8763f0504a5ef5f520b97ba",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/public/assets/brand-logo-horizontal-color.png",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "apps/web/public/assets/brand-logo-horizontal-color.png",
+      "candidateSha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/public/audience-assets/media/brand-logo-horizontal-color.png",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "51290135b4f4318211f09dd17dd23a1e30241bce9813aa29f4a9c0adced09c63",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "apps/web/public/audience-assets/media/brand-logo-horizontal-color.png",
+      "candidateSha256": "3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/mail/templates/README.md",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "7ddfd9487ebc379374daa9c600e4cc7ac5def9278fa5b0fa4682b2bac08910ab",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "315457910c280991d124a7e1ebcc0f8196184d951c6b08db2811b7acab5d0a5a",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "315457910c280991d124a7e1ebcc0f8196184d951c6b08db2811b7acab5d0a5a",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "deployment/mail/templates/README.md",
+      "candidateSha256": "7ddfd9487ebc379374daa9c600e4cc7ac5def9278fa5b0fa4682b2bac08910ab",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "package-lock.json",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "001c8b83f831a6c61137b5205c145845e15b4bfd26acee99d5002491284a77ad",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "6129529b156384a535b93bcdba332a9d97aff14f50e96b7ba996e4dabb69da38",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "6129529b156384a535b93bcdba332a9d97aff14f50e96b7ba996e4dabb69da38",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "package-lock.json",
+      "candidateSha256": "001c8b83f831a6c61137b5205c145845e15b4bfd26acee99d5002491284a77ad",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "package.json",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "9b730ec6c1d23d54b3127ce1cb768008cc0aaab484d372f63cf0eb08eef85992",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "a23caeea3300b68808ccd35c6a1ce35a3cb566d022c8ac570f78c4cbd445410e",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "a23caeea3300b68808ccd35c6a1ce35a3cb566d022c8ac570f78c4cbd445410e",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "package.json",
+      "candidateSha256": "9b730ec6c1d23d54b3127ce1cb768008cc0aaab484d372f63cf0eb08eef85992",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-mail-resources.py",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "1f5ab6424983808e39e2d52005796cb589e28a21ddbb4d688df7a4b15fa44490",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "c4deabdec4fbbf35a8bd582d6378d9c71c0eaf6a3707230860c77f1f68b8d9be",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "c4deabdec4fbbf35a8bd582d6378d9c71c0eaf6a3707230860c77f1f68b8d9be",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "scripts/verification/check-mail-resources.py",
+      "candidateSha256": "1f5ab6424983808e39e2d52005796cb589e28a21ddbb4d688df7a4b15fa44490",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "c2431f09a13746d441ab661ba9d62616beb0a04ac71bd67695caa3c8e62e93b6",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "31ea7bcdfed1949e4c54b8338b8ba6eb0bcfaeecb967d165c35aba7e952451cb",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "69ce838cd8bd61d9c7c84f4fac123b67e640de164e78ab71241d2d0b5396c427",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "71d1a6113574299794bda680c204b5d815da4b96a071a936730bd358fb9bf781",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "ae5f8a55f75ca7d74456b7976b08fa9cef9191ee25609f34f18a7dea442a1f03",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "90bf8a298598beae6d886948b456b797da80b9d8320ae324dfa670748bf156ab",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "40d8f8ee13bffcf24c2c2b737b685e341153923ddd6779ee49cd15c1771538b7",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/ci-optimization.test.mjs",
+      "predecessors": [
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "c004958e76aff7aa3d610bf3849aca896eacd5399778e1d3f4b2304907b33e66",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "c004958e76aff7aa3d610bf3849aca896eacd5399778e1d3f4b2304907b33e66",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "scripts/verification/ci-optimization.test.mjs",
+      "candidateSha256": "a21d278b011adf0b689ed215a2fa796a67a61ad550772cadeff2633cc092024d",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/repository-layout.json",
+      "predecessors": [
+        {
+          "sourceSha": "051d06e5b2cccf212089783c3c6496670cd7ee65",
+          "sha256": "fc343f1eeb5887394ffd78d8bde1fb76aae4a789121f43184364100cf1dbe08d",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+          "sha256": "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99",
+          "mode": "100644"
+        },
+        {
+          "sourceSha": "7da4632e4fd532b831977dd527746f4824cdefe9",
+          "sha256": "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99",
+          "mode": "100644"
+        }
+      ],
+      "action": "change",
+      "candidatePath": "scripts/verification/repository-layout.json",
+      "candidateSha256": "8754aca93f00ac76c7046432a373a68bef1138f86412dd0bcf5b9492ae44cee2",
+      "candidateMode": "100644"
+    }
+  ],
+  "historicalReceipts": [
+    {
+      "path": "artifacts/repository-audits/accepted-source-matrix.json",
+      "sha256": "1bcd9dff8cc7c42da2234e020ddc1f4f45e12029a911cf7963785b0ad0c2c895",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-144-logo-ownership.json",
+      "sha256": "54931af6f10039dbe521d6da27d1aaeb054781eee9cf9223ba74e63f763187f9",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-154-verification-ownership.json",
+      "sha256": "88d5d0106a1e499364d0491f4ba09b002c87d07993b7843868a42c12a61038a1",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-155-sber-auth-ownership.json",
+      "sha256": "c6b27dfa7d9018bb8eb348408a31c116639469b29594f2e811ce8a43a49bea32",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-156-main-auth-ownership.json",
+      "sha256": "e768f30c8eee1e3d42ec75082fd97b000795d0a2139e5363588f1529874cac3c",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-157-login-entry-ownership.json",
+      "sha256": "472ac5e6ce8845a2966bde9b5f01e5c43607d0edf01418374ec19907cb7c1eb5",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-158-sber-button-ownership.json",
+      "sha256": "77d93739a5900191873b4875c5ec3e35f4a3add321e368556f02481f8dea655e",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-159-skip-link-ownership.json",
+      "sha256": "1b90f2a299af16a619581be32a5a0ec9b2d09097121f2a1485b2765878dd814a",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-160-cabinet-profile-ownership.json",
+      "sha256": "ba7bf5e5671a47e5a1d82a31156e5ac8eec8044f379d45dd617fdc8f7a0682fd",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-161-person-memberships-ownership.json",
+      "sha256": "6630ce0a910c01d3dc60dedf45b765f939398d8467bdaa42d5bff47d1b5c6c78",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-163-cabinet-settings-ownership.json",
+      "sha256": "06a77989c0527012bdce9b1fedfa58fe275f05a035f1530e67525dc780b55f09",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-163-main-integration-ownership.json",
+      "sha256": "e0d8d87a3a40511d21da2fe97b038d9ddea4d6172c85025512855d067ff535d4",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-164-ci-ownership.json",
+      "sha256": "3ea3010cb4b81d45269e73bec06cb089d821b50bba2a6d835609a73b905a696c",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-165-legacy-retirement-ownership.json",
+      "sha256": "ee5cf0bd0c254d49145ec7220cfcf8edce3a98848eb569776969af8987eca945",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-31-public-entry-ownership.json",
+      "sha256": "7e36e8d6c723643be5e84eb33d4569a472aeec7dace7a98a82c574ae11657c79",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-38-logout-home-ownership.json",
+      "sha256": "1b658c8e9322629c3d7533e7f375c2a238dd03b172007fed2885706c1fa8a4e7",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-5-source-parity.json",
+      "sha256": "32c5c040940ae80ab0679d26dad95ee1118f8d81c5950375ee74a8279ab4f135",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-6-source-ownership.json",
+      "sha256": "b157fd454b08e02bc3dc03d5f0d579bc4412e27a531dad70f3a057c58158e21a",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-7-source-ownership.json",
+      "sha256": "3be7b5e0cc2779ab71b3ba6383761860e7199ffe4765d05556adbda76e7d4fa3",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-8-source-ownership.json",
+      "sha256": "13da0ce310eb381fa0190f57976398cedea4aeaee3249107e3735cc7339fb488",
+      "mode": "100644"
+    }
+  ],
+  "newFiles": []
+}

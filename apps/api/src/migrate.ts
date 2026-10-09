@@ -28,7 +28,7 @@ export async function migrate(pool: Pool): Promise<void> {
         await client.query(`INSERT INTO ${ledger}.schema_migrations(name) VALUES ($1)`, [name]);
       }
     }
-    for (const name of ['005_public_individual_role','006_person_memberships']) {
+    for (const name of ['005_public_individual_role','006_person_memberships','007_my_organizations']) {
       const applied = await client.query('SELECT name FROM public.schema_migrations WHERE name = $1', [name]);
       if (!applied.rowCount) {
         const sql = await readFile(resolve(`migrations/${name}.sql`), 'utf8');
