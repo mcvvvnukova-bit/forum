@@ -2,7 +2,7 @@ FROM node:24-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
-COPY apps/legacy-landing/package.json ./apps/legacy-landing/
+COPY apps/dev-gateway/package.json ./apps/dev-gateway/
 COPY apps/web/package.json ./apps/web/
 COPY apps/profile-preview/package.json ./apps/profile-preview/
 RUN npm ci --workspace @astforum/api --include-workspace-root=false

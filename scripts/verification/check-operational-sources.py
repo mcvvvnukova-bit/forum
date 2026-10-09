@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Validate selected operational source offline; never invoke its administrators."""
 import ast
+from dataclasses import dataclass
+from functools import lru_cache
+from typing import Optional
 import hashlib
 from html.parser import HTMLParser
 import json
@@ -26,7 +29,7 @@ def run(*argv, cwd=ROOT):
 def current_file(candidate, expected_hash, expected_mode):
     receipt_path = ROOT / 'artifacts/repository-audits/task-7-source-ownership.json'
     if not receipt_path.exists():
-        return ROOT / candidate, expected_hash, expected_mode
+        return retirement_file(ROOT / candidate, expected_hash, expected_mode)
     receipt = json.loads(receipt_path.read_text())
     assert receipt['baseSha'] == 'a56b52ed05a5f1fbe267dafcfe5d41ce1042916b'
     changes = receipt['changes']
@@ -56,7 +59,7 @@ def current_file(candidate, expected_hash, expected_mode):
         resolved = (change['candidatePath'], change['candidateSha256'], change['candidateMode'])
     else:
         resolved = (candidate, expected_hash, expected_mode)
-    return governance_file(*resolved)
+    return retirement_file(*governance_file(*resolved))
 
 
 
@@ -101,10 +104,9 @@ def governance_receipt(verify_history=False):
     historical = receipt['historicalReceipts']
     assert len(historical) == len(HISTORICAL_RECEIPTS) and {item['path'] for item in historical} == HISTORICAL_RECEIPTS, 'Invalid historical receipt scope'
     for item in sources + (historical if verify_history else []):
-        source = ROOT / item['path']
-        assert source.is_file() and not source.is_symlink(), item['path']
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-154 receipt hash mismatch: ' + item['path']
-        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-154 source mode mismatch'
+        source = retirement_file(ROOT / item['path'], item['sha256'], item.get('mode', '100644'))
+        assert not source.is_retired, 'PROJ-154 source cannot retire'
+        exact_file(source.path, source.sha256, source.mode)
     return receipt
 
 
@@ -117,15 +119,110 @@ def governance_file(candidate, expected_hash, expected_mode):
     return ROOT / candidate, expected_hash, expected_mode
 
 
+# PROJ-165 authenticates the complete predecessor/action/destination manifest
+# independently of its editable current hashes. No history fetch is needed in CI.
+RETIREMENT_MANIFEST_SHA256 = '21829579df7468ae68293e260fe828681686efc2df7c1db64b6de87ba6db217a'
+RETIREMENT_NEW_PATHS = {'apps/dev-gateway/README.md'}
+
+
+@dataclass(frozen=True)
+class CurrentSource:
+    path: Optional[Path]
+    sha256: str
+    mode: str
+
+    @property
+    def is_retired(self):
+        return self.path is None
+
+
+def exact_file(path, digest, mode):
+    relative = path.relative_to(ROOT)
+    assert not any((ROOT / Path(*relative.parts[:index])).is_symlink() for index in range(1, len(relative.parts) + 1)), 'Unsafe source symlink: ' + str(relative)
+    assert path.is_file(), 'Missing current source: ' + str(relative)
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'Current source hash mismatch: ' + str(relative)
+    assert ('100755' if path.stat().st_mode & 0o111 else '100644') == mode, 'Current source mode mismatch: ' + str(relative)
+
+
+def retirement_receipt(verify_sources=True):
+    path = ROOT / 'artifacts/repository-audits/proj-165-legacy-retirement-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing PROJ-165 retirement receipt'
+    receipt = retirement_manifest(path.read_bytes())
+    if verify_sources:
+        assert not (ROOT / 'apps/legacy-landing').exists(), 'Retired landing directory resurrected'
+        for item in receipt['changes']:
+            if item['action'] in {'delete', 'move'}:
+                old = ROOT / item['previousCandidatePath']
+                assert not old.exists() and not old.is_symlink(), 'Retired source resurrected: ' + item['previousCandidatePath']
+            if item['action'] != 'delete':
+                exact_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        for item in receipt['newFiles']:
+            exact_file(ROOT / item['path'], item['sha256'], item['mode'])
+    return receipt
+
+
+@lru_cache(maxsize=1)
+def retirement_manifest(raw):
+    # Only immutable decoded metadata is cached, keyed by exact receipt bytes.
+    # Every public verification still checks current files and physical absence.
+    receipt = json.loads(raw)
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-165', 'Invalid PROJ-165 task/schema'
+    assert receipt['baseSha'] == '31594281c0506952ab83873ff59d5879c24c0713', 'Invalid PROJ-165 base'
+    changes = receipt['changes']
+    assert len({item['previousCandidatePath'] for item in changes}) == len(changes), 'Duplicate PROJ-165 predecessor'
+    manifest = []
+    destinations = []
+    for item in changes:
+        action = item['action']
+        assert action in {'delete', 'move', 'change'}, 'Invalid PROJ-165 action'
+        previous = item['previousCandidatePath']
+        assert_safe_source(previous)
+        manifest.append({key: item[key] for key in ['previousCandidatePath', 'previousSha256', 'previousMode', 'action']} |
+                        ({'candidatePath': item['candidatePath']} if action != 'delete' else {}))
+        if action == 'delete':
+            assert set(item) == {'previousCandidatePath', 'previousSha256', 'previousMode', 'action'}, 'Invalid tombstone fields'
+        else:
+            assert set(item) == {'previousCandidatePath', 'previousSha256', 'previousMode', 'action', 'candidatePath', 'candidateSha256', 'candidateMode'}, 'Invalid current owner fields'
+            assert_safe_source(item['candidatePath'])
+            destinations.append(item['candidatePath'])
+    manifest.sort(key=lambda item: item['previousCandidatePath'])
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    assert digest == RETIREMENT_MANIFEST_SHA256, 'PROJ-165 predecessor/scope pin mismatch'
+    assert len(set(destinations)) == len(destinations), 'Duplicate PROJ-165 destination'
+    sources = receipt['newFiles']
+    assert len(sources) == len(RETIREMENT_NEW_PATHS) and {item['path'] for item in sources} == RETIREMENT_NEW_PATHS, 'PROJ-165 new owner scope mismatch'
+    return receipt
+
+
+def assert_safe_source(candidate):
+    path = Path(candidate)
+    assert not path.is_absolute() and '..' not in path.parts and path.as_posix() == candidate and candidate not in {'', '.'}, 'Unsafe PROJ-165 source'
+
+
+def retirement_file(path, expected_hash, expected_mode):
+    candidate = path.relative_to(ROOT).as_posix()
+    receipt = retirement_receipt(verify_sources=False)
+    change = next((item for item in receipt['changes'] if item['previousCandidatePath'] == candidate), None)
+    if not change:
+        return CurrentSource(path, expected_hash, expected_mode)
+    assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-165 predecessor mismatch: ' + candidate
+    if change['action'] in {'delete', 'move'}:
+        old = ROOT / candidate
+        assert not old.exists() and not old.is_symlink(), 'Retired source resurrected: ' + candidate
+    if change['action'] == 'delete':
+        return CurrentSource(None, expected_hash, expected_mode)
+    return CurrentSource(ROOT / change['candidatePath'], change['candidateSha256'], change['candidateMode'])
+
+
 def verify_current(candidate, expected_hash, expected_mode):
-    path, digest, mode = current_file(candidate, expected_hash, expected_mode)
-    assert path.is_file() and not path.is_symlink(), candidate
-    assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, str(path)
-    assert ('100755' if path.stat().st_mode & 0o111 else '100644') == mode, str(path)
-    return path
+    resolved = current_file(candidate, expected_hash, expected_mode)
+    if not resolved.is_retired:
+        exact_file(resolved.path, resolved.sha256, resolved.mode)
+    return resolved
 
 
 def verify_provenance():
+    retirement_receipt()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
     assert matrix['schemaVersion'] == 1
     accepted = 0
@@ -138,9 +235,9 @@ def verify_provenance():
             verify_current(candidate, file['candidateSha256'], file['candidateMode'])
             # Historical Git blob remains a pin of the originally accepted bytes;
             # current changed content is independently SHA-verified by Task7.
-            path, digest, _ = current_file(candidate, file['candidateSha256'], file['candidateMode'])
-            if digest == file['candidateSha256']:
-                data = path.read_bytes()
+            resolved = current_file(candidate, file['candidateSha256'], file['candidateMode'])
+            if not resolved.is_retired and resolved.sha256 == file['candidateSha256']:
+                data = resolved.path.read_bytes()
                 blob = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
                 assert blob == file['candidateGitBlob'], candidate
             accepted += 1
@@ -193,15 +290,15 @@ def verify_provenance():
         for item in receipt['changes']:
             verify_current(item['previousCandidatePath'], item['previousSha256'], item['previousMode'])
         for item in receipt['newFiles']:
-            path = ROOT / item['path']
-            assert path.is_file() and not path.is_symlink(), item['path']
-            assert hashlib.sha256(path.read_bytes()).hexdigest() == item['sha256'], item['path']
+            source = retirement_file(ROOT / item['path'], item['sha256'], item.get('mode', '100644'))
+            if not source.is_retired:
+                exact_file(source.path, source.sha256, source.mode)
     governance = governance_receipt(verify_history=True)
     for item in governance['changes']:
-        path = ROOT / item['candidatePath']
-        assert path.is_file() and not path.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-154 current hash mismatch: ' + item['candidatePath']
-        assert not path.stat().st_mode & 0o111, 'PROJ-154 current mode mismatch'
+        source = retirement_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert not source.is_retired, 'PROJ-154 governance cannot retire'
+        exact_file(source.path, source.sha256, source.mode)
+    retirement_receipt()
     return accepted
 
 

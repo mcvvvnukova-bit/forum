@@ -190,7 +190,7 @@ The browser runner is owned by this API package: its locked dev dependencies
 include Playwright and Vite. The Fastify override keeps the adapter and direct
 Fastify dependency on the same patched version rather than its older nested pin.
 It composes the existing frontend in
-`apps/legacy-landing`, which needs its separate locked install (React, Primer,
+`apps/web`, using the root workspace locked install (React, Primer,
 and its Vite config/plugin). From a clean checkout at the repository root:
 
 ```sh

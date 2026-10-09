@@ -43,7 +43,7 @@ for (const [file, error] of [
     assert.match(run(path).stderr, error)
   })
 }
-for (const missing of ['apps/legacy-landing/package.json', 'package-lock.json', 'apps/web/src/auth/PublicAuth.test.tsx', 'apps/profile-preview/package.json', 'apps/profile-preview/src/profile.test.ts', 'apps/web/production-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml', 'scripts/deployment/forum-db/bootstrap_forum_db.sh', 'scripts/deployment/forum-db/configure_forum_app_role.sh', 'scripts/deployment/pgadmin/configure-admin.py', 'scripts/deployment/mail/stalwart_api.py', 'scripts/maintenance/mail/backup.sh', 'scripts/maintenance/openproject/backup.sh', 'scripts/verification/mail/verify.py', 'scripts/verification/forum-api/test-callback-relay.mjs']) {
+for (const missing of ['apps/dev-gateway/package.json', 'package-lock.json', 'apps/web/src/auth/PublicAuth.test.tsx', 'apps/profile-preview/package.json', 'apps/profile-preview/src/profile.test.ts', 'apps/web/production-static/index.html', 'deployment/vps/outline/Caddyfile.example', 'deployment/forum-api/sber-dns.override.yaml', 'deployment/pgadmin/compose.yaml', 'scripts/deployment/forum-db/bootstrap_forum_db.sh', 'scripts/deployment/forum-db/configure_forum_app_role.sh', 'scripts/deployment/pgadmin/configure-admin.py', 'scripts/deployment/mail/stalwart_api.py', 'scripts/maintenance/mail/backup.sh', 'scripts/maintenance/openproject/backup.sh', 'scripts/verification/mail/verify.py', 'scripts/verification/forum-api/test-callback-relay.mjs']) {
   test(`required source cannot be skipped: ${missing}`, t => {
     const path = fixture(t)
     rmSync(join(path, missing))
@@ -174,6 +174,39 @@ for (const mutation of ['hash', 'pin', 'scope', 'mode', 'path', 'duplicate', 'so
     if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
     if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
     if (mutation === 'source') receipt.newFiles[0].sha256 = '0'.repeat(64)
+    writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}
+
+// A receipt must never authorize a missing, resurrected or altered protected source.
+const retirementReceipt = 'artifacts/repository-audits/proj-165-legacy-retirement-ownership.json'
+for (const mutation of ['omitted-delete', 'omitted-move', 'predecessor-hash', 'predecessor-mode', 'base', 'task', 'duplicate', 'scope', 'resurrected', 'missing-destination', 'tampered-destination', 'current-owner', 'unrelated-missing']) {
+  test(`PROJ-165 retirement rejects ${mutation}`, t => {
+    const path = fixture(t)
+    const file = join(path, retirementReceipt)
+    const receipt = JSON.parse(readFileSync(join(root, retirementReceipt)))
+    writeFileSync(file, JSON.stringify(receipt))
+    const baseline = provenance(path)
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const deleted = receipt.changes.find(item => item.action === 'delete')
+    const moved = receipt.changes.find(item => item.action === 'move')
+    if (mutation === 'omitted-delete') receipt.changes.splice(receipt.changes.indexOf(deleted), 1)
+    if (mutation === 'omitted-move') receipt.changes.splice(receipt.changes.indexOf(moved), 1)
+    if (mutation === 'predecessor-hash') deleted.previousSha256 = '0'.repeat(64)
+    if (mutation === 'predecessor-mode') deleted.previousMode = '100755'
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    if (mutation === 'task') receipt.taskCode = 'PROJ-999'
+    if (mutation === 'duplicate') receipt.changes.push(deleted)
+    if (mutation === 'scope') deleted.previousCandidatePath = 'apps/api/src/app.ts'
+    if (mutation === 'resurrected') {
+      mkdirSync(dirname(join(path, deleted.previousCandidatePath)), {recursive:true})
+      writeFileSync(join(path, deleted.previousCandidatePath), 'resurrected source')
+    }
+    if (mutation === 'missing-destination') rmSync(join(path, moved.candidatePath))
+    if (mutation === 'tampered-destination') writeFileSync(join(path, moved.candidatePath), 'tampered source')
+    if (mutation === 'current-owner') writeFileSync(join(path, 'package.json'), 'tampered current owner')
+    if (mutation === 'unrelated-missing') rmSync(join(path, 'scripts/deployment/mail/stalwart_api.py'))
     writeFileSync(file, JSON.stringify(receipt))
     assert.notEqual(provenance(path).status, 0)
   })

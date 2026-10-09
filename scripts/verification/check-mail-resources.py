@@ -51,8 +51,9 @@ def verify():
             assert target.is_file() and not target.is_symlink(), f'Missing local resource: {source}: {url}'
             local.append(target.relative_to(OWNER).as_posix())
     logo = OWNER / 'logo.webp'
-    accepted = ROOT / 'apps/legacy-landing/src/landing/assets/brand-logo-horizontal-color.webp'
-    assert hashlib.sha256(logo.read_bytes()).digest() == hashlib.sha256(accepted.read_bytes()).digest()
+    # Accepted mail bytes retain their original matrix provenance after source retirement.
+    accepted_sha256 = '2a908e49dfcb6df3d7a1ad85691ba310eb96ac2fdde86bdc27a78b0e9322ed6e'
+    assert hashlib.sha256(logo.read_bytes()).hexdigest() == accepted_sha256, 'Accepted mail logo changed'
     print(json.dumps({'htmlSources': len(files), 'localReferences': local,
                       'externalReferences': len(external), 'templateVariables': placeholders,
                       'mailSent': False}))
