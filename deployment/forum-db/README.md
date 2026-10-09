@@ -18,7 +18,7 @@ Do not copy migrator credentials into the runtime role. Main `public` grants in 
 
 ## Historical PROJ-156 legacy authentication transfer and cutover
 
-The following records the completed PROJ-156 transfer contract; its migration005 precondition belongs to that historical release. Current importer/readiness require006.
+The following records the completed PROJ-156 transfer contract; its migration005 precondition belongs to that historical release. Current deployment and readiness require006. The importer retains005 compatibility and also supports the upgraded005/006 layout.
 
 1. Verify database names, owners, ledgers, table inventory, counts, runtime consumers and grants. Save private full custom-format dumps of both databases plus runtime/credential-file configuration. Restore both into isolated PostgreSQL with the original owner and grant roles; do not use `--no-owner` or `--no-privileges` as recovery proof.
 2. Build the exact checked/committed API source. Apply the public migration005 explicitly as owner; keep original001–004 unchanged. Verify the existing `forum_app` allowlist and isolation without resetting its password or widening database access.
