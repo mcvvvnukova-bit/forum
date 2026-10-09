@@ -35,6 +35,24 @@ class Routing(unittest.TestCase):
             self.assertEqual(jobs[name], 'ubuntu-24.04')
 
 
+    def test_node_dependent_local_jobs_bootstrap_pinned_node_before_checks(self):
+        workflow=(ROOT/'.github/workflows/quality.yml').read_text()
+        jobs=dict(re.findall(r'^  ([\w-]+):\n(.*?)(?=^  [\w-]+:|\Z)',workflow.split('jobs:\n',1)[1],re.M|re.S))
+        consumers={'api':'Install API-owned Chromium','database':'Network-isolated disposable PostgreSQL ACL regressions','operational':'Sanitized operational syntax and source contracts','web-release':'Build environment isolation and actual Vite media serving'}
+        for job,consumer in consumers.items():
+            with self.subTest(job=job):
+                steps=re.split(r'^      - ',jobs[job].split('    steps:\n',1)[1],flags=re.M)[1:]
+                setup=[index for index,step in enumerate(steps) if step.startswith('uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020')]
+                self.assertEqual(len(setup),1,f'{job} must provide the pinned Node action')
+                self.assertIn('          node-version: 24.18.1',steps[setup[0]])
+                self.assertNotIn('        if:',steps[setup[0]],'Both runner environments need explicit Node')
+                consumer_index=next(index for index,step in enumerate(steps) if step.startswith('name: '+consumer))
+                self.assertLess(setup[0],consumer_index,'Node consumer ran before bootstrap')
+                if job=='operational':
+                    self.assertNotIn('cache:',steps[setup[0]])
+                    self.assertIn('run: python3 scripts/verification/check-operational-sources.py',steps[consumer_index])
+
+
 
 
 class ManagerBehavior(unittest.TestCase):

@@ -8,7 +8,7 @@
       "previousSha256": "3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b",
       "previousMode": "100644",
       "candidatePath": ".github/workflows/quality.yml",
-      "candidateSha256": "8d6398c8677ea313aea8dd18a4201bd8f182dbc9934809e1d5c18b83374f3265",
+      "candidateSha256": "08e5de6cfc36d47a729f79eb2b366cb32054584c591b04897dca400ecbd22e5a",
       "candidateMode": "100644"
     },
     {
@@ -90,7 +90,7 @@
     },
     {
       "path": "scripts/verification/test_local_ci.py",
-      "sha256": "8cd66c8868fb03c99b5dcdc5d589eeb340970c950d15f68ea33fd068cd4b9bbf",
+      "sha256": "784dbdd26e169d1e3de99465457ae2ba1b7d8d23c07d05188b5e1de8dd2fe580",
       "mode": "100644"
     },
     {
