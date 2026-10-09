@@ -2,8 +2,9 @@ import {useEffect, useRef, useState} from 'react'
 import {Banner, Button, Checkbox, FormControl, Spinner, Stack, Text} from '@primer/react'
 
 type Settings = {userId:string;workAsIndividual:boolean}
-type State = {kind:'loading'} | {kind:'error'} | {kind:'ready'|'saving';enabled:boolean;notice?:'saved'|'uncertain'}
+type State = {kind:'loading'} | {kind:'error'} | {kind:'ready'|'saving';enabled:boolean;notice?:'saved'|'uncertain'|'restricted'}
 class SessionExpired extends Error {}
+class ParticipationRestricted extends Error {}
 
 async function requestSettings(userId:string, signal:AbortSignal, enabled?:boolean):Promise<Settings> {
   const controller=new AbortController()
@@ -15,6 +16,7 @@ async function requestSettings(userId:string, signal:AbortSignal, enabled?:boole
     const response=await fetch('/api/settings',{credentials:'same-origin',cache:'no-store',signal:controller.signal,
       ...(enabled===undefined?{}:{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({workAsIndividual:enabled})})})
     if(response.status===401)throw new SessionExpired()
+    if(response.status===409)throw new ParticipationRestricted()
     if(response.status!==200)throw new Error('Settings unavailable')
     const result:unknown=await response.json()
     if(!result || typeof result!=='object' || !('userId' in result) || result.userId!==userId
@@ -55,7 +57,7 @@ export function SettingsSection({userId,onExpired}:{userId:string;onExpired:()=>
       // the saved choice; keep editing blocked if that read also fails.
       try {
         const value=await requestSettings(userId,signal)
-        if(!signal.aborted)setState({kind:'ready',enabled:value.workAsIndividual,notice:'uncertain'})
+        if(!signal.aborted)setState({kind:'ready',enabled:value.workAsIndividual,notice:error instanceof ParticipationRestricted?'restricted':'uncertain'})
       } catch(readError) {
         if(signal.aborted)return
         if(readError instanceof SessionExpired)expired.current()
@@ -73,5 +75,6 @@ export function SettingsSection({userId,onExpired}:{userId:string;onExpired:()=>
     </FormControl>
     <Text role="status" aria-live="polite">{state.kind==='saving'?'Сохраняем…':state.notice==='saved'?'Сохранено':''}</Text>
     {state.notice==='uncertain' && <Banner title="Не удалось подтвердить сохранение. Проверьте выбор и повторите при необходимости." variant="warning"/>}
+    {state.notice==='restricted' && <Banner title="Участие исполнителем ограничено. Обратитесь в поддержку." variant="warning"/>}
   </Stack>
 }

@@ -80,6 +80,14 @@ describe('individual participation settings',()=>{
     expect(await screen.findByRole('button',{name:'Повторить'})).toBeInTheDocument()
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
+  it('explains an administrative restriction without showing a saved or enabled choice',async()=>{
+    network(async init=>init?.method==='PUT'?Response.json({code:'participation_restricted'},{status:409}):Response.json({userId:'owner',workAsIndividual:false}))
+    page()
+    fireEvent.click(await screen.findByRole('checkbox',{name:label}))
+    expect(await screen.findByText('Участие исполнителем ограничено. Обратитесь в поддержку.')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox',{name:label})).not.toBeChecked()
+    expect(screen.queryByText('Сохранено')).not.toBeInTheDocument()
+  })
   it('removes closed settings when the session expires while saving',async()=>{
     let expired=false
     vi.stubGlobal('fetch',async(url:string,init?:RequestInit)=>{

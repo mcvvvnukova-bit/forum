@@ -317,6 +317,46 @@ def logout_home_file(path, expected_hash, expected_mode):
 
 
 # PROJ-161 owns the exact final task diff from PR30 without rewriting receipts.
+
+# PROJ-163 owns only the settings route, its protected API and verification.
+# Historical receipts remain immutable; these pins resolve their final owners.
+CABINET_SETTINGS_PREDECESSORS = {'apps/api/README.md': ('d1fd862c6245c92bcb639087d3f2a1e7407d58e07e3bb0d36026ce1e430e9e21', '100644'), 'apps/api/src/app.ts': ('050e327353cbe920601894e7adda74582b00b5fce2e4d5c76a719c29fd751c5f', '100644'), 'apps/dev-gateway/forum_dev_auth.py': ('c88c6729652613ae92b2bce4dd43954826b76e255593e48db3086c52b685fffa', '100644'), 'apps/legacy-landing/tests/test_auth_gateway.py': ('bb1a42cfed0b8f447d94039c30a4de3ea79580e032ffa138735578690970ad72', '100644'), 'apps/profile-preview/src/ProfilePage.tsx': ('3d91e55258c56e5cfcb14d1461c2a343261e88cf1b13c0cc84ba41ce00fac52f', '100644'), 'apps/web/src/home/App.tsx': ('f558a815f42f23f74f2c917cc265a49d240dd7290f0b943ad153fc6134d9f9f8', '100644'), 'apps/web/src/home/Cabinet.tsx': ('e93e6188ba580c0ef19568697ec914a8988a5307fde5fa9e6c0999d973f0872a', '100644'), 'deployment/release-manifest.schema.json': ('7e0c4ba0a2c749fc2e1c1656b112acceaa2b1ebab44d310d0910c53611d78318', '100644'), 'scripts/deployment/build-web-release.mjs': ('42ed103cbe8604869dcbd1fa07fe995951ee40d87ca74e108df2294ac3262c91', '100644'), 'scripts/deployment/web_release.py': ('bdb0b1bd626af9e138262e4b669775e4eff9288be30d9f8881221e9377711bd9', '100644'), 'scripts/verification/check-operational-sources.py': ('67e3640b7c9b5187f934d060d8e9eb0464d7f228565a5e55f4776de933295032', '100644'), 'scripts/verification/checks.test.mjs': ('d26163b9793cef1b4fa81d0f5a76d066a39d84418a5bedac44fa0d8e1301cc51', '100644'), 'scripts/verification/web-build-inputs.test.mjs': ('028c4776a27c27997adcfdae8cabbaf78ae6940cd4bc21968f98d7263915a724', '100644'), 'tests/e2e/public-site.spec.ts': ('a1b9280920896e11bf0e705ff52d17b99aa4e9a0ae377fd8e6050c2f6a721711', '100644'), 'tests/integration/test_primer_ui_policy.py': ('112ef317342f3c9671e9db442de282acf171cb383180fae2d019b399efe317a7', '100644'), 'tests/integration/test_web_release.py': ('021c4627b9ce3eb1074e7f52febe39785e0a96254a826b9e70da17f9187d8176', '100644')}
+CABINET_SETTINGS_NEW_PATHS = {'apps/api/src/iam/settings-store.ts', 'apps/web/src/home/settings.test.tsx', 'apps/api/src/iam/settings.controller.ts', 'docs/plans/2026-10-09-cabinet-settings-design.md', 'docs/plans/2026-10-09-cabinet-settings.md', 'apps/web/src/home/SettingsSection.tsx', 'apps/api/test/settings.test.ts'}
+
+
+@lru_cache(maxsize=1)
+def cabinet_settings_receipt():
+    receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-163-cabinet-settings-ownership.json').read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-163'
+    assert receipt['baseSha'] == '033f50fe2b41257e45d586e98f3c3e4b86e8ef67', 'PROJ-163 baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(CABINET_SETTINGS_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(CABINET_SETTINGS_PREDECESSORS), 'Out-of-scope PROJ-163 owner'
+    for item in changes:
+        path = item['previousCandidatePath']
+        digest, mode = CABINET_SETTINGS_PREDECESSORS[path]
+        assert item['candidatePath'] == path and item['previousSha256'] == digest, 'PROJ-163 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == mode, 'PROJ-163 mode mismatch'
+        value = item['candidateSha256']
+        assert isinstance(value, str) and len(value) == 64 and all(c in '0123456789abcdef' for c in value), 'PROJ-163 invalid digest'
+    sources = receipt['newFiles']
+    assert len(sources) == len(CABINET_SETTINGS_NEW_PATHS) and {x['path'] for x in sources} == CABINET_SETTINGS_NEW_PATHS, 'Out-of-scope PROJ-163 source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), item['path']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-163 source hash mismatch: ' + item['path']
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-163 source mode mismatch'
+    return receipt
+
+
+def cabinet_settings_file(path, expected_hash, expected_mode):
+    candidate = str(Path(path).relative_to(ROOT)) if Path(path).is_absolute() else str(path)
+    change = next((x for x in cabinet_settings_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
+    if change:
+        assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-163 chain mismatch: ' + candidate
+        return ROOT / candidate, change['candidateSha256'], change['candidateMode']
+    return ROOT / candidate, expected_hash, expected_mode
+
+
 PERSON_MEMBERSHIPS_PREDECESSORS = {'apps/api/README.md': ('f785acd9d7fe41382bd4e768de3d689d8b9cf273ee9955c4e3123cb8411e9bd2', '100644'), 'apps/api/src/app.ts': ('df88c043361aad5ecfbf3f6dffe362ce5594b88117209be434a20d5db35f1304', '100644'), 'apps/api/src/consolidate-auth.ts': ('40e8aefada5ddce2009f5448b9e9c01069ad5a47b22f8367ef045d312ebacb9d', '100644'), 'apps/api/src/iam/auth-store.ts': ('7e1c8cc45c049318b1704f2fb7e47813862bcaeb3a5eba2bf8056ecab2a0bee5', '100644'), 'apps/api/src/iam/sber-client.ts': ('249ff6fb8aa4ddccc7c1e53bb9560710dcd074aca0c540871bf167408077b1e5', '100644'), 'apps/api/src/migrate.ts': ('4c487e02489eb76a2bab63fc16439ff5a21847b7d908024d597048bc29712b39', '100644'), 'apps/api/test/auth.test.ts': ('424f6a579df3df4383de00127a2e808bd47b8379121d24d6d775a59ba239a54d', '100644'), 'apps/api/test/consolidation.test.ts': ('6c616fd510d7330fb83dfd36cdb0c18024c29869810b7239fdc4e0505eb28d24', '100644'), 'apps/web/src/audience/intent.test.ts': ('cfeb6847b5847527859d36547d63dfaad9fd4c5e1bb3d39b404dad979aa73234', '100644'), 'apps/web/src/audience/intent.ts': ('a7fb3118f22e95fc15ad73dc0bd1a8a5bb6275846338725c71d00ae46f8e3db9', '100644'), 'deployment/forum-api/grant-runtime.sql': ('2c27de747e5e853d6d86883a816a4dbd395076befe148ef15e395318e21a0667', '100644'), 'deployment/forum-db/README.md': ('dc7a6729b70091237d0a09bad231c99d8a43a562249589e9e2379d081deb0281', '100644'), 'deployment/forum-db/apply-public.psql': ('55459ee9277042b63e0281ee15ed9a1f864cef6832d39b676fc7dc05e109a1a8', '100644'), 'deployment/forum-db/tests/profiles.sql': ('a950bdec1a0e4c88025315eb178c422e88d641060fb5fd0dde02d2590ed6dd04', '100644'), 'deployment/forum-db/tests/public-schema.sql': ('a0d17def597548cbad2c0eb34f7a54d81982e0763cdf85e9637a9adcdc2c67df', '100644'), 'deployment/forum-db/tests/test_configure_role_contract.py': ('d53d633f1be92590341fd1e28b41f8fd3849fd943105314c99b5dd8bd484bb37', '100644'), 'scripts/deployment/forum-db/configure_forum_app_role.sh': ('43ded821bb9d2bb6e47aa7ac0122aedf26809790ed5abc8f4b7aed2869e5ea90', '100755'), 'scripts/verification/check-api.sh': ('44255908ab14debdc66ca2ba836b6e226ad6c33b743bace384be4e42334c9a0f', '100644'), 'scripts/verification/check-operational-sources.py': ('e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a', '100644'), 'scripts/verification/checks.test.mjs': ('d97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8', '100644')}
 PERSON_MEMBERSHIPS_NEW_PATHS = {'apps/api/migrations/006_person_memberships.sql', 'apps/api/test/person-memberships.test.ts', 'docs/plans/2026-10-09-PROJ-161-person-memberships.md', 'apps/api/src/iam/person-profile.ts', 'apps/api/src/party/business-access.ts'}
 
@@ -333,10 +373,10 @@ def person_memberships_receipt():
         digest, mode = PERSON_MEMBERSHIPS_PREDECESSORS[path]
         assert item['candidatePath'] == path and item['previousSha256'] == digest, 'PROJ-161 predecessor mismatch'
         assert item['previousMode'] == item['candidateMode'] == mode, 'PROJ-161 mode mismatch'
-        source = ROOT / path
+        source, current_digest, current_mode = cabinet_settings_file(ROOT / path, item['candidateSha256'], item['candidateMode'])
         assert source.is_file() and not source.is_symlink(), path
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-161 current hash mismatch: ' + path
-        assert bool(source.stat().st_mode & 0o111) == (mode == '100755'), 'PROJ-161 current mode mismatch: ' + path
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == current_digest, 'PROJ-161 current hash mismatch: ' + path
+        assert bool(source.stat().st_mode & 0o111) == (current_mode == '100755'), 'PROJ-161 current mode mismatch: ' + path
     sources = receipt['newFiles']
     assert len(sources) == len(PERSON_MEMBERSHIPS_NEW_PATHS) and {x['path'] for x in sources} == PERSON_MEMBERSHIPS_NEW_PATHS, 'Out-of-scope PROJ-161 source'
     for item in sources:
@@ -352,8 +392,8 @@ def person_memberships_file(path, expected_hash, expected_mode):
     change = next((x for x in person_memberships_receipt()['changes'] if x['previousCandidatePath'] == candidate), None)
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-161 chain mismatch: ' + candidate
-        return ROOT / candidate, change['candidateSha256'], change['candidateMode']
-    return ROOT / candidate, expected_hash, expected_mode
+        return cabinet_settings_file(ROOT / candidate, change['candidateSha256'], change['candidateMode'])
+    return cabinet_settings_file(ROOT / candidate, expected_hash, expected_mode)
 
 
 # PROJ-154 changes verification governance only. The old Task5/6/7 receipts
@@ -598,6 +638,11 @@ def verify_provenance():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-160 successor hash mismatch: ' + item['candidatePath']
         assert mode == '100644' and not path.stat().st_mode & 0o111, 'PROJ-160 successor mode mismatch'
     person_memberships_receipt()
+    for item in cabinet_settings_receipt()['changes']:
+        path, digest, mode = cabinet_settings_file(ROOT / item['previousCandidatePath'], item['previousSha256'], item['previousMode'])
+        assert path.is_file() and not path.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-163 current hash mismatch: ' + item['candidatePath']
+        assert mode == '100644' and not path.stat().st_mode & 0o111, 'PROJ-163 current mode mismatch'
     return accepted
 
 

@@ -171,7 +171,9 @@ for(const width of [320,390,1440])test(`built settings toggle persists and remai
  await checkbox.focus();await page.keyboard.press('Space')
  await expect(checkbox).toBeChecked();await expect(page.getByRole('status')).toHaveText('Сохранено')
  await page.reload();await expect(checkbox).toBeChecked()
- await checkbox.uncheck();await expect(page.getByRole('status')).toHaveText('Сохранено')
+ // Controlled state stays at the confirmed choice until the PUT completes.
+ await checkbox.click();await expect(page.getByRole('status')).toHaveText('Сохранено')
+ await expect(checkbox).not.toBeChecked()
  await page.reload();await expect(checkbox).not.toBeChecked()
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  expect(errors).toEqual([])
