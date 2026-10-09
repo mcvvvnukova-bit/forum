@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-168",
+  "baseSha": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+  "changes": [
+    {
+      "previousCandidatePath": ".github/workflows/quality.yml",
+      "previousSha256": "3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b",
+      "previousMode": "100644",
+      "candidatePath": ".github/workflows/quality.yml",
+      "candidateSha256": "a7f91427aa0877a72ae8dbf602c35d3b71c91102e9b8dba2150a0b224182c43d",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "703cd650da8fe72c750585667f476ec871ed5eba1e193d149c256d950eb7878f",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-repository-layout.mjs",
+      "previousSha256": "61b13e05d81e540419fb030a231f4732343cc8666f136844a04f51c6af7b5ae8",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-repository-layout.mjs",
+      "candidateSha256": "76ab67fba960c0fc87f0a51f5ba5a7480869ccb9072345a2a9a77130d50a9c0c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/repository-layout.json",
+      "previousSha256": "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/repository-layout.json",
+      "candidateSha256": "cba98f440ac1aac2d9f8ef78249b33dbdbd21da09f8e393793a1be37ba47d248",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/public-site.config.ts",
+      "previousSha256": "ba9b882a55796726a6a7a65cf96118b484271762b1db92d49a401644b9d3288b",
+      "previousMode": "100644",
+      "candidatePath": "tests/e2e/public-site.config.ts",
+      "candidateSha256": "d239d307de566c54b897f71b3578c04ab3c4a17f06787666d851a17cc7b1ed79",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/serve-public-site.mjs",
+      "previousSha256": "515298669f80e1bb83fa41de4c36c62b41b81c847cefaaede4c241916e779489",
+      "previousMode": "100644",
+      "candidatePath": "tests/e2e/serve-public-site.mjs",
+      "candidateSha256": "1ef3ebc36c0d3bcd187c2a712c4ae15183d0bcf03f25a2f27ba2f07c5c8eed11",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "deployment/ci-local/Dockerfile",
+      "sha256": "c74b13e94c85cce4b7193b1e3be411d82e1783ad33a6d2d28915a69bf25542e6",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/ci-local/compose.yaml",
+      "sha256": "a747704355bf195cd21ec639c308c9a365b8448352eb285d8ef118b10aded33b",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/ci-local/entrypoint.sh",
+      "sha256": "5aa94d5a77654a65fb33f9ae78af3048c7962834c4d70465a114cf81abe9072b",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/ci-local/job-started.sh",
+      "sha256": "1c25920d012831c7e62265a853a1ce7388436d0efd239573bcc0543b1a7b4d9a",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/ci-local/validate-job.py",
+      "sha256": "d93dcdc5aba3b4a093d0ba2f1f7b8841e1e8e44555d5ef573f140e7003eb5798",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/ci-local/README.md",
+      "sha256": "735a0443b1106322d00ff74995321d19c9c8c2df23d980ed299c74cddeaaf236",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/deployment/ci-local/manage.py",
+      "sha256": "74439a22f85680fe1351c6813bce5ab40203ee082315e692283fd7d542f1f4fc",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/test_local_ci.py",
+      "sha256": "2850bdb516ab2cb0d55a739e67aeca791a9d9081a600b34a56182b74a16ee91f",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-10-local-ci-runner-design.md",
+      "sha256": "a0045788232ccc5b285c35fd754e66ba1baead5c7f2d91931ed2827a438544bf",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-10-local-ci-runner.md",
+      "sha256": "928375cf0f0ad15ada5f4b0a04a6aa12a198d66f102c4d5fd83e23b5703d6058",
+      "mode": "100644"
+    }
+  ],
+  "mainSha": "070ffbd4e7495d313f01ac3e3f7956b090c19628",
+  "mainPredecessors": {
+    ".github/workflows/quality.yml": "11aa1141da514d37148e5c4a7cfb391cff279c2c6bcb1b6c217ecf22f1e341c4",
+    "scripts/verification/check-operational-sources.py": "02bfbfb44591b9d14403a198d52326f6d60ee34eadc4eabb8a21f3eeffc179dd",
+    "scripts/verification/repository-layout.json": "8754aca93f00ac76c7046432a373a68bef1138f86412dd0bcf5b9492ae44cee2"
+  }
+}

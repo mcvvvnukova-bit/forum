@@ -2,7 +2,11 @@
   "schemaVersion": 1,
   "documentation": {
     "root": "docs",
-    "strictPlansOnly": true
+    "strictPlansOnly": true,
+    "technicalPlanPaths": [
+      "docs/superpowers/specs/2026-10-10-local-ci-runner-design.md",
+      "docs/superpowers/plans/2026-10-10-local-ci-runner.md"
+    ]
   },
   "packages": [
     {
@@ -217,7 +221,18 @@
     "deployment/web/build-config.json",
     "scripts/verification/primer-ui/validate_primer_ui.py",
     "scripts/verification/primer-ui/policy.json",
-    "artifacts/repository-audits/proj-154-verification-ownership.json"
+    "artifacts/repository-audits/proj-154-verification-ownership.json",
+    "deployment/ci-local/Dockerfile",
+    "deployment/ci-local/compose.yaml",
+    "deployment/ci-local/entrypoint.sh",
+    "deployment/ci-local/job-started.sh",
+    "deployment/ci-local/validate-job.py",
+    "deployment/ci-local/README.md",
+    "scripts/deployment/ci-local/manage.py",
+    "scripts/verification/test_local_ci.py",
+    "artifacts/repository-audits/proj-168-local-ci-ownership.json",
+    "docs/superpowers/specs/2026-10-10-local-ci-runner-design.md",
+    "docs/superpowers/plans/2026-10-10-local-ci-runner.md"
   ],
   "ignoredSourceDirectories": [
     ".superpowers",

@@ -491,6 +491,51 @@ def ci_file(path, expected_hash, expected_mode):
     return path, expected_hash, expected_mode
 
 
+LOCAL_CI_PREDECESSORS = {'.github/workflows/quality.yml': '3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b', 'scripts/verification/check-operational-sources.py': '2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759', 'scripts/verification/check-repository-layout.mjs': '61b13e05d81e540419fb030a231f4732343cc8666f136844a04f51c6af7b5ae8', 'scripts/verification/repository-layout.json': '91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99', 'tests/e2e/public-site.config.ts': 'ba9b882a55796726a6a7a65cf96118b484271762b1db92d49a401644b9d3288b', 'tests/e2e/serve-public-site.mjs': '515298669f80e1bb83fa41de4c36c62b41b81c847cefaaede4c241916e779489'}
+LOCAL_CI_MAIN_PREDECESSORS = {'.github/workflows/quality.yml': '11aa1141da514d37148e5c4a7cfb391cff279c2c6bcb1b6c217ecf22f1e341c4', 'scripts/verification/check-operational-sources.py': '02bfbfb44591b9d14403a198d52326f6d60ee34eadc4eabb8a21f3eeffc179dd', 'scripts/verification/repository-layout.json': '8754aca93f00ac76c7046432a373a68bef1138f86412dd0bcf5b9492ae44cee2'}
+LOCAL_CI_MAIN_SHA = '070ffbd4e7495d313f01ac3e3f7956b090c19628'
+LOCAL_CI_NEW_PATHS = {'scripts/verification/test_local_ci.py', 'deployment/ci-local/entrypoint.sh', 'docs/superpowers/plans/2026-10-10-local-ci-runner.md', 'deployment/ci-local/compose.yaml', 'deployment/ci-local/job-started.sh', 'deployment/ci-local/validate-job.py', 'deployment/ci-local/Dockerfile', 'scripts/deployment/ci-local/manage.py', 'docs/superpowers/specs/2026-10-10-local-ci-runner-design.md', 'deployment/ci-local/README.md'}
+
+
+@lru_cache(maxsize=1)
+def local_ci_receipt():
+    path = ROOT / 'artifacts/repository-audits/proj-168-local-ci-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing PROJ-168 receipt'
+    receipt = json.loads(path.read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-168', 'PROJ-168 schema/task mismatch'
+    assert receipt['baseSha'] == '1afee9fd9e1055b52ddcf607d26f57ffb115326a', 'PROJ-168 baseline mismatch'
+    assert receipt['mainSha'] == LOCAL_CI_MAIN_SHA, 'PROJ-168 merged main mismatch'
+    assert receipt['mainPredecessors'] == LOCAL_CI_MAIN_PREDECESSORS, 'PROJ-168 merged main pins/scope mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(LOCAL_CI_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(LOCAL_CI_PREDECESSORS), 'Out-of-scope PROJ-168 owner'
+    for item in changes:
+        candidate = item['previousCandidatePath']
+        assert item['candidatePath'] == candidate, 'PROJ-168 owner cannot move'
+        assert item['previousSha256'] == LOCAL_CI_PREDECESSORS[candidate], 'PROJ-168 predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-168 mode mismatch'
+        source = ROOT / candidate
+        assert source.is_file() and not source.is_symlink(), 'PROJ-168 source missing'
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-168 current source hash mismatch: ' + candidate
+        assert not source.stat().st_mode & 0o111, 'PROJ-168 current mode mismatch'
+    sources = receipt['newFiles']
+    assert len(sources) == len(LOCAL_CI_NEW_PATHS) and {x['path'] for x in sources} == LOCAL_CI_NEW_PATHS, 'Out-of-scope PROJ-168 new source'
+    for item in sources:
+        source = ROOT / item['path']
+        assert source.is_file() and not source.is_symlink(), 'PROJ-168 new source missing'
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['sha256'], 'PROJ-168 new source hash mismatch: ' + item['path']
+        assert item['mode'] == '100644' and not source.stat().st_mode & 0o111, 'PROJ-168 new source mode mismatch'
+    return receipt
+
+
+def local_ci_file(path, expected_hash, expected_mode):
+    candidate = str(path.relative_to(ROOT))
+    if candidate not in LOCAL_CI_PREDECESSORS:
+        return path, expected_hash, expected_mode
+    assert expected_hash == LOCAL_CI_MAIN_PREDECESSORS.get(candidate, LOCAL_CI_PREDECESSORS[candidate]) and expected_mode == '100644', 'PROJ-168 chain mismatch: ' + candidate
+    change = next(x for x in local_ci_receipt()['changes'] if x['candidatePath'] == candidate)
+    return path, change['candidateSha256'], change['candidateMode']
+
+
 PERSON_MEMBERSHIPS_PREDECESSORS = {'apps/api/README.md': ('f785acd9d7fe41382bd4e768de3d689d8b9cf273ee9955c4e3123cb8411e9bd2', '100644'), 'apps/api/src/app.ts': ('df88c043361aad5ecfbf3f6dffe362ce5594b88117209be434a20d5db35f1304', '100644'), 'apps/api/src/consolidate-auth.ts': ('40e8aefada5ddce2009f5448b9e9c01069ad5a47b22f8367ef045d312ebacb9d', '100644'), 'apps/api/src/iam/auth-store.ts': ('7e1c8cc45c049318b1704f2fb7e47813862bcaeb3a5eba2bf8056ecab2a0bee5', '100644'), 'apps/api/src/iam/sber-client.ts': ('249ff6fb8aa4ddccc7c1e53bb9560710dcd074aca0c540871bf167408077b1e5', '100644'), 'apps/api/src/migrate.ts': ('4c487e02489eb76a2bab63fc16439ff5a21847b7d908024d597048bc29712b39', '100644'), 'apps/api/test/auth.test.ts': ('424f6a579df3df4383de00127a2e808bd47b8379121d24d6d775a59ba239a54d', '100644'), 'apps/api/test/consolidation.test.ts': ('6c616fd510d7330fb83dfd36cdb0c18024c29869810b7239fdc4e0505eb28d24', '100644'), 'apps/web/src/audience/intent.test.ts': ('cfeb6847b5847527859d36547d63dfaad9fd4c5e1bb3d39b404dad979aa73234', '100644'), 'apps/web/src/audience/intent.ts': ('a7fb3118f22e95fc15ad73dc0bd1a8a5bb6275846338725c71d00ae46f8e3db9', '100644'), 'deployment/forum-api/grant-runtime.sql': ('2c27de747e5e853d6d86883a816a4dbd395076befe148ef15e395318e21a0667', '100644'), 'deployment/forum-db/README.md': ('dc7a6729b70091237d0a09bad231c99d8a43a562249589e9e2379d081deb0281', '100644'), 'deployment/forum-db/apply-public.psql': ('55459ee9277042b63e0281ee15ed9a1f864cef6832d39b676fc7dc05e109a1a8', '100644'), 'deployment/forum-db/tests/profiles.sql': ('a950bdec1a0e4c88025315eb178c422e88d641060fb5fd0dde02d2590ed6dd04', '100644'), 'deployment/forum-db/tests/public-schema.sql': ('a0d17def597548cbad2c0eb34f7a54d81982e0763cdf85e9637a9adcdc2c67df', '100644'), 'deployment/forum-db/tests/test_configure_role_contract.py': ('d53d633f1be92590341fd1e28b41f8fd3849fd943105314c99b5dd8bd484bb37', '100644'), 'scripts/deployment/forum-db/configure_forum_app_role.sh': ('43ded821bb9d2bb6e47aa7ac0122aedf26809790ed5abc8f4b7aed2869e5ea90', '100755'), 'scripts/verification/check-api.sh': ('44255908ab14debdc66ca2ba836b6e226ad6c33b743bace384be4e42334c9a0f', '100644'), 'scripts/verification/check-operational-sources.py': ('e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a', '100644'), 'scripts/verification/checks.test.mjs': ('d97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8', '100644')}
 PERSON_MEMBERSHIPS_NEW_PATHS = {'apps/api/migrations/006_person_memberships.sql', 'apps/api/test/person-memberships.test.ts', 'docs/plans/2026-10-09-PROJ-161-person-memberships.md', 'apps/api/src/iam/person-profile.ts', 'apps/api/src/party/business-access.ts'}
 
@@ -692,6 +737,11 @@ class CurrentSource:
 
 
 def exact_file(path, digest, mode):
+    # The bounded local-CI successor follows all main retirement/integration rules.
+    try:
+        path, digest, mode = local_ci_file(path, digest, mode)
+    except AssertionError as error:
+        raise AssertionError('PROJ-165: ' + str(error)) from error
     relative = path.relative_to(ROOT)
     assert not any((ROOT / Path(*relative.parts[:index])).is_symlink() for index in range(1, len(relative.parts) + 1)), 'Unsafe source symlink: ' + str(relative)
     assert path.is_file(), 'Missing current source: ' + str(relative)
@@ -873,7 +923,7 @@ def verify_provenance():
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, my_organizations_receipt, cabinet_settings_receipt, dev_organizations_receipt,
                     governance_receipt, ci_receipt, merged_verification_receipt, integration_receipt,
-                    trading_logo_receipt):
+                    trading_logo_receipt, local_ci_receipt):
         receipt.cache_clear()
     retirement_receipt()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
@@ -995,6 +1045,7 @@ def verify_provenance():
         exact_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
     for item in receipt['newFiles']:
         exact_file(ROOT / item['path'], item['sha256'], item['mode'])
+    local_ci_receipt()
     return accepted
 
 
