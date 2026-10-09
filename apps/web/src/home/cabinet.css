@@ -9,6 +9,7 @@
 .cabinet .header-brand {gap: var(--base-size-24); min-width: 0;}
 .cabinet .brand-link {display: flex; flex-shrink: 0;}
 .cabinet .brand-link img {object-fit: contain;}
+.cabinet .account-brand img {mix-blend-mode: multiply;}
 .cabinet .account-link {color: var(--fgColor-default); white-space: nowrap;}
 .cabinet .header-account {min-width: 0;}
 .cabinet .header-account .account-link {min-width: 0; overflow-wrap: anywhere;}

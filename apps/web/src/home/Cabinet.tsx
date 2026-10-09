@@ -4,6 +4,7 @@ import {ProfilePage} from '../../../profile-preview/src/ProfilePage'
 import {profileScopes, type SberProfile} from '../../../profile-preview/src/profile'
 import {usePublicSession} from '../SessionProvider'
 import type {Session} from '../audience/intent'
+import {Organizations} from './Organizations'
 import './cabinet.css'
 import {SettingsSection} from './SettingsSection'
 
@@ -22,10 +23,10 @@ function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; 
   expiredRef.current=onExpired
   const userId=session.user.id
   const path=location.pathname.replace(/\/$/,'')
-  const view=path==='/cabinet/settings'?'settings':path==='/cabinet/work'?'work':'profile'
-  useEffect(()=>{document.title=`${view==='settings'?'Настройки':view==='work'?'Работа':'Личные данные'} | АСТ Форум`},[view])
+  const view=path==='/cabinet/organizations'?'organizations':path==='/cabinet/settings'?'settings':path==='/cabinet/work'?'work':'profile'
+  useEffect(()=>{document.title=`${view==='organizations'?'Мои организации':view==='settings'?'Настройки':view==='work'?'Работа':'Личные данные'} | АСТ Форум`},[view])
   useEffect(()=>{
-    if(view==='settings')return
+    if(view==='settings'||view==='organizations')return
     const controller=new AbortController()
     const timer=window.setTimeout(()=>controller.abort(),10_000)
     let active=true
@@ -55,7 +56,8 @@ function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; 
   }
   if(value.kind==='expired')return null
   return <ProfilePage profile={value.kind==='ready'?value.profile:{}} approvedScopes={profileScopes}
-    state={view==='settings'?'ready':value.kind==='ready'?'ready':value.kind==='error'?'error':'loading'} view={view}
+    state={view==='settings'||view==='organizations'?'ready':value.kind==='ready'?'ready':value.kind==='error'?'error':'loading'} view={view}
+    organizations={view==='organizations'?<Organizations key={userId} userId={userId} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:undefined}
     settingsContent={<SettingsSection userId={userId} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>}
     onRetry={()=>{setValue({kind:'loading'});setAttempt(n=>n+1)}}
     account={{root:'/cabinet/',logo:'/assets/brand-logo-horizontal-color.png',displayName:session.user.displayName,

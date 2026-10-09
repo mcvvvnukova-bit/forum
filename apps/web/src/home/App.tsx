@@ -68,7 +68,7 @@ export function App() {
   const path = pathname.endsWith('/') ? pathname : `${pathname}/`
   // A documented, read-only preview state. This never asserts a real session.
   const authorizedPreview = import.meta.env.VITE_FORUM_SESSION !== 'true' && page.searchParams.get('previewSession') === 'authorized'
-  if (path === '/cabinet/' || path === '/cabinet/work/' || path === '/cabinet/settings/') return <Cabinet />
+  if (path === '/cabinet/' || path === '/cabinet/work/' || path === '/cabinet/settings/' || path === '/cabinet/organizations/') return <Cabinet />
   return (
     <>
       <SiteHeader authorized={authorized || authorizedPreview} />

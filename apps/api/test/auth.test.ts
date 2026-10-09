@@ -25,7 +25,7 @@ beforeEach(async () => {
   // Every test has its own production rate-limit window.
   await app.close();
   app=await createApp({publicOrigin:'https://forum.example',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:true,sessionTtlSeconds:3600,sber:provider.sber},pool);
-  await pool.query('TRUNCATE public.identity_profiles,public.organization_memberships,public.organization_authorities,public.organizations,public.authorization_attempts, public.sessions, public.role_assignments, public.external_identities, public.users, public.participants, public.audit_events, public.outbox_events, public.persons, public.participant_memberships');
+  await pool.query('TRUNCATE public.organization_additions,public.identity_profiles,public.organization_memberships,public.organization_authorities,public.organizations,public.authorization_attempts, public.sessions, public.role_assignments, public.external_identities, public.users, public.participants, public.audit_events, public.outbox_events, public.persons, public.participant_memberships');
   provider.calls.length = 0;
   Object.assign(provider.faults, {tokenStatus: 200, profileStatus: 200, completionStatus: 204});
 });

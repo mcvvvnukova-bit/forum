@@ -19,6 +19,7 @@ test('component changes select their checks and actual integration consumers', a
     [['docs/plans/change.md'], []],
     [['apps/profile-preview/src/profile.ts'], ['profile']],
     [['apps/web/src/home/App.tsx'], ['frontend','composition','publishers','web-release']],
+    [['apps/dev-gateway/src/main.tsx'], ['api','frontend','composition','publishers','web-release']],
     [['apps/legacy-landing/src/main.tsx'], ['api','frontend','composition','publishers','web-release']],
     [['apps/api/src/iam/auth.controller.ts'], ['api','frontend','composition','database','web-release']],
     [['deployment/forum-db/tests/test_role.py'], ['api','database']],

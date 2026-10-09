@@ -188,3 +188,55 @@ from the footer of the long personal profile: replacing the SPA history URL alon
 retains its scroll offset, while the public auth focus restoration deliberately
 uses `preventScroll`. Check the homepage position at 320/390/1440 px in addition
 to the URL, revoked session, history guard and standard login modal.
+
+### PROJ-162 / PROJ-167: organizations on the published dev baseline
+
+Use the successful CI artifact whose `sourceSha` equals the reviewed integration
+head. It contains ten routes, including both `/cabinet/settings/` and
+`/cabinet/organizations/`. The horizontal PNGs retain approved SHA256
+`3edddf723054157c0dc4a2f7eab2fd88f439f26079ae306f344c172c7ef00a6c`;
+scoped multiply compositing covers existing Light header/footer/account surfaces.
+
+Before changing dev, inventory effective API image/revision, complete compose
+file list and image override, gateway source and mounted roots, web inventory,
+production inventory, migration ledger, grants, and existing membership rows.
+Store private backups outside Git with mode 0600. Prove the connected database
+is `forum` and schema is `public`; do not apply this release to the historical
+`forum_sber_sandbox`. The already-applied 006 migration must not be reapplied.
+For optional membership schema, inspect all `organization_memberships` and
+`organization_authorities` ownership/status/effective/revoked columns,
+organization registration/status columns, the exact
+`effective_business_access(uuid,uuid,text,boolean)` guard and runtime EXECUTE /
+SELECT grants. A partial contract fails closed with 503; stop the release when
+readiness fails. Preserve existing users, membership rows, authorities and roles.
+
+Apply only additive `007_my_organizations.sql` once, as schema owner under the
+existing migration lock and transaction, recording its ledger entry in the same
+transaction. Grant only `SELECT, INSERT` on `public.organization_additions` to
+the existing runtime role and the sequence privileges required by its actual
+schema (007 currently uses UUIDs, so needs no sequence grant). Existing audit
+INSERT and authenticated identity/membership read/guard privileges must already
+be present. Do not run role bootstrap or broad GRANT scripts on the live target.
+Check effective runtime privileges before replacing the application.
+
+Build the API image from the exact accepted integration source; record the
+image ID and revision and preserve the previous image plus complete effective
+compose/config/override list. Back up the gateway's original file and mode before
+copying the reviewed file and recreating only its existing service. Prove health,
+GET/HEAD `/api/me/organizations` unauthenticated 401, POST owner-cookie/Origin
+validation, JSON errors and `Cache-Control: no-store`; preserve query cursors,
+owner cookies and Origin through the gateway. Only exact GET/HEAD/POST organization
+paths are forwarded. Pending additions grant no business access. Do not seed
+fake users on the live database. On failed readiness restore the old API image
+and exact compose configuration and gateway file/service, then recheck health.
+Keep additive007 and its data during application rollback.
+
+Publish the exact CI web artifact with the atomic compare-and-swap publisher;
+retain prior hashed resources, auth files/cookies, protected mounts and any
+literal late resources held by the in-app browser. Use a fresh expected target
+fingerprint. Exercise forced post-switch verifier failure and prove automatic
+rollback before final acceptance, then reapply with a newly observed CAS value.
+Verify all ten mounted-origin and HTTPS routes, source/artifact byte hashes,
+mobile/desktop overflow and the real authenticated organizations flow. Record
+production inventory unchanged. Web rollback restores its prior manifest/files;
+API/gateway rollback restores their prior bytes/configuration independently.

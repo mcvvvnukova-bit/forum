@@ -37,6 +37,7 @@ BEGIN
     ('organization_memberships', ARRAY['SELECT']),
     ('organization_authorities', ARRAY['SELECT']),
     ('organizations', ARRAY['SELECT','INSERT','UPDATE']),
+    ('organization_additions', ARRAY['SELECT','INSERT']),
     ('participants', ARRAY['SELECT','INSERT','UPDATE']),
     ('participant_memberships', ARRAY['SELECT','INSERT','UPDATE']),
     ('sessions', ARRAY['SELECT','INSERT','UPDATE','DELETE']),

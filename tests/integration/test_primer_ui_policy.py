@@ -268,10 +268,10 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
         self.assertEqual(result.returncode, 0, result.stderr)
         findings = json.loads(result.stdout)
         # Removing the registration action also removes one valid Stack gap.
-        # Preserve all 74 predecessor warnings and account separately for the
+        # Preserve all 79 organizations predecessor warnings and account separately for the
         # new Primer settings Stack/Spinner props accepted by the semantic gate.
         settings = [f for f in findings if f['path'] == 'src/home/SettingsSection.tsx']
-        self.assertEqual(len(findings) - len(settings), 74)
+        self.assertEqual(len(findings) - len(settings), 79)
         self.assertEqual(len(settings), 2)
         self.assertEqual(sum(f['path'] == 'src/home/Cabinet.tsx' for f in findings), 1)
         self.assertTrue(all(f['code'] == 'PDS007' and f['severity'] == 'warning' for f in findings))

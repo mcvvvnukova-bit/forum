@@ -1,0 +1,10 @@
+.organization-form-fields {display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--base-size-8) var(--base-size-16);}
+.organization-form-fields > * {grid-column: 1 / -1; min-width: 0;}
+.organization-form-fields > .organization-inn {grid-column: 1;}
+.organization-form-fields > .organization-add {grid-column: 2;}
+.organizations-table {overflow-x: auto; max-width: 100%;}
+.organizations-view {min-width: 0;}
+@media (max-width: 767px) {
+ .organization-form-fields {grid-template-columns: minmax(0, 1fr);}
+ .organization-form-fields > .organization-add {grid-column: 1; justify-self: start;}
+}
