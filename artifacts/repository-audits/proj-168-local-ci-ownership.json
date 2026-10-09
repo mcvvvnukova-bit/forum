@@ -8,7 +8,7 @@
       "previousSha256": "3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b",
       "previousMode": "100644",
       "candidatePath": ".github/workflows/quality.yml",
-      "candidateSha256": "49fe5ccee7fe17bf477c47f466a7159a29894da306d139855c3e9aa6be1b5ee0",
+      "candidateSha256": "8d6398c8677ea313aea8dd18a4201bd8f182dbc9934809e1d5c18b83374f3265",
       "candidateMode": "100644"
     },
     {
@@ -55,7 +55,7 @@
   "newFiles": [
     {
       "path": "deployment/ci-local/Dockerfile",
-      "sha256": "9aa329b4d311f7188d3b3cdbe8e12a96b471b03de1586b268e645845202a9b49",
+      "sha256": "c74b13e94c85cce4b7193b1e3be411d82e1783ad33a6d2d28915a69bf25542e6",
       "mode": "100644"
     },
     {
@@ -70,7 +70,7 @@
     },
     {
       "path": "deployment/ci-local/job-started.sh",
-      "sha256": "ee369135bf5c4492fe64530ace4b4ef19b747590574c7d05ad22df0c90591835",
+      "sha256": "1c25920d012831c7e62265a853a1ce7388436d0efd239573bcc0543b1a7b4d9a",
       "mode": "100644"
     },
     {
@@ -80,7 +80,7 @@
     },
     {
       "path": "deployment/ci-local/README.md",
-      "sha256": "b29add7f76ea42027338bea55772346fc43849a9a2f905381ab4d3130fdbd2f5",
+      "sha256": "52d1c777f8bb0cdfba5358373dbfa917615684707421eb96ef2875570fae4619",
       "mode": "100644"
     },
     {
@@ -90,17 +90,17 @@
     },
     {
       "path": "scripts/verification/test_local_ci.py",
-      "sha256": "5319b0847b324b43f5aca9027ac7513ac7831975b4d9ddda256fe3c6ec8cbb7a",
+      "sha256": "7e5a27775f59505f09d5dab970f5469a533800a3edaa152cf6200affd7ec05a3",
       "mode": "100644"
     },
     {
       "path": "docs/superpowers/specs/2026-10-10-local-ci-runner-design.md",
-      "sha256": "f8a3e105ac272d0b4d0dea04f08725d00e570d3dd2836f6c82ef0438baec9888",
+      "sha256": "a0045788232ccc5b285c35fd754e66ba1baead5c7f2d91931ed2827a438544bf",
       "mode": "100644"
     },
     {
       "path": "docs/superpowers/plans/2026-10-10-local-ci-runner.md",
-      "sha256": "156e3d1fa4e1eb0450defc111b7bfdc7d646777f52b9779e354e6c85f97031eb",
+      "sha256": "928375cf0f0ad15ada5f4b0a04a6aa12a198d66f102c4d5fd83e23b5703d6058",
       "mode": "100644"
     }
   ]

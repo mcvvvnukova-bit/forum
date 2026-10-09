@@ -21,3 +21,10 @@ GitHub управляет заданиями и артефактами. Docker D
 Дополнительно baked pre-job hook вне writable runner home проверяет fixed repository и payload события до шагов job. Допускаются `push`, `workflow_dispatch` с собственным repository и `pull_request` с собственными head/base repository. Fork, отсутствующий/malformed payload и другие события отклоняются с sanitized ошибкой, даже если PR изменяет routing YAML. Настройки fork approvals остаются прежними. Раздельные `FORUM_WEB_E2E_PORT=5297/5298` предотвращают конфликт public-site browser сервера в общем namespace; hosted default — 5297.
 
 Приёмка оператора: оба runners online, четыре реальные jobs и quality успешны, pinned images доступны после stop/start, сохранены времена job setup/runtime, PR связан с двумя задачами OpenProject. Команды не публикуют сайт и не очищают чужие контейнеры или образы.
+
+
+## Исправление I1: неизменяемая граница hook
+
+Job пользователь runner лишён группы sudo; пакет sudo и его policies удалены из custom image. Hook/validator и системные interpreter/import directories принадлежат root и недоступны runner для записи/замены. Root entrypoint выполняет только подготовку volumes и runuser, сами jobs работают runner. Validator вызывается абсолютным /usr/bin/python3 -I: Python игнорирует пользовательский site/usercustomize и PYTHON environment/import paths.
+
+Все Playwright1.62.1 Ubuntu24.04 ARM64 tools/Chromium dependencies установлены при build. Только API и web-release определяют официальный runner.environment: self-hosted устанавливает Chromium без --with-deps; github-hosted сохраняет --with-deps. Hosted mail/frontend и все browser tests сохраняются. Приёмка fix: настоящий built image запрещает runner sudo и запись/замену gate/import/interpreter directories, usercustomize marker не выполняется, fork остаётся отклонён; headless Chromium действительно запускается как runner без root.

@@ -312,5 +312,45 @@ class PersistentValidation(unittest.TestCase):
             self.assertFalse(manager.image_present(['docker'],'postgres@sha256:test','linux/amd64'))
 
 
+class ImmutableGate(unittest.TestCase):
+    def test_actual_hook_interpreter_ignores_user_import_path(self):
+        import shlex
+        command=shlex.split((ROOT/'deployment/ci-local/job-started.sh').read_text().splitlines()[-1])[1:]
+        self.assertEqual(command[0],'/usr/bin/python3')
+        command[-1]=str(ROOT/'deployment/ci-local/validate-job.py')
+        with tempfile.TemporaryDirectory() as directory:
+            directory=Path(directory);marker=directory/'marker';event=directory/'event.json'
+            (directory/'sitecustomize.py').write_text('from pathlib import Path;Path('+repr(str(marker))+').write_text("unsafe startup")')
+            repo='mcvvvnukova-bit/forum'
+            env={**os.environ,'PYTHONPATH':str(directory),'GITHUB_REPOSITORY':repo,'GITHUB_EVENT_NAME':'pull_request','GITHUB_EVENT_PATH':str(event)}
+            for head,accepted in [('fork/forum',False),(repo,True)]:
+                event.write_text(json.dumps({'pull_request':{'head':{'repo':{'full_name':head}},'base':{'repo':{'full_name':repo}}}}))
+                result=subprocess.run(command,env=env,capture_output=True,text=True)
+                self.assertEqual(result.returncode==0,accepted,result.stderr)
+                self.assertFalse(marker.exists(),'Python startup loaded a writable user import path')
+
+    def test_actual_browser_install_shell_keeps_hosted_dependencies_and_browser_tests(self):
+        workflow=(ROOT/'.github/workflows/quality.yml').read_text()
+        for name in ['Install API-owned Chromium','Built route, held-session, history, focus and viewport regressions']:
+            step=workflow.split('      - name: '+name,1)[1].split('      - ',1)[0]
+            self.assertIn('CI_RUNNER_ENVIRONMENT: ${{ runner.environment }}',step)
+            shell=step.split('        run: |\n',1)[1]
+            with tempfile.TemporaryDirectory() as directory:
+                npx=Path(directory)/'npx';calls=Path(directory)/'calls'
+                npx.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$COMMANDS"\n');npx.chmod(0o755)
+                for runner_environment,dependencies in [('self-hosted',False),('github-hosted',True),('',True)]:
+                    calls.write_text('')
+                    env={**os.environ,'PATH':directory+os.pathsep+os.environ['PATH'],'COMMANDS':str(calls),'CI_RUNNER_ENVIRONMENT':runner_environment}
+                    result=subprocess.run(['bash','-e','-c',shell],env=env,capture_output=True,text=True)
+                    self.assertEqual(result.returncode,0,result.stderr)
+                    commands=calls.read_text().splitlines()
+                    expected='--no-install playwright install '+('--with-deps ' if dependencies else '')+'chromium'
+                    self.assertEqual(commands[0],expected)
+                    if name.startswith('Built route'):
+                        self.assertEqual(commands[1],'--no-install playwright test --config tests/e2e/public-site.config.ts')
+        self.assertIn('      - name: Install mail-check Chromium\n        run: npx --no-install playwright install --with-deps chromium',workflow)
+        self.assertIn("      - name: Install landing-owned Chromium for its layout test\n        if: matrix.package == 'legacy-landing'\n        working-directory: apps/legacy-landing\n        run: npx --no-install playwright install --with-deps chromium",workflow)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -euo pipefail
-exec python3 /opt/astforum-ci/validate-job.py
+exec /usr/bin/python3 -I /opt/astforum-ci/validate-job.py

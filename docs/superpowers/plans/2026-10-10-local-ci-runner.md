@@ -52,3 +52,10 @@ Pre-job hook включён через ACTIONS_RUNNER_HOOK_JOB_STARTED и baked 
 Два runner используют общий network namespace daemon. Для одновременных web-release jobs FORUM_WEB_E2E_PORT равен 5297 у первого и 5298 у второго; public-site config и сервер валидируют один целочисленный порт 1024..65535. Hosted default остаётся 5297. Docker Compose v5.6.0 linux-aarch64 устанавливается из official release с SHA256 733ec76717ceb59052a9609b9dadfb523b2df8eab57a54212872d10a58078ea2. Limits заданы явно только CI сервисам.
 
 Новая Python suite scripts/verification/test_local_ci.py выполняется в существующем layout шаге Verification and CI regressions после прежних Node suites; все прежние проверки и artifacts сохраняются.
+
+
+## Исправление I1: неизменяемая граница hook
+
+Job пользователь runner лишён группы sudo; пакет sudo и его policies удалены из custom image. Hook/validator и системные interpreter/import directories принадлежат root и недоступны runner для записи/замены. Root entrypoint выполняет только подготовку volumes и runuser, сами jobs работают runner. Validator вызывается абсолютным /usr/bin/python3 -I: Python игнорирует пользовательский site/usercustomize и PYTHON environment/import paths.
+
+Все Playwright1.62.1 Ubuntu24.04 ARM64 tools/Chromium dependencies установлены при build. Только API и web-release определяют официальный runner.environment: self-hosted устанавливает Chromium без --with-deps; github-hosted сохраняет --with-deps. Hosted mail/frontend и все browser tests сохраняются. Приёмка fix: настоящий built image запрещает runner sudo и запись/замену gate/import/interpreter directories, usercustomize marker не выполняется, fork остаётся отклонён; headless Chromium действительно запускается как runner без root.
