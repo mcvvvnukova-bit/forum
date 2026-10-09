@@ -40,7 +40,7 @@
       "previousSha256": "3d91e55258c56e5cfcb14d1461c2a343261e88cf1b13c0cc84ba41ce00fac52f",
       "previousMode": "100644",
       "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
-      "candidateSha256": "144baf803e2a25528bc717e17d512650f76d85b37f017e69f80a8fff160e10f0",
+      "candidateSha256": "3659ea70d6da6d0da58eb314e1849252d3f7b9db26dce974b5c0b5f1b8a2f247",
       "candidateMode": "100644"
     },
     {
@@ -197,12 +197,12 @@
     },
     {
       "path": "apps/web/src/home/Organizations.tsx",
-      "sha256": "c9717505f6e06729e48ee81a9938ac72e5682fdaef2517d43d19c2e1c0321b98",
+      "sha256": "9a65d5cc4831859554b2a417bce20e6865f16513aa8022ae67a8b1541bf3034f",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/organizations.css",
-      "sha256": "b2ddbba79074b124f63157f70081b51466d9d370bc63d9a4499f519056a4ed77",
+      "sha256": "daf61c88921a8ef67abed8942ce6a84f7ad6f5179ffbeefda17d837e0f90b73b",
       "mode": "100644"
     }
   ]

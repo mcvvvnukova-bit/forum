@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react'
 import {Banner,Button,FormControl,Spinner,Stack,Text,TextInput} from '@primer/react'
+import {ClockIcon} from '@primer/octicons-react'
 import {DataTable,Table} from '@primer/react/experimental'
 import './organizations.css'
 type Role='organization_admin'|'organization_signer'|'organization_employee'
@@ -112,13 +113,12 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
  }
  return <Stack gap="spacious" className="organizations-view">
   <form noValidate aria-label="Добавить организацию" onSubmit={event=>void submit(event)} className="organization-form">
-   <FormControl required disabled={saving}>
+   <FormControl required disabled={saving} className="organization-form-fields">
     <FormControl.Label>ИНН</FormControl.Label>
-    <TextInput value={inn} onChange={event=>{setInn(event.target.value);setInvalid(false)}} aria-label="ИНН" inputMode="numeric" autoComplete="off" block aria-invalid={invalid?'true':undefined}/>
-    <FormControl.Caption>10 цифр для юридического лица или 12 для индивидуального предпринимателя</FormControl.Caption>
+    <TextInput className="organization-inn" value={inn} onChange={event=>{setInn(event.target.value);setInvalid(false)}} aria-label="ИНН" inputMode="numeric" autoComplete="off" block aria-invalid={invalid?'true':undefined}/>
+    <Button className="organization-add" type="submit" variant="primary" disabled={saving}>{saving?'Сохраняем…':'Добавить'}</Button>
     {invalid&&<FormControl.Validation variant="error">Проверьте ИНН: 10 или 12 цифр и контрольную сумму</FormControl.Validation>}
    </FormControl>
-   <Button type="submit" variant="primary" disabled={saving}>{saving?'Сохраняем…':'Добавить'}</Button>
   </form>
   {saved&&<Text role="status">Организация сохранена</Text>}
   {saveError&&<Banner variant="critical" title="Не удалось сохранить организацию. Повторите попытку"/>}
@@ -126,8 +126,8 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
   {loading&&<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем организации…</Text></Stack>}
   {!loading&&!error&&!items.length&&<Text>У вас пока нет организаций</Text>}
   {!!items.length&&<div className="organizations-table"><Table.Container><DataTable aria-labelledby="organizations-heading" data={items} columns={[
-   {header:'ИНН',field:'inn',rowHeader:true},
-   {header:'Название организации',field:'name',renderCell:item=><Stack gap="condensed"><Text>{item.name??'Название появится после подтверждения'}</Text>{item.status==='pending'&&<Text size="small" className="muted">Ожидает подтверждения</Text>}</Stack>},
+   {header:'ИНН',field:'inn',rowHeader:true,width:'auto'},
+   {header:'Название организации',field:'name',renderCell:item=><Stack gap="condensed"><Text>{item.name??'Название появится после подтверждения'}</Text>{item.status==='pending'&&<Stack direction="horizontal" align="center" gap="condensed" className="muted"><ClockIcon aria-hidden="true"/><Text size="small">Ожидает подтверждения</Text></Stack>}</Stack>},
    {header:'Пользователи и роли',field:'members',renderCell:item=>item.status==='pending'?<Text className="muted">Доступ появится после подтверждения</Text>:<Stack gap="normal">{item.members.map(member=><Stack key={member.userId} gap="condensed"><Text weight="semibold">{member.fullName}</Text>{member.roles.length?member.roles.map(role=><Text size="small" key={role}>{labels[role]}</Text>):<Text size="small" className="muted">Роль не назначена</Text>}</Stack>)}</Stack>},
   ]}/></Table.Container></div>}
   {cursor&&<Button disabled={loading||saving} onClick={()=>void more()}>Показать ещё</Button>}
