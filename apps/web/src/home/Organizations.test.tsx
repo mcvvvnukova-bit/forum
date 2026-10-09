@@ -132,3 +132,38 @@ it('uses the FormControl disabled contract during saving without an input warnin
  expect([...warning.mock.calls,...error.mock.calls].flat().join(' ')).not.toContain("instead of passing the 'disabled' prop directly")
  await act(async()=>{resolveSave(Response.json({userId:user.id,item:pending},{status:201}))})
 })
+it.each(['initial','retry'])('recovers an interrupted %s list after failed saving',async(kind)=>{
+ let reads=0,aborted=false,lateResolve:(value:Response)=>void=()=>{}
+ vi.stubGlobal('fetch',async(url:string,options?:RequestInit)=>{
+  if(url==='/api/auth/session')return Response.json({user})
+  if(options?.method==='POST')return new Response('',{status:503})
+  reads++
+  if(kind==='retry'&&reads===1)return new Response('',{status:503})
+  if(reads===(kind==='initial'?1:2))return await new Promise<Response>(resolve=>{lateResolve=resolve;options?.signal?.addEventListener('abort',()=>{aborted=true})})
+  return Response.json({userId:user.id,items:[pending],nextCursor:null})
+ });page();await screen.findByRole('heading',{name:'Мои организации'})
+ if(kind==='retry'){await screen.findByText('Не удалось загрузить организации');fireEvent.click(screen.getAllByRole('button',{name:'Повторить'})[0])}
+ add();await screen.findByText('Не удалось сохранить организацию. Повторите попытку')
+ expect(aborted).toBe(true)
+ expect(await screen.findByText(pending.inn)).toBeVisible()
+ expect(screen.queryByText('У вас пока нет организаций')).not.toBeInTheDocument()
+ expect(screen.getByLabelText('ИНН')).toHaveValue(pending.inn)
+ await act(async()=>{lateResolve(Response.json({userId:user.id,items:[],nextCursor:null}));await Promise.resolve()})
+ expect(screen.getByText(pending.inn)).toBeVisible()
+})
+it('provides separate save and retryable list errors when interrupted-load recovery also fails',async()=>{
+ let reads=0
+ vi.stubGlobal('fetch',async(url:string,options?:RequestInit)=>{
+  if(url==='/api/auth/session')return Response.json({user})
+  if(options?.method==='POST')return new Response('',{status:503})
+  reads++
+  if(reads===1)return await new Promise<Response>((_,reject)=>options?.signal?.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError'))))
+  return reads===2?new Response('',{status:503}):Response.json({userId:user.id,items:[pending],nextCursor:null})
+ });page();await screen.findByRole('heading',{name:'Мои организации'});add()
+ await screen.findByText('Не удалось сохранить организацию. Повторите попытку')
+ expect(await screen.findByText('Не удалось загрузить организации')).toBeVisible()
+ expect(screen.queryByText('У вас пока нет организаций')).not.toBeInTheDocument()
+ fireEvent.click(screen.getAllByRole('button',{name:'Повторить'})[0])
+ expect(await screen.findByText(pending.inn)).toBeVisible()
+ expect(screen.getByText('Не удалось сохранить организацию. Повторите попытку')).toBeVisible()
+})

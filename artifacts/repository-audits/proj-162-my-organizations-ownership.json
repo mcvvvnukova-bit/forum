@@ -192,12 +192,12 @@
     },
     {
       "path": "apps/web/src/home/Organizations.test.tsx",
-      "sha256": "bc8ef1aef8ffa8e58a81b767f16885f72aa75bd21a6d9a22f4e258c8a1c72259",
+      "sha256": "ef14f7fcd5837eed35740ac4489271d65a4181c4fee5dc4d1570c97732ed95ba",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/Organizations.tsx",
-      "sha256": "19fb7db540d7602401497746b2ffc05508f40e4d36744bfb294952b5b95d3f86",
+      "sha256": "c9717505f6e06729e48ee81a9938ac72e5682fdaef2517d43d19c2e1c0321b98",
       "mode": "100644"
     },
     {

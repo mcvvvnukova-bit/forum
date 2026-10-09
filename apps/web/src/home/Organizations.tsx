@@ -76,13 +76,19 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
   setLoading(true);setError(false)
   try{const result=await read(cursor,request);if(result&&current(request.version)){loadedThrough.current=result.items.at(-1)?.inn??loadedThrough.current;setItems(old=>merge(old,result.items));setCursor(result.nextCursor)}}catch{if(current(request.version))setError(true)}finally{window.clearTimeout(timer);if(current(request.version))setLoading(false)}
  }
+ async function recoverList(){
+  const request=beginRequest(),timer=window.setTimeout(()=>request.controller.abort(),10_000)
+  setLoading(true);setError(false)
+  try{await refresh(request)}catch{if(current(request.version))setError(true)}finally{window.clearTimeout(timer);if(current(request.version))setLoading(false)}
+ }
  async function submit(event:FormEvent){
   event.preventDefault();if(submitting.current)return
   setSaved(false);setSaveError(false)
   if(!validInn(inn)){setInvalid(true);return}
+  const interruptedRead=loading
   setInvalid(false);submitting.current=true;setSaving(true)
   const request=beginRequest(),timer=window.setTimeout(()=>request.controller.abort(),10_000)
-  setLoading(false)
+  setLoading(interruptedRead)
   try{
    const response=await fetch('/api/me/organizations',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({inn}),signal:request.controller.signal})
    if(!current(request.version))return
@@ -97,7 +103,12 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
    try{
     await refresh(request)
    }catch{if(current(request.version))setError(true)}
-  }catch{if(current(request.version))setSaveError(true)}finally{window.clearTimeout(timer);submitting.current=false;if(current(request.version))setSaving(false)}
+  }catch{
+   if(current(request.version)){
+    setSaveError(true)
+    if(interruptedRead){submitting.current=false;setSaving(false);void recoverList()}
+   }
+  }finally{window.clearTimeout(timer);submitting.current=false;if(current(request.version)){setSaving(false);setLoading(false)}}
  }
  return <Stack gap="spacious" className="organizations-view">
   <form noValidate aria-label="Добавить организацию" onSubmit={event=>void submit(event)} className="organization-form">
