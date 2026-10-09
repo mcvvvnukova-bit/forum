@@ -9,7 +9,7 @@ GitHub управляет заданиями и артефактами. Docker D
 - `start`: запустить сохранённый сервис, без регистрации;
 - `stop`: остановить только эти контейнеры, сохранив тома, образы и регистрации;
 - `status`: вывести только имена, состояния, health и busy;
-- `warm`: импортировать четыре закреплённых digest и `caddy:2.10-alpine` из Docker Desktop по verified tag/RepoDigest, проверить запрошенный reference и platform во вложенном daemon через inspect и network-isolated pull=never container; если save/load не сохранил RepoDigest, получить точный reference через pull;
+- `warm`: импортировать четыре закреплённых digest и `caddy:2.10-alpine` из Docker Desktop по verified tag/RepoDigest, проверить запрошенный reference и platform во вложенном daemon через inspect и network-isolated pull=never container; предпочитать полный OCI index save, при неудаче один раз повторить save только запрошенной platform; после обоих неудачных transfer либо отсутствующего исходного RepoDigest получить точный pinned reference через pull; ошибки pull/daemon и offline verification остаются блокирующими;
 - `autostart`: установить user LaunchAgent `ru.astforum.ci-local`, который после login запускает Docker Desktop CLI и сохранённый сервис, без регистрации или credentials.
 
 Все команды принимают `--state-dir PATH`. Compose project и имена runners фиксированы: это один сервис, а не параллельные установки. Autostart требует входа пользователя. Во время сна или выключения Mac runner недоступны. LaunchAgent не содержит секретов; его logs содержат только sanitized сообщения manager. Изменение deployment требует повторного `install`, которое обновляет скопированные runtime файлы.

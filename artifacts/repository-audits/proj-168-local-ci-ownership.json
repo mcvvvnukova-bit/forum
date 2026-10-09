@@ -80,17 +80,17 @@
     },
     {
       "path": "deployment/ci-local/README.md",
-      "sha256": "52d1c777f8bb0cdfba5358373dbfa917615684707421eb96ef2875570fae4619",
+      "sha256": "735a0443b1106322d00ff74995321d19c9c8c2df23d980ed299c74cddeaaf236",
       "mode": "100644"
     },
     {
       "path": "scripts/deployment/ci-local/manage.py",
-      "sha256": "83fd161ef22ec40915ea5e7aa000cf02b86338f20c6b5fdd5f13330e76bdbdfc",
+      "sha256": "74439a22f85680fe1351c6813bce5ab40203ee082315e692283fd7d542f1f4fc",
       "mode": "100644"
     },
     {
       "path": "scripts/verification/test_local_ci.py",
-      "sha256": "7e5a27775f59505f09d5dab970f5469a533800a3edaa152cf6200affd7ec05a3",
+      "sha256": "8cd66c8868fb03c99b5dcdc5d589eeb340970c950d15f68ea33fd068cd4b9bbf",
       "mode": "100644"
     },
     {

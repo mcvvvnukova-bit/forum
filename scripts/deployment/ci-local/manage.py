@@ -121,18 +121,22 @@ class Manager:
                                           '--format', '{{json .RepoDigests}}', tag]) or '[]')
             if reference not in digests:
                 return
-        # Stream between two Docker daemons; no host socket is mounted into jobs.
-        with tempfile_stream() as error:
-            producer = subprocess.Popen(['docker', 'image', 'save', tag],
-                                        stdout=subprocess.PIPE, stderr=error)
-            try:
-                consumer = subprocess.run(self.nested('image', 'load'), stdin=producer.stdout,
-                                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            finally:
-                producer.stdout.close()
-                producer.wait()
-            if producer.returncode or consumer.returncode:
-                raise RuntimeError('Image import failed; original image remains intact')
+        # Prefer the full index: selected-platform archives omit its original digest.
+        # A partially cached multiarch index may fail export despite the requested
+        # platform being present. Retry only that platform, then let warm resolve
+        # the authoritative reference (or propagate its pull/daemon failure).
+        for selection in [[], ['--platform', platform]]:
+            with tempfile_stream() as error:
+                producer = subprocess.Popen(['docker', 'image', 'save', *selection, tag],
+                                            stdout=subprocess.PIPE, stderr=error)
+                try:
+                    consumer = subprocess.run(self.nested('image', 'load'), stdin=producer.stdout,
+                                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                finally:
+                    producer.stdout.close()
+                    producer.wait()
+                if not producer.returncode and not consumer.returncode:
+                    return
 
     def warm(self):
         for reference, platform in IMAGES:

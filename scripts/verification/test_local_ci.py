@@ -123,6 +123,60 @@ class ManagerBehavior(unittest.TestCase):
         self.assertEqual(run.call_count, 5)
 
 
+class ImageImportFallback(unittest.TestCase):
+    def test_incomplete_index_retries_selected_platform_then_preserves_authoritative_ref(self):
+        # Exercise the real subprocess pipe with a controlled Docker CLI boundary.
+        fake=r"""#!/usr/bin/env python3
+import json,os,sys
+from pathlib import Path
+args=sys.argv[1:];nested='exec' in args
+if nested: args=args[args.index('daemon')+4:]
+state=Path(os.environ['FAKE_STATE']);ready=state.with_suffix('.ready')
+with state.open('a') as log:log.write(json.dumps(['nested' if nested else 'host']+args)+'\n')
+mode=os.environ['FAKE_MODE'];pin=os.environ['FAKE_PIN']
+if args[:2]==['image','inspect']:
+    if nested and not ready.exists():sys.exit(1)
+    print(json.dumps([pin]) if '{{json .RepoDigests}}' in args else 'linux/amd64')
+elif args[:2]==['image','save']:
+    selected='--platform' in args
+    if mode in ['both-fail','pull-fail'] or (mode=='split' and not selected):sys.exit(1)
+    sys.stdout.write('PLATFORM' if selected else 'FULL')
+elif args[:2]==['image','load']:
+    archive=sys.stdin.read()
+    if not archive:sys.exit(1)
+    if archive=='FULL':ready.touch()
+elif args[0]=='pull':
+    if mode=='pull-fail':sys.exit(1)
+    ready.touch()
+elif args[0]=='run':
+    if not ready.exists() or mode=='offline-fail':sys.exit(1)
+else:sys.exit(2)
+"""
+        pin='postgres@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2'
+        for mode in ['split','both-fail','full','pull-fail','offline-fail']:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);docker=root/'docker';state=root/'state.json'
+                docker.write_text(fake);docker.chmod(0o755);state.write_text('')
+                env={**os.environ,'PATH':directory+os.pathsep+os.environ['PATH'],'FAKE_STATE':str(state),'FAKE_MODE':mode,'FAKE_PIN':pin}
+                m=module();manager=m.Manager(root/'runtime')
+                with patch.dict(os.environ,env), patch.object(m,'IMAGES',[(pin,'linux/amd64')]):
+                    if mode in ['pull-fail','offline-fail']:
+                        with self.assertRaises(RuntimeError):manager.warm()
+                    else:manager.warm()
+                calls=[json.loads(line) for line in state.read_text().splitlines()]
+                saves=[call for call in calls if call[1:3]==['image','save']]
+                self.assertEqual(saves[0],['host','image','save','postgres:18-alpine'])
+                if mode in ['split','both-fail','pull-fail']:
+                    self.assertEqual(saves[1],['host','image','save','--platform','linux/amd64','postgres:18-alpine'])
+                    self.assertEqual(len(saves),2)
+                    self.assertIn(['nested','pull','--platform','linux/amd64',pin],calls)
+                else:
+                    self.assertEqual(len(saves),1)
+                    self.assertFalse(any(call[1]=='pull' for call in calls))
+                if mode!='pull-fail':
+                    self.assertIn(['nested','run','--rm','--pull=never','--network','none','--platform','linux/amd64','--entrypoint','/bin/sh',pin,'-c','true'],calls)
+
+
 class IsolationAndTrust(unittest.TestCase):
     def test_compose_has_only_named_mounts_and_one_privileged_daemon(self):
         result = subprocess.run(['docker', 'compose', '-f', str(ROOT/'deployment/ci-local/compose.yaml'), 'config', '--format', 'json'], capture_output=True, text=True, check=True)
