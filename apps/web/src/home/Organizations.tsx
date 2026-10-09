@@ -28,55 +28,82 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
  const [loading,setLoading]=useState(true),[error,setError]=useState(false),[attempt,setAttempt]=useState(0)
  const [inn,setInn]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saveError,setSaveError]=useState(false),[saved,setSaved]=useState(false)
  const active=useRef(true),submitting=useRef(false),expired=useRef(onExpired)
+ const generation=useRef(0),requestController=useRef<AbortController|null>(null)
+ const loadedThrough=useRef(''),savedCards=useRef(new Map<string,Organization>())
  expired.current=onExpired
- useEffect(()=>{active.current=true;return()=>{active.current=false}},[])
- async function read(next:string|null,signal?:AbortSignal){
-  const response=await fetch('/api/me/organizations'+(next?'?cursor='+encodeURIComponent(next):''),{credentials:'same-origin',cache:'no-store',signal})
-  if(response.status===401){if(active.current)expired.current();return null}
+ useEffect(()=>{active.current=true;return()=>{active.current=false;requestController.current?.abort()}},[])
+ function beginRequest(){
+  requestController.current?.abort()
+  const request={version:++generation.current,controller:new AbortController()}
+  requestController.current=request.controller
+  return request
+ }
+ function current(version:number){return active.current&&generation.current===version}
+ async function read(next:string|null,request:ReturnType<typeof beginRequest>){
+  const response=await fetch('/api/me/organizations'+(next?'?cursor='+encodeURIComponent(next):''),{credentials:'same-origin',cache:'no-store',signal:request.controller.signal})
+  if(!current(request.version))return null
+  if(response.status===401){expired.current();return null}
   if(response.status!==200)throw new Error('Unavailable')
   const result=await response.json() as {userId:unknown;items:unknown[];nextCursor:unknown}
   if(result.userId!==userId||!Array.isArray(result.items)||!(result.nextCursor===null||typeof result.nextCursor==='string'))throw new Error('Invalid list')
-  return {items:result.items.map(organization),nextCursor:result.nextCursor as string|null}
+  return current(request.version)?{items:result.items.map(organization),nextCursor:result.nextCursor as string|null}:null
+ }
+ async function refresh(request:ReturnType<typeof beginRequest>){
+  // Re-read the previously loaded range; never carry member snapshots into a fresh list.
+  const through=loadedThrough.current
+  let next:string|null=null,fresh:Organization[]=[]
+  do{
+   const page=await read(next,request)
+   if(!page)return
+   fresh=merge(fresh,page.items);next=page.nextCursor
+  }while(next&&(!fresh.length||fresh[fresh.length-1].inn<through))
+  if(current(request.version)){
+   loadedThrough.current=fresh.at(-1)?.inn??''
+   // Pending POST cards outside that range remain visible until their authoritative page arrives.
+   setItems(merge([...savedCards.current.values()],fresh));setCursor(next);setError(false)
+  }
  }
  useEffect(()=>{
-  const controller=new AbortController(),timer=window.setTimeout(()=>controller.abort(),10_000)
-  let current=true
+  const request=beginRequest(),timer=window.setTimeout(()=>request.controller.abort(),10_000)
   setLoading(true);setError(false)
-  void read(null,controller.signal).then(result=>{if(current&&result){setItems(result.items);setCursor(result.nextCursor)}}).catch(()=>{if(current)setError(true)}).finally(()=>{window.clearTimeout(timer);if(current)setLoading(false)})
-  return()=>{current=false;controller.abort();window.clearTimeout(timer)}
- // userId changes remount this owned view; attempts reload the first page.
+  void refresh(request).catch(()=>{if(current(request.version))setError(true)}).finally(()=>{window.clearTimeout(timer);if(current(request.version))setLoading(false)})
+  return()=>{request.controller.abort();window.clearTimeout(timer)}
+ // userId changes remount this owned view; attempts refresh the loaded range.
  },[userId,attempt])
  async function more(){
-  if(loading||!cursor)return
+  if(loading||submitting.current||!cursor)return
+  const request=beginRequest(),timer=window.setTimeout(()=>request.controller.abort(),10_000)
   setLoading(true);setError(false)
-  try{const result=await read(cursor);if(result&&active.current){setItems(old=>merge(old,result.items));setCursor(result.nextCursor)}}catch{if(active.current)setError(true)}finally{if(active.current)setLoading(false)}
+  try{const result=await read(cursor,request);if(result&&current(request.version)){loadedThrough.current=result.items.at(-1)?.inn??loadedThrough.current;setItems(old=>merge(old,result.items));setCursor(result.nextCursor)}}catch{if(current(request.version))setError(true)}finally{window.clearTimeout(timer);if(current(request.version))setLoading(false)}
  }
  async function submit(event:FormEvent){
   event.preventDefault();if(submitting.current)return
   setSaved(false);setSaveError(false)
   if(!validInn(inn)){setInvalid(true);return}
   setInvalid(false);submitting.current=true;setSaving(true)
-  const controller=new AbortController(),timer=window.setTimeout(()=>controller.abort(),10_000)
+  const request=beginRequest(),timer=window.setTimeout(()=>request.controller.abort(),10_000)
+  setLoading(false)
   try{
-   const response=await fetch('/api/me/organizations',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({inn}),signal:controller.signal})
-   if(!active.current)return
+   const response=await fetch('/api/me/organizations',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({inn}),signal:request.controller.signal})
+   if(!current(request.version))return
    if(response.status===401){expired.current();return}
    if(response.status!==200&&response.status!==201)throw new Error('Save unavailable')
    const result=await response.json() as {userId:unknown;item:unknown}
    if(result.userId!==userId)throw new Error('Invalid owner')
    const item=organization(result.item)
-   setItems(old=>old.some(existing=>existing.inn===item.inn&&existing.status==='active')?old:merge(old,[item]));setInn('');setSaved(true)
+   if(!current(request.version))return
+   savedCards.current.set(item.inn,item)
+   setItems(old=>merge(old,[item]));setInn('');setSaved(true)
    try{
-    const refreshed=await read(null,controller.signal)
-    if(active.current&&refreshed){setItems(refreshed.items);setCursor(refreshed.nextCursor)}
-   }catch{if(active.current)setError(true)}
-  }catch{if(active.current)setSaveError(true)}finally{window.clearTimeout(timer);submitting.current=false;if(active.current)setSaving(false)}
+    await refresh(request)
+   }catch{if(current(request.version))setError(true)}
+  }catch{if(current(request.version))setSaveError(true)}finally{window.clearTimeout(timer);submitting.current=false;if(current(request.version))setSaving(false)}
  }
  return <Stack gap="spacious" className="organizations-view">
   <form noValidate aria-label="Добавить организацию" onSubmit={event=>void submit(event)} className="organization-form">
-   <FormControl required>
+   <FormControl required disabled={saving}>
     <FormControl.Label>ИНН</FormControl.Label>
-    <TextInput value={inn} onChange={event=>{setInn(event.target.value);setInvalid(false)}} aria-label="ИНН" inputMode="numeric" autoComplete="off" block disabled={saving} aria-invalid={invalid?'true':undefined}/>
+    <TextInput value={inn} onChange={event=>{setInn(event.target.value);setInvalid(false)}} aria-label="ИНН" inputMode="numeric" autoComplete="off" block aria-invalid={invalid?'true':undefined}/>
     <FormControl.Caption>10 цифр для юридического лица или 12 для индивидуального предпринимателя</FormControl.Caption>
     {invalid&&<FormControl.Validation variant="error">Проверьте ИНН: 10 или 12 цифр и контрольную сумму</FormControl.Validation>}
    </FormControl>
@@ -84,7 +111,7 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
   </form>
   {saved&&<Text role="status">Организация сохранена</Text>}
   {saveError&&<Banner variant="critical" title="Не удалось сохранить организацию. Повторите попытку"/>}
-  {error&&<Banner variant="critical" title="Не удалось загрузить организации" primaryAction={<Button onClick={()=>setAttempt(n=>n+1)}>Повторить</Button>}/>}
+  {error&&<Banner variant="critical" title="Не удалось загрузить организации" primaryAction={<Button disabled={saving} onClick={()=>setAttempt(n=>n+1)}>Повторить</Button>}/>}
   {loading&&<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем организации…</Text></Stack>}
   {!loading&&!error&&!items.length&&<Text>У вас пока нет организаций</Text>}
   {!!items.length&&<div className="organizations-table"><Table.Container><DataTable aria-labelledby="organizations-heading" data={items} columns={[
@@ -92,6 +119,6 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
    {header:'Название организации',field:'name',renderCell:item=><Stack gap="condensed"><Text>{item.name??'Название появится после подтверждения'}</Text>{item.status==='pending'&&<Text size="small" className="muted">Ожидает подтверждения</Text>}</Stack>},
    {header:'Пользователи и роли',field:'members',renderCell:item=>item.status==='pending'?<Text className="muted">Доступ появится после подтверждения</Text>:<Stack gap="normal">{item.members.map(member=><Stack key={member.userId} gap="condensed"><Text weight="semibold">{member.fullName}</Text>{member.roles.length?member.roles.map(role=><Text size="small" key={role}>{labels[role]}</Text>):<Text size="small" className="muted">Роль не назначена</Text>}</Stack>)}</Stack>},
   ]}/></Table.Container></div>}
-  {cursor&&<Button disabled={loading} onClick={()=>void more()}>Показать ещё</Button>}
+  {cursor&&<Button disabled={loading||saving} onClick={()=>void more()}>Показать ещё</Button>}
  </Stack>
 }
