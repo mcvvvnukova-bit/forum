@@ -50,7 +50,7 @@
 .cabinet .sidebar {display: none;}
 .cabinet .mobile-menu {display: inline-flex;}
 .cabinet .header-brand {gap: var(--base-size-8); flex-basis: 100%;}
-.cabinet .header-account {margin-left: auto; max-width: 100%;}
+.cabinet .header-account {flex-basis: 100%; justify-content: flex-end; max-width: 100%;}
 .cabinet .account-link {white-space: normal; gap: var(--base-size-4); max-width: calc(100vw - var(--base-size-96));}
 .cabinet .brand-link img {width: calc(var(--base-size-96) * 2);}
 .cabinet .account-link svg {display: none;}
