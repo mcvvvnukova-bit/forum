@@ -146,13 +146,20 @@ test('admin grant requires independently confirmed matching authority and time; 
   assert.equal(await access(user,one.participant),false);
 });
 
-function psql(file:string) {
-  // The fallback CLI must target the same local instance as the validated pool.
+function psqlResult(file:string) {
+  // No fallback: the caller must name the disposable endpoint used by the pool.
   const authority=new URL(testDatabaseUrl(process.env.TEST_DATABASE_URL));
-  const binding=spawnSync('docker',['port','forum-proj161-test','5432/tcp'],{encoding:'utf8'});
+  const container=process.env.TEST_DATABASE_CONTAINER;
+  assert.ok(container && /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(container),'Set TEST_DATABASE_CONTAINER to the disposable PostgreSQL container');
+  assert.equal(authority.hostname,'127.0.0.1','Container psql requires an exact IPv4 loopback binding');
+  const binding=spawnSync('docker',['port',container,'5432/tcp'],{encoding:'utf8'});
   assert.equal(binding.status,0,binding.stderr);
-  assert.equal(binding.stdout.trim(),`127.0.0.1:${authority.port || '5432'}`);
-  const result=spawnSync('docker',['exec','-i','forum-proj161-test','psql','-U','postgres','-d',decodeURIComponent(new URL(testDatabaseUrl(process.env.TEST_DATABASE_URL)).pathname.slice(1)), '-v','ON_ERROR_STOP=1'],{input:file,encoding:'utf8'});
+  assert.equal(binding.stdout.trim(),`127.0.0.1:${authority.port || '5432'}`,'Container must match TEST_DATABASE_URL endpoint');
+  return spawnSync('docker',['exec','-i','-e','PGPASSWORD',container,'psql','-X','-h','127.0.0.1','-U',decodeURIComponent(authority.username),'-d',decodeURIComponent(authority.pathname.slice(1)),'-v','ON_ERROR_STOP=1'],
+    {input:file,encoding:'utf8',env:{...process.env,PGPASSWORD:decodeURIComponent(authority.password)}});
+}
+function psql(file:string) {
+  const result=psqlResult(file);
   assert.equal(result.status,0,result.stderr);return result.stdout;
 }
 test('psql entrypoint applies 005/006 repeatably; restricted runtime authenticates and queries access without approval/DDL rights',async()=>{
@@ -237,12 +244,12 @@ test('both migration entrypoints reject mixed and legacy layouts before touching
   const entry=await readFile('../../deployment/forum-db/apply-public.psql','utf8');
   await pool.query('CREATE SCHEMA iam;CREATE TABLE iam.schema_migrations(name text PRIMARY KEY)');
   await assert.rejects(migrate(pool),/reviewed consolidation/);
-  const result=spawnSync('docker',['exec','-i','forum-proj161-test','psql','-U','postgres','-d',decodeURIComponent(new URL(testDatabaseUrl(process.env.TEST_DATABASE_URL)).pathname.slice(1)), '-v','ON_ERROR_STOP=1'],{input:entry,encoding:'utf8'});
+  const result=psqlResult(entry);
   assert.notEqual(result.status,0);assert.match(result.stderr,/Both public and legacy/);
   assert.equal((await pool.query("SELECT count(*) FROM public.schema_migrations WHERE name='006_person_memberships'")).rows[0].count,'1');
   await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
   await assert.rejects(migrate(pool),/reviewed consolidation/);
-  const legacy=spawnSync('docker',['exec','-i','forum-proj161-test','psql','-U','postgres','-d',decodeURIComponent(new URL(testDatabaseUrl(process.env.TEST_DATABASE_URL)).pathname.slice(1)), '-v','ON_ERROR_STOP=1'],{input:entry,encoding:'utf8'});
+  const legacy=psqlResult(entry);
   assert.notEqual(legacy.status,0);assert.match(legacy.stderr,/Legacy installation requires/);
   assert.equal((await pool.query("SELECT count(*) FROM iam.schema_migrations")).rows[0].count,'0');
   await pool.query('DROP TABLE iam.schema_migrations;DROP SCHEMA iam');
@@ -264,4 +271,36 @@ test('revoking a business grant alone preserves memberships, account session and
   assert.equal((await pool.query("SELECT count(*) FROM public.participant_memberships WHERE status='active'")).rows[0].count,'2');
   await pool.query("UPDATE public.role_assignments SET status='active',revoked_at=NULL WHERE scope_id=$1 AND role='customer'",[one.participant]);
   assert.equal(await access(user,one.participant),true);
+});
+
+
+test('readiness rejects missing006 and each required source-write or grant-lifecycle permission',async()=>{
+  await pool.query("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='proj161_runtime') THEN CREATE ROLE proj161_runtime; END IF; END $$");
+  psql('\\set app_role proj161_runtime\n'+await readFile('../../deployment/forum-api/grant-runtime.sql','utf8'));
+  const runtimePool=new Pool({connectionString:testDatabaseUrl(process.env.TEST_DATABASE_URL),options:'-c role=proj161_runtime'});
+  const app=await createApp({publicOrigin:'http://localhost',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:false,sessionTtlSeconds:3600},runtimePool);
+  const ready=async()=>(await app.inject({method:'GET',url:'/health/ready'})).statusCode;
+  try {
+    assert.equal(await ready(),200);
+    await pool.query("DELETE FROM public.schema_migrations WHERE name='006_person_memberships'");
+    try {assert.equal(await ready(),503,'missing006 marker');}
+    finally {await pool.query("INSERT INTO public.schema_migrations(name) VALUES ('006_person_memberships')");}
+    for(const [privilege,table] of [['INSERT','identity_profiles'],['UPDATE','identity_profiles'],['UPDATE(status)','role_assignments'],['UPDATE(revoked_at)','role_assignments']]) {
+      await pool.query(`REVOKE ${privilege} ON public.${table} FROM proj161_runtime`);
+      try {assert.equal(await ready(),503,`${table}/${privilege}`);}
+      finally {await pool.query(`GRANT ${privilege} ON public.${table} TO proj161_runtime`);}
+      assert.equal(await ready(),200);
+    }
+    assert.deepEqual((await runtimePool.query("SELECT name FROM public.schema_migrations WHERE name='006_person_memberships'")).rows,[{name:'006_person_memberships'}]);
+    for(const statement of ['SELECT applied_at FROM public.schema_migrations',"INSERT INTO public.schema_migrations(name) VALUES ('forbidden')",'UPDATE public.schema_migrations SET name=name','DELETE FROM public.schema_migrations'])
+      await assert.rejects(runtimePool.query(statement),{code:'42501'});
+  } finally {await app.close();await runtimePool.end();}
+});
+
+test('container psql rejects a mismatched endpoint before executing SQL',async()=>{
+  const original=process.env.TEST_DATABASE_URL;
+  const url=new URL(testDatabaseUrl(original));url.port=url.port==='1'?'2':'1';
+  process.env.TEST_DATABASE_URL=url.toString();
+  try {assert.throws(()=>psql('SELECT 1'),/Container must match TEST_DATABASE_URL endpoint/);}
+  finally {process.env.TEST_DATABASE_URL=original;}
 });

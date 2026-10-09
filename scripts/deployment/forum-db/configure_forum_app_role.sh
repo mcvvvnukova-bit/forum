@@ -67,10 +67,10 @@ dc_outline exec -T postgres psql -U outline -d "$DB_NAME" \
   -v ON_ERROR_STOP=1 -v app_role="$APP_ROLE" -X <<'SQL'
 DO $$ BEGIN
   IF to_regclass('public.schema_migrations') IS NULL THEN
-    RAISE EXCEPTION 'Apply the public-schema migration before granting runtime access';
+    RAISE EXCEPTION 'Apply migration006 before granting runtime access';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='003_public_schema') THEN
-    RAISE EXCEPTION 'Apply the public-schema migration before granting runtime access';
+  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships') THEN
+    RAISE EXCEPTION 'Apply migration006 before granting runtime access';
   END IF;
 END $$;
 SELECT EXISTS (

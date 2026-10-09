@@ -23,6 +23,13 @@ class HealthController {
         public.sessions, public.authorization_attempts, public.outbox_events, public.audit_events,
         public.identity_providers, public.identity_profiles, public.organization_memberships,
         public.organization_authorities LIMIT 0`);
+      const readiness=await this.runtime.pool.query(`SELECT
+        EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships')
+        AND has_table_privilege(current_user,'public.identity_profiles','INSERT')
+        AND has_table_privilege(current_user,'public.identity_profiles','UPDATE')
+        AND has_column_privilege(current_user,'public.role_assignments','status','UPDATE')
+        AND has_column_privilege(current_user,'public.role_assignments','revoked_at','UPDATE') AS ready`);
+      if (readiness.rows[0]?.ready !== true) return reply.code(503).send({status: 'not_ready'});
       await this.runtime.pool.query("SELECT public.effective_business_access(NULL::uuid,NULL::uuid,'customer',true)");
       return reply.send({status: 'ok', sberConfigured: Boolean(this.runtime.sber)});
     } catch { return reply.code(503).send({status: 'not_ready'}); }

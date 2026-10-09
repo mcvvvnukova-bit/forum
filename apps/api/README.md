@@ -104,11 +104,11 @@ routes it to the API without requiring the separate shared-password cookie.
 | `GET /auth/sber-id/start?intent=login` | Same unified flow: after verified Sber identity, create an unknown user with base IAM role `individual`, or reuse an active user. |
 | `GET /authorization?code=...&state=...` | Registered Forum callback: consumes the attempt once, exchanges code, verifies identity, commits account/session, redirects to `/cabinet/?auth=success`. |
 | `GET /auth/sber-id/callback?code=...&state=...` | Alternative callback, enabled only when selected in `SBER_ID_REDIRECT_URI`. |
-| `GET /api/auth/session` | User, individual participant, `roles` for that personal participant and expiry; 401 without an active session. |
-| `GET /api/profile` | Current session owner's persisted Sber profile and `userId`; no query selectors. 401 for expired/revoked/blocked access, 503 when the person snapshot is unavailable. Responses use `no-store`. |
+| `GET /api/auth/session` | User, nullable informational participant, baseline `roles: ['individual']` and expiry; 401 without an active account session. |
+| `GET /api/profile` | Current session owner's canonical person profile and `userId`; no source/provider metadata or query selectors. 401 for expired/revoked/deactivated account access, 503 when the canonical person is unavailable. Responses use `no-store`. |
 | `POST /api/auth/logout` | Revokes the current session and clears its cookie; exact matching `Origin` required. |
 | `GET /health/live` | Process liveness. |
-| `GET /health/ready` | Database/schema readiness and `sberConfigured` boolean. |
+| `GET /health/ready` | Required tables, migration006 marker, source INSERT/UPDATE, grant lifecycle column UPDATE and business-access function readiness; `sberConfigured` boolean. |
 
 Browser errors return to `/?auth_error=<code>`; only an allowlisted human-readable
 message is displayed. JSON callers receive 400/401/403/409/502/503 with a stable
@@ -116,12 +116,12 @@ code. Callback errors never include upstream data. User-controlled return URLs,
 duplicate query fields, non-individual subjects and HEAD mutations are rejected.
 
 Session tokens are random, persisted only as SHA-256 hashes and rotated on login.
-Deactivated users/participants cannot authenticate or use existing sessions.
+Deactivated users cannot authenticate or use existing sessions. Participant or company membership/grant revocation affects business access independently of the account session.
 After a verified blocked identity, any previous browser session is revoked and
 its cookie cleared; the callback opens a support dialog through `account_deactivated`.
 Login and registration intents are retained for compatibility/audit only and
 cannot change account creation or bypass blocking. `individual` means Физлицо;
-the participant's `provider` business characteristic is separate from IAM roles.
+the optional participant's `provider` business characteristic is separate from baseline account access.
 Identity matching uses `sub`, `sub_alt` and `alt_sub`, never email. Conflicting
 identities/emails require support and are not auto-merged. An email is confirmed
 only if Sber explicitly sends `email_verified: true`; email confirmation/profile
@@ -130,26 +130,37 @@ completion beyond those claims is a separate feature.
 ## Persistence And Operations
 
 The API uses the main `forum` database and the consolidated `public` identity tables.
-Migration005 adds IAM role `individual` with a participant-kind guard; original
-migrations001–004 stay immutable. The owner migrator applies001–003 and005 to a
-clean installation, upgrades an existing003 layout, and refuses a legacy installation.
-The one-shot legacy transfer is documented in [database operations](../../deployment/forum-db/README.md).
+Migration006 separates canonical persons from provider snapshots, removes mandatory
+personal participation, and adds independent corporate membership, authority and scoped
+grant lifecycles. Original migrations001–005 stay immutable. Both owner entrypoints
+apply001–003,005 and006 to a clean installation, upgrade consolidated public layouts,
+and refuse a legacy installation. The completed historical transfer is documented in
+[database operations](../../deployment/forum-db/README.md).
 
-Registration atomically creates user, verified external identity, minimal validated
-person snapshot, personal provider participant, active membership, `individual`
-IAM grant, audit/outbox records and session. A revoked membership denies new login
-and existing sessions without being reactivated. Provider aliases retain ownership;
-email/phone are never used to link accounts. The current reduced userinfo snapshot
-provides validated name parts, email confirmation and phone; missing Professional attributes remain absent.
-The profile DTO excludes provider subject and email-confirmation metadata. Existing
-users acquire newly supported name parts after the next verified Sber login.
+Registration atomically creates user, verified external identity, canonical person,
+source snapshot, audit/outbox records and session. It creates no participant,
+participant membership or scoped business grant. Every active account has baseline
+`individual` access; a participant is nullable and informational in the session.
+Provider aliases retain ownership; email/phone never link accounts. Initial validated
+source values populate canonical data. Returning login refreshes the source snapshot
+and recorded scope provenance separately, preserving independently edited canonical
+values. The profile DTO explicitly allowlists canonical attributes and excludes
+provider subjects, snapshots, tokens and source metadata.
+
+A company starts pending independently of the creator's account. Corporate membership,
+confirmed administrator authority and employee business-right assignment each have
+separate states and recorded basis. Effective business access requires registered and
+active corporate context, active corporate and participant memberships and an active
+matching scoped grant; administrator access additionally requires confirmed matching
+unexpired authority. Restricted context permits read-only checks; deactivated context
+denies business access. No company creation or membership alone confirms authority.
 The authenticated `/cabinet/` and `/cabinet/work/` use the approved profile
 presentation with this DTO; missing values display «Не передано». The separate
 `/profile/` preview retains its fictional-data banner and never supplies cabinet data.
 
 Run migrations only with an explicitly selected schema-owner connection, never at
 API startup. Runtime uses restricted `forum_app` and the allowlist in
-`deployment/forum-api/grant-runtime.sql`. Readiness checks all required public tables.
+`deployment/forum-api/grant-runtime.sql`. Readiness checks required tables, the006 marker (runtime SELECT(name) only), identity_profiles INSERT/UPDATE, role_assignments UPDATE(status,revoked_at), and business-access function execution.
 The runtime cannot edit/delete audit events. Source transfer preserves every original
 row/UUID/timestamp, builds profiles from recorded verified snapshots, and retains
 session token hashes. Keep private restorable backups of both databases before

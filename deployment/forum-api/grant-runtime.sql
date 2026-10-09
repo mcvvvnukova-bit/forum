@@ -1,4 +1,4 @@
--- Execute as the schema owner against the main Forum database after migration 003.
+-- Execute as the schema owner against the main Forum database after migration 006.
 -- Sandbox uses its separate runtime role and deployment configuration.
 \set ON_ERROR_STOP on
 \if :{?app_role}
@@ -57,6 +57,7 @@ WHERE d.defaclnamespace='public'::regnamespace AND d.defaclobjtype IN ('r','S')
 \gexec
 
 GRANT USAGE ON SCHEMA public TO :"app_role";
+GRANT SELECT(name) ON public.schema_migrations TO :"app_role";
 GRANT SELECT, INSERT, UPDATE ON public.users, public.external_identities,
   public.persons, public.identity_profiles, public.organizations, public.participants, public.participant_memberships TO :"app_role";
 GRANT SELECT ON public.identity_providers,public.organization_memberships,public.organization_authorities TO :"app_role";
