@@ -7,6 +7,26 @@ import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {test} from 'node:test'
 
+for (const mutation of ['none', 'style-bytes', 'pin', 'scope', 'path', 'mode', 'duplicate', 'base']) {
+  test(`PROJ-144 logo sizing ownership: ${mutation}`, t => {
+    const path = fixture(t)
+    const clean = provenance(path)
+    assert.equal(clean.status, 0, clean.stderr)
+    if (mutation === 'none') return
+    const file = join(path, 'artifacts/repository-audits/proj-144-logo-sizing-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    if (mutation === 'style-bytes') writeFileSync(join(path, 'apps/web/src/home/cabinet.css'), 'unapproved styles')
+    if (mutation === 'pin') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes[0].previousCandidatePath = 'package.json'
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}
+
 test('PROJ-144 accepts the approved logo without changing historical ownership', t => {
   const path = fixture(t)
   const result = provenance(path)

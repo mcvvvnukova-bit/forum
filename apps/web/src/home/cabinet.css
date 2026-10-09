@@ -1,4 +1,4 @@
-.cabinet {color-scheme: light; --profile-header-height: 80px;}
+.cabinet {color-scheme: light; --profile-header-height: var(--base-size-128);}
 
 
 .cabinet * {box-sizing: border-box;}
@@ -8,7 +8,7 @@
 .cabinet .header-brand, .cabinet .account-link, .cabinet .workspace-heading, .cabinet .card-heading {display: flex; align-items: center; gap: var(--base-size-12);}
 .cabinet .header-brand {gap: var(--base-size-24); min-width: 0;}
 .cabinet .brand-link {display: flex; flex-shrink: 0;}
-.cabinet .brand-link img {object-fit: contain;}
+.cabinet .brand-link img {width: calc(var(--base-size-128) * 2); height: auto; aspect-ratio: 8 / 3; object-fit: contain;}
 .cabinet .account-link {color: var(--fgColor-default); white-space: nowrap;}
 .cabinet .header-account {min-width: 0;}
 .cabinet .header-account .account-link {min-width: 0; overflow-wrap: anywhere;}
@@ -44,20 +44,18 @@
 .cabinet .profile-grid {grid-template-columns: minmax(0, 1fr);}
 }
 @media (max-width: 767px) {
-.cabinet {--profile-header-height: 72px;}
-.cabinet .cabinet-header {padding: 0 var(--base-size-16); gap: var(--base-size-12);}
+.cabinet {--profile-header-height: calc(var(--base-size-128) + var(--base-size-32));}
+.cabinet .cabinet-header {padding: var(--base-size-16); gap: var(--base-size-8); flex-wrap: wrap;}
 .cabinet .cabinet-body {display: block;}
 .cabinet .sidebar {display: none;}
 .cabinet .mobile-menu {display: inline-flex;}
-.cabinet .header-brand {gap: var(--base-size-8);}
-.cabinet .account-link {white-space: normal; gap: var(--base-size-4); max-width: 100px;}
-.cabinet .brand-link img {width: 120px; height: 40px;}
+.cabinet .header-brand {gap: var(--base-size-8); flex-basis: 100%;}
+.cabinet .header-account {margin-left: auto; max-width: 100%;}
+.cabinet .account-link {white-space: normal; gap: var(--base-size-4); max-width: calc(100vw - var(--base-size-96));}
+.cabinet .brand-link img {width: calc(var(--base-size-96) * 2);}
 .cabinet .account-link svg {display: none;}
 .cabinet .profile-main {padding: var(--base-size-24) var(--base-size-16);}
 .cabinet .page-heading {margin-bottom: var(--base-size-24); gap: var(--base-size-16);}
 .cabinet .profile-card {padding: var(--base-size-20);}
 .cabinet .profile-footer {flex-direction: column; align-items: start; gap: var(--base-size-12);}
-}
-@media (max-width: 360px) {
-.cabinet .brand-link img {width: 96px;}
 }

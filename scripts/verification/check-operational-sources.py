@@ -452,9 +452,49 @@ def trading_logo_receipt():
 def trading_logo_file(path, expected_hash, expected_mode):
     candidate = str(path.relative_to(ROOT))
     if candidate not in TRADING_LOGO_PREDECESSORS:
-        return path, expected_hash, expected_mode
+        return logo_sizing_file(path, expected_hash, expected_mode)
     assert expected_hash == TRADING_LOGO_PREDECESSORS[candidate] and expected_mode == '100644', 'PROJ-144 predecessor mismatch: ' + candidate
     change = next(x for x in trading_logo_receipt()['changes'] if x['previousCandidatePath'] == candidate)
+    return logo_sizing_file(path, change['candidateSha256'], change['candidateMode'])
+
+
+LOGO_SIZING_STYLES = {
+    'apps/web/src/home/layout.css', 'apps/web/src/audience/layout.css',
+    'apps/web/src/home/cabinet.css',
+}
+LOGO_SIZING_PREDECESSORS = {
+    'apps/web/src/home/layout.css': 'b25cb28deec9cab46bdcc70904b3163696778c51751be01ffa4ea56c5a627b26',
+    'apps/web/src/audience/layout.css': 'ee336424e33f56948221fbb5583102e080e82ad52ace2880e771eb267789a1a0',
+    'apps/web/src/home/cabinet.css': '1782f836fda51ca98050d80b5ad89d09e95119f7ddaf3d0b7201a0e6bfd004fe',
+    'scripts/verification/check-operational-sources.py': '31ea7bcdfed1949e4c54b8338b8ba6eb0bcfaeecb967d165c35aba7e952451cb',
+    'scripts/verification/checks.test.mjs': '90bf8a298598beae6d886948b456b797da80b9d8320ae324dfa670748bf156ab',
+}
+
+
+@lru_cache(maxsize=1)
+def logo_sizing_receipt():
+    path = ROOT / 'artifacts/repository-audits/proj-144-logo-sizing-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing PROJ-144 sizing receipt'
+    receipt = json.loads(path.read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-144'
+    assert receipt['baseSha'] == '0ec53a17f8cfe471934f8e5459b9a9ce2a317f9c', 'PROJ-144 sizing baseline mismatch'
+    changes = receipt['changes']
+    assert len(changes) == len(LOGO_SIZING_PREDECESSORS) and {x['previousCandidatePath'] for x in changes} == set(LOGO_SIZING_PREDECESSORS), 'Out-of-scope PROJ-144 sizing owner'
+    for item in changes:
+        candidate = item['previousCandidatePath']
+        assert item['candidatePath'] == candidate and item['previousSha256'] == LOGO_SIZING_PREDECESSORS[candidate], 'PROJ-144 sizing predecessor mismatch'
+        assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-144 sizing mode mismatch'
+        digest = item['candidateSha256']
+        assert isinstance(digest, str) and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), 'Invalid PROJ-144 sizing hash'
+    return receipt
+
+
+def logo_sizing_file(path, expected_hash, expected_mode):
+    candidate = str(path.relative_to(ROOT))
+    if candidate not in LOGO_SIZING_PREDECESSORS:
+        return path, expected_hash, expected_mode
+    assert expected_hash == LOGO_SIZING_PREDECESSORS[candidate] and expected_mode == '100644', 'PROJ-144 sizing chain mismatch: ' + candidate
+    change = next(x for x in logo_sizing_receipt()['changes'] if x['previousCandidatePath'] == candidate)
     return path, change['candidateSha256'], change['candidateMode']
 
 
@@ -506,7 +546,7 @@ def ci_file(path, expected_hash, expected_mode):
     if change:
         assert change['previousSha256'] == expected_hash and change['previousMode'] == expected_mode, 'PROJ-164 predecessor pin mismatch: ' + candidate
         return path, change['candidateSha256'], change['candidateMode']
-    return path, expected_hash, expected_mode
+    return logo_sizing_file(path, expected_hash, expected_mode)
 
 
 PERSON_MEMBERSHIPS_PREDECESSORS = {'apps/api/README.md': ('f785acd9d7fe41382bd4e768de3d689d8b9cf273ee9955c4e3123cb8411e9bd2', '100644'), 'apps/api/src/app.ts': ('df88c043361aad5ecfbf3f6dffe362ce5594b88117209be434a20d5db35f1304', '100644'), 'apps/api/src/consolidate-auth.ts': ('40e8aefada5ddce2009f5448b9e9c01069ad5a47b22f8367ef045d312ebacb9d', '100644'), 'apps/api/src/iam/auth-store.ts': ('7e1c8cc45c049318b1704f2fb7e47813862bcaeb3a5eba2bf8056ecab2a0bee5', '100644'), 'apps/api/src/iam/sber-client.ts': ('249ff6fb8aa4ddccc7c1e53bb9560710dcd074aca0c540871bf167408077b1e5', '100644'), 'apps/api/src/migrate.ts': ('4c487e02489eb76a2bab63fc16439ff5a21847b7d908024d597048bc29712b39', '100644'), 'apps/api/test/auth.test.ts': ('424f6a579df3df4383de00127a2e808bd47b8379121d24d6d775a59ba239a54d', '100644'), 'apps/api/test/consolidation.test.ts': ('6c616fd510d7330fb83dfd36cdb0c18024c29869810b7239fdc4e0505eb28d24', '100644'), 'apps/web/src/audience/intent.test.ts': ('cfeb6847b5847527859d36547d63dfaad9fd4c5e1bb3d39b404dad979aa73234', '100644'), 'apps/web/src/audience/intent.ts': ('a7fb3118f22e95fc15ad73dc0bd1a8a5bb6275846338725c71d00ae46f8e3db9', '100644'), 'deployment/forum-api/grant-runtime.sql': ('2c27de747e5e853d6d86883a816a4dbd395076befe148ef15e395318e21a0667', '100644'), 'deployment/forum-db/README.md': ('dc7a6729b70091237d0a09bad231c99d8a43a562249589e9e2379d081deb0281', '100644'), 'deployment/forum-db/apply-public.psql': ('55459ee9277042b63e0281ee15ed9a1f864cef6832d39b676fc7dc05e109a1a8', '100644'), 'deployment/forum-db/tests/profiles.sql': ('a950bdec1a0e4c88025315eb178c422e88d641060fb5fd0dde02d2590ed6dd04', '100644'), 'deployment/forum-db/tests/public-schema.sql': ('a0d17def597548cbad2c0eb34f7a54d81982e0763cdf85e9637a9adcdc2c67df', '100644'), 'deployment/forum-db/tests/test_configure_role_contract.py': ('d53d633f1be92590341fd1e28b41f8fd3849fd943105314c99b5dd8bd484bb37', '100644'), 'scripts/deployment/forum-db/configure_forum_app_role.sh': ('43ded821bb9d2bb6e47aa7ac0122aedf26809790ed5abc8f4b7aed2869e5ea90', '100755'), 'scripts/verification/check-api.sh': ('44255908ab14debdc66ca2ba836b6e226ad6c33b743bace384be4e42334c9a0f', '100644'), 'scripts/verification/check-operational-sources.py': ('e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a', '100644'), 'scripts/verification/checks.test.mjs': ('d97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8', '100644')}
@@ -682,7 +722,7 @@ def verify_provenance():
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, cabinet_settings_receipt,
                     governance_receipt, ci_receipt, merged_verification_receipt,
-                    trading_logo_receipt):
+                    trading_logo_receipt, logo_sizing_receipt):
         receipt.cache_clear()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
     assert matrix['schemaVersion'] == 1
@@ -811,10 +851,15 @@ def verify_provenance():
     ci_receipt()
     merged_verification_receipt()
     for item in trading_logo_receipt()['changes']:
+        source, digest, _ = logo_sizing_file(ROOT / item['candidatePath'], item['candidateSha256'], item['candidateMode'])
+        assert source.is_file() and not source.is_symlink(), item['candidatePath']
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-144 current hash mismatch: ' + item['candidatePath']
+        assert not source.stat().st_mode & 0o111, 'PROJ-144 current mode mismatch'
+    for item in logo_sizing_receipt()['changes']:
         source = ROOT / item['candidatePath']
         assert source.is_file() and not source.is_symlink(), item['candidatePath']
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-144 current hash mismatch: ' + item['candidatePath']
-        assert not source.stat().st_mode & 0o111, 'PROJ-144 current mode mismatch'
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-144 sizing hash mismatch: ' + item['candidatePath']
+        assert not source.stat().st_mode & 0o111, 'PROJ-144 sizing source mode mismatch'
     return accepted
 
 
