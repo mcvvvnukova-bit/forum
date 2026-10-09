@@ -20,9 +20,11 @@
 
 **Interfaces:** Существующий `ProfilePageProps.account` и `account.onLogout: () => void`; сигнатуры не меняются.
 
-- [ ] Добавить `SignOutIcon` и `IconButton` после ссылки имени в горизонтальный Primer Stack; удалить footer для account.
-- [ ] Обеспечить перенос имени и уменьшение логотипа на ширине до 360px.
-- [ ] Обновить существующее ожидание футера: кнопка в banner, пустой textContent, svg присутствует, contentinfo/«Физлицо»/«На главную» отсутствуют.
-- [ ] Выполнить web/profile typecheck, lint и тесты, Primer validator; проверить desktop/tablet/320px в Codex iab.
-- [ ] Проверить diff и GitNexus detect_changes, commit/push, создать PR с OP#PROJ-160 и OP#PROJ-5, прикрепить его и проверить OpenProject linkage.
+- [x] Добавить `SignOutIcon` и `IconButton` после ссылки имени в горизонтальный Primer Stack; удалить footer для account.
+- [x] Обеспечить перенос имени и уменьшение логотипа на ширине до 360px.
+- [x] Обновить существующее ожидание футера: кнопка в banner, пустой textContent, svg присутствует, contentinfo/«Физлицо»/«На главную» отсутствуют.
+- [x] Выполнить web/profile typecheck, lint и тесты, Primer validator; проверить desktop/tablet/320px в Codex iab.
+- [x] Проверить diff и GitNexus detect_changes, commit/push, создать PR с OP#PROJ-160 и OP#PROJ-5, прикрепить его и проверить OpenProject linkage.
 - [ ] Получить успешный exact-head CI artifact; проверить manifest и полный inventory, опубликовать через web_release.py с backup и CAS, сравнить origin/public HTTPS hashes и проверить страницу после reload.
+
+CI layout uses a 40-minute budget after both exact-head runs reached the former 20-minute limit during repository regressions. All commands and success gates stay intact; only the current workflow digest is refreshed in the governance receipt.
