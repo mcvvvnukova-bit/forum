@@ -80,7 +80,7 @@ for (const file of ['.outline-migration/payload.json', 'outline-uploads/form.jso
 }
 test('final quality check requires every exact result to be success', () => {
   const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database', 'profile', 'operational', 'web-release']
-  const results = Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))
+  const results = {changes: {result: 'success', outputs: {selection: JSON.stringify(Object.fromEntries(jobs.map(job => [job, true])))}}, ...Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))}
   const gate = data => spawnSync(process.execPath, [join(root, 'scripts/verification/quality-gate.mjs')], {
     env: {...process.env, QUALITY_RESULTS: JSON.stringify(data)}, encoding: 'utf8',
   })
@@ -96,7 +96,7 @@ test('final quality check requires every exact result to be success', () => {
 test('every checkout uses the explicit candidate head expression', () => {
   const workflow = readFileSync(join(root, '.github/workflows/quality.yml'), 'utf8')
   const checkouts = [...workflow.matchAll(/- uses: actions\/checkout@[^\n]+\n([\s\S]*?)(?=      - |\n  \w|$)/g)]
-  assert.equal(checkouts.length, 10)
+  assert.equal(checkouts.length, 11)
   for (const [, block] of checkouts) assert.match(block, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/)
 })
 

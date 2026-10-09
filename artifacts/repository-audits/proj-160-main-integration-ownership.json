@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-160",
+  "parents": [
+    "761407cb926937ad3431304ddf6ba884518c2eca",
+    "07600076bac07037a5ec22f9405b89d2fbbf7c09"
+  ],
+  "changes": [
+    {
+      "candidatePath": ".github/workflows/quality.yml",
+      "predecessorSha256": [
+        "2e7afb0a0e1de0720923b180170c310d25d57d095b9275bbfad3da480c347652",
+        "5f0e523b6ef1cabc6aaa77355f2dd46262de5ab891c77d6f8ac080634062e7fc"
+      ],
+      "candidateSha256": "3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b",
+      "candidateMode": "100644"
+    },
+    {
+      "candidatePath": "scripts/verification/quality-gate.mjs",
+      "predecessorSha256": [
+        "bb732c2ab4024f43c41ee4c85c82c168016edc1c64e249a25f0d6d6ddca26823",
+        "87c6b159e4ab9f23564332b55a813232db9426e5a49f6d6e4bfe5f1ed74eb51b"
+      ],
+      "candidateSha256": "87c6b159e4ab9f23564332b55a813232db9426e5a49f6d6e4bfe5f1ed74eb51b",
+      "candidateMode": "100644"
+    },
+    {
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "predecessorSha256": [
+        "e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a",
+        "489a7d3a33ca9d966804892e84fdfb2994b7732ef7045987f9d27c3de7534a18"
+      ],
+      "candidateSha256": "2da56161f21e1dc7ae3d50b4c669009fc52309a9716ce7674a4097e388e5ad43",
+      "candidateMode": "100644"
+    },
+    {
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "predecessorSha256": [
+        "d97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8",
+        "33436986e4a8ecfbadbaa1a157626ee69d1979b9c7ff277634be6a6478741b7a"
+      ],
+      "candidateSha256": "27ce734a03dd304d9c2aa0a83f5119bf49682eaa9fbad2b4c862744f40c7d713",
+      "candidateMode": "100644"
+    },
+    {
+      "candidatePath": "scripts/verification/repository-layout.json",
+      "predecessorSha256": [
+        "e6debbf43df842f10b738e65eda0baa12b59f39bd95ff2aadead7d66b43b5ab7",
+        "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99"
+      ],
+      "candidateSha256": "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99",
+      "candidateMode": "100644"
+    },
+    {
+      "candidatePath": "scripts/verification/ci-optimization.test.mjs",
+      "predecessorSha256": [
+        "c004958e76aff7aa3d610bf3849aca896eacd5399778e1d3f4b2304907b33e66"
+      ],
+      "candidateSha256": "e6d5e92e5202a451436fd98661b2e9218effd0d8bc679388889313c7eff598c4",
+      "candidateMode": "100644"
+    }
+  ]
+}

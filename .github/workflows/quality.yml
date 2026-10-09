@@ -3,6 +3,7 @@ name: Candidate quality
 on:
   pull_request:
   push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -16,6 +17,25 @@ env:
   FORUM_TEST_POSTGRES_IMAGE: postgres@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      selection: ${{ steps.select.outputs.selection }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.1
+          package-manager-cache: false
+      - name: Select checks from candidate changes
+        id: select
+        run: node scripts/verification/ci-selection.mjs
+
   layout:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -27,13 +47,17 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.18.1
-      - name: Candidate layout and verification regressions
-        run: |
-          npm ci
-          node scripts/verification/check-repository-layout.mjs
-          node --test scripts/verification/checks.test.mjs
-          npx --no-install playwright install --with-deps chromium
-          npm run test:mail
+          cache: npm
+      - name: Clean install
+        run: npm ci
+      - name: Candidate repository layout
+        run: node scripts/verification/check-repository-layout.mjs
+      - name: Verification and CI regressions
+        run: node --test scripts/verification/checks.test.mjs scripts/verification/ci-optimization.test.mjs
+      - name: Install mail-check Chromium
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Mail resource regressions
+        run: npm run test:mail
       # Only a status receipt is uploaded. Raw application logs, environment,
       # generated sites and private worktree contents stay out of artifacts.
       - name: Sanitized failure receipt
@@ -52,6 +76,8 @@ jobs:
           retention-days: 7
 
   api:
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.selection).api }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -62,6 +88,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.18.1
+          cache: npm
       - name: Clean install of API and its landing composition
         run: |
           npm ci
@@ -88,6 +115,8 @@ jobs:
           retention-days: 7
 
   frontend:
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.selection).frontend }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
@@ -102,6 +131,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.18.1
+          cache: npm
       - name: Clean install
         run: npm ci
       - name: Install landing-owned Chromium for its layout test
@@ -141,6 +171,8 @@ jobs:
           retention-days: 7
 
   composition:
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.selection).composition }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -151,6 +183,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.18.1
+          cache: npm
       - name: Clean install all composition owners
         run: |
           npm ci
@@ -174,6 +207,8 @@ jobs:
           retention-days: 7
 
   publishers:
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.selection).publishers }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -208,6 +243,8 @@ jobs:
           retention-days: 7
 
   database:
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.selection).database }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -240,6 +277,8 @@ jobs:
           retention-days: 7
 
   profile:
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.selection).profile }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -250,6 +289,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.18.1
+          cache: npm
       - name: Profile fixture checks from the workspace lock
         run: |
           npm ci
@@ -259,6 +299,8 @@ jobs:
           npm run build --workspace @astforum/profile-preview
 
   operational:
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.selection).operational }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -270,6 +312,8 @@ jobs:
         run: python3 scripts/verification/check-operational-sources.py
 
   web-release:
+    needs: changes
+    if: ${{ fromJSON(needs.changes.outputs.selection)['web-release'] }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -280,6 +324,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 24.18.1
+          cache: npm
       - run: npm ci
       - name: Build environment isolation and actual Vite media serving
         run: node --test scripts/verification/web-build-inputs.test.mjs
@@ -313,7 +358,7 @@ jobs:
   quality:
     name: quality
     if: always()
-    needs: [layout, api, frontend, composition, publishers, database, profile, operational, web-release]
+    needs: [changes, layout, api, frontend, composition, publishers, database, profile, operational, web-release]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
