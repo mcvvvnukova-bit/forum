@@ -36,7 +36,7 @@ Interfaces: `SettingsSection({userId,onExpired})`; общая оболочка �
 
 ## 3. Доставка и проверка
 
-Files: `scripts/deployment/build-web-release.mjs`, схема/владение маршрутом в `deployment/release-manifest.schema.json`, `apps/legacy-landing/server.py` и gateway tests; необходимый следующий слой operational provenance и его негативные проверки.
+Files: `scripts/deployment/build-web-release.mjs`, схема/владение маршрутом в `deployment/release-manifest.schema.json`, `apps/dev-gateway/forum_dev_auth.py` и gateway tests; необходимый следующий слой operational provenance и его негативные проверки.
 
 - [ ] Разрешить исключительно новый HTML-маршрут и `/api/settings` GET/PUT в существующей границе шлюза. Добавить tests с исходным отказом и разрешением после реализации.
 - [ ] Проверить built site с клавиатурой, reload/history/error на 320/390/768/1440 и визуально в Codex IAB.

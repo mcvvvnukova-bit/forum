@@ -61,7 +61,7 @@ def validate_artifact(artifact, source_sha, environment):
             raise ValueError('Hidden artifact file')
     if fingerprint(manifest['inputs']) != manifest['sourceFingerprint'] or fingerprint(manifest['config']) != manifest['configFingerprint']:
         raise ValueError('Input/config fingerprint mismatch')
-    routes = ['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/cabinet/', '/cabinet/work/'] if environment == 'dev' else ['/']
+    routes = ['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/cabinet/', '/cabinet/work/', '/cabinet/settings/'] if environment == 'dev' else ['/']
     if manifest['routes'] != routes:
         raise ValueError('Route inventory mismatch')
     pages = {('index.html' if route == '/' else route.strip('/') + '/index.html') for route in routes}
@@ -165,7 +165,7 @@ def rollback(target, release_backup, backups, *, expected_target, verifier):
         os.chmod(receipt, 0o700)
         prepared = target.parent / ('.web-rollback-' + operation)
         shutil.copytree(target, prepared)
-        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register','cabinet','cabinet/work']]
+        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register','cabinet','cabinet/work','cabinet/settings']]
         for name in pages + ['.public-auth.json', '.web-release.json']:
             source = before_source / name
             if source.exists(): atomic_write(prepared / name, source.read_bytes())

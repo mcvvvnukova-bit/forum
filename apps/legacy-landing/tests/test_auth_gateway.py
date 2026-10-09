@@ -240,6 +240,37 @@ class AuthGatewayTest(unittest.TestCase):
                         connection.close()
         self.assertEqual(requests,[("/api/profile","forum_dev_auth=synthetic"),("/api/profile","forum_session=opaque")])
 
+    def test_settings_proxy_preserves_owner_cookie_origin_and_json_and_limits_put_routes(self):
+        requests = []
+        class ApiHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.respond()
+            def do_PUT(self):
+                self.respond()
+            def respond(self):
+                body = self.rfile.read(int(self.headers.get('Content-Length', '0'))).decode()
+                cookie = self.headers.get('Cookie', '')
+                requests.append((self.command, self.path, cookie, self.headers.get('Origin'), body))
+                self.send_response(200 if cookie == 'forum_session=opaque' else 401)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"workAsIndividual":true}')
+            def log_message(self, *_):
+                pass
+        with GatewayServer(ApiHandler) as api:
+            with GatewayServer(self.make_handler(f'http://127.0.0.1:{api.port}')) as gateway:
+                status, headers, _ = gateway.request('GET', '/api/settings', headers={'Cookie':'forum_dev_auth=synthetic'})
+                self.assertEqual(status, 401)
+                self.assertEqual(headers['cache-control'], 'no-store')
+                status, headers, _ = gateway.request('PUT', '/api/settings', '{"workAsIndividual":true}',
+                    {'Cookie':'forum_session=opaque', 'Origin':'https://dev.astforum.ru', 'Content-Type':'application/json'})
+                self.assertEqual(status, 200)
+                self.assertEqual(headers['cache-control'], 'no-store')
+                self.assertEqual(gateway.request('PUT', '/api/profile', '{}')[0], 404)
+                self.assertEqual(gateway.request('PUT', '/api/settings', 'x' * 4097)[0], 400)
+        self.assertEqual(requests, [('GET', '/api/settings', 'forum_dev_auth=synthetic', None, ''),
+            ('PUT', '/api/settings', 'forum_session=opaque', 'https://dev.astforum.ru', '{"workAsIndividual":true}')])
+
     def test_api_proxy_preserves_cookies_and_redirects_without_logging_auth_codes(self):
         requests = []
 

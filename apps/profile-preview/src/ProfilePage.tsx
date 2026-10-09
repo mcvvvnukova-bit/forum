@@ -1,13 +1,14 @@
 import {useRef, useState} from 'react'
+import type {ReactNode} from 'react'
 import {Banner, Button, Dialog, Heading, Link, IconButton, NavList, Spinner, Stack, Text} from '@primer/react'
 import {BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PersonIcon, QuestionIcon, ShieldLockIcon, ThreeBarsIcon} from '@primer/octicons-react'
 import {buildProfileSections, type ProfileSection, type SberProfile} from './profile'
 
-type ProfileView = 'profile' | 'work'
+type ProfileView = 'profile' | 'work' | 'settings'
 type Account = {root: string; logo: string; displayName: string; individual: boolean; onLogout: () => void; leaving: boolean; logoutFailed: boolean}
-export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView; account?: Account}
+export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView; account?: Account; settingsContent?:ReactNode}
 const icons = {personal: PersonIcon, identity: FileIcon, addresses: LocationIcon, tax: FileIcon, contacts: MailIcon, pension: ShieldLockIcon, work: BriefcaseIcon, education: BookIcon, 'self-employment': PersonIcon, 'international-passport': FileIcon, 'previous-passport': FileIcon}
-function ProfileNavigation({onNavigate, disabled = false, view, root}: {onNavigate?: () => void; disabled?: boolean; view: ProfileView; root: string}) {
+function ProfileNavigation({onNavigate, disabled = false, view, root, settings=false}: {onNavigate?: () => void; disabled?: boolean; view: ProfileView; root: string; settings?:boolean}) {
   const profileRoot = root
   return <NavList aria-label="Навигация личного кабинета">
     <NavList.Group>
@@ -17,7 +18,7 @@ function ProfileNavigation({onNavigate, disabled = false, view, root}: {onNaviga
     </NavList.Group>
     <NavList.Divider/>
     <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><OrganizationIcon/></NavList.LeadingVisual>Добавить компанию</NavList.Item>
-    <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><GearIcon/></NavList.LeadingVisual>Настройки</NavList.Item>
+    {settings?<NavList.Item href={`${root}settings/#main`} onClick={onNavigate} aria-current={view==='settings'?'page':undefined}><NavList.LeadingVisual><GearIcon/></NavList.LeadingVisual>Настройки</NavList.Item>:<NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><GearIcon/></NavList.LeadingVisual>Настройки</NavList.Item>}
   </NavList>
 }
 function ProfileCard({section}: {section: ProfileSection}) {
@@ -30,7 +31,7 @@ function ProfileCard({section}: {section: ProfileSection}) {
     </div>)}</dl>
   </section>
 }
-export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile', account}: ProfilePageProps) {
+export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile', account, settingsContent}: ProfilePageProps) {
   const profileRoot = account?.root ?? import.meta.env.BASE_URL
   const [dialog, setDialog] = useState<'edit' | 'menu' | 'support' | null>(null)
   const editRef = useRef<HTMLButtonElement>(null)
@@ -55,7 +56,7 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
     <div className="cabinet-body">
       <aside className="sidebar">
         <div className="workspace-heading"><HomeIcon size={20}/><Text weight="semibold">Личный кабинет</Text></div>
-        <ProfileNavigation disabled={state !== 'ready'} view={view} root={profileRoot}/>
+        <ProfileNavigation disabled={state !== 'ready'} view={view} root={profileRoot} settings={Boolean(account && settingsContent)}/>
         <div className="sidebar-bottom"><Button ref={supportRef} variant="invisible" leadingVisual={QuestionIcon} onClick={() => setDialog('support')}>Связаться с поддержкой</Button></div>
       </aside>
       <main className="profile-main" id="main" tabIndex={-1}>
@@ -63,20 +64,20 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
           {!account && <Banner title="Демонстрационный профиль" description="Все показанные данные вымышлены. Подключение к Сбер ID отсутствует."/>}
           {account?.logoutFailed && <Banner title="Не удалось выйти. Повторите попытку" variant="warning"/>}
           <div className="page-heading">
-          <div><Text as="p" size="small" className="eyebrow muted">Мой профиль</Text><Heading as="h1" variant="large">{view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
-          <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>
+          <div>{view!=='settings' && <Text as="p" size="small" className="eyebrow muted">Мой профиль</Text>}<Heading as="h1" variant="large">{view==='settings'?'Настройки':view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
+          {view!=='settings' && <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>}
           </div>
         </Stack>
         {state === 'loading' && <div className="state-content" role="status"><Spinner size="medium"/><Heading as="h2" variant="small">Загружаем профиль</Heading><Text className="muted">Подготавливаем ваши данные.</Text></div>}
         {state === 'error' && <div className="state-content"><Banner variant="critical" title="Не удалось загрузить профиль" description="Попробуйте ещё раз. Если ошибка повторится, обратитесь в поддержку." primaryAction={<Button onClick={onRetry}>Повторить</Button>}/></div>}
-        {state === 'ready' && <div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>}
+        {state === 'ready' && (view==='settings'?settingsContent:<div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>)}
         <footer className="profile-footer"><Text size="small" className="muted">© 2026 АСТ Форум</Text>{account && <Stack direction="horizontal" gap="normal" align="center">{account.individual && <Text size="small">Физлицо</Text>}<Link href="/">На главную</Link><Button onClick={account.onLogout} disabled={account.leaving}>{account.leaving ? 'Выходим…' : 'Выйти'}</Button></Stack>}</footer>
       </main>
     </div>
     {dialog === 'edit' && <Dialog title="Изменение данных профиля" onClose={close} returnFocusRef={editRef} width="large" footerButtons={[{content: 'Понятно', onClick: close}]}>
       <Stack gap="normal"><Text as="p">{account ? 'Профиль доступен для просмотра. Изменение этих сведений в системе пока недоступно.' : 'Это макет с вымышленными данными. Изменение данных в макете недоступно; подключение к Сбер ID отсутствует.'}</Text></Stack>
     </Dialog>}
-    {dialog === 'menu' && <Dialog title="Разделы профиля" onClose={close} returnFocusRef={menuRef} position={{narrow: 'bottom', regular: 'center', wide: 'center'}} width="large"><ProfileNavigation onNavigate={close} disabled={state !== 'ready'} view={view} root={profileRoot}/></Dialog>}
+    {dialog === 'menu' && <Dialog title="Разделы профиля" onClose={close} returnFocusRef={menuRef} position={{narrow: 'bottom', regular: 'center', wide: 'center'}} width="large"><ProfileNavigation onNavigate={close} disabled={state !== 'ready'} view={view} root={profileRoot} settings={Boolean(account && settingsContent)}/></Dialog>}
     {dialog === 'support' && <Dialog title="Поддержка АСТ Форум" onClose={close} returnFocusRef={supportRef} width="large" footerButtons={[{content: 'Закрыть', onClick: close}]}><Stack gap="normal"><Text as="p">По вопросам работы с профилем напишите в поддержку площадки.</Text><Link href="mailto:info@astforum.ru">info@astforum.ru</Link>{!account && <Text as="p" className="muted">В этом макете используются только вымышленные данные.</Text>}</Stack></Dialog>}
   </div>
 }

@@ -106,6 +106,8 @@ routes it to the API without requiring the separate shared-password cookie.
 | `GET /auth/sber-id/callback?code=...&state=...` | Alternative callback, enabled only when selected in `SBER_ID_REDIRECT_URI`. |
 | `GET /api/auth/session` | User, nullable informational participant, baseline `roles: ['individual']` and expiry; 401 without an active account session. |
 | `GET /api/profile` | Current session owner's canonical person profile and `userId`; no source/provider metadata or query selectors. 401 for expired/revoked/deactivated account access, 503 when the canonical person is unavailable. Responses use `no-store`. |
+| `GET /api/settings` | Current account's `{userId, workAsIndividual}`; the boolean reflects effective personal provider access. Ownership comes from the session; no query selectors. |
+| `PUT /api/settings` | Accepts only `{workAsIndividual: boolean}` with exact matching `Origin`. Enables or revokes the owner's personal provider grant, idempotently and with audit. Returns the saved setting; 409 `participation_restricted` cannot lift administrative restrictions. |
 | `POST /api/auth/logout` | Revokes the current session and clears its cookie; exact matching `Origin` required. |
 | `GET /health/live` | Process liveness. |
 | `GET /health/ready` | Required tables, migration006 marker, source INSERT/UPDATE, grant lifecycle column UPDATE and business-access function readiness; `sberConfigured` boolean. |
@@ -157,6 +159,11 @@ denies business access. No company creation or membership alone confirms authori
 The authenticated `/cabinet/` and `/cabinet/work/` use the approved profile
 presentation with this DTO; missing values display «Не передано». The separate
 `/profile/` preview retains its fictional-data banner and never supplies cabinet data.
+`/cabinet/settings/` contains one Primer checkbox for individual provider participation.
+Turning it off preserves the person, account, session and organization grants. Turning
+it back on reuses the participant only when its membership and administrative status
+permit access. An unknown save result is reconciled with a fresh settings read before
+editing resumes; the UI never treats an unanswered write as confirmed success.
 
 Run migrations only with an explicitly selected schema-owner connection, never at
 API startup. Runtime uses restricted `forum_app` and the allowlist in
