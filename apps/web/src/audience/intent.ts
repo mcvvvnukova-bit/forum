@@ -11,7 +11,7 @@ export type SupplierDirection = keyof typeof supplierDirectionLabels
 export function isSupplierDirection(value: unknown): value is SupplierDirection {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(supplierDirectionLabels, value)
 }
-export type Session = {user: {id: string; displayName: string; emailConfirmed?: boolean}; roles?: string[]; participant?: {id: string; role: string; status: string; legalStatus?: string; kind?: string}}
+export type Session = {user: {id: string; displayName: string; emailConfirmed?: boolean}; roles?: string[]; participant?: {id: string; role: string; status: string; legalStatus?: string; kind?: string}|null}
 export function validIntent(value: unknown): value is Intent {
   if (!value || typeof value !== 'object') return false
   const v = value as Record<string, unknown>
@@ -31,5 +31,6 @@ export function sessionContext(session: unknown): 'individual'|'other'|'anonymou
   if (!session || typeof session !== 'object' || !('user' in session)) return 'anonymous'
   const s = session as Session
   if (typeof s.user?.id !== 'string') return 'anonymous'
+  if (Array.isArray(s.roles) && s.roles.includes('individual')) return 'individual'
   return s.participant?.legalStatus === 'individual_person' && s.participant.role === 'provider' && s.participant.status !== 'deactivated' ? 'individual' : 'other'
 }

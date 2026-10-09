@@ -11,7 +11,7 @@ const database = decodeURIComponent(new URL(url).pathname.slice(1));
 const pool = new Pool({connectionString:url});
 before(async () => { await migrate(pool); });
 beforeEach(async () => {
-  await pool.query(`TRUNCATE public.users,public.external_identities,public.persons,public.participants,
+  await pool.query(`TRUNCATE public.identity_profiles,public.organization_memberships,public.organization_authorities,public.organizations,public.users,public.external_identities,public.persons,public.participants,
     public.participant_memberships,public.role_assignments,public.sessions,public.authorization_attempts,
     public.audit_events,public.outbox_events,public.organizations`);
 });
@@ -43,6 +43,7 @@ test('transfer preserves UUIDs, statuses, sessions, attempts and exact recorded 
   assert.deepEqual(user,{id:source.tables.users[0].id,status:'deactivated'});
   assert.equal((await pool.query('SELECT token_hash FROM public.sessions')).rows[0].token_hash,'preserved-hash');
   assert.equal((await pool.query('SELECT code_verifier FROM public.authorization_attempts')).rows[0].code_verifier,'verifier');
+  assert.equal((await pool.query("SELECT to_char(updated_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS.US') stamp FROM public.persons")).rows[0].stamp,'2026-10-01 08:13:57.816868');
   const person = (await pool.query("SELECT sub, to_char(identified_at AT TIME ZONE 'UTC','YYYY-MM-DD HH24:MI:SS.US') AS stamp,requested_scopes FROM public.persons")).rows[0];
   assert.deepEqual(person,{sub:'source-sub',stamp:'2026-10-01 08:13:57.816868',requested_scopes:[]});
   assert.equal((await pool.query("SELECT nextval('public.outbox_events_sequence_seq') AS value")).rows[0].value,'18');

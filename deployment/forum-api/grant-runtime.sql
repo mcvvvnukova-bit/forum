@@ -8,10 +8,10 @@
 BEGIN;
 DO $$ BEGIN
   IF to_regclass('public.schema_migrations') IS NULL THEN
-    RAISE EXCEPTION 'Apply the public-schema migration before granting runtime access';
+    RAISE EXCEPTION 'Apply migration006 before granting runtime access';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='003_public_schema') THEN
-    RAISE EXCEPTION 'Apply the public-schema migration before granting runtime access';
+  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships') THEN
+    RAISE EXCEPTION 'Apply migration006 before granting runtime access';
   END IF;
 END $$;
 
@@ -58,12 +58,15 @@ WHERE d.defaclnamespace='public'::regnamespace AND d.defaclobjtype IN ('r','S')
 
 GRANT USAGE ON SCHEMA public TO :"app_role";
 GRANT SELECT, INSERT, UPDATE ON public.users, public.external_identities,
-  public.persons, public.organizations, public.participants, public.participant_memberships TO :"app_role";
+  public.persons, public.identity_profiles, public.organizations, public.participants, public.participant_memberships TO :"app_role";
+GRANT SELECT ON public.identity_providers,public.organization_memberships,public.organization_authorities TO :"app_role";
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.sessions, public.authorization_attempts TO :"app_role";
 GRANT SELECT, INSERT, DELETE ON public.role_assignments TO :"app_role";
+GRANT UPDATE(status,revoked_at) ON public.role_assignments TO :"app_role";
 GRANT SELECT, INSERT ON public.outbox_events, public.audit_events TO :"app_role";
 GRANT USAGE, SELECT ON SEQUENCE public.outbox_events_sequence_seq TO :"app_role";
 GRANT EXECUTE ON FUNCTION public.profile_birthdate(text), public.valid_sber_profile(jsonb),
   public.touch_updated_at(), public.guard_participant(), public.guard_membership(),
-  public.guard_role_assignment(), public.require_personal_participant() TO :"app_role";
+  public.guard_role_assignment(),public.guard_identity_owner(),public.guard_organization_association(),
+  public.effective_business_access(uuid,uuid,text,boolean) TO :"app_role";
 COMMIT;
