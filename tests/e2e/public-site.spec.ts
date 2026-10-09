@@ -8,6 +8,8 @@ for(const width of [320,390,1440]){
   for(const path of ['/','/customers/','/suppliers/','/work/','/participate/','/login','/register','/register/','/register/index.html','/cabinet/','/cabinet/work/','/cabinet/settings/','/cabinet/organizations/']){
    await page.goto(path);await expect(page.locator('h1')).toBeVisible()
    await page.reload();await expect(page.locator('h1')).toBeVisible()
+   const publicLogo=page.locator('header.site-header .brand img')
+   if(await publicLogo.count()) expect(await publicLogo.evaluate(image=>image.getBoundingClientRect().width)).toBe(width<768?192:256)
    await expect(page.locator('a[href="/register"]')).toHaveCount(0)
    if(path.startsWith('/register')) await expect(page).toHaveURL(/\/login$/)
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
@@ -146,6 +148,9 @@ for(const width of [320,390,1440])test(`built personal profile, work, reload and
  await page.reload();await expect(page.getByRole('heading',{name:'Работа',level:1,exact:true})).toBeVisible()
  await expect(page.getByRole('banner').getByRole('button',{name:'Выйти',exact:true})).toBeVisible()
  await expect(page.locator('footer.profile-footer')).toHaveCount(0)
+ const accountLogo=page.locator('.account-brand img')
+ await expect(accountLogo).toBeVisible()
+ expect(await accountLogo.evaluate(image=>image.getBoundingClientRect().width)).toBe(width<768?192:256)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.getByRole('button',{name:'Выйти',exact:true}).click()
  await expect(page).toHaveURL(new URL('/',page.url()).href)

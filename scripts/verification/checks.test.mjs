@@ -7,6 +7,29 @@ import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {test} from 'node:test'
 
+for (const mutation of ['candidate','predecessor','scope','path','mode','base','source-head','history','bytes','new-bytes','checker-bytes']) {
+  test(`PROJ-169 main integration rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    assert.equal(provenance(path).status, 0)
+    const file = join(path, 'artifacts/repository-audits/proj-169-main-integration-ownership.json')
+    const receipt = JSON.parse(readFileSync(file, 'utf8'))
+    if (mutation === 'candidate') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'predecessor') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes.push({...receipt.changes[0], candidatePath:'package.json'})
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    if (mutation === 'source-head') receipt.sourceHeads['PROJ-166'] = '0'.repeat(40)
+    if (mutation === 'history') receipt.historicalReceipts[0].sha256 = '0'.repeat(64)
+    const bytePath = mutation === 'bytes' ? 'apps/api/src/iam/auth-store.ts'
+      : mutation === 'new-bytes' ? 'apps/api/src/iam/sber-profile.ts'
+      : mutation === 'checker-bytes' ? 'scripts/verification/check-operational-sources.py' : null
+    if (bytePath) writeFileSync(join(path, bytePath), readFileSync(join(path, bytePath), 'utf8')+'\n// unapproved integration drift\n')
+    else writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}
+
 test('PROJ-144 accepts the approved logo without changing historical ownership', t => {
   const path = fixture(t)
   const result = provenance(path)

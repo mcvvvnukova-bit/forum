@@ -27,7 +27,7 @@ beforeEach(async () => {
   app=await createApp({publicOrigin:'https://forum.example',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:true,sessionTtlSeconds:3600,sber:provider.sber},pool);
   await pool.query('TRUNCATE public.organization_additions,public.identity_profiles,public.organization_memberships,public.organization_authorities,public.organizations,public.authorization_attempts, public.sessions, public.role_assignments, public.external_identities, public.users, public.participants, public.audit_events, public.outbox_events, public.persons, public.participant_memberships');
   provider.calls.length = 0;
-  Object.assign(provider.faults, {tokenStatus: 200, profileStatus: 200, completionStatus: 204});
+  Object.assign(provider.faults, {tokenStatus: 200, profileStatus: 200, completionStatus: 204, tokenScope:undefined});
 });
 
 after(async () => { await app?.close(); await provider?.close(); await pool?.end(); });
@@ -526,7 +526,7 @@ test('profile access stops after logout and blocked user', async () => {
 });
 
 
-test('canonical profile edits survive login and never expose source identity metadata', async () => {
+test('returned Sber values overwrite manual canonical edits and never expose source identity metadata', async () => {
   const cookie=sessionCookie(await finish(await begin()));
   await pool.query("UPDATE public.persons SET family_name='Измененная', job_title='Инженер'");
   const response=await app.inject({method:'GET',url:'/api/profile',headers:{cookie}});
@@ -534,7 +534,7 @@ test('canonical profile edits survive login and never expose source identity met
   assert.equal(response.json().profile.job_title,'Инженер');
   const renewed=sessionCookie(await finish(await begin('login')));
   const profile=(await app.inject({method:'GET',url:'/api/profile',headers:{cookie:renewed}})).json().profile;
-  assert.equal(profile.family_name,'Измененная');
+  assert.equal(profile.family_name,'Иванова');
   assert.equal(profile.job_title,'Инженер');
   for(const key of ['sub','identity_provider','requested_scopes','granted_scopes','claims_snapshot','sber_profile']) assert.equal(key in profile,false);
 });
@@ -547,4 +547,66 @@ test('readiness detects unavailable identity storage and corporate access functi
   await pool.query('ALTER FUNCTION public.effective_business_access(uuid,uuid,text,boolean) RENAME TO unavailable_business_access');
   try {assert.equal((await app.inject({method:'GET',url:'/health/ready'})).statusCode,503);}
   finally {await pool.query('ALTER FUNCTION public.unavailable_business_access(uuid,uuid,text,boolean) RENAME TO effective_business_access');}
+});
+
+
+test('extended Sber values synchronize atomically, merge absent children and refresh source provenance', async () => {
+  await app.close();
+  const scopes='openid name email mobile birthdate gender maindoc inn snils citizenship address_reg education place_of_work job_title marital_status is_self_employed previous_name';
+  app=await createApp({publicOrigin:'https://forum.example',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:true,sessionTtlSeconds:3600,sber:{...provider.sber,scope:scopes}},pool);
+  const first=sessionCookie(await finish(await begin(), {}, {birthdate:'29.02.2000',gender:2,phone_number:'+79000000001',middle_name:'Сергеевна',
+    identification:{series:'1234',number:'555555',issued_date:'02.03.2020',private_secret:'ignored'},inn:{number:'123456789012'},snils:{number:'12345678901'},citizenship:{country_code:'RU',country_name:'Россия'},
+    address_reg:{city:'Москва',street:'Первая'},education:{code:1,description:'Высшее'},place_of_work:'Компания',job_title:'Инженер',marital_status:{code:2,description:'Замужем'},is_self_employed:true,previous_family_name:'Петрова',bank_balance:100}));
+  const initial=(await app.inject({method:'GET',url:'/api/profile',headers:{cookie:first}})).json();
+  assert.equal(initial.profile.birthdate,'2000-02-29');
+  assert.deepEqual(initial.profile.identification,{series:'1234',number:'555555',issued_date:'2020-03-02'});
+  assert.equal(initial.profile.is_self_employed,true);
+  const other=sessionCookie(await finish(await begin(), {sub:'other-person'}, {family_name:'Другой',email:'other@example.test'}));
+  await pool.query("UPDATE public.persons SET family_name='Ручная' WHERE user_id=$1",[initial.userId]);
+  const renewed=sessionCookie(await finish(await begin('login'), {}, {family_name:'Новая',email:'new@example.test',email_verified:false,
+    identification:{number:'666666'},address_reg:{street:null},is_self_employed:false,job_title:null}));
+  const current=(await app.inject({method:'GET',url:'/api/profile',headers:{cookie:renewed}})).json().profile;
+  assert.equal(current.family_name,'Новая');assert.equal(current.birthdate,'2000-02-29');assert.equal(current.phone_number,'+79000000001');
+  assert.deepEqual(current.identification,{series:'1234',number:'666666',issued_date:'2020-03-02'});
+  assert.deepEqual(current.address_reg,{city:'Москва',street:null});assert.equal(current.job_title,null);assert.equal(current.is_self_employed,false);
+  const me=(await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie:renewed}})).json().user;
+  assert.equal(me.displayName,'Новая Анна Сергеевна');assert.equal(me.email,'new@example.test');assert.equal(me.emailConfirmed,false);
+  assert.equal((await app.inject({method:'GET',url:'/api/profile',headers:{cookie:other}})).json().profile.family_name,'Другой');
+  const source=(await pool.query('SELECT snapshot,requested_scopes,granted_scopes FROM public.identity_profiles WHERE user_id=$1',[initial.userId])).rows[0];
+  assert.deepEqual(source.requested_scopes,scopes.split(' '));assert.equal(source.granted_scopes,null);
+  assert.deepEqual(source.snapshot.identification,{number:'666666'});assert.equal('birthdate' in source.snapshot,false);
+  assert.equal('bank_balance' in source.snapshot,false);assert.equal(source.snapshot.is_self_employed,false);
+  const compatibility=(await pool.query('SELECT sber_profile FROM public.persons WHERE user_id=$1',[initial.userId])).rows[0].sber_profile;
+  assert.deepEqual(compatibility,source.snapshot);
+});
+
+test('malformed allowed Sber extended data creates no account or session', async () => {
+  await app.close();
+  app=await createApp({publicOrigin:'https://forum.example',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:true,sessionTtlSeconds:3600,sber:{...provider.sber,scope:'openid name email birthdate'}},pool);
+  const response=await finish(await begin(), {}, {birthdate:'31.02.2001'});
+  assert.equal(response.headers.location,'/?auth_error=invalid_provider_response');
+  for(const table of ['users','persons','external_identities','identity_profiles','sessions','outbox_events']) assert.equal((await pool.query(`SELECT count(*) FROM public.${table}`)).rows[0].count,'0');
+});
+
+
+for(const granted of ['openid mobile','']) test(`token granted scopes ${JSON.stringify(granted)} restrict profile and account contact data`,async()=>{
+  provider.faults.tokenScope=granted;
+  const cookie=sessionCookie(await finish(await begin(), {}, {birthdate:'31.02.2001',phone_number:'+79000000001'}));
+  const saved=(await app.inject({method:'GET',url:'/api/profile',headers:{cookie}})).json().profile;
+  assert.equal(saved.email,null);assert.equal(saved.family_name,null);
+  assert.equal(saved.phone_number,granted ? '+79000000001' : null);
+  const me=(await app.inject({method:'GET',url:'/api/auth/session',headers:{cookie}})).json().user;
+  assert.equal(me.email,null);assert.equal(me.displayName,'Пользователь');assert.equal(me.emailConfirmed,false);
+  const source=(await pool.query('SELECT snapshot,granted_scopes FROM public.identity_profiles')).rows[0];
+  assert.deepEqual(source.granted_scopes,granted.split(' ').filter(Boolean));
+  assert.equal('email' in source.snapshot,false);assert.equal('family_name' in source.snapshot,false);
+});
+
+
+test('real Sber zero dates and empty optional scalars register as null', async()=>{
+  await app.close();
+  app=await createApp({publicOrigin:'https://forum.example',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:true,sessionTtlSeconds:3600,sber:{...provider.sber,scope:'openid birthdate gender maindoc is_self_employed'}},pool);
+  const cookie=sessionCookie(await finish(await begin(), {}, {birthdate:'0000-00-00',gender:' ',identification:{issued_date:'00.00.0000'},is_self_employed:''}));
+  const saved=(await app.inject({method:'GET',url:'/api/profile',headers:{cookie}})).json().profile;
+  assert.equal(saved.birthdate,null);assert.equal(saved.gender,null);assert.equal(saved.is_self_employed,null);assert.deepEqual(saved.identification,{issued_date:null});
 });

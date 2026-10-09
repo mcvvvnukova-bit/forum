@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "recordKind": "source-verification",
+  "taskCode": "PROJ-166",
+  "parentTask": "PROJ-35",
+  "sourceCommit": "0190632fc4cbc3b7242d082be353aadf31b92fe0",
+  "baseCommit": "1afee9fd9e1055b52ddcf607d26f57ffb115326a",
+  "recordedAt": "2026-10-09T21:21:10.001373+00:00",
+  "tests": {
+    "api": {
+      "passed": 125,
+      "failed": 0
+    },
+    "web": {
+      "passed": 104,
+      "failed": 0
+    },
+    "profile": {
+      "passed": 16,
+      "failed": 0
+    },
+    "ownership": {
+      "passed": 140,
+      "failed": 0
+    }
+  },
+  "checks": [
+    "api/web typecheck",
+    "api/web build",
+    "web lint",
+    "strict repository layout",
+    "operational source ownership",
+    "diff whitespace"
+  ],
+  "taskReview": {
+    "range": "2cdf7d85..0190632f",
+    "spec": "PASS",
+    "quality": "APPROVED",
+    "critical": 0,
+    "important": 0,
+    "minor": 0,
+    "reportSha256": "59e825bc032c415139be9dcbfbea8f09e5da05f2d98667525407901328904163"
+  },
+  "implementationReportSha256": "51f95073d9ac9f61136ded697cdfdd7998c8c651057c1fa7e73e886bd51b3e3e",
+  "graph": {
+    "indexCommit": "0190632fc4cbc3b7242d082be353aadf31b92fe0",
+    "schema": 4,
+    "runnerIdentityStatus": "current",
+    "incompleteReasons": [],
+    "stagedChangedSymbols": 126,
+    "stagedFiles": 12,
+    "stagedAffectedFlows": 72,
+    "partial": false,
+    "truncated": false,
+    "finalUncommittedSymbols": 0
+  },
+  "browser": {
+    "surface": "Codex iab",
+    "environment": "isolated local HTTPS provider fixture plus PostgreSQL test database",
+    "frozenSourceCommit": "0190632fc4cbc3b7242d082be353aadf31b92fe0",
+    "firstLoginExtendedFieldsDisplayed": true,
+    "repeatedLoginReplacesDifferences": true,
+    "sameAccountRetained": true,
+    "absentFieldsAndNestedChildrenPreserved": true,
+    "reloadPersistsValues": true,
+    "workAndBooleanDisplayed": true,
+    "consoleErrors": 0,
+    "screenshotSha256": "0cad335c391683820864c3f560a31ec1e1b269fc3813da6660445f0b0727ba08"
+  },
+  "sberPermissions": {
+    "userConfirmedPackage": "Professional",
+    "confirmationDate": "2026-10-10",
+    "requestUsesDocumentedExplicitScopes": true,
+    "runtimeActivationAtThisReceipt": "pending reviewed dev release"
+  },
+  "limitations": [
+    "Real Sber account sign-in has not been performed.",
+    "This source receipt does not claim live deployment."
+  ],
+  "privateEvidenceDirectory": "/Users/vvv/.config/astforum/proj166-delivery/2026-10-10"
+}

@@ -19,7 +19,7 @@ export async function providerFixture() {
   const pending = new Map<string, {nonce: string; claims: Record<string, unknown>; profile: Record<string, unknown>}>();
   const profiles = new Map<string, Record<string, unknown>>();
   const calls: {path: string; headers: Record<string, unknown>; form: URLSearchParams}[] = [];
-  const faults = {authorizationError: '', tokenStatus: 200, profileStatus: 200, completionStatus: 204};
+  const faults = {authorizationError: '', tokenStatus: 200, profileStatus: 200, completionStatus: 204, tokenScope:undefined as string|undefined};
   const server = createServer({cert, key, ca: cert, requestCert: true, rejectUnauthorized: true}, async (req, res) => {
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(Buffer.from(chunk));
@@ -39,7 +39,7 @@ export async function providerFixture() {
       profiles.set(accessToken, {sub: claims.sub, given_name: 'Анна', family_name: 'Иванова',
         email: 'anna@example.test', email_verified: true, ...attempt.profile});
       res.end(JSON.stringify({access_token: accessToken, token_type: 'Bearer', expires_in: 60,
-        id_token: new UnsecuredJWT(claims).encode()}));
+        id_token: new UnsecuredJWT(claims).encode(), ...(faults.tokenScope===undefined ? {} : {scope:faults.tokenScope})}));
     } else if (req.url?.endsWith('/userinfo')) {
       res.writeHead(faults.profileStatus);
       res.end(JSON.stringify(profiles.get(req.headers.authorization?.replace('Bearer ', '') ?? '') ?? {}));

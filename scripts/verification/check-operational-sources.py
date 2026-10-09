@@ -515,7 +515,8 @@ def local_ci_receipt():
         assert item['previousMode'] == item['candidateMode'] == '100644', 'PROJ-168 mode mismatch'
         source = ROOT / candidate
         assert source.is_file() and not source.is_symlink(), 'PROJ-168 source missing'
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-168 current source hash mismatch: ' + candidate
+        _, digest, _ = branch_integration_file(source, item['candidateSha256'], item['candidateMode'])
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-168 current source hash mismatch: ' + candidate
         assert not source.stat().st_mode & 0o111, 'PROJ-168 current mode mismatch'
     sources = receipt['newFiles']
     assert len(sources) == len(LOCAL_CI_NEW_PATHS) and {x['path'] for x in sources} == LOCAL_CI_NEW_PATHS, 'Out-of-scope PROJ-168 new source'
@@ -740,6 +741,7 @@ def exact_file(path, digest, mode):
     # The bounded local-CI successor follows all main retirement/integration rules.
     try:
         path, digest, mode = local_ci_file(path, digest, mode)
+        path, digest, mode = branch_integration_file(path, digest, mode)
     except AssertionError as error:
         raise AssertionError('PROJ-165: ' + str(error)) from error
     relative = path.relative_to(ROOT)
@@ -747,6 +749,53 @@ def exact_file(path, digest, mode):
     assert path.is_file(), 'Missing current source: ' + str(relative)
     assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-165 current source hash mismatch: ' + str(relative)
     assert ('100755' if path.stat().st_mode & 0o111 else '100644') == mode, 'Current source mode mismatch: ' + str(relative)
+    return CurrentSource(path, digest, mode)
+
+
+# Exact successor for the reviewed remaining branches. Only this checker's
+# candidate hash is excluded from the manifest pin to avoid a hash cycle.
+BRANCH_INTEGRATION_MANIFEST_SHA256 = 'f2845460c4af371c4546fa38b1c262ab73e661f55391b186bb12363031babb77'
+
+
+@lru_cache(maxsize=1)
+def branch_integration_receipt():
+    receipt_path = ROOT / 'artifacts/repository-audits/proj-169-main-integration-ownership.json'
+    assert receipt_path.is_file() and not receipt_path.is_symlink(), 'Missing PROJ-169 receipt'
+    receipt = json.loads(receipt_path.read_text())
+    manifest = dict(receipt)
+    manifest['changes'] = [dict(item) for item in receipt['changes']]
+    for item in manifest['changes']:
+        if item['candidatePath'] == 'scripts/verification/check-operational-sources.py':
+            del item['candidateSha256']
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    assert digest == BRANCH_INTEGRATION_MANIFEST_SHA256, 'PROJ-169 integration scope/predecessor/candidate pin mismatch'
+    return receipt
+
+
+def verify_branch_integration():
+    # Authenticate the successor before using it; verify all of its raw sources
+    # after predecessor validators retain their established error contracts.
+    receipt = branch_integration_receipt()
+    for item in receipt['changes'] + receipt['newFiles'] + receipt['historicalReceipts']:
+        candidate = item.get('candidatePath', item.get('path'))
+        source = ROOT / candidate
+        relative = source.relative_to(ROOT)
+        assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
+                       for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-169 source symlink: ' + candidate
+        assert source.is_file(), 'Missing PROJ-169 source: ' + candidate
+        expected = item.get('candidateSha256', item.get('sha256'))
+        mode = item.get('candidateMode', item.get('mode'))
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == expected, 'PROJ-169 current source hash mismatch: ' + candidate
+        assert ('100755' if source.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-169 source mode mismatch: ' + candidate
+
+
+def branch_integration_file(path, expected_hash, expected_mode):
+    candidate = path.relative_to(ROOT).as_posix()
+    item = next((item for item in branch_integration_receipt()['changes'] if item['candidatePath'] == candidate), None)
+    if item is None:
+        return path, expected_hash, expected_mode
+    assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['candidateMode'], 'PROJ-169 integration predecessor mismatch: ' + candidate
+    return path, item['candidateSha256'], item['candidateMode']
 
 
 def retirement_receipt(verify_sources=True):
@@ -904,7 +953,7 @@ def verify_final_source(path, digest, mode, task='PROJ-165'):
     try:
         source = final_source(path, digest, mode)
         if not source.is_retired:
-            exact_file(source.path, source.sha256, source.mode)
+            source = exact_file(source.path, source.sha256, source.mode)
         return source
     except AssertionError as error:
         raise AssertionError(task + ': ' + str(error)) from error
@@ -923,7 +972,7 @@ def verify_provenance():
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, my_organizations_receipt, cabinet_settings_receipt, dev_organizations_receipt,
                     governance_receipt, ci_receipt, merged_verification_receipt, integration_receipt,
-                    trading_logo_receipt, local_ci_receipt):
+                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt):
         receipt.cache_clear()
     retirement_receipt()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
@@ -1046,6 +1095,7 @@ def verify_provenance():
     for item in receipt['newFiles']:
         exact_file(ROOT / item['path'], item['sha256'], item['mode'])
     local_ci_receipt()
+    verify_branch_integration()
     return accepted
 
 

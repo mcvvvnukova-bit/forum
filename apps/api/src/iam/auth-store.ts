@@ -7,7 +7,7 @@ import type {SberIdentity} from './sber-client.js';
 import {canonicalProfileFields,type PersonProfile} from './person-profile.js';
 
 /** Only trusted, validated adapters call this store; browser routes cannot select a provider. */
-export interface AccountIdentity extends SberIdentity {provider?:string; profile?:PersonProfile}
+export interface AccountIdentity extends SberIdentity {provider?:string}
 
 export interface AuthorizationAttempt {nonce: string; code_verifier: string; intent: 'register' | 'login'}
 
@@ -58,14 +58,14 @@ export class AuthStore {
           WHERE public.external_identities.user_id=EXCLUDED.user_id`,
           [uuid(), userId, provider,subject, identity.claims]);
       }
-      // Snapshot input is reduced to reviewed profile attributes. Subsequent
-      // authentication refreshes source data, preserving independent canonical edits.
+      // Trusted adapters supply reviewed attributes; Sber refreshes canonical data
+      // at every login while other providers retain their existing precedence.
       const initialProfile:PersonProfile = identity.profile ?? {email:identity.email,
         phone_number:identity.claims.phoneNumber ?? null,
         ...Object.fromEntries([['family_name','familyName'],['given_name','givenName'],['middle_name','middleName']]
           .filter(([,claim])=>typeof identity.claims[claim] === 'string')
           .map(([field,claim])=>[field,identity.claims[claim]]))};
-      const canonical=Object.fromEntries(canonicalProfileFields.filter(field=>field in initialProfile).map(field=>[field,initialProfile[field]]));
+      const canonical=Object.fromEntries(canonicalProfileFields.filter(field=>Object.hasOwn(initialProfile,field)).map(field=>[field,initialProfile[field]]));
       const snapshot=provider==='sber_id' ? {...canonical,sub:identity.subject,email_verified:identity.emailConfirmed} : canonical;
       const fields=canonicalProfileFields.join(',');
       await client.query(`INSERT INTO public.persons(user_id,${fields})
@@ -73,14 +73,32 @@ export class AuthStore {
         FROM jsonb_populate_record(NULL::public.persons,$2::jsonb) p
         ON CONFLICT(user_id) DO NOTHING`,[userId,canonical]);
       if(provider==='sber_id') {
-        // Deprecated rollback metadata; never the canonical profile source.
-        await client.query(`UPDATE public.persons SET sber_profile=coalesce(sber_profile,'{}'::jsonb)||$2::jsonb,
+        const supplied=canonicalProfileFields.filter(field=>Object.hasOwn(canonical,field));
+        // JSONB comparison is structural. Merge only supplied, reviewed one-level
+        // children; absent fields retain canonical values and explicit null clears.
+        const incoming=(field:typeof canonicalProfileFields[number])=>
+          `CASE WHEN jsonb_typeof($2::jsonb->'${field}')='object' THEN coalesce(current.${field},'{}'::jsonb)||($2::jsonb->'${field}') ELSE incoming.${field} END`;
+        const objectFields=new Set(['identification','inn','snils','driving_license','international_passport','priority_doc','citizenship','address_reg','work_address','address_of_actual_residence','delivery_address','address','sts','previous_identification','education','marital_status']);
+        const value=(field:typeof canonicalProfileFields[number])=>objectFields.has(field) ? incoming(field) : `incoming.${field}`;
+        if(supplied.length) await client.query(`UPDATE public.persons AS current
+          SET ${supplied.map(field=>`${field}=${value(field)}`).join(',')}
+          FROM jsonb_populate_record(NULL::public.persons,$2::jsonb) AS incoming
+          WHERE current.user_id=$1 AND (${supplied.map(field=>`current.${field} IS DISTINCT FROM (${value(field)})`).join(' OR ')})`,[userId,canonical]);
+        const namesSupplied=['family_name','given_name','middle_name'].some(field=>Object.hasOwn(canonical,field));
+        const emailSupplied=Object.hasOwn(canonical,'email');
+        if(namesSupplied || emailSupplied) await client.query(`UPDATE public.users AS current
+          SET display_name=CASE WHEN $2 THEN coalesce(nullif(concat_ws(' ',p.family_name,p.given_name,p.middle_name),''),'Пользователь') ELSE current.display_name END,
+              email=CASE WHEN $3 THEN p.email ELSE current.email END,
+              email_confirmed_at=CASE WHEN $3 THEN CASE WHEN $4 THEN coalesce(current.email_confirmed_at,now()) ELSE NULL END ELSE current.email_confirmed_at END
+          FROM public.persons p WHERE current.id=$1 AND p.user_id=current.id`,[userId,namesSupplied,emailSupplied,identity.emailConfirmed]);
+        // Latest reviewed source projection; never a canonical read source.
+        await client.query(`UPDATE public.persons SET sber_profile=$2::jsonb,
           identity_provider='sber_id',sub=$3,identified_at=now(),profile_received_at=now() WHERE user_id=$1`,[userId,snapshot,identity.subject]);
       }
       await client.query(`INSERT INTO public.identity_profiles(identity_id,user_id,snapshot,requested_scopes,granted_scopes,identified_at,received_at)
         SELECT id,user_id,$3,$4,$5,now(),now() FROM public.external_identities
         WHERE user_id=$1 AND provider=$2 AND subject=ANY($6::text[])
-        ON CONFLICT(identity_id) DO UPDATE SET snapshot=public.identity_profiles.snapshot||EXCLUDED.snapshot,
+        ON CONFLICT(identity_id) DO UPDATE SET snapshot=CASE WHEN $2='sber_id' THEN EXCLUDED.snapshot ELSE public.identity_profiles.snapshot||EXCLUDED.snapshot END,
           requested_scopes=EXCLUDED.requested_scopes,granted_scopes=EXCLUDED.granted_scopes,
           identified_at=EXCLUDED.identified_at,received_at=EXCLUDED.received_at`,
         [userId,provider,snapshot,identity.requestedScopes ?? [],identity.grantedScopes ?? null,subjects]);

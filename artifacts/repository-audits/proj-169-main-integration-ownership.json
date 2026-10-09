@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-169",
+  "baseSha": "9597bb7bef849ef46c6522e29be7c364c4b5e278",
+  "sourceHeads": {
+    "PROJ-161": "13cd72a2baf38dd020ebbb49d75e49c02de80bcc",
+    "PROJ-144": "86b7d03d0a9d706776c51766a8fdc0a636c0a350",
+    "PROJ-166": "45028583b04274dd6e8a347a26890bbbccac580f"
+  },
+  "changes": [
+    {
+      "previousCandidatePath": "apps/api/README.md",
+      "previousSha256": "5c7a061491ac54a4d864bab0d70c9e45ca8de176e3e35f0cdd532d46beed0818",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/README.md",
+      "candidateSha256": "563e80a9f823c14239d0909318a18b634963afeb0fc91f3f10fa8ba0c08a3f56",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/auth-store.ts",
+      "previousSha256": "8e644dba361d14298303278263866fd8e27be8747fd1d959d5455ed9964e572e",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/auth-store.ts",
+      "candidateSha256": "e0b126a340eb234bd88526c58db3f6bb4ff86f68574a1c90388746cb1fa94d86",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/sber-client.ts",
+      "previousSha256": "4c8d6945ddea32bf6a5af98d722a39f72b8ad52b6dce8422719dcfa109453c6a",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/sber-client.ts",
+      "candidateSha256": "f602785850e9010e53a5157a82f5400b6c836e0a3f19939d96823fbcb540ebee",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/auth.test.ts",
+      "previousSha256": "58d66595adef3dbf4327c0cc4af430db3f8b1e90f09781a62742a5bc5c55f4d8",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/auth.test.ts",
+      "candidateSha256": "399116de9d68042e695166978380ac879b7cf00e98b0cf13420a9a063e189651",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/person-memberships.test.ts",
+      "previousSha256": "ec4df2cd6ef3c7ff3997c36f3b7e7a7c0d9cdea366fb74977d6805a01053a2cd",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/person-memberships.test.ts",
+      "candidateSha256": "dc932797f3a1b3303d72640d232f8ce5bf1a4a9d76fa5a89d305455d65afb925",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/provider-fixture.ts",
+      "previousSha256": "0052ee3e3d7d24c468b5aca63912d89b481ca96cf415c90cb2fbe9855927f7b7",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/provider-fixture.ts",
+      "candidateSha256": "7379cc5e11d8c9eee9bce4e708a539b1dcee83b30b981994e56484a730a268be",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/layout.css",
+      "previousSha256": "853d675d17cab748138ef5aa33c393503645b58ad75617bcba259d1594bf8fba",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/audience/layout.css",
+      "candidateSha256": "408d8a3a34f261c0973c03f8a8ba67fc1bac10ccc33892533594e342609358f3",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/Cabinet.test.tsx",
+      "previousSha256": "fa2794f0d3ea4410d1b92c36622859d1a2d09bd0aa11bbd852085845a5d82fdc",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/Cabinet.test.tsx",
+      "candidateSha256": "9f9451c6abf8d1955a45575cb7e37eafcd2589d561f1b0730ff0fb4f852957bf",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/cabinet.css",
+      "previousSha256": "47bfa6068922445a9d3701a899055dd5b9da669b8567f7e9d31a7ac8080976bb",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/cabinet.css",
+      "candidateSha256": "347f0c9b1837e1b0cbad90706f92b8bc5fcac40aca5879e3feeda02e783aaa2f",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/layout.css",
+      "previousSha256": "b25cb28deec9cab46bdcc70904b3163696778c51751be01ffa4ea56c5a627b26",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/layout.css",
+      "candidateSha256": "86767d886c437a4ea5075efb0db796d05271d612245486f511cd83ffae31a86b",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-api/.env.example",
+      "previousSha256": "5e0e8f509fc4126cb05ebc4266243075443b1dc4c3d94b23cb0939629b5d1342",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-api/.env.example",
+      "candidateSha256": "38f0ffab3fdd9c9e5d5921eb9c3d8194198f363b7712f510d2581246248e1b17",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "703cd650da8fe72c750585667f476ec871ed5eba1e193d149c256d950eb7878f",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "6b828d3baef083591d9bcda128af3b1ba7846f54bf8b7ac23cc32e2b13437624",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "ddf72e095cba699e41f0307ca09ef913308b0008223828bc424b2849be6bf381",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "647a168a0a1d0769b53006c6c36da50707d8c941d70e7ce6609b2cc5d8f0230e",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/public-site.spec.ts",
+      "previousSha256": "f5904a652c4ae1dae59229ca7e2e24bec7b78f9cd3e985fa4f358adc724e0d2b",
+      "previousMode": "100644",
+      "candidatePath": "tests/e2e/public-site.spec.ts",
+      "candidateSha256": "a2e7beb766478a5099faf2e890a98c54c0cdbed4feba89b8fc0d3718380cbee1",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/api/src/iam/sber-profile.ts",
+      "sha256": "f0f4cd7e158835b42911cc7357ae37d5b827c535074e4f18f9bbc9aef07cb133",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/sber-profile.test.ts",
+      "sha256": "31bcf7890fb8658cf60b6bc31f17eef7b111915c12669658729e880961667fe5",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/2026-10-09-PROJ-161-delivery.md",
+      "sha256": "af329026b216a2e0a217779819b751fbe135b4a17af8a80e66e0886454c76173",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/2026-10-09-PROJ-161-preflight.md",
+      "sha256": "238bca6123a1eb23610df4bfd1cdb4bba0cff285db93120a6b352fe40dd7d802",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-144-logo-sizing-ownership.json",
+      "sha256": "bff387fa954e082a89301670e9265f51ae37d538c41d39fa386bddeecf427df5",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-166-sber-profile-sync-ownership.json",
+      "sha256": "93d35479e206e8f1d454d0026a9dfb9ac0341aa5701ea7a347bcacdb7e313748",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-166-sber-profile-sync-verification.json",
+      "sha256": "42e3a2eeaba9e5945b2e2bda05f1b54c865af76be465a829e4ed245e72209b9c",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-09-gitnexus-plan-sber-profile-sync.md",
+      "sha256": "0f1beaf130fae5d209d90c083e74878e02b28c900380447bbf2ff599f43c86ca",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-10-main-integration.md",
+      "sha256": "0c2c6b68a436f6e51d103d11d6302267518ca1d57374f28662171ea9d2685aac",
+      "mode": "100644"
+    }
+  ],
+  "historicalReceipts": [
+    {
+      "path": "artifacts/repository-audits/accepted-source-matrix.json",
+      "sha256": "1bcd9dff8cc7c42da2234e020ddc1f4f45e12029a911cf7963785b0ad0c2c895",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-144-logo-ownership.json",
+      "sha256": "54931af6f10039dbe521d6da27d1aaeb054781eee9cf9223ba74e63f763187f9",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-154-verification-ownership.json",
+      "sha256": "88d5d0106a1e499364d0491f4ba09b002c87d07993b7843868a42c12a61038a1",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-155-sber-auth-ownership.json",
+      "sha256": "c6b27dfa7d9018bb8eb348408a31c116639469b29594f2e811ce8a43a49bea32",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-156-main-auth-ownership.json",
+      "sha256": "e768f30c8eee1e3d42ec75082fd97b000795d0a2139e5363588f1529874cac3c",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-157-login-entry-ownership.json",
+      "sha256": "472ac5e6ce8845a2966bde9b5f01e5c43607d0edf01418374ec19907cb7c1eb5",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-158-sber-button-ownership.json",
+      "sha256": "77d93739a5900191873b4875c5ec3e35f4a3add321e368556f02481f8dea655e",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-159-skip-link-ownership.json",
+      "sha256": "1b90f2a299af16a619581be32a5a0ec9b2d09097121f2a1485b2765878dd814a",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-160-cabinet-profile-ownership.json",
+      "sha256": "ba7bf5e5671a47e5a1d82a31156e5ac8eec8044f379d45dd617fdc8f7a0682fd",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-161-person-memberships-ownership.json",
+      "sha256": "6630ce0a910c01d3dc60dedf45b765f939398d8467bdaa42d5bff47d1b5c6c78",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-162-dev-integration-ownership.json",
+      "sha256": "9ece7cb813041d4a7073c709638031c1aa2b452938c2a4b19d2ef41b60229067",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-162-my-organizations-ownership.json",
+      "sha256": "b8c821fee0dc30992a888b0955b580361dd9c6453b6e9fae3c67c3b24186314e",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-163-cabinet-settings-ownership.json",
+      "sha256": "06a77989c0527012bdce9b1fedfa58fe275f05a035f1530e67525dc780b55f09",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-163-main-integration-ownership.json",
+      "sha256": "e0d8d87a3a40511d21da2fe97b038d9ddea4d6172c85025512855d067ff535d4",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-164-ci-ownership.json",
+      "sha256": "3ea3010cb4b81d45269e73bec06cb089d821b50bba2a6d835609a73b905a696c",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-165-legacy-retirement-ownership.json",
+      "sha256": "ee5cf0bd0c254d49145ec7220cfcf8edce3a98848eb569776969af8987eca945",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-165-main-integration-ownership.json",
+      "sha256": "9a512e80571bdf863ff75ae8e939e9b567fd89806f8f6b86042be8ae7212e022",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-168-local-ci-ownership.json",
+      "sha256": "4a3893ebfb28ec01d3538a5ef4b95eb1505383112bd4ee662d59e991a80a87b3",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-31-public-entry-ownership.json",
+      "sha256": "7e36e8d6c723643be5e84eb33d4569a472aeec7dace7a98a82c574ae11657c79",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/proj-38-logout-home-ownership.json",
+      "sha256": "1b658c8e9322629c3d7533e7f375c2a238dd03b172007fed2885706c1fa8a4e7",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-5-source-parity.json",
+      "sha256": "32c5c040940ae80ab0679d26dad95ee1118f8d81c5950375ee74a8279ab4f135",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-6-source-ownership.json",
+      "sha256": "b157fd454b08e02bc3dc03d5f0d579bc4412e27a531dad70f3a057c58158e21a",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-7-source-ownership.json",
+      "sha256": "3be7b5e0cc2779ab71b3ba6383761860e7199ffe4765d05556adbda76e7d4fa3",
+      "mode": "100644"
+    },
+    {
+      "path": "artifacts/repository-audits/task-8-source-ownership.json",
+      "sha256": "13da0ce310eb381fa0190f57976398cedea4aeaee3249107e3735cc7339fb488",
+      "mode": "100644"
+    }
+  ]
+}

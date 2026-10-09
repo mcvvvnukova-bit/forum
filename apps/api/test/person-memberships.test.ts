@@ -304,3 +304,29 @@ test('container psql rejects a mismatched endpoint before executing SQL',async()
   try {assert.throws(()=>psql('SELECT 1'),/Container must match TEST_DATABASE_URL endpoint/);}
   finally {process.env.TEST_DATABASE_URL=original;}
 });
+
+
+test('generic repeated login preserves canonical manual changes',async()=>{
+  await pool.query("INSERT INTO public.identity_providers(provider) VALUES ('test_provider')");
+  const store=new AuthStore(pool);
+  const identity={provider:'test_provider',subject:'generic-repeat',alternateSubjects:[],displayName:'Generic',email:null,emailConfirmed:false,claims:{},profile:{family_name:'Source'}};
+  await store.authenticate(identity,'login','first-generic',3600);
+  await pool.query("UPDATE public.persons SET family_name='Manual'");
+  await store.authenticate({...identity,profile:{family_name:'Changed source'}},'login','second-generic',3600);
+  assert.equal((await store.profile('second-generic')).profile.family_name,'Manual');
+});
+
+test('unchanged structural Sber objects skip canonical updates and explicit null clears objects',async()=>{
+  const store=new AuthStore(pool);
+  const identity={subject:'structural',alternateSubjects:[],displayName:'Source',email:null,emailConfirmed:false,claims:{},profile:{family_name:'Source',identification:{series:'1234',number:'555555'}}};
+  await store.authenticate(identity,'login','first-structural',3600);
+  await pool.query('CREATE TABLE public.canonical_update_count(value integer); INSERT INTO public.canonical_update_count VALUES (0)');
+  await pool.query(`CREATE FUNCTION public.count_canonical_updates() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN UPDATE public.canonical_update_count SET value=value+1; RETURN NEW; END $$;
+    CREATE TRIGGER count_canonical_updates AFTER UPDATE OF family_name,identification ON public.persons FOR EACH ROW EXECUTE FUNCTION public.count_canonical_updates()`);
+  await store.authenticate({...identity,profile:{family_name:'Source',identification:{number:'555555',series:'1234'}}},'login','second-structural',3600);
+  assert.equal((await pool.query('SELECT value FROM public.canonical_update_count')).rows[0].value,0);
+  await store.authenticate({...identity,profile:{family_name:null,identification:null}},'login','third-structural',3600);
+  assert.equal((await pool.query('SELECT value FROM public.canonical_update_count')).rows[0].value,1);
+  assert.equal((await store.profile('third-structural')).profile.identification,null);
+  assert.equal((await store.session('third-structural')).user.displayName,'Пользователь');
+});

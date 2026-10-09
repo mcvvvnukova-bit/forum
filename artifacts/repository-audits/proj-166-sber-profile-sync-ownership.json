@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-166",
+  "baseSha": "2cdf7d85d96a72eeaa27dc4248623f0255acb784",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/api/README.md",
+      "previousSha256": "4a009077e2088eb1bae3ce13d1068d1cd7ce530c25b34c16b380980436a8b8a1",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/README.md",
+      "candidateSha256": "e24a2d651aee4ad2286da7035395fba7dbcf66cb22662f03733c2bb8c4431462",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/auth-store.ts",
+      "previousSha256": "8e644dba361d14298303278263866fd8e27be8747fd1d959d5455ed9964e572e",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/auth-store.ts",
+      "candidateSha256": "e0b126a340eb234bd88526c58db3f6bb4ff86f68574a1c90388746cb1fa94d86",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/iam/sber-client.ts",
+      "previousSha256": "4c8d6945ddea32bf6a5af98d722a39f72b8ad52b6dce8422719dcfa109453c6a",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/iam/sber-client.ts",
+      "candidateSha256": "f602785850e9010e53a5157a82f5400b6c836e0a3f19939d96823fbcb540ebee",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/auth.test.ts",
+      "previousSha256": "a1ce21614bed0b38d77e18bfeb942a48f4db68418295766ca186e5a5260443db",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/auth.test.ts",
+      "candidateSha256": "e7fbcdb27e4ed9ac883bdd60bcc0763e4b6081e7e188784c0b6f93523707aeb3",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/person-memberships.test.ts",
+      "previousSha256": "ec4df2cd6ef3c7ff3997c36f3b7e7a7c0d9cdea366fb74977d6805a01053a2cd",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/person-memberships.test.ts",
+      "candidateSha256": "dc932797f3a1b3303d72640d232f8ce5bf1a4a9d76fa5a89d305455d65afb925",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/provider-fixture.ts",
+      "previousSha256": "0052ee3e3d7d24c468b5aca63912d89b481ca96cf415c90cb2fbe9855927f7b7",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/provider-fixture.ts",
+      "candidateSha256": "7379cc5e11d8c9eee9bce4e708a539b1dcee83b30b981994e56484a730a268be",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/Cabinet.test.tsx",
+      "previousSha256": "fa2794f0d3ea4410d1b92c36622859d1a2d09bd0aa11bbd852085845a5d82fdc",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/Cabinet.test.tsx",
+      "candidateSha256": "9f9451c6abf8d1955a45575cb7e37eafcd2589d561f1b0730ff0fb4f852957bf",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-api/.env.example",
+      "previousSha256": "5e0e8f509fc4126cb05ebc4266243075443b1dc4c3d94b23cb0939629b5d1342",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-api/.env.example",
+      "candidateSha256": "38f0ffab3fdd9c9e5d5921eb9c3d8194198f363b7712f510d2581246248e1b17",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "2f1cb3def5745a1c84cc5b4f2879f1bb430a2717a8103cc7c73d50dfac469759",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "57b9f87a6b54452960cb383c1a4d66ff34d6456db7c0267a2fbf814fe2b7d5f9",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/api/src/iam/sber-profile.ts",
+      "sha256": "f0f4cd7e158835b42911cc7357ae37d5b827c535074e4f18f9bbc9aef07cb133",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/sber-profile.test.ts",
+      "sha256": "31bcf7890fb8658cf60b6bc31f17eef7b111915c12669658729e880961667fe5",
+      "mode": "100644"
+    }
+  ]
+}
