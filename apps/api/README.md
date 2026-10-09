@@ -144,9 +144,29 @@ source snapshot, audit/outbox records and session. It creates no participant,
 participant membership or scoped business grant. Every active account has baseline
 `individual` access; a participant is nullable and informational in the session.
 Provider aliases retain ownership; email/phone never link accounts. Initial validated
-source values populate canonical data. Returning login refreshes the source snapshot
-and recorded scope provenance separately, preserving independently edited canonical
-values. The profile DTO explicitly allowlists canonical attributes and excludes
+source values populate canonical data. At every Sber login, each supplied canonical
+value replaces a differing saved value, including manual edits. Absent top-level
+fields retain saved values; reviewed object children merge shallowly so absent
+children retain their values. Explicit null clears a scalar or whole object; empty
+text becomes null and boolean false remains false. Calendar dates (YYYY-MM-DD or
+DD.MM.YYYY) normalize to YYYY-MM-DD before any writes; all-zero date placeholders
+(0000-00-00 or 00.00.0000) normalize to null. Empty or whitespace scalars, including
+gender and is_self_employed, normalize to null. Invalid supplied allowed
+values fail the complete login with invalid_provider_response and no partial account
+or session. Unchanged structural JSONB values skip canonical updates. Saved Sber
+names and email also refresh the account session name/contact data.
+
+Sber source snapshots contain the latest reviewed returned projection (replacement,
+not a merge), together with sub/email_verified for identity and compatibility
+metadata; an absent source field can therefore remain present in canonical data.
+Requested and granted scope provenance refresh with that same snapshot. Allowed
+profile scopes are requested scopes intersected with token granted scopes when the
+token supplies them (including an empty grant); otherwise requested scopes apply.
+Unknown attributes and document children are discarded. mobile maps to phone_number,
+name to its three name fields, maindoc to identification, previous_name to its three
+previous-name fields; other documented fields use their explicit scope. Generic
+address has no approved scope mapping. Generic providers retain their existing
+policy: returning login refreshes source data while preserving canonical edits. The profile DTO explicitly allowlists canonical attributes and excludes
 provider subjects, snapshots, tokens and source metadata.
 
 A company starts pending independently of the creator's account. Corporate membership,
