@@ -112,7 +112,7 @@
       "previousSha256": "a1b9280920896e11bf0e705ff52d17b99aa4e9a0ae377fd8e6050c2f6a721711",
       "previousMode": "100644",
       "candidatePath": "tests/e2e/public-site.spec.ts",
-      "candidateSha256": "0a399c761eefcc522798f895c490a17a19adf0a557dec9cb60ab9fd1a7ad852d",
+      "candidateSha256": "cc368b64bb49e97df03110bafeb353c9a50c0dedfb22708e4e64567c36125e8c",
       "candidateMode": "100644"
     },
     {
@@ -166,17 +166,17 @@
     },
     {
       "path": "apps/web/src/home/SettingsSection.tsx",
-      "sha256": "6b40f81b838842a50ac39d42fdeb96fbd6b6e858bbebea465ff434544e4aa5b1",
+      "sha256": "6be9e9767489649136316b449b32f2454e7539130aeae9fba8969bb812c370e8",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/settings.test.tsx",
-      "sha256": "e44721eea149aeb7131a0ff11c611b43177083fba514868bf3118b01f1b90c9b",
+      "sha256": "e6f57628d0efec4eff2aea71e03634d5d35c412bb9c5bd0dfaf84d79b5f6a7bc",
       "mode": "100644"
     },
     {
       "path": "docs/plans/2026-10-09-cabinet-settings-design.md",
-      "sha256": "edde5c522afd86491e97522460df9f5c26d524b41f3b1b36ff764792e5e2922d",
+      "sha256": "7ead202c64f267c8b03c5661981413cffccb7b9819fdac9deed4416a5310751d",
       "mode": "100644"
     },
     {

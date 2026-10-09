@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {Banner, Button, Checkbox, FormControl, Spinner, Stack, Text} from '@primer/react'
 
 type Settings = {userId:string;workAsIndividual:boolean}
-type State = {kind:'loading'} | {kind:'error'} | {kind:'ready'|'saving';enabled:boolean;notice?:'saved'|'uncertain'|'restricted'}
+type State = {kind:'loading'} | {kind:'error'} | {kind:'ready'|'saving';enabled:boolean;notice?:'uncertain'|'restricted'}
 class SessionExpired extends Error {}
 class ParticipationRestricted extends Error {}
 
@@ -49,7 +49,7 @@ export function SettingsSection({userId,onExpired}:{userId:string;onExpired:()=>
     setState({kind:'saving',enabled:state.enabled})
     try {
       const value=await requestSettings(userId,signal,enabled)
-      if(!signal.aborted)setState({kind:'ready',enabled:value.workAsIndividual,notice:'saved'})
+      if(!signal.aborted)setState({kind:'ready',enabled:value.workAsIndividual})
     } catch(error) {
       if(signal.aborted)return
       if(error instanceof SessionExpired){expired.current();return}
@@ -73,7 +73,7 @@ export function SettingsSection({userId,onExpired}:{userId:string;onExpired:()=>
       <FormControl.Label>Хочу работать на площадке как физическое лицо</FormControl.Label>
       <FormControl.Caption>Включает участие исполнителем от своего имени. При отключении ваш аккаунт и профиль сохраняются.</FormControl.Caption>
     </FormControl>
-    <Text role="status" aria-live="polite">{state.kind==='saving'?'Сохраняем…':state.notice==='saved'?'Сохранено':''}</Text>
+    {state.kind==='saving' && <Text role="status" aria-live="polite">Сохраняем…</Text>}
     {state.notice==='uncertain' && <Banner title="Не удалось подтвердить сохранение. Проверьте выбор и повторите при необходимости." variant="warning"/>}
     {state.notice==='restricted' && <Banner title="Участие исполнителем ограничено. Обратитесь в поддержку." variant="warning"/>}
   </Stack>
