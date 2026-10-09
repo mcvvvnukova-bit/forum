@@ -372,3 +372,29 @@ for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','s
     assert.notEqual(provenance(path).status,0)
   })
 }
+
+for (const mutation of ['receipt','source']) {
+  test(`PROJ-163 revalidation observes ${mutation} changes in the same process`, t => {
+    const path=fixture(t)
+    const result=spawnSync('python3',['-c',`
+import importlib.util,json,pathlib,sys
+root=pathlib.Path(sys.argv[1])
+spec=importlib.util.spec_from_file_location('checker',root/'scripts/verification/check-operational-sources.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.ROOT=root
+m.verify_provenance()
+if sys.argv[2]=='receipt':
+    file=root/'artifacts/repository-audits/proj-163-cabinet-settings-ownership.json'
+    receipt=json.loads(file.read_text());receipt['changes'][0]['candidateSha256']='0'*64
+    file.write_text(json.dumps(receipt))
+else:
+    (root/'apps/api/src/iam/settings-store.ts').write_text('unowned source drift')
+try:
+    m.verify_provenance()
+except AssertionError:
+    pass
+else:
+    raise SystemExit('Revalidation ignored changed '+sys.argv[2])
+`,path,mutation],{encoding:'utf8'})
+    assert.equal(result.status,0,result.stderr)
+  })
+}

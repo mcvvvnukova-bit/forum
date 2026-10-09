@@ -88,7 +88,7 @@
       "previousSha256": "67e3640b7c9b5187f934d060d8e9eb0464d7f228565a5e55f4776de933295032",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "95e0d9e8d948ae0bc4abf28946a60b6297ab157fffc34f506f67096e31c7f35f",
+      "candidateSha256": "4587af45719629ad0deee263eead04ea70c748b386a2293c2fb1600bcfbad684",
       "candidateMode": "100644"
     },
     {
@@ -96,7 +96,7 @@
       "previousSha256": "d26163b9793cef1b4fa81d0f5a76d066a39d84418a5bedac44fa0d8e1301cc51",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/checks.test.mjs",
-      "candidateSha256": "fe1e7c0f48e69a1863641ad3e6d7e963365c5a8ce41f7d893747d8eba7654aff",
+      "candidateSha256": "f7fca4a3cd7a46923006f92f54f71e4d284044e35b7f0a3d4f123e0a2d625540",
       "candidateMode": "100644"
     },
     {
@@ -165,7 +165,7 @@
     },
     {
       "path": "docs/plans/2026-10-09-cabinet-settings.md",
-      "sha256": "a1d4851cae1274f7b5180ed472c04df87246e640103a5706b7a9e196af596e9d",
+      "sha256": "551bdbd636c37f2f6269619548affdda140dcec963bff087d582462532f2e229",
       "mode": "100644"
     }
   ]

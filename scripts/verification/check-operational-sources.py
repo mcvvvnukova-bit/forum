@@ -73,6 +73,7 @@ PUBLIC_ENTRY_PATHS = {
 }
 
 
+@lru_cache(maxsize=1)
 def public_entry_receipt():
     receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-31-public-entry-ownership.json').read_text())
     assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-31'
@@ -111,6 +112,7 @@ SBER_AUTH_NEW_PATHS = {
 }
 
 
+@lru_cache(maxsize=1)
 def sber_auth_receipt():
     receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-155-sber-auth-ownership.json').read_text())
     assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-155'
@@ -146,6 +148,7 @@ MAIN_AUTH_PREDECESSORS = {'apps/api/README.md': 'a10db49c8291fa91f370a87c122bc62
 MAIN_AUTH_NEW_PATHS = {'apps/api/test/consolidation.test.ts', 'deployment/forum-db/export-legacy-auth.psql', 'apps/api/src/consolidate-auth.ts', 'docs/plans/2026-10-08-gitnexus-plan-main-forum-auth-migration.md', 'apps/api/migrations/005_public_individual_role.sql'}
 
 
+@lru_cache(maxsize=1)
 def main_auth_receipt():
     receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-156-main-auth-ownership.json').read_text())
     assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-156'
@@ -181,6 +184,7 @@ LOGIN_ENTRY_PREDECESSORS = {'tests/integration/test_primer_ui_policy.py': '77921
 LOGIN_ENTRY_NEW_PATHS = {'docs/plans/2026-10-08-gitnexus-plan-unified-login-entry.md'}
 
 
+@lru_cache(maxsize=1)
 def login_entry_receipt():
     receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-157-login-entry-ownership.json').read_text())
     assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-157'
@@ -216,6 +220,7 @@ PROVIDER_BUTTON_PREDECESSORS = {'apps/web/src/auth/auth.css': 'dfc6756b17d1cf411
 PROVIDER_BUTTON_NEW_PATHS = {'docs/plans/2026-10-08-sber-disabled-button.md'}
 
 
+@lru_cache(maxsize=1)
 def provider_button_receipt():
     receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-158-sber-button-ownership.json').read_text())
     assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-158'
@@ -251,6 +256,7 @@ SKIP_LINK_PREDECESSORS = {'apps/web/src/audience/SharedLayout.tsx': '2f38e56b2b3
 SKIP_LINK_NEW_PATHS = {'docs/plans/2026-10-08-remove-public-skip-link.md'}
 
 
+@lru_cache(maxsize=1)
 def skip_link_receipt():
     receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-159-skip-link-ownership.json').read_text())
     assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-159'
@@ -286,6 +292,7 @@ LOGOUT_HOME_PREDECESSORS = {'apps/web/src/home/Cabinet.tsx': 'a11c08e19d627bf895
 LOGOUT_HOME_NEW_PATHS = {'docs/plans/2026-10-08-logout-home-design.md', 'docs/plans/2026-10-08-logout-home-plan.md'}
 
 
+@lru_cache(maxsize=1)
 def logout_home_receipt():
     receipt = json.loads((ROOT / 'artifacts/repository-audits/proj-38-logout-home-ownership.json').read_text())
     assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-38'
@@ -477,6 +484,7 @@ HISTORICAL_RECEIPTS = {
 }
 
 
+@lru_cache(maxsize=2)
 def governance_receipt(verify_history=False):
     path = ROOT / 'artifacts/repository-audits/proj-154-verification-ownership.json'
     assert path.is_file() and not path.is_symlink(), 'Missing PROJ-154 governance receipt'
@@ -521,6 +529,14 @@ def verify_current(candidate, expected_hash, expected_mode):
 
 
 def verify_provenance():
+    # Validate each ownership layer once per invocation, including source bytes.
+    # A new invocation must observe changed receipts/files and a changed ROOT.
+    for receipt in (public_entry_receipt, sber_auth_receipt, main_auth_receipt,
+                    login_entry_receipt, provider_button_receipt, skip_link_receipt,
+                    logout_home_receipt, cabinet_profile_receipt,
+                    person_memberships_receipt, cabinet_settings_receipt,
+                    governance_receipt):
+        receipt.cache_clear()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
     assert matrix['schemaVersion'] == 1
     accepted = 0
