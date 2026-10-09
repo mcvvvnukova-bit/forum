@@ -128,6 +128,9 @@
     }
   ],
   "requiredFiles": [
+    "scripts/verification/ci-selection.mjs",
+    "scripts/verification/ci-optimization.test.mjs",
+    "artifacts/repository-audits/proj-164-ci-ownership.json",
     "scripts/deployment/public_site.py",
     "tests/integration/test_public_site_release.py",
     "deployment/forum-db/tests/test_configure_role_contract.py",

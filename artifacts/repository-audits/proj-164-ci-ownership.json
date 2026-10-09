@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-164",
+  "baseSha": "36277f1094a6514709b2bf5eb6c9737c9361a213",
+  "changes": [
+    {
+      "previousCandidatePath": ".github/workflows/quality.yml",
+      "previousSha256": "4e6f77be04839cb75711089d19404eb8dd35231ccb2bd90ea3aa368f3b583ce0",
+      "previousMode": "100644",
+      "candidatePath": ".github/workflows/quality.yml",
+      "candidateSha256": "3822e3ada8d155047a80cea044a4b0e54300aadce754c884a4958a933490b39b",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/quality-gate.mjs",
+      "previousSha256": "bb732c2ab4024f43c41ee4c85c82c168016edc1c64e249a25f0d6d6ddca26823",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/quality-gate.mjs",
+      "candidateSha256": "87c6b159e4ab9f23564332b55a813232db9426e5a49f6d6e4bfe5f1ed74eb51b",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "75389cf4d7b6047ffa107cea3ef83620e2c9e15dbcac81b09545263f9c99c608",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "489a7d3a33ca9d966804892e84fdfb2994b7732ef7045987f9d27c3de7534a18",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "b18f228e48fafec474638de15722dee2257bf33a344bc2aed2beee33bfa70ad3",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "33436986e4a8ecfbadbaa1a157626ee69d1979b9c7ff277634be6a6478741b7a",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/repository-layout.json",
+      "previousSha256": "e6debbf43df842f10b738e65eda0baa12b59f39bd95ff2aadead7d66b43b5ab7",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/repository-layout.json",
+      "candidateSha256": "91bf10c6b901eb105e4e3363debafc1d3b21a0cb47be00684140d30510827e99",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "scripts/verification/ci-selection.mjs",
+      "sha256": "93027e440320c06a3be14362013e35891a4339df3f652bd35366143738f6f8fa",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/ci-optimization.test.mjs",
+      "sha256": "c004958e76aff7aa3d610bf3849aca896eacd5399778e1d3f4b2304907b33e66",
+      "mode": "100644"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ export const destinations = {
   customers: env.VITE_CUSTOMERS_URL || '/customers/',
   suppliers: env.VITE_SUPPLIERS_URL || '/suppliers/',
   work: env.VITE_WORK_URL || '/work/',
-  login: env.VITE_LOGIN_URL || '/auth/sber-id/start?intent=login',
+  login: env.VITE_LOGIN_URL || '/login',
   cabinet: env.VITE_CABINET_URL || '/participate/',
   privacy: env.VITE_PRIVACY_URL || '/privacy/',
   cookies: env.VITE_COOKIES_URL || '/cookies/',

@@ -14,18 +14,18 @@ import {providerFixture} from '../.test-build/test/provider-fixture.js';
 
 const connectionString = testDatabaseUrl(process.env.TEST_DATABASE_URL);
 
-// The API owns acceptance; the current web workspace supplies the real screen.
-const webRoot = fileURLToPath(new URL('../../../apps/web/', import.meta.url));
+// The API owns the runner; the unified web app supplies the actual sign-in and cabinet UI.
+const landingRoot = fileURLToPath(new URL('../../../apps/web/', import.meta.url));
 try {
-  for (const file of ['package.json', 'vite.config.ts', 'index.html', 'src/App.tsx', 'src/auth/PublicAuth.tsx']) {
-    await access(join(webRoot, file));
+  for (const file of ['package.json', 'vite.config.ts', 'index.html', 'src/auth/PublicAuth.tsx', 'src/home/Cabinet.tsx']) {
+    await access(join(landingRoot, file));
   }
-  const webRequire = createRequire(join(webRoot, 'package.json'));
+  const landingRequire = createRequire(join(landingRoot, 'package.json'));
   for (const dependency of ['react', 'react-dom', '@primer/react', '@vitejs/plugin-react', 'vite']) {
-    webRequire.resolve(dependency);
+    landingRequire.resolve(dependency);
   }
 } catch (cause) {
-  throw new Error('Browser acceptance requires tracked apps/web sources and the root locked dependencies. Run npm ci from the repository root.', {cause});
+  throw new Error('Browser acceptance requires tracked apps/web sources and its own dependencies. Run npm ci from the repository root.', {cause});
 }
 const screenshots = await mkdtemp(join(tmpdir(), 'forum-sber-browser-'));
 const pool = new Pool({connectionString});
@@ -36,17 +36,16 @@ const api = await createApp(config, pool);
 let vite;
 let browser;
 const previousApiOrigin = process.env.FORUM_API_ORIGIN;
-const previousSessionIntegration = process.env.VITE_FORUM_SESSION;
 try {
-  // This acceptance preserves the Sandbox API migration contract.
+  // Apply the public identity migrations to the disposable local test database.
   await migrate(pool);
   await api.listen(0, '127.0.0.1');
   const target = await api.getUrl();
   process.env.FORUM_API_ORIGIN = target;
-  process.env.VITE_FORUM_SESSION = 'true';
-  vite = await createServer({root: webRoot, configFile: join(webRoot, 'vite.config.ts'),
+  vite = await createServer({root: landingRoot, configFile: join(landingRoot, 'vite.config.ts'),
+    define: {'import.meta.env.VITE_FORUM_SESSION': JSON.stringify('true')},
     server: {host: '127.0.0.1', port: 0, proxy: {
-      '/api/auth': target, '/auth/sber-id': target, '/authorization': target,
+      '/auth/sber-id': {target}, '^/authorization(?:\\?|$)': {target}, '/api/auth': {target},
     }}});
   await vite.listen();
   const origin = `http://127.0.0.1:${vite.httpServer.address().port}`;
@@ -58,47 +57,49 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(`${origin}/register`);
-    await page.getByRole('button', {name: 'Зарегистрироваться по Сбер ID'}).click();
-    await page.goto(`${origin}/login`);
-    await expect(page.getByRole('status')).toContainText('Вы уже вошли в аккаунт');
+    await page.goto(`${origin}/`);
+    await page.getByRole('link', {name: 'Войти', exact: true}).click();
+    await page.getByRole('button', {name: 'Войти по Сбер ID'}).click();
+    await expect(page.getByText('Иванова Анна', {exact: true})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Выйти'})).toBeVisible();
     const authenticated = await page.request.get(`${origin}/api/auth/session`);
     assert.equal(authenticated.status(), 200);
     const identity = await authenticated.json();
     assert.equal(identity.user.displayName, 'Иванова Анна');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.external_identities')).rows[0].count, '1');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.users')).rows[0].count, '1');
+    assert.deepEqual(identity.roles, ['individual']);
+    assert.equal(new URL(page.url()).pathname, '/cabinet/');
+    assert.equal((await pool.query('SELECT count(*) FROM public.external_identities')).rows[0].count, '1');
+    assert.equal((await pool.query('SELECT count(*) FROM public.users')).rows[0].count, '1');
     assert.ok(provider.calls.some(call => call.path.endsWith('/tokens/v2/oidc')));
     assert.ok(provider.calls.some(call => call.path.endsWith('/userinfo')));
     assert.ok(provider.calls.some(call => call.path.endsWith('/auth/completed')));
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.reload();
-    await expect(page.getByRole('status')).toContainText('Вы уже вошли в аккаунт');
+    await expect(page.getByRole('button', {name: 'Выйти'})).toBeVisible();
+    await expect(page.getByText('Иванова Анна', {exact: true})).toBeVisible();
     const reloaded = await page.request.get(`${origin}/api/auth/session`);
     assert.equal(reloaded.status(), 200);
     assert.equal((await reloaded.json()).user.id, identity.user.id);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({path: join(screenshots, `session-${width}.png`)});
-    const logout = await page.request.post(`${origin}/api/auth/logout`, {headers: {Origin: origin}});
-    assert.equal(logout.status(), 204);
-    await page.reload();
-    await expect(page.getByRole('button', {name: 'Войти по Сбер ID'})).toBeVisible();
+    await page.getByRole('button', {name: 'Выйти'}).click();
+    await expect(page.getByRole('link', {name: 'Войти', exact: true})).toBeVisible();
     const session = await page.request.get(`${origin}/api/auth/session`);
     assert.equal(session.status(), 401);
-    assert.equal((await pool.query('SELECT count(*) FROM iam.sessions WHERE revoked_at IS NULL')).rows[0].count, '0');
+    assert.equal((await pool.query('SELECT count(*) FROM public.sessions WHERE revoked_at IS NULL')).rows[0].count, '0');
     // Exercise provider cancellation through start/state/callback, not a hand-written error URL.
     provider.faults.authorizationError = 'access_denied';
     const callsBeforeCancel = provider.calls.length;
     const cancellation = page.waitForResponse(response => new URL(response.url()).pathname === '/authorization' && response.status() === 303);
-    await page.goto(`${origin}/register`);
-    await page.getByRole('button', {name: 'Зарегистрироваться по Сбер ID'}).click();
-    await expect(page.getByRole('alert')).toContainText('Вы отменили подтверждение. Можно попробовать ещё раз');
+    await page.getByRole('link', {name: 'Войти', exact: true}).click();
+    await page.getByRole('button', {name: 'Войти по Сбер ID'}).click();
+    await expect(page.getByRole('alert')).toContainText('Вы отменили подтверждение');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     assert.equal((await cancellation).headers().location, '/?auth_error=access_denied');
     assert.equal((await page.request.get(`${origin}/api/auth/session`)).status(), 401);
     assert.equal(provider.calls.length, callsBeforeCancel, 'Cancellation must not exchange a token');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.authorization_attempts')).rows[0].count, '0');
-    assert.equal((await pool.query('SELECT count(*) FROM iam.users')).rows[0].count, '1');
+    assert.equal((await pool.query('SELECT count(*) FROM public.authorization_attempts')).rows[0].count, '0');
+    assert.equal((await pool.query('SELECT count(*) FROM public.users')).rows[0].count, '1');
     provider.faults.authorizationError = '';
     await page.screenshot({path: join(screenshots, `cancel-${width}.png`)});
     assert.deepEqual(errors, []);
@@ -114,6 +115,4 @@ try {
   await pool.end();
   if (previousApiOrigin === undefined) delete process.env.FORUM_API_ORIGIN;
   else process.env.FORUM_API_ORIGIN = previousApiOrigin;
-  if (previousSessionIntegration === undefined) delete process.env.VITE_FORUM_SESSION;
-  else process.env.VITE_FORUM_SESSION = previousSessionIntegration;
 }

@@ -64,3 +64,10 @@ npm run build --workspace @astforum/web
 ## Parent release gates
 
 After Task 1 and independent task/final reviews: push and update PR #36 with OP#PROJ-165; require exact-head CI. Download its dev artifact by exact run/artifact ID and validate manifest/full bytes. Recheck live dev CAS, mounts/runtime and source evidence with forum-prod SSH -B en0. Deploy the exact artifact atomically to /opt/outline/dev-astforum/landing using its publisher; preserve old assets and profile preview. Verify origin plus public HTTPS and old cookies/late assets through a forced failure/rollback and final reapply, then test current routes in Codex iab. If live active gateway must receive its renamed auth-only build, preserve its password/runtime/session contract and deploy only that owner with backup. No API behavior change is requested; compare current deployed API before any image action. Save sanitized release evidence, update PR/task and verify persisted GitHub linkage. A green local build alone is not completion.
+
+## Live preservation supplement (verified before implementation)
+
+- The actual dev web source is 7da4632e4fd532b831977dd527746f4824cdefe9 (PR #37, PROJ-144). Preserve this deployed baseline in addition to main 1afee9fd.
+- The only product-byte differences between live source and main are apps/web/public/assets/brand-logo-horizontal-color.png and apps/web/public/audience-assets/media/brand-logo-horizontal-color.png. Keep live restored logo bytes and the strict PROJ-144 ownership layer, while retaining main CI/cabinet/logout provenance.
+- Merge the live source into our candidate using git merge --no-commit --no-ff 7da4632e4fd532b831977dd527746f4824cdefe9 where appropriate; resolve ownership layering/CI conflicts without dropping main changes. This integrates published bytes, and does not merge or change PR #37 on GitHub.
+- Live API revision b87cfb3ac8e2bdfe0d993d7016875c2a3a6ee60d has identical apps/api/src and apps/api/package.json to main. This task needs no API image replacement.

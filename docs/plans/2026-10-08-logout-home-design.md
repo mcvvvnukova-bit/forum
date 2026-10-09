@@ -1,0 +1,9 @@
+# Logout returns to the public homepage
+
+The user's requested behavior is the design: a successful Forum logout returns to `/`; there is no guest cabinet page. From the homepage, `Войти` opens the existing `/login` form and continues the standard Sber ID flow. Existing account creation and blocked-account rules remain unchanged.
+
+The frontend owns this transition. After `POST /api/auth/logout` returns 204, invalidate the shared session and replace the current history entry with `/`, dispatching the existing navigation event contract. This preserves the public SPA and immediately removes the previous person's UI. A confirmed unauthenticated cabinet visit also replaces its entry with `/`, without rendering the guest cabinet. Loading and unavailable session responses remain distinct: an unavailable session offers retry instead of treating the person as a guest. A failed logout keeps the authenticated cabinet and offers retry.
+
+Replacing history and invalidating the shared session together is preferred over merely changing cabinet copy (which preserves the unwanted page) or reloading the whole application (which unnecessarily interrupts the existing navigation model). Existing public authentication uses history replacement and popstate for these transitions.
+
+Acceptance: successful logout shows the public homepage and guest header; the old name, role and guest cabinet are absent; reload and Back cannot expose an unauthenticated cabinet; direct guest cabinet links return home; unknown session and failed logout do not falsely redirect; homepage login opens `/login` and uses `/auth/sber-id/start?intent=login`. Verify at 320/390/1440 px. Publish only the reviewed CI dev artifact, retain unrelated files and previous immutable assets, prove rollback and served bytes, and link the PR to OP#PROJ-38 and OP#PROJ-4.

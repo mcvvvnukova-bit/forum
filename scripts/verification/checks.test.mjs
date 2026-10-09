@@ -80,7 +80,7 @@ for (const file of ['.outline-migration/payload.json', 'outline-uploads/form.jso
 }
 test('final quality check requires every exact result to be success', () => {
   const jobs = ['layout', 'api', 'frontend', 'composition', 'publishers', 'database', 'profile', 'operational', 'web-release']
-  const results = Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))
+  const results = {changes: {result: 'success', outputs: {selection: JSON.stringify(Object.fromEntries(jobs.map(job => [job, true])))}}, ...Object.fromEntries(jobs.map(job => [job, {result: 'success'}]))}
   const gate = data => spawnSync(process.execPath, [join(root, 'scripts/verification/quality-gate.mjs')], {
     env: {...process.env, QUALITY_RESULTS: JSON.stringify(data)}, encoding: 'utf8',
   })
@@ -96,7 +96,7 @@ test('final quality check requires every exact result to be success', () => {
 test('every checkout uses the explicit candidate head expression', () => {
   const workflow = readFileSync(join(root, '.github/workflows/quality.yml'), 'utf8')
   const checkouts = [...workflow.matchAll(/- uses: actions\/checkout@[^\n]+\n([\s\S]*?)(?=      - |\n  \w|$)/g)]
-  assert.equal(checkouts.length, 10)
+  assert.equal(checkouts.length, 11)
   for (const [, block] of checkouts) assert.match(block, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/)
 })
 
@@ -179,6 +179,286 @@ for (const mutation of ['hash', 'pin', 'scope', 'mode', 'path', 'duplicate', 'so
   })
 }
 
+for (const mutation of ['hash', 'pin', 'scope', 'mode', 'path', 'duplicate', 'base']) {
+  test(`PROJ-31 public entry ownership rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    assert.equal(provenance(path).status, 0)
+    const file = join(path, 'artifacts/repository-audits/proj-31-public-entry-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    if (mutation === 'hash') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'pin') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes[0].previousCandidatePath = 'apps/api/src/app.ts'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','duplicate','base','source']) {
+  test(`PROJ-155 auth ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-155-sber-auth-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','duplicate','base','source']) {
+  test(`PROJ-156 main auth ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-156-main-auth-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/web/src/home/App.tsx'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source']) {
+  test(`PROJ-157 login ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-157-login-entry-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source']) {
+  test(`PROJ-158 provider button ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-158-sber-button-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source']) {
+  test(`PROJ-160 cabinet profile ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-160-cabinet-profile-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source']) {
+  test(`PROJ-159 skip link ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-159-skip-link-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source']) {
+  test(`PROJ-38 logout homepage ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-38-logout-home-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='apps/api/src/app.ts'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source','source-scope','bytes']) {
+  test(`PROJ-161 person membership ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    const clean=provenance(path)
+    assert.equal(clean.status,0,clean.stderr)
+    const file=join(path,'artifacts/repository-audits/proj-161-person-memberships-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='package.json'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    if(mutation==='source-scope')receipt.newFiles[0].path='package.json'
+    if(mutation==='bytes')writeFileSync(join(path,'apps/api/src/consolidate-auth.ts'),'unowned source drift')
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source','source-scope','bytes']) {
+  test(`PROJ-163 cabinet settings ownership rejects ${mutation} tampering`, t => {
+    const path=fixture(t)
+    const clean=provenance(path)
+    assert.equal(clean.status,0,clean.stderr)
+    const file=join(path,'artifacts/repository-audits/proj-163-cabinet-settings-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='hash')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='package.json'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
+    if(mutation==='source-scope')receipt.newFiles[0].path='package.json'
+    if(mutation==='bytes')writeFileSync(join(path,'apps/api/src/iam/settings-store.ts'),'unowned source drift')
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+for (const mutation of ['receipt','source']) {
+  test(`PROJ-163 revalidation observes ${mutation} changes in the same process`, t => {
+    const path=fixture(t)
+    const result=spawnSync('python3',['-c',`
+import importlib.util,json,pathlib,sys
+root=pathlib.Path(sys.argv[1])
+spec=importlib.util.spec_from_file_location('checker',root/'scripts/verification/check-operational-sources.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.ROOT=root
+m.verify_provenance()
+if sys.argv[2]=='receipt':
+    file=root/'artifacts/repository-audits/proj-163-cabinet-settings-ownership.json'
+    receipt=json.loads(file.read_text());receipt['changes'][0]['candidateSha256']='0'*64
+    file.write_text(json.dumps(receipt))
+else:
+    (root/'apps/api/src/iam/settings-store.ts').write_text('unowned source drift')
+try:
+    m.verify_provenance()
+except AssertionError:
+    pass
+else:
+    raise SystemExit('Revalidation ignored changed '+sys.argv[2])
+`,path,mutation],{encoding:'utf8'})
+    assert.equal(result.status,0,result.stderr)
+  })
+}
+
+for (const mutation of ['none','settings-pin','ci-pin','scope','mode','path','duplicate','base','source','bytes']) {
+  test(`PROJ-163 main integration keeps both ownership chains: ${mutation}`, t => {
+    const path=fixture(t)
+    const clean=provenance(path)
+    assert.equal(clean.status,0,clean.stderr)
+    if(mutation==='none')return
+    const file=join(path,'artifacts/repository-audits/proj-163-main-integration-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    if(mutation==='settings-pin')receipt.changes[0].previousSha256='0'.repeat(64)
+    if(mutation==='ci-pin')receipt.changes[0].mainSha256='0'.repeat(64)
+    if(mutation==='scope')receipt.changes[0].previousCandidatePath='package.json'
+    if(mutation==='mode')receipt.changes[0].candidateMode='100755'
+    if(mutation==='path')receipt.changes[0].candidatePath='../package.json'
+    if(mutation==='duplicate')receipt.changes.push(receipt.changes[0])
+    if(mutation==='base')receipt.baseSha='0'.repeat(40)
+    if(mutation==='source')receipt.changes[0].candidateSha256='0'.repeat(64)
+    if(mutation==='bytes')writeFileSync(join(path,'scripts/verification/checks.test.mjs'),'unowned merge drift')
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
+
+test('PROJ-163 main integration revalidation observes changed ROOT and recovers after failure', t => {
+  const first=fixture(t), second=fixture(t)
+  const result=spawnSync('python3',['-c',`
+import importlib.util,json,pathlib,sys
+first,second=map(pathlib.Path,sys.argv[1:])
+spec=importlib.util.spec_from_file_location('checker',first/'scripts/verification/check-operational-sources.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.ROOT=first
+m.verify_provenance()
+file=second/'artifacts/repository-audits/proj-163-main-integration-ownership.json'
+original=file.read_text();receipt=json.loads(original);receipt['changes'][0]['candidateSha256']='0'*64
+file.write_text(json.dumps(receipt));m.ROOT=second
+try:
+    m.verify_provenance()
+except AssertionError:
+    pass
+else:
+    raise SystemExit('Revalidation ignored changed ROOT and receipt')
+file.write_text(original)
+m.verify_provenance()
+m.ROOT=first
+m.verify_provenance()
+`,first,second],{encoding:'utf8'})
+  assert.equal(result.status,0,result.stderr)
+})
+
+for (const candidate of ['scripts/verification/check-operational-sources.py','scripts/verification/checks.test.mjs']) {
+  test(`PROJ-163 main integration rejects changed historical CI predecessor: ${candidate}`, t => {
+    const path=fixture(t)
+    assert.equal(provenance(path).status,0)
+    const file=join(path,'artifacts/repository-audits/proj-164-ci-ownership.json')
+    const receipt=JSON.parse(readFileSync(file))
+    receipt.changes.find(item=>item.previousCandidatePath===candidate).previousSha256='0'.repeat(64)
+    writeFileSync(file,JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status,0)
+  })
+}
+
 // A receipt must never authorize a missing, resurrected or altered protected source.
 const retirementReceipt = 'artifacts/repository-audits/proj-165-legacy-retirement-ownership.json'
 for (const mutation of ['omitted-delete', 'omitted-move', 'predecessor-hash', 'predecessor-mode', 'base', 'task', 'duplicate', 'scope', 'resurrected', 'missing-destination', 'tampered-destination', 'current-owner', 'unrelated-missing']) {
@@ -186,7 +466,6 @@ for (const mutation of ['omitted-delete', 'omitted-move', 'predecessor-hash', 'p
     const path = fixture(t)
     const file = join(path, retirementReceipt)
     const receipt = JSON.parse(readFileSync(join(root, retirementReceipt)))
-    writeFileSync(file, JSON.stringify(receipt))
     const baseline = provenance(path)
     assert.equal(baseline.status, 0, baseline.stderr)
     const deleted = receipt.changes.find(item => item.action === 'delete')
@@ -209,5 +488,30 @@ for (const mutation of ['omitted-delete', 'omitted-move', 'predecessor-hash', 'p
     if (mutation === 'unrelated-missing') rmSync(join(path, 'scripts/deployment/mail/stalwart_api.py'))
     writeFileSync(file, JSON.stringify(receipt))
     assert.notEqual(provenance(path).status, 0)
+  })
+}
+
+// Integration can replace authenticated current owners, never its history or scope.
+for (const mutation of ['hash', 'predecessor', 'mode', 'destination', 'action', 'omitted', 'duplicate', 'history', 'extra-source']) {
+  test(`PROJ-165 main integration rejects ${mutation}`, t => {
+    const path = fixture(t)
+    const baseline = provenance(path)
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const file = join(path, 'artifacts/repository-audits/proj-165-main-integration-ownership.json')
+    const receipt = JSON.parse(readFileSync(file))
+    const owner = receipt.changes[0]
+    if (mutation === 'hash') owner.candidateSha256 = '0'.repeat(64)
+    if (mutation === 'predecessor') owner.predecessors[0].sha256 = '0'.repeat(64)
+    if (mutation === 'mode') owner.candidateMode = '100755'
+    if (mutation === 'destination') owner.candidatePath = '../package.json'
+    if (mutation === 'action') owner.action = 'delete'
+    if (mutation === 'omitted') receipt.changes.shift()
+    if (mutation === 'duplicate') receipt.changes.push(owner)
+    if (mutation === 'history') receipt.historicalReceipts[0].sha256 = '0'.repeat(64)
+    if (mutation === 'extra-source') receipt.newFiles.push({path:'unrelated.py',sha256:'0'.repeat(64),mode:'100644'})
+    writeFileSync(file, JSON.stringify(receipt))
+    const result = provenance(path)
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /PROJ-165/)
   })
 }

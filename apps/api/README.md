@@ -101,13 +101,16 @@ routes it to the API without requiring the separate shared-password cookie.
 | Route | Result |
 | --- | --- |
 | `GET /auth/sber-id/start?intent=register&subject=individual` | Persists a 10-minute browser-bound state/nonce/PKCE attempt and redirects to Sber. |
-| `GET /auth/sber-id/start?intent=login` | Same flow; unknown identities return `registration_required`. |
-| `GET /authorization?code=...&state=...` | Registered Forum callback: consumes the attempt once, exchanges code, verifies identity, commits account/session, redirects to `/?auth=success`. |
+| `GET /auth/sber-id/start?intent=login` | Same unified flow: after verified Sber identity, create an unknown user with base IAM role `individual`, or reuse an active user. |
+| `GET /authorization?code=...&state=...` | Registered Forum callback: consumes the attempt once, exchanges code, verifies identity, commits account/session, redirects to `/cabinet/?auth=success`. |
 | `GET /auth/sber-id/callback?code=...&state=...` | Alternative callback, enabled only when selected in `SBER_ID_REDIRECT_URI`. |
-| `GET /api/auth/session` | User, individual participant and expiry; 401 without an active session. |
+| `GET /api/auth/session` | User, nullable informational participant, baseline `roles: ['individual']` and expiry; 401 without an active account session. |
+| `GET /api/profile` | Current session owner's canonical person profile and `userId`; no source/provider metadata or query selectors. 401 for expired/revoked/deactivated account access, 503 when the canonical person is unavailable. Responses use `no-store`. |
+| `GET /api/settings` | Current account's `{userId, workAsIndividual}`; the boolean reflects effective personal provider access. Ownership comes from the session; no query selectors. |
+| `PUT /api/settings` | Accepts only `{workAsIndividual: boolean}` with exact matching `Origin`. Enables or revokes the owner's personal provider grant, idempotently and with audit. Returns the saved setting; 409 `participation_restricted` cannot lift administrative restrictions. |
 | `POST /api/auth/logout` | Revokes the current session and clears its cookie; exact matching `Origin` required. |
 | `GET /health/live` | Process liveness. |
-| `GET /health/ready` | Database/schema readiness and `sberConfigured` boolean. |
+| `GET /health/ready` | Required tables, migration006 marker, source INSERT/UPDATE, grant lifecycle column UPDATE and business-access function readiness; `sberConfigured` boolean. |
 
 Browser errors return to `/?auth_error=<code>`; only an allowlisted human-readable
 message is displayed. JSON callers receive 400/401/403/409/502/503 with a stable
@@ -115,7 +118,12 @@ code. Callback errors never include upstream data. User-controlled return URLs,
 duplicate query fields, non-individual subjects and HEAD mutations are rejected.
 
 Session tokens are random, persisted only as SHA-256 hashes and rotated on login.
-Deactivated users/participants cannot authenticate or use existing sessions.
+Deactivated users cannot authenticate or use existing sessions. Participant or company membership/grant revocation affects business access independently of the account session.
+After a verified blocked identity, any previous browser session is revoked and
+its cookie cleared; the callback opens a support dialog through `account_deactivated`.
+Login and registration intents are retained for compatibility/audit only and
+cannot change account creation or bypass blocking. `individual` means Физлицо;
+the optional participant's `provider` business characteristic is separate from baseline account access.
 Identity matching uses `sub`, `sub_alt` and `alt_sub`, never email. Conflicting
 identities/emails require support and are not auto-merged. An email is confirmed
 only if Sber explicitly sends `email_verified: true`; email confirmation/profile
@@ -123,32 +131,49 @@ completion beyond those claims is a separate feature.
 
 ## Persistence And Operations
 
-**Historical main database observation, 2026-09-15:** the source reported `forum` with migrations001–003 and all
-21 application tables in `public`, applied with `deployment/forum-db/apply-public.psql`.
-This API still uses the legacy Sandbox schema; its migrator runs only 001 and
-refuses installations containing `public.schema_migrations` to prevent recreating IAM.
-The documented API store uses `forum_sber_sandbox`; freshly verify the deployment target before release. Update the
-store queries to `public.*`, registration transaction and authorization before
-pointing this API at the main database.
-See [database ownership and checks](../../deployment/forum-db/README.md).
-The following describes the existing API implementation based on migration 001.
+The API uses the main `forum` database and the consolidated `public` identity tables.
+Migration006 separates canonical persons from provider snapshots, removes mandatory
+personal participation, and adds independent corporate membership, authority and scoped
+grant lifecycles. Original migrations001–005 stay immutable. Both owner entrypoints
+apply001–003,005 and006 to a clean installation, upgrade consolidated public layouts,
+and refuse a legacy installation. The completed historical transfer is documented in
+[database operations](../../deployment/forum-db/README.md).
 
-The additive migration creates only the identity/individual-registration subset
-of the documented module schemas. Existing `public` company/OKVED tables are not
-modified. Email uniqueness uses `lower(email)` instead of the `citext` extension.
-The current participant and role constraints deliberately permit only the implemented
-individual/provider case; organizational onboarding will extend them in a new migration.
-Registration atomically writes user, external identities, participant, role, audit,
-`ParticipantRegistered` outbox and session. The outbox delivery worker is not part
-of this authentication implementation. Do not mark pending events as published manually.
+Registration atomically creates user, verified external identity, canonical person,
+source snapshot, audit/outbox records and session. It creates no participant,
+participant membership or scoped business grant. Every active account has baseline
+`individual` access; a participant is nullable and informational in the session.
+Provider aliases retain ownership; email/phone never link accounts. Initial validated
+source values populate canonical data. Returning login refreshes the source snapshot
+and recorded scope provenance separately, preserving independently edited canonical
+values. The profile DTO explicitly allowlists canonical attributes and excludes
+provider subjects, snapshots, tokens and source metadata.
 
-Migrations run explicitly with a schema-owner connection, never automatically at
-API startup. The legacy Sandbox uses `iam.schema_migrations`; the main database
-uses `public.schema_migrations`. Current main-database runtime grants are in
-`deployment/forum-api/grant-runtime.sql` and must not be reused for legacy Sandbox.
-The runtime role cannot modify/delete audit events. Rollback is to the previous application image while retaining the
-additive tables and registered users; destructive down-migrations are intentionally
-not supplied for identity data.
+A company starts pending independently of the creator's account. Corporate membership,
+confirmed administrator authority and employee business-right assignment each have
+separate states and recorded basis. Effective business access requires registered and
+active corporate context, active corporate and participant memberships and an active
+matching scoped grant; administrator access additionally requires confirmed matching
+unexpired authority. Restricted context permits read-only checks; deactivated context
+denies business access. No company creation or membership alone confirms authority.
+The authenticated `/cabinet/` and `/cabinet/work/` use the approved profile
+presentation with this DTO; missing values display «Не передано». The separate
+`/profile/` preview retains its fictional-data banner and never supplies cabinet data.
+`/cabinet/settings/` contains one Primer checkbox for individual provider participation.
+Turning it off preserves the person, account, session and organization grants. Turning
+it back on reuses the participant only when its membership and administrative status
+permit access. An unknown save result is reconciled with a fresh settings read before
+editing resumes; the UI never treats an unanswered write as confirmed success.
+
+Run migrations only with an explicitly selected schema-owner connection, never at
+API startup. Runtime uses restricted `forum_app` and the allowlist in
+`deployment/forum-api/grant-runtime.sql`. Readiness checks required tables, the006 marker (runtime SELECT(name) only), identity_profiles INSERT/UPDATE, role_assignments UPDATE(status,revoked_at), and business-access function execution.
+The runtime cannot edit/delete audit events. Source transfer preserves every original
+row/UUID/timestamp, builds profiles from recorded verified snapshots, and retains
+session token hashes. Keep private restorable backups of both databases before
+cutover; delete the source only after fresh runtime/database/browser verification.
+The outbox delivery worker remains separate; do not mark pending events published.
+
 
 Production completion notification runs after commit and retries once. Two failed
 attempts emit `sber_completion_failed` without undoing the account or session.
@@ -204,7 +229,7 @@ Provide a disposable PostgreSQL 18.6 instance before the last command. The brows
 test accepts only a `postgres:`/`postgresql:` loopback URL with a valid decoded
 ASCII database name ending in `_test` and no URL query options or fragments.
 The destructive API auth suite uses the same test-only validation. The browser applies
-only legacy migration 001 itself, so it can run independently of `npm test`.
+the complete public identity migrations itself, so it can run independently of `npm test`.
 Use a fresh empty database for each browser run. No deployed database, provider
 credentials or production dump is needed. Missing frontend sources or dependencies
 fail with the required install command before starting servers.
@@ -230,7 +255,7 @@ introduced or independently checked against Figma in this backend task.
 
 ### Sandbox target and TLS boundary
 
-The September11/October1 connection observations are historical; they do not prove the current deployment. Verify the selected database/schema, configured issuer, redirect origin, provider endpoint/port, certificate chain and runtime grants before an authorized release. The sandbox store is separate from the main `public` schema; a TLS connection alone does not prove OAuth, persistence or account reuse.
+The September11/October1 connection observations are historical; they do not prove the current deployment. Verify the selected database/schema, configured issuer, redirect origin, provider endpoint/port, certificate chain and runtime grants before an authorized release. The Sber provider can remain in test mode while the API persists to the main `forum.public` store; verify OAuth, persistence and account reuse separately.
 
 Port6443 and hostname/certificate validation are part of the documented provider configuration. Keep private certificates, converted keys, passwords and session/provider payloads outside Git. Use the owned [deployment runbook](../../deployment/forum-api/README.md) and [release gates](../../deployment/release.md) for target/backup/served-origin/rollback evidence; raw delivery records remain private/history.
 

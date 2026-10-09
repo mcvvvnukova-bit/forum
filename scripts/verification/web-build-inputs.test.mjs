@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import {createHash} from 'node:crypto'
 import {execFileSync} from 'node:child_process'
 import {createRequire} from 'node:module'
 import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
@@ -21,6 +22,11 @@ test('real exact-source release ignores inherited development mode',()=>{
   assert.equal(builds[0].configFingerprint,builds[1].configFingerprint)
   assert.equal(builds[0].artifactFingerprint,builds[1].artifactFingerprint,'Ambient NODE_ENV must not change release bytes')
   assert.deepEqual(builds[0].files,builds[1].files)
+  for(const name of ['apps/profile-preview/src/ProfilePage.tsx','apps/profile-preview/src/profile.ts']){
+   assert.equal(builds[0].inputs[name],createHash('sha256').update(readFileSync(join(root,name))).digest('hex'))
+  }
+  assert.equal(builds[0].inputs['apps/profile-preview/src/fixtures.ts'],undefined)
+  for(const name of ['cabinet/index.html','cabinet/work/index.html','cabinet/settings/index.html'])assert.equal(builds[0].files[name],builds[0].files['index.html'])
  }finally{rmSync(temporary,{recursive:true,force:true})}
 })
 test('real Vite serve returns both public asset families byte-for-byte',async()=>{

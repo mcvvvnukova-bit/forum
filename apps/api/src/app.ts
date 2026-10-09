@@ -8,6 +8,7 @@ import rateLimit from '@fastify/rate-limit';
 import type {FastifyReply} from 'fastify';
 import {loadConfig, type ApiConfig} from './config.js';
 import {AuthController, AuthRuntime} from './iam/auth.controller.js';
+import {SettingsController} from './iam/settings.controller.js';
 
 @Controller()
 class HealthController {
@@ -18,7 +19,19 @@ class HealthController {
   async ready(@Res() reply: FastifyReply) {
     try {
       if (!this.runtime.pool) return reply.code(503).send({status: 'not_ready'});
-      await this.runtime.pool.query('SELECT 1 FROM iam.users LIMIT 0');
+      await this.runtime.pool.query(`SELECT 1 FROM public.users, public.external_identities,
+        public.persons, public.participants, public.participant_memberships, public.role_assignments,
+        public.sessions, public.authorization_attempts, public.outbox_events, public.audit_events,
+        public.identity_providers, public.identity_profiles, public.organization_memberships,
+        public.organization_authorities LIMIT 0`);
+      const readiness=await this.runtime.pool.query(`SELECT
+        EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships')
+        AND has_table_privilege(current_user,'public.identity_profiles','INSERT')
+        AND has_table_privilege(current_user,'public.identity_profiles','UPDATE')
+        AND has_column_privilege(current_user,'public.role_assignments','status','UPDATE')
+        AND has_column_privilege(current_user,'public.role_assignments','revoked_at','UPDATE') AS ready`);
+      if (readiness.rows[0]?.ready !== true) return reply.code(503).send({status: 'not_ready'});
+      await this.runtime.pool.query("SELECT public.effective_business_access(NULL::uuid,NULL::uuid,'customer',true)");
       return reply.send({status: 'ok', sberConfigured: Boolean(this.runtime.sber)});
     } catch { return reply.code(503).send({status: 'not_ready'}); }
   }
@@ -28,7 +41,7 @@ export async function createApp(config: ApiConfig = loadConfig(), existingPool?:
   const pool = existingPool ?? (config.databaseUrl ? new Pool({connectionString: config.databaseUrl,
     max: 10, connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000, statement_timeout: 10000}) : undefined);
   const runtime = new AuthRuntime(config, pool, !existingPool);
-  @Module({controllers: [HealthController, AuthController], providers: [{provide: AuthRuntime, useValue: runtime}]})
+  @Module({controllers: [HealthController, AuthController, SettingsController], providers: [{provide: AuthRuntime, useValue: runtime}]})
   class AppModule {}
   const adapter = new FastifyAdapter({bodyLimit: 4096, logger: false,
     trustProxy: config.trustedProxyCidrs?.length ? config.trustedProxyCidrs : false});

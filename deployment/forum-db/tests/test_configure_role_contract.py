@@ -139,12 +139,15 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql('CREATE DATABASE forum OWNER outline;', 'postgres')
         migrations = ROOT / 'apps/api/migrations'
         self.sql((migrations / '001_sber_identity.sql').read_text())
-        self.sql("CREATE TABLE iam.schema_migrations(name text PRIMARY KEY);"
-                 "INSERT INTO iam.schema_migrations VALUES ('001_sber_identity'),('002_profiles');")
+        self.sql("CREATE TABLE iam.schema_migrations(name text PRIMARY KEY,applied_at timestamptz DEFAULT now());"
+                 "INSERT INTO iam.schema_migrations(name) VALUES ('001_sber_identity'),('002_profiles');")
         self.sql((migrations / '002_profiles.sql').read_text())
         self.sql((migrations / '003_public_schema.sql').read_text())
-        self.sql("INSERT INTO public.schema_migrations VALUES ('003_public_schema');"
-                 "CREATE TABLE public.unrelated_data(id bigserial PRIMARY KEY);"
+        self.sql("INSERT INTO public.schema_migrations(name) VALUES ('003_public_schema');")
+        for name in ['005_public_individual_role','006_person_memberships']:
+            self.sql((migrations / (name + '.sql')).read_text())
+            self.sql(f"INSERT INTO public.schema_migrations(name) VALUES ('{name}');")
+        self.sql("CREATE TABLE public.unrelated_data(id bigserial PRIMARY KEY);"
                  "GRANT SELECT ON public.unrelated_data TO unrelated_role;"
                  "CREATE SCHEMA other; CREATE TABLE other.keep_access(id int);"
                  "GRANT USAGE ON SCHEMA other TO forum_app_role;"
@@ -186,7 +189,8 @@ class ConfigureRoleContractTest(unittest.TestCase):
     def assert_grants(self):
         expected = {
             'users': {'SELECT', 'INSERT', 'UPDATE'}, 'external_identities': {'SELECT', 'INSERT', 'UPDATE'},
-            'persons': {'SELECT', 'INSERT', 'UPDATE'}, 'organizations': {'SELECT', 'INSERT', 'UPDATE'},
+            'persons': {'SELECT', 'INSERT', 'UPDATE'}, 'identity_profiles': {'SELECT', 'INSERT', 'UPDATE'},
+            'identity_providers': {'SELECT'}, 'organization_memberships': {'SELECT'}, 'organization_authorities': {'SELECT'}, 'organizations': {'SELECT', 'INSERT', 'UPDATE'},
             'participants': {'SELECT', 'INSERT', 'UPDATE'}, 'participant_memberships': {'SELECT', 'INSERT', 'UPDATE'},
             'sessions': {'SELECT', 'INSERT', 'UPDATE', 'DELETE'},
             'authorization_attempts': {'SELECT', 'INSERT', 'UPDATE', 'DELETE'},
@@ -198,12 +202,26 @@ class ConfigureRoleContractTest(unittest.TestCase):
             for privilege in ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']:
                 value = self.sql(f"SELECT has_table_privilege('forum_app','public.{table}','{privilege}');").stdout.strip()
                 self.assertEqual(value, 't' if privilege in allowed else 'f', f'{table}/{privilege}')
+        for table,column,privilege,allowed in [('schema_migrations','name','SELECT',True),('schema_migrations','applied_at','SELECT',False),('role_assignments','status','UPDATE',True),('role_assignments','revoked_at','UPDATE',True),('role_assignments','role','UPDATE',False)]:
+            value=self.sql(f"SELECT has_column_privilege('forum_app','public.{table}','{column}','{privilege}');").stdout.strip()
+            self.assertEqual(value,'t' if allowed else 'f',f'{table}.{column}/{privilege}')
         for privilege in ['USAGE', 'SELECT', 'UPDATE']:
             value = self.sql(f"SELECT has_sequence_privilege('forum_app','public.outbox_events_sequence_seq','{privilege}');").stdout.strip()
             self.assertEqual(value, 'f' if privilege == 'UPDATE' else 't', 'outbox sequence/' + privilege)
         self.assertEqual(self.sql("SELECT has_sequence_privilege('forum_app','public.unrelated_data_id_seq','USAGE');").stdout.strip(), 'f')
         self.assertEqual(self.sql("SELECT has_table_privilege('unrelated_role','public.unrelated_data','SELECT') AND has_table_privilege('forum_app','other.keep_access','SELECT');").stdout.strip(), 't')
         self.assertEqual(self.sql("SELECT has_column_privilege('forum_app','public.audit_events','data','UPDATE');").stdout.strip(), 'f')
+
+    def test_missing006_preflight_preserves_roles_acl_and_configuration(self):
+        self.sql("DELETE FROM public.schema_migrations WHERE name='006_person_memberships';")
+        before=self.privilege_snapshot()
+        result=self.configure()
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('migration006',result.stderr)
+        self.assertEqual(self.privilege_snapshot(),before)
+        self.assertFalse((self.path / 'backups').exists())
+        self.assertFalse((self.path / 'recreated').exists())
+        self.assertEqual((self.path / 'pgadmin/servers.json').read_text(),json.dumps({'Servers': {'1': {'Name': 'Unrelated server'}}}))
 
     def test_repeated_configuration_reconciles_real_acl_and_future_objects(self):
         for _ in range(2):
@@ -220,7 +238,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql((ROOT / 'deployment/forum-db/tests/profiles.sql').read_text(), role='forum_app')
         for statement in ['DELETE FROM public.persons', 'UPDATE public.audit_events SET action=action',
                           'DELETE FROM public.outbox_events', 'UPDATE public.role_assignments SET role=role',
-                          "INSERT INTO public.schema_migrations VALUES ('forbidden')"]:
+                          "INSERT INTO public.schema_migrations(name) VALUES ('forbidden')"]:
             failure = self.sql(statement, role='forum_app', check=False)
             self.assertNotEqual(failure.returncode, 0, statement)
             self.assertIn('permission denied', failure.stderr, failure.stderr)
@@ -257,7 +275,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql('DELETE FROM public.schema_migrations; REVOKE ALL ON ALL TABLES IN SCHEMA public FROM forum_app_role;')
         result = self.configure()
         self.assertNotEqual(result.returncode, 0, result.stdout)
-        self.assertIn('public-schema migration', result.stderr)
+        self.assertIn('migration006', result.stderr)
         self.assertEqual(self.sql("SELECT has_table_privilege('forum_app','public.persons','DELETE');").stdout.strip(), 'f')
         self.assertFalse((self.path / 'recreated').exists())
 
@@ -265,7 +283,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql('DROP TABLE public.schema_migrations;')
         result = self.configure()
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('public-schema migration', result.stderr)
+        self.assertIn('migration006', result.stderr)
 
     def test_invalid_identifiers_are_rejected_before_any_container_command(self):
         for name in ['DB_NAME', 'APP_ROLE', 'APP_USER']:
@@ -280,7 +298,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql("DELETE FROM public.schema_migrations; GRANT DELETE ON public.persons TO forum_app_role;")
         result = self.sql(GRANTS.read_text(), check=False)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('public-schema migration', result.stderr)
+        self.assertIn('migration006', result.stderr)
         # The precondition aborts the transaction without a partial ACL rewrite.
         self.assertEqual(self.sql("SELECT has_table_privilege('forum_app','public.persons','DELETE');").stdout.strip(), 't')
 

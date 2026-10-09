@@ -2,15 +2,74 @@ import {fireEvent, render, screen, waitFor, within} from '@testing-library/react
 import {BaseStyles, ThemeProvider} from '@primer/react'
 import {afterEach, describe, expect, it, vi} from 'vitest'
 import {App} from './App'
+import {SessionProvider} from '../SessionProvider'
 
 afterEach(() => {vi.unstubAllEnvs(); vi.unstubAllGlobals()})
 
-function renderPage(url = '/') {
+function renderPage(url = '/', sharedSession = false) {
+  // jsdom has no layout; built-site E2E verifies the real scroll position.
+  vi.stubGlobal('scrollTo',vi.fn())
   window.history.replaceState(null, '', url)
-  return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><App /></BaseStyles></ThemeProvider>)
+  return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles>{sharedSession ? <SessionProvider><App /></SessionProvider> : <App />}</BaseStyles></ThemeProvider>)
 }
 
 describe('PUB.01.01.01', () => {
+  it('opens the cabinet with an icon-only logout in its header and no footer', async () => {
+    vi.stubGlobal('fetch', async (url:string) => url==='/api/profile' ? Response.json({userId:'person-one',profile:{given_name:'Анна',family_name:'Иванова'}}) : Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
+    renderPage('/cabinet/?auth=success')
+    expect(await screen.findByRole('link',{name:'Анна Иванова'})).toBeInTheDocument()
+    const logout=within(screen.getByRole('banner')).getByRole('button',{name:'Выйти'})
+    expect(logout.textContent).toBe('')
+    expect(logout.querySelector('svg')).not.toBeNull()
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
+    expect(screen.queryByText('Физлицо')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link',{name:'На главную'})).not.toBeInTheDocument()
+    expect(screen.queryByText('В этой локальной версии вход и создание учётной записи не подключены.')).not.toBeInTheDocument()
+  })
+  it('returns a confirmed guest cabinet visit to the homepage', async () => {
+    vi.stubGlobal('fetch',async () => new Response('',{status:401}))
+    renderPage('/cabinet/?auth=success', true)
+    expect(await screen.findByRole('heading',{name:'Заказы, исполнители и работа в строительстве'})).toBeInTheDocument()
+    expect(location.pathname).toBe('/')
+    expect(location.search).toBe('')
+    expect(screen.queryByRole('heading',{name:'Личный кабинет'})).not.toBeInTheDocument()
+    expect(screen.queryByText('Войдите через Сбер ID, чтобы открыть личный кабинет')).not.toBeInTheDocument()
+    expect(screen.queryByText('Физлицо')).not.toBeInTheDocument()
+  })
+  it('returns successful logout to the homepage with a guest header', async () => {
+    let loggedIn=true
+    vi.stubGlobal('fetch',async (url: string, init?: RequestInit) => {
+      if (url==='/api/auth/logout' && init?.method==='POST') {loggedIn=false;return new Response(null,{status:204})}
+      if(url==='/api/profile')return loggedIn?Response.json({userId:'person-one',profile:{given_name:'Анна',family_name:'Иванова'}}):new Response('',{status:401})
+      return loggedIn ? Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}) : new Response('',{status:401})
+    })
+    renderPage('/cabinet/', true)
+    fireEvent.click(await screen.findByRole('button',{name:'Выйти'}))
+    expect(await screen.findByRole('heading',{name:'Заказы, исполнители и работа в строительстве'})).toBeInTheDocument()
+    expect(location.pathname).toBe('/')
+    expect(screen.getByRole('link',{name:'Войти'})).toBeInTheDocument()
+    expect(screen.queryByRole('link',{name:'В кабинет'})).not.toBeInTheDocument()
+    expect(screen.queryByText('Анна Иванова')).not.toBeInTheDocument()
+    expect(screen.queryByText('Физлицо')).not.toBeInTheDocument()
+    expect(screen.queryByText('Войдите через Сбер ID, чтобы открыть личный кабинет')).not.toBeInTheDocument()
+  })
+  it('keeps the authenticated cabinet when logout fails', async () => {
+    vi.stubGlobal('fetch',async (url:string) => url==='/api/auth/logout' ? new Response('',{status:503}) : url==='/api/profile' ? Response.json({userId:'person-one',profile:{given_name:'Анна',family_name:'Иванова'}}) : Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
+    renderPage('/cabinet/',true)
+    fireEvent.click(await screen.findByRole('button',{name:'Выйти'}))
+    expect(await screen.findByText('Не удалось выйти. Повторите попытку')).toBeInTheDocument()
+    expect(location.pathname).toBe('/cabinet/')
+    expect(screen.getByRole('link',{name:'Анна Иванова'})).toBeInTheDocument()
+    expect(screen.getByRole('button',{name:'Выйти'})).toBeEnabled()
+  })
+  it('offers a retry when the cabinet session endpoint is unavailable', async () => {
+    vi.stubGlobal('fetch',async () => new Response('',{status:503}))
+    renderPage('/cabinet/')
+    expect(await screen.findByText('Не удалось проверить вход')).toBeInTheDocument()
+    vi.stubGlobal('fetch',async (url:string) => url==='/api/profile'?Response.json({userId:'person-one',profile:{given_name:'Анна',family_name:'Иванова'}}):Response.json({user:{id:'person-one',displayName:'Анна Иванова'},roles:['individual']}))
+    fireEvent.click(screen.getByRole('button',{name:'Повторить'}))
+    expect(await screen.findByRole('link',{name:'Анна Иванова'})).toBeInTheDocument()
+  })
   it('does not trust the preview query as a live authenticated session', () => {
     vi.stubEnv('VITE_FORUM_SESSION', 'true')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ok: false}))
@@ -20,12 +79,12 @@ describe('PUB.01.01.01', () => {
     expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Заказы, исполнители и работа в строительстве')
   })
 
-  it('offers registration when the existing login API requires it', () => {
+  it('retries login for an obsolete registration-required callback', () => {
     vi.stubEnv('VITE_FORUM_SESSION', 'true')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ok: false}))
     renderPage('/?auth_error=registration_required')
-    expect(screen.getByRole('link', {name: 'Зарегистрироваться через Сбер ID'})).toBeInTheDocument()
-    expect(screen.getByText('Аккаунт ещё не создан. Зарегистрируйтесь через Сбер ID.')).toBeInTheDocument()
+    expect(screen.getByRole('link', {name: 'Повторить вход'})).toHaveAttribute('href','/login')
+    expect(screen.getByText('Не удалось завершить вход. Повторите вход через Сбер ID.')).toBeInTheDocument()
   })
   it('preserves required section order, headline, metrics and company contacts', () => {
     const {container} = renderPage()
@@ -38,8 +97,8 @@ describe('PUB.01.01.01', () => {
 
   it('sends start and sign-in to the same auth screen, and maps the three audiences', () => {
     renderPage()
-    expect(screen.getByRole('link', {name: 'Начать работу'})).toHaveAttribute('href', '/authorization/')
-    expect(screen.getByRole('link', {name: 'Войти'})).toHaveAttribute('href', '/authorization/')
+    expect(screen.getByRole('link', {name: 'Начать работу'})).toHaveAttribute('href', '/login')
+    expect(screen.getByRole('link', {name: 'Войти'})).toHaveAttribute('href', '/login')
     expect(screen.getByRole('link', {name: 'Я заказчик'})).toHaveAttribute('href', '/customers/')
     expect(screen.getByRole('link', {name: 'Я подрядчик'})).toHaveAttribute('href', '/suppliers/')
     expect(screen.getByRole('link', {name: 'Я ищу работу'})).toHaveAttribute('href', '/work/')

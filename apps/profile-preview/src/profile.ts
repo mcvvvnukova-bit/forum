@@ -39,7 +39,11 @@ const documentTitles: Record<number, string> = {
   17: 'Паспорт', 18: 'Заграничный паспорт', 7: 'Военный билет', 21: 'Удостоверение личности моряка',
   14: 'Временное удостоверение личности', 10: 'Паспорт иностранного гражданина', 75: 'Вид на жительство',
 }
-export function buildProfileSections(p: SberProfile, approvedScopes: readonly string[]): ProfileSection[] {
+export const profileScopes = ['name','birthdate','gender','place_of_birth','citizenship','previous_name','marital_status',
+  'maindoc','priority_doc','address_reg','address_of_actual_residence','delivery_address','inn','mobile','email','snils',
+  'place_of_work','work_address','job_title','is_self_employed','international_passport','previous_identification',
+  'driving_license','sts','education'] as const
+export function buildProfileSections(p: SberProfile, approvedScopes: readonly string[], displayName?: string): ProfileSection[] {
   const scopes = new Set(approvedScopes)
   const f = (id: string, label: string, scope: string, value: unknown): ProfileField => {
     if (!scopes.has(scope)) return {id, label, value: 'Не запрошено', status: 'not-requested'}
@@ -53,7 +57,7 @@ export function buildProfileSections(p: SberProfile, approvedScopes: readonly st
   const section = (id: string, title: string, fields: ProfileField[]): ProfileSection => ({id, title, fields})
   return [
     section('personal', 'Личные данные', [
-      f('full_name', 'Фамилия, имя, отчество', 'name', name(p.family_name, p.given_name, p.middle_name)),
+      f('full_name', 'Фамилия, имя, отчество', 'name', name(p.family_name, p.given_name, p.middle_name) || text(displayName)),
       f('birthdate', 'Дата рождения', 'birthdate', date(p.birthdate)),
       f('gender', 'Пол', 'gender', p.gender === 1 ? 'Мужской' : p.gender === 2 ? 'Женский' : undefined),
       f('place_of_birth', 'Место рождения', 'place_of_birth', p.place_of_birth),

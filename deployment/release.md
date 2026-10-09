@@ -153,3 +153,38 @@ This restores only the seven owned HTML routes and prior release/auth metadata,
 keeps newer assets and independently owned files, and atomically exchanges inside
 the same parent mount. A failed rollback verifier restores the starting release
 only while its CAS still matches; a conflict preserves both trees for inspection.
+
+## PROJ-160: authenticated cabinet on dev
+
+The current API uses the verified main `forum.public` target established by
+PROJ-156. The older sandbox instructions above describe that historical release;
+this change performs no migrations, ACL changes or identity transfer. Build the
+API from the exact reviewed commit and canonical lock, retain its old image and
+configuration, and preserve provider certificates, callback and OAuth scopes.
+
+Dev now owns `/cabinet/` and `/cabinet/work/` as well as the six public routes.
+The build fingerprints the shared `ProfilePage.tsx` and `profile.ts` sources,
+without importing the preview fixtures. The dev gateway must deploy its narrow
+`/api/profile` forwarding addition alongside the API and web artifact; this
+necessary serving boundary was confirmed during implementation. It forwards
+Forum cookies but a shared dev-password cookie alone grants no profile access.
+
+Verify anonymous and expired profile requests return401, authenticated responses
+contain only their owner, and no profile response is cached. Test direct links,
+reload, missing data, both mobile widths, profile/work navigation and logout back
+to the public homepage. Preserve the independent `/profile/` fixture preview.
+Publisher rollback restores or removes both cabinet HTML files according to the
+exact previous backup, retains immutable assets and restores the old receipt.
+Production remains outside this authorized release.
+
+The reviewed plan was prepared against PROJ-158. Before publication the branch
+was advanced to the actual dev baseline `19ee01ed586f54e00a080844639864bc45278bde`
+(PROJ-159 and PROJ-38). Preserve their public skip-link removal and homepage
+return after successful logout or a confirmed guest cabinet request. Re-run the
+combined navigation and ownership regressions against this exact integration.
+
+Logout must reset both window scroll coordinates to zero immediately. Reproduce
+from the footer of the long personal profile: replacing the SPA history URL alone
+retains its scroll offset, while the public auth focus restoration deliberately
+uses `preventScroll`. Check the homepage position at 320/390/1440 px in addition
+to the URL, revoked session, history guard and standard login modal.
