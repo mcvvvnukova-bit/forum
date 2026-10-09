@@ -329,7 +329,7 @@ for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','s
 }
 
 
-for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source','source-scope','bytes']) {
+for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','source','source-scope','bytes','stale-parent','inherited-workflow-owner','inherited-workflow-bytes','inherited-ui-bytes']) {
   test(`PROJ-161 person membership ownership rejects ${mutation} tampering`, t => {
     const path=fixture(t)
     const clean=provenance(path)
@@ -346,6 +346,14 @@ for (const mutation of ['hash','pin','scope','mode','path','duplicate','base','s
     if(mutation==='source')receipt.newFiles[0].sha256='0'.repeat(64)
     if(mutation==='source-scope')receipt.newFiles[0].path='package.json'
     if(mutation==='bytes')writeFileSync(join(path,'apps/api/src/consolidate-auth.ts'),'unowned source drift')
+    if(mutation==='stale-parent')receipt.baseSha='e6a910c4aa7f5795a1c178a47c64a1dc5aea9875'
+    if(mutation==='inherited-workflow-owner') {
+      const workflow='.github/workflows/quality.yml'
+      const digest=createHash('sha256').update(readFileSync(join(path,workflow))).digest('hex')
+      receipt.changes.push({previousCandidatePath:workflow,previousSha256:digest,previousMode:'100644',candidatePath:workflow,candidateSha256:digest,candidateMode:'100644'})
+    }
+    if(mutation==='inherited-workflow-bytes')writeFileSync(join(path,'.github/workflows/quality.yml'),readFileSync(join(path,'.github/workflows/quality.yml'),'utf8').replace('timeout-minutes: 40','timeout-minutes: 41'))
+    if(mutation==='inherited-ui-bytes')writeFileSync(join(path,'apps/profile-preview/src/ProfilePage.tsx'),readFileSync(join(path,'apps/profile-preview/src/ProfilePage.tsx'),'utf8')+'\n// unowned inherited UI drift\n')
     writeFileSync(file,JSON.stringify(receipt))
     assert.notEqual(provenance(path).status,0)
   })

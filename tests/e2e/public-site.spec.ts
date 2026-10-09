@@ -117,7 +117,9 @@ test('built cabinet uses a confirmed session and blocked callback opens a suppor
  await expect(page.getByRole('heading',{name:'Личные данные',exact:true,level:1})).toBeVisible()
  await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
  await expect(page.getByRole('link',{name:'Тестовый пользователь',exact:true})).toBeVisible()
- await expect(page.getByText('Физлицо',{exact:true})).toBeVisible()
+ await expect(page.getByText('Физлицо',{exact:true})).toHaveCount(0)
+ await expect(page.getByRole('banner').getByRole('button',{name:'Выйти',exact:true})).toBeVisible()
+ await expect(page.locator('footer.profile-footer')).toHaveCount(0)
  await page.goto('/?auth_error=account_deactivated')
  const blocked=page.getByRole('dialog',{name:'Вы заблокированы на платформе',exact:true})
  await expect(blocked).toBeVisible()
@@ -166,9 +168,11 @@ for(const width of [320,390,1440])test(`built logout returns home and reopens st
  await expect(page.getByRole('link',{name:'Тестовый пользователь',exact:true})).toBeVisible()
  await page.goto('/cabinet/?auth=success')
  await expect(page.getByRole('heading',{name:'Личные данные',exact:true,level:1})).toBeVisible()
- // Logout lives below the long personal profile. Preserve that real starting
- // position so replacing the URL alone cannot satisfy the homepage contract.
- await page.getByRole('button',{name:'Выйти',exact:true}).scrollIntoViewIfNeeded()
+ // The header logout stays visible while the long personal profile is scrolled.
+ // Preserve that starting position so replacing the URL alone cannot satisfy
+ // the homepage scroll-reset contract.
+ await expect(page.getByText('owner@example.test',{exact:true})).toBeVisible()
+ await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}))
  expect(await page.evaluate(()=>window.scrollY)).toBeGreaterThan(0)
  await page.getByRole('button',{name:'Выйти',exact:true}).click()
  await expect(page).toHaveURL(new URL('/',page.url()).href)

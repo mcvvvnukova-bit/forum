@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "taskCode": "PROJ-161",
-  "baseSha": "e6a910c4aa7f5795a1c178a47c64a1dc5aea9875",
+  "baseSha": "761407cb926937ad3431304ddf6ba884518c2eca",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -152,7 +152,7 @@
       "previousSha256": "e6531371791c4e6c8dd5170ef7eaec6248b1123349bc016be214f6a21c79323a",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "4cd8ae9f1bd7cafee6a102aafec836502b72c1e26bae5bbf6febab2a10a82816",
+      "candidateSha256": "2c11e9d31d2a7068b2675f2f909d984e8528f187e312f223636d7ec6da1c6417",
       "candidateMode": "100644"
     },
     {
@@ -160,15 +160,7 @@
       "previousSha256": "d97ad3c36ee78bc36d3774523177efc064618807febd6d23c680f03862cadfd8",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/checks.test.mjs",
-      "candidateSha256": "d26163b9793cef1b4fa81d0f5a76d066a39d84418a5bedac44fa0d8e1301cc51",
-      "candidateMode": "100644"
-    },
-    {
-      "previousCandidatePath": ".github/workflows/quality.yml",
-      "previousSha256": "4e6f77be04839cb75711089d19404eb8dd35231ccb2bd90ea3aa368f3b583ce0",
-      "previousMode": "100644",
-      "candidatePath": ".github/workflows/quality.yml",
-      "candidateSha256": "2e7afb0a0e1de0720923b180170c310d25d57d095b9275bbfad3da480c347652",
+      "candidateSha256": "f4d0a2a191ea8034b86edcdea25336964f540af6e77645cdda7dbe1f71450834",
       "candidateMode": "100644"
     }
   ],
@@ -195,7 +187,7 @@
     },
     {
       "path": "docs/plans/2026-10-09-PROJ-161-person-memberships.md",
-      "sha256": "143f7686f9ef31b6507c62b52a6e5eb36f4a22288c25dfdba477edeb2e73d49e",
+      "sha256": "bee515017fe9c3f3139854acf3386629373bdf98e7400c7e4f6af65770aeeddd",
       "mode": "100644"
     }
   ]

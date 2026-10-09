@@ -10,7 +10,8 @@
 
 ## Global Constraints
 
-- Worktree: /Users/vvv/.codex/worktrees/identity-membership/АСТ Форум; branch codex/PROJ-161-person-memberships. Base e6a910c4aa7f5795a1c178a47c64a1dc5aea9875 (PR30).
+- Worktree: /Users/vvv/.codex/worktrees/identity-membership/АСТ Форум; branch codex/PROJ-161-person-memberships. Current published dependency/base761407cb926937ad3431304ddf6ba884518c2eca (PROJ-160 logout icon, PR31). Initial implementation started frome6a910c4aa7f5795a1c178a47c64a1dc5aea9875 (PR30).
+- Preserve the published PR31 profile-header SignOut, footer, cabinet CSS/home/e2e and PROJ-154/160 receipts/plans byte-for-byte by a non-destructive merge; retain all reviewed PROJ-161 API/migration/account/business source bytes. The PROJ-161 ownership layer pins only its changes from exact761; inherited layout40 stays with PROJ-154. No rebase/force-push or sibling-branch mutation.
 - OpenProject task PROJ-161, API ID199, parent PROJ-35. Related verified features PROJ-38, PROJ-40, PROJ-44, PROJ-45, PROJ-46.
 - Preserve real user/profile/session IDs, existing profile values, scoped grants and historical events. No fabricated authority evidence; no automatic company administration from Sber claims or company creation.
 - New logins create no provider participant, provider grant or ParticipantRegistered event. All active person accounts receive the baseline individual role independently of business participants.
@@ -85,8 +86,8 @@ DROP FUNCTION public.require_personal_participant();
 - [ ] Create a mode0600 custom-format full forum dump plus globals/ACL metadata under a task-specific private server backup path; restore it into an isolated PostgreSQL18.6 database and prove all table counts/profile hashes/ownership/grants match. Run006 against the restored copy before touching forum.
 - [ ] Build and inspect the new API image, retain the preceding image/config/current pointer. Apply the reviewed migration transaction as schema owner and reconcile explicit runtime grants; compare IDs/rows/profile hashes and schema ledger after commit. Run idempotent second apply.
 - [ ] Recreate only the dev forum_api service with the reviewed image. Validate readiness, anonymous 401, the deployed schema/image bytes and canonical profile/session contract on isolated synthetic tests. Use the in-app browser for any browser work. Do not introduce actual synthetic users into forum.
-- [ ] Publish the matching DEV web artifact from the exact successful GitHub CI SHA/run using the existing atomic web_release publisher. Verify artifact revision, take a fresh private mount/CAS backup, retain old assets, and prove HTTPS plus in-app-browser smoke of the changed session consumer. No production publication or UI redesign.
-- [ ] Push this task branch; create a PR based on codex/PROJ-160-cabinet-profile with OP#PROJ-161, OP#PROJ-35 and relevant verified parent features in its body. Verify remote SHA/diff and OpenProject GitHub-tab/API linkage under Kuzmina, then attach PR to this chat.
+- [ ] Publish the matching DEV web artifact from the exact successful GitHub CI SHA/run using the existing atomic web_release publisher. Verify artifact revision, take a fresh private mount/CAS backup, retain old assets, and prove HTTPS plus in-app-browser smoke of the changed session consumer. Preserve the current published761 UI bytes, publish matching DEV web before stopping/migrating/recreating API, and retain that baseline for rollback. No production publication or UI redesign.
+- [ ] Push this task branch; update PR32 based on codex/PROJ-160-cabinet-logout-icon at exact761407cb926937ad3431304ddf6ba884518c2eca with OP#PROJ-161, OP#PROJ-35 and relevant verified parent features in its body. Verify remote SHA/diff and OpenProject GitHub-tab/API linkage under Kuzmina, then attach PR to this chat.
 - [ ] Commit non-sensitive release evidence, preserve backups and report current live state, tests, PR/task links and any concrete remaining limitation.
 
 ## Plan review
