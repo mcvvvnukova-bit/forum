@@ -4,6 +4,8 @@ import {UnsecuredJWT, importSPKI, jwtVerify, type JWTPayload} from 'jose';
 import type {SberConfig} from '../config.js';
 import {AuthError} from './auth-error.js';
 import {pkceChallenge} from './crypto.js';
+import {normalizeSberProfile} from './sber-profile.js';
+import type {PersonProfile} from './person-profile.js';
 
 export interface SberIdentity {
   subject: string;
@@ -14,6 +16,7 @@ export interface SberIdentity {
   claims: Record<string, unknown>;
   requestedScopes?: string[];
   grantedScopes?: string[];
+  profile?: PersonProfile;
 }
 
 export class SberClient {
@@ -77,24 +80,28 @@ export class SberClient {
       if (list.length > 20 || !list.every(isSubject)) invalid();
       aliases.push(...list);
     }
-    const grantedScope=textClaim(token.scope,2048);
-    const names = ['family_name', 'given_name', 'middle_name'].map(k => textClaim(profile[k], 128)).filter(Boolean);
-    const email = textClaim(profile.email, 254);
+    const requestedScopes=this.config.scope.split(/\s+/).filter(Boolean);
+    if(token.scope!==undefined && (typeof token.scope!=='string' || token.scope.length>2048)) invalid();
+    const grantedScopes=typeof token.scope==='string' ? token.scope.split(/\s+/).filter(Boolean) : undefined;
+    const normalizedProfile=normalizeSberProfile(profile,requestedScopes,grantedScopes);
+    const names = ['family_name', 'given_name', 'middle_name'].map(k => textClaim(normalizedProfile[k as keyof PersonProfile], 128)).filter(Boolean);
+    const email = textClaim(normalizedProfile.email, 254);
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) invalid();
-    const displayName = names.join(' ') || textClaim(profile.name, 384) || 'Пользователь';
+    const displayName = names.join(' ') || 'Пользователь';
     return {
       accessToken: token.access_token,
       rquid,
       identity: {
         subject: claims.sub,
-        requestedScopes:this.config.scope.split(/\s+/).filter(Boolean),
-        ...(grantedScope ? {grantedScopes:grantedScope.split(/\s+/).filter(Boolean)} : {}),
+        requestedScopes,
+        ...(grantedScopes===undefined ? {} : {grantedScopes}),
+        profile:normalizedProfile,
         alternateSubjects: [...new Set(aliases)].filter(sub => sub !== claims.sub),
         displayName, email, emailConfirmed: Boolean(email && profile.email_verified === true),
         claims: {schemaVersion: 1, sub: claims.sub, displayName, email,
-          familyName: textClaim(profile.family_name, 128), givenName: textClaim(profile.given_name, 128),
-          middleName: textClaim(profile.middle_name, 128),
-          emailVerified: profile.email_verified === true, phoneNumber: textClaim(profile.phone_number, 64),
+          familyName: textClaim(normalizedProfile.family_name, 128), givenName: textClaim(normalizedProfile.given_name, 128),
+          middleName: textClaim(normalizedProfile.middle_name, 128),
+          emailVerified: Boolean(email && profile.email_verified === true), phoneNumber: textClaim(normalizedProfile.phone_number, 64),
           acr: textClaim(claims.acr, 128)},
       },
     };

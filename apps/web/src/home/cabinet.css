@@ -62,3 +62,15 @@
 @media (max-width: 360px) {
 .cabinet .brand-link img {width: 96px;}
 }
+
+/* The account logo grows without changing the independent profile preview. */
+.cabinet:has(.account-brand) {--profile-header-height: var(--base-size-128);}
+.cabinet .account-brand img {width: calc(var(--base-size-128) * 2); height: auto; aspect-ratio: 8 / 3;}
+@media (max-width: 767px) {
+.cabinet:has(.account-brand) {--profile-header-height: calc(var(--base-size-128) + var(--base-size-32));}
+.cabinet:has(.account-brand) .cabinet-header {padding: var(--base-size-16); gap: var(--base-size-8); flex-wrap: wrap;}
+.cabinet:has(.account-brand) .header-brand {gap: var(--base-size-8); flex-basis: 100%;}
+.cabinet:has(.account-brand) .header-account {flex-basis: 100%; justify-content: flex-end; max-width: 100%;}
+.cabinet:has(.account-brand) .account-link {max-width: calc(100vw - var(--base-size-96));}
+.cabinet .account-brand img {width: calc(var(--base-size-96) * 2); height: auto;}
+}

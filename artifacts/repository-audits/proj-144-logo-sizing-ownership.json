@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-144",
+  "baseSha": "0ec53a17f8cfe471934f8e5459b9a9ce2a317f9c",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/web/src/home/layout.css",
+      "previousSha256": "b25cb28deec9cab46bdcc70904b3163696778c51751be01ffa4ea56c5a627b26",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/layout.css",
+      "candidateSha256": "86767d886c437a4ea5075efb0db796d05271d612245486f511cd83ffae31a86b",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/audience/layout.css",
+      "previousSha256": "ee336424e33f56948221fbb5583102e080e82ad52ace2880e771eb267789a1a0",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/audience/layout.css",
+      "candidateSha256": "92b5d90e2a6e4322c4b030ab577e66eef4e4f35b8fb06d70a70734c86e9e04c5",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/cabinet.css",
+      "previousSha256": "1782f836fda51ca98050d80b5ad89d09e95119f7ddaf3d0b7201a0e6bfd004fe",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/cabinet.css",
+      "candidateSha256": "65d7255c0ec8f465df444caae2535b130aac55e6881c6d4e0dc33aadab38eeba",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "31ea7bcdfed1949e4c54b8338b8ba6eb0bcfaeecb967d165c35aba7e952451cb",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "af529772d47b9881eb6951b01598fe1aca8d936d1a3271d2a34f066bc3f977c4",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "90bf8a298598beae6d886948b456b797da80b9d8320ae324dfa670748bf156ab",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "2813428304cf56714aaf47c229a6d6ddfe076de7136c906c234eea075bef2ec0",
+      "candidateMode": "100644"
+    }
+  ]
+}
