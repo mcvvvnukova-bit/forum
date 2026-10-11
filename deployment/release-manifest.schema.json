@@ -1110,8 +1110,9 @@
                 "const": "vite"
               },
               "routes": {
-                "description": "Current builds own cabinet settings and organizations; historical receipts remain valid.",
+                "description": "Current builds own cabinet roles, settings and organizations; historical receipts remain valid.",
                 "enum": [
+                  ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/", "/cabinet/organizations/", "/cabinet/roles/"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/organizations/"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/", "/cabinet/organizations/"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/"],

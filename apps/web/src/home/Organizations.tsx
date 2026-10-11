@@ -1,8 +1,10 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react'
-import {Banner,Button,FormControl,Spinner,Stack,Text,TextInput} from '@primer/react'
+import {Banner,Button,FormControl,Link,Spinner,Stack,Text,TextInput} from '@primer/react'
 import {ClockIcon} from '@primer/octicons-react'
 import {DataTable,Table} from '@primer/react/experimental'
 import './organizations.css'
+import type {Session} from '../audience/intent'
+import {manageableContexts,validRoleSession} from './RoleManagementSection'
 type Role='organization_admin'|'organization_signer'|'organization_employee'
 type Organization={id:string;inn:string;name:string|null;status:'pending'|'active';members:{userId:string;fullName:string;roles:Role[]}[]}
 const labels:Record<Role,string>={organization_admin:'Администратор компании',organization_signer:'Лицо с правом подписи',organization_employee:'Сотрудник компании'}
@@ -24,10 +26,17 @@ function merge(previous:Organization[],incoming:Organization[]){
  for(const item of incoming)cards.set(item.inn,item)
  return [...cards.values()].sort((a,b)=>a.inn.localeCompare(b.inn))
 }
-export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>void}){
+export function Organizations({userId,onExpired,roleSession}:{userId:string;onExpired:()=>void;roleSession?:Session}){
+ const [managed,setManaged]=useState<string[]>([])
  const [items,setItems]=useState<Organization[]>([]),[cursor,setCursor]=useState<string|null>(null)
  const [loading,setLoading]=useState(true),[error,setError]=useState(false),[attempt,setAttempt]=useState(0)
  const [inn,setInn]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saveError,setSaveError]=useState(false),[saved,setSaved]=useState(false)
+ useEffect(()=>{
+  if(!roleSession||!validRoleSession(roleSession))return
+  const controller=new AbortController();let active=true
+  void manageableContexts(userId,controller.signal).then(contexts=>{if(active)setManaged(contexts.filter(c=>c.contextKey.startsWith('organization:')).map(c=>c.contextKey.slice(13)))}).catch(()=>{if(active)setManaged([])})
+  return()=>{active=false;controller.abort()}
+ },[userId,roleSession,attempt])
  const active=useRef(true),submitting=useRef(false),expired=useRef(onExpired)
  const generation=useRef(0),requestController=useRef<AbortController|null>(null)
  const loadedThrough=useRef(''),savedCards=useRef(new Map<string,Organization>())
@@ -127,7 +136,7 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
   {!loading&&!error&&!items.length&&<Text>У вас пока нет организаций</Text>}
   {!!items.length&&<div className="organizations-table"><Table.Container><DataTable aria-labelledby="organizations-heading" data={items} columns={[
    {header:'ИНН',field:'inn',rowHeader:true,width:'auto'},
-   {header:'Название организации',field:'name',renderCell:item=><Stack gap="condensed"><Text>{item.name??'Название появится после подтверждения'}</Text>{item.status==='pending'&&<Stack direction="horizontal" align="center" gap="condensed" className="muted"><ClockIcon aria-hidden="true"/><Text size="small">Ожидает подтверждения</Text></Stack>}</Stack>},
+   {header:'Название организации',field:'name',renderCell:item=><Stack gap="condensed"><Text>{item.name??'Название появится после подтверждения'}</Text>{item.status==='active'&&managed.includes(item.id)&&<Link href={`/cabinet/roles/?context=${encodeURIComponent(`organization:${item.id}`)}#main`}>Управление ролями компании</Link>}{item.status==='pending'&&<Stack direction="horizontal" align="center" gap="condensed" className="muted"><ClockIcon aria-hidden="true"/><Text size="small">Ожидает подтверждения</Text></Stack>}</Stack>},
    {header:'Пользователи и роли',field:'members',renderCell:item=>item.status==='pending'?<Text className="muted">Доступ появится после подтверждения</Text>:<Stack gap="normal">{item.members.map(member=><Stack key={member.userId} gap="condensed"><Text weight="semibold">{member.fullName}</Text>{member.roles.length?member.roles.map(role=><Text size="small" key={role}>{labels[role]}</Text>):<Text size="small" className="muted">Роль не назначена</Text>}</Stack>)}</Stack>},
   ]}/></Table.Container></div>}
   {cursor&&<Button disabled={loading||saving} onClick={()=>void more()}>Показать ещё</Button>}
