@@ -516,6 +516,7 @@ def local_ci_receipt():
         source = ROOT / candidate
         assert source.is_file() and not source.is_symlink(), 'PROJ-168 source missing'
         _, digest, _ = branch_integration_file(source, item['candidateSha256'], item['candidateMode'])
+        _, digest, _ = compact_login_file(source, digest, item['candidateMode'])
         assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-168 current source hash mismatch: ' + candidate
         assert not source.stat().st_mode & 0o111, 'PROJ-168 current mode mismatch'
     sources = receipt['newFiles']
@@ -742,6 +743,7 @@ def exact_file(path, digest, mode):
     try:
         path, digest, mode = local_ci_file(path, digest, mode)
         path, digest, mode = branch_integration_file(path, digest, mode)
+        path, digest, mode = compact_login_file(path, digest, mode)
     except AssertionError as error:
         raise AssertionError('PROJ-165: ' + str(error)) from error
     relative = path.relative_to(ROOT)
@@ -785,6 +787,7 @@ def verify_branch_integration():
         assert source.is_file(), 'Missing PROJ-169 source: ' + candidate
         expected = item.get('candidateSha256', item.get('sha256'))
         mode = item.get('candidateMode', item.get('mode'))
+        source, expected, mode = compact_login_file(source, expected, mode)
         assert hashlib.sha256(source.read_bytes()).hexdigest() == expected, 'PROJ-169 current source hash mismatch: ' + candidate
         assert ('100755' if source.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-169 source mode mismatch: ' + candidate
 
@@ -796,6 +799,47 @@ def branch_integration_file(path, expected_hash, expected_mode):
         return path, expected_hash, expected_mode
     assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['candidateMode'], 'PROJ-169 integration predecessor mismatch: ' + candidate
     return path, item['candidateSha256'], item['candidateMode']
+
+
+# Bounded presentation successor; historical receipts remain byte-for-byte intact.
+# Exclude only this checker's candidate hash to avoid a manifest/hash cycle.
+COMPACT_LOGIN_MANIFEST_SHA256 = '874d88eb0cb34d7ebce068f66c5d36e5c9b89377c76c5ed6b71dc7ad97029810'
+
+
+@lru_cache(maxsize=1)
+def compact_login_receipt():
+    path = ROOT / 'artifacts/repository-audits/proj-170-login-option-1-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing PROJ-170 receipt'
+    receipt = json.loads(path.read_text())
+    manifest = dict(receipt)
+    manifest['changes'] = [dict(item) for item in receipt['changes']]
+    for item in manifest['changes']:
+        if item['candidatePath'] == 'scripts/verification/check-operational-sources.py':
+            del item['candidateSha256']
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    assert digest == COMPACT_LOGIN_MANIFEST_SHA256, 'PROJ-170 scope/predecessor/candidate pin mismatch'
+    return receipt
+
+
+def compact_login_file(path, expected_hash, expected_mode):
+    candidate = path.relative_to(ROOT).as_posix()
+    item = next((x for x in compact_login_receipt()['changes'] if x['candidatePath'] == candidate), None)
+    if item is None:
+        return path, expected_hash, expected_mode
+    assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['candidateMode'], 'PROJ-170 predecessor mismatch: ' + candidate
+    return path, item['candidateSha256'], item['candidateMode']
+
+
+def verify_compact_login():
+    for item in compact_login_receipt()['changes']:
+        candidate = item['candidatePath']
+        path = ROOT / candidate
+        relative = path.relative_to(ROOT)
+        assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
+                       for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-170 source symlink: ' + candidate
+        assert path.is_file(), 'Missing PROJ-170 source: ' + candidate
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-170 current source hash mismatch: ' + candidate
+        assert ('100755' if path.stat().st_mode & 0o111 else '100644') == item['candidateMode'], 'PROJ-170 source mode mismatch: ' + candidate
 
 
 def retirement_receipt(verify_sources=True):
@@ -972,7 +1016,7 @@ def verify_provenance():
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, my_organizations_receipt, cabinet_settings_receipt, dev_organizations_receipt,
                     governance_receipt, ci_receipt, merged_verification_receipt, integration_receipt,
-                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt):
+                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt):
         receipt.cache_clear()
     retirement_receipt()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
@@ -1096,6 +1140,7 @@ def verify_provenance():
         exact_file(ROOT / item['path'], item['sha256'], item['mode'])
     local_ci_receipt()
     verify_branch_integration()
+    verify_compact_login()
     return accepted
 
 

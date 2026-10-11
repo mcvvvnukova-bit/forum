@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-170",
+  "baseSha": "29f1d20d2256eb7c28a4c81d29dba5172fdecea0",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/web/src/auth/PublicAuth.tsx",
+      "previousSha256": "baec806612dd5a2c33050133aae42b2dd2bbfd45ef4bbb954e701d8bee0c1887",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/auth/PublicAuth.tsx",
+      "candidateSha256": "2df5385ccfeee1f0f801a62fb446a665ccb03fbb55b2dcdcb578b0f3b6d058a9",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/auth/auth.css",
+      "previousSha256": "64c98c3ccb52f3e783e85f6f08c2f2ecbf8ddfd5cb2a5a99e023f6da12c7d288",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/auth/auth.css",
+      "candidateSha256": "6161d8e1957a0196c9a439647fcecabeb3c2b4843c740b7b3e565c445526afdb",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/public-site-composition.test.tsx",
+      "previousSha256": "efc6f298c860a22ff09583c458523092ca29ce4d8bc3bd91ec3fa0f142c5ba85",
+      "previousMode": "100644",
+      "candidatePath": "tests/integration/public-site-composition.test.tsx",
+      "candidateSha256": "b27bd9562cbc96be5528da7fbfeacad4d73a3637410758b22d8102c25e9be67c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/test_primer_ui_policy.py",
+      "previousSha256": "d9ac055249adc967e6907f58b5d168964f6538f06fd28247eac76ce255dc4ed5",
+      "previousMode": "100644",
+      "candidatePath": "tests/integration/test_primer_ui_policy.py",
+      "candidateSha256": "9c562fab33658603f6221241a8e1ad47cf97e5a42a940fdb063aa5115337c358",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "647a168a0a1d0769b53006c6c36da50707d8c941d70e7ce6609b2cc5d8f0230e",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "36007e61b6cf01d9865699cbf9024e122c7834e50d17d20efbfec7d6655b41ec",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "6b828d3baef083591d9bcda128af3b1ba7846f54bf8b7ac23cc32e2b13437624",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
+      "candidateMode": "100644"
+    }
+  ]
+}
