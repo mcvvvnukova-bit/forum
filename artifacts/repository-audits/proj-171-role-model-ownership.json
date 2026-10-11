@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "17d1b53793a7f02687b6a23d97dbd24a41371d8c",
+  "sourceSha": "fac0eb6833d9aae8500cb32076542a4dcbc3b601",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -149,6 +149,14 @@
       "candidateMode": "100644"
     },
     {
+      "previousCandidatePath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "previousSha256": "7d20fcad2a8af4f5df49d749d1c643edeeefb445808fc18388fb07230c5762cf",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "candidateSha256": "636dc431fa37b4e0ea7a61385ed20355f10e88ce5fe17e23bd5d0e679a2c11cb",
+      "candidateMode": "100644"
+    },
+    {
       "previousCandidatePath": "deployment/release-manifest.schema.json",
       "previousSha256": "f26cf0e8fe8517f3552b13c41025a27d6df0ce7010d989b4f8976e4b02a2a02c",
       "previousMode": "100644",
@@ -165,6 +173,14 @@
       "candidateMode": "100644"
     },
     {
+      "previousCandidatePath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
+      "previousSha256": "9dda236c2869836832776f4f2f8214739a70f86a6f9d5e617fd954550e930c44",
+      "previousMode": "100755",
+      "candidatePath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
+      "candidateSha256": "213d8012b9c88dfb592b10a8b6f11b5662362df84743e8fbce2e736b2c6b56c0",
+      "candidateMode": "100755"
+    },
+    {
       "previousCandidatePath": "scripts/deployment/web_release.py",
       "previousSha256": "9550c61ff63a48ba4e7abe8e2e8d56d214c3778f7bd39bd56b9fb5ea4c21954f",
       "previousMode": "100644",
@@ -177,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "50e42b8032b58e2a213f8f5d12f3b3cbbea63cb0bd4a19eb56bb028a54870c35",
+      "candidateSha256": "337ed4c4b7d73f9503fe120628d0b74ba8a61da6b56620f39dd60f8f0a7e7a68",
       "candidateMode": "100644"
     },
     {
@@ -185,7 +201,7 @@
       "previousSha256": "36007e61b6cf01d9865699cbf9024e122c7834e50d17d20efbfec7d6655b41ec",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/checks.test.mjs",
-      "candidateSha256": "1d59a2c7e2dbc6f502ff6e8b1413ab502a4b3e00e8e5c0b0b2b15d22441d1839",
+      "candidateSha256": "6c788903963a19f6c1695b6e72782d636afe6f592ea3e1f9d8da28c86328505e",
       "candidateMode": "100644"
     },
     {

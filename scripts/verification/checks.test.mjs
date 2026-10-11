@@ -8,17 +8,40 @@ import {fileURLToPath} from 'node:url'
 import {test} from 'node:test'
 
 const roleModelReceipt = 'artifacts/repository-audits/proj-171-role-model-ownership.json'
+const roleModelOperationalSources = ['deployment/forum-db/tests/test_configure_role_contract.py',
+  'scripts/deployment/forum-db/configure_forum_app_role.sh']
 test('PROJ-171 exact role model advances the verified predecessor and includes new IAM sources', t => {
   const path = fixture(t)
   const result = provenance(path)
   assert.equal(result.status, 0, result.stderr)
   const receipt = JSON.parse(readFileSync(join(path, roleModelReceipt)))
   assert.equal(receipt.baseSha, '1baa3f82144579f0e814d72a49f2192db1710d57')
+  for (const source of roleModelOperationalSources) {
+    assert.ok(receipt.changes.some(item => item.candidatePath === source), source)
+  }
   for (const source of ['apps/api/migrations/008_iam_roles.sql', 'apps/api/src/iam/role-catalog.ts',
     'apps/api/src/iam/role-store.ts', 'apps/api/src/iam/roles.controller.ts', 'apps/api/src/bootstrap-platform-admin.ts']) {
     assert.ok(receipt.newFiles.some(item => item.path === source), source)
   }
 })
+
+for (const source of roleModelOperationalSources) {
+  for (const mutation of ['bytes', 'mode', 'symlink']) {
+    test(`PROJ-171 operational successor rejects ${mutation} drift in ${source}`, t => {
+      const path = fixture(t)
+      const baseline = provenance(path)
+      assert.equal(baseline.status, 0, baseline.stderr)
+      const file = join(path, source)
+      if (mutation === 'bytes') writeFileSync(file, readFileSync(file, 'utf8') + '\n# unapproved operational drift\n')
+      if (mutation === 'mode') chmodSync(file, source.endsWith('.sh') ? 0o644 : 0o755)
+      if (mutation === 'symlink') {
+        execFileSync('mv', [file, file + '.original'])
+        symlinkSync(file + '.original', file)
+      }
+      assert.notEqual(provenance(path).status, 0, source + '/' + mutation)
+    })
+  }
+}
 
 for (const mutation of ['candidate', 'predecessor', 'scope', 'path', 'mode', 'base', 'task', 'source-head',
   'duplicate', 'omitted-owner', 'new-hash', 'new-scope', 'omitted-new', 'history-pin', 'history-bytes',
@@ -78,17 +101,20 @@ for (const verifier of ['local_ci_receipt', 'verify_branch_integration', 'verify
   })
 }
 
-for (const [hash, mode] of [['0'.repeat(64), '100644'], [null, '100755']]) {
-  test(`PROJ-171 successor rejects an unrelated predecessor ${hash ? 'hash' : 'mode'}`, t => {
-    const path = fixture(t)
-    const receipt = JSON.parse(readFileSync(join(path, roleModelReceipt)))
-    const item = receipt.changes.find(item => item.candidatePath === 'apps/api/src/iam/auth-store.ts')
-    const result = spawnSync('python3', ['-c',
-      'import importlib.util,pathlib,sys; p=pathlib.Path(sys.argv[1]); s=importlib.util.spec_from_file_location("checker",p/"scripts/verification/check-operational-sources.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.ROOT=p; m.role_model_file(p/"apps/api/src/iam/auth-store.ts",sys.argv[2],sys.argv[3])', path, hash || item.previousSha256, mode,
-    ], {encoding: 'utf8'})
-    assert.notEqual(result.status, 0)
-    assert.match(result.stderr, /PROJ-171 predecessor mismatch/)
-  })
+for (const source of ['apps/api/src/iam/auth-store.ts', ...roleModelOperationalSources]) {
+  for (const [hash, mode] of [['0'.repeat(64), source.endsWith('.sh') ? '100755' : '100644'],
+    [null, source.endsWith('.sh') ? '100644' : '100755']]) {
+    test(`PROJ-171 successor rejects an unrelated predecessor ${hash ? 'hash' : 'mode'} for ${source}`, t => {
+      const path = fixture(t)
+      const receipt = JSON.parse(readFileSync(join(path, roleModelReceipt)))
+      const item = receipt.changes.find(item => item.candidatePath === source)
+      const result = spawnSync('python3', ['-c',
+        'import importlib.util,pathlib,sys; p=pathlib.Path(sys.argv[1]); s=importlib.util.spec_from_file_location("checker",p/"scripts/verification/check-operational-sources.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.ROOT=p; m.role_model_file(p/sys.argv[4],sys.argv[2],sys.argv[3])', path, hash || item.previousSha256, mode, source,
+      ], {encoding: 'utf8'})
+      assert.notEqual(result.status, 0)
+      assert.match(result.stderr, /PROJ-171 predecessor mismatch/)
+    })
+  }
 }
 
 for (const mutation of ['candidate', 'predecessor', 'scope', 'path', 'mode', 'base', 'task', 'missing-receipt', 'source-bytes', 'checker-bytes']) {
