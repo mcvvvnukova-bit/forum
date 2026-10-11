@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Work only in `/Users/vvv/.codex/worktrees/role-model/АСТ Форум` on `codex/PROJ-171-role-model`; do not touch the primary checkout or its untracked Diadoc plan.
-- The binding design is `docs/superpowers/specs/2026-10-11-role-model-design.md`; this is implementation of the existing approved IAM model, with the owner's later optional-participant decision and current explicit admin instruction.
+- The binding design is `docs/plans/2026-10-11-role-model-design.md`; this is implementation of the existing approved IAM model, with the owner's later optional-participant decision and current explicit admin instruction.
 - Roles: individual, organization_employee, organization_admin, organization_signer, platform_moderator, platform_admin. Unknown permissions deny; platform roles grant no customer impersonation or company membership.
 - users/persons and personal access require no contractor participant. provider/customer remain separate business grants. Do not merge identities by phone/email.
 - Bootstrap is an explicit owner operation, unique verified active phone match plus expected userId, with audit; never a login-time phone whitelist.

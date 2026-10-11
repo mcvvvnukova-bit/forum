@@ -1,11 +1,95 @@
 import assert from 'node:assert/strict'
 import {createHash} from 'node:crypto'
 import {execFileSync, spawnSync} from 'node:child_process'
-import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
+import {chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {test} from 'node:test'
+
+const roleModelReceipt = 'artifacts/repository-audits/proj-171-role-model-ownership.json'
+test('PROJ-171 exact role model advances the verified predecessor and includes new IAM sources', t => {
+  const path = fixture(t)
+  const result = provenance(path)
+  assert.equal(result.status, 0, result.stderr)
+  const receipt = JSON.parse(readFileSync(join(path, roleModelReceipt)))
+  assert.equal(receipt.baseSha, '1baa3f82144579f0e814d72a49f2192db1710d57')
+  for (const source of ['apps/api/migrations/008_iam_roles.sql', 'apps/api/src/iam/role-catalog.ts',
+    'apps/api/src/iam/role-store.ts', 'apps/api/src/iam/roles.controller.ts', 'apps/api/src/bootstrap-platform-admin.ts']) {
+    assert.ok(receipt.newFiles.some(item => item.path === source), source)
+  }
+})
+
+for (const mutation of ['candidate', 'predecessor', 'scope', 'path', 'mode', 'base', 'task', 'source-head',
+  'duplicate', 'omitted-owner', 'new-hash', 'new-scope', 'omitted-new', 'history-pin', 'history-bytes',
+  'source-bytes', 'source-mode', 'new-bytes', 'new-mode', 'checker-bytes', 'checker-hash',
+  'source-symlink', 'directory-symlink', 'receipt-symlink', 'missing-receipt']) {
+  test(`PROJ-171 role model rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    const baseline = provenance(path)
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const file = join(path, roleModelReceipt)
+    const receipt = JSON.parse(readFileSync(file))
+    if (mutation === 'candidate') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'predecessor') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes.push({...receipt.changes[0], candidatePath: 'package.json'})
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    if (mutation === 'task') receipt.taskCode = 'PROJ-999'
+    if (mutation === 'source-head') receipt.sourceSha = '0'.repeat(40)
+    if (mutation === 'duplicate') receipt.changes.push(receipt.changes[0])
+    if (mutation === 'omitted-owner') receipt.changes.pop()
+    if (mutation === 'new-hash') receipt.newFiles[0].sha256 = '0'.repeat(64)
+    if (mutation === 'new-scope') receipt.newFiles.push({...receipt.newFiles[0], path: 'package.json'})
+    if (mutation === 'omitted-new') receipt.newFiles.pop()
+    if (mutation === 'history-pin') receipt.historicalReceipts[0].sha256 = '0'.repeat(64)
+    if (mutation === 'checker-hash') receipt.changes.find(item => item.candidatePath === 'scripts/verification/check-operational-sources.py').candidateSha256 = '0'.repeat(64)
+    const bytePath = mutation === 'source-bytes' ? 'apps/api/src/iam/auth-store.ts'
+      : mutation === 'new-bytes' ? 'apps/api/src/iam/role-catalog.ts'
+      : mutation === 'checker-bytes' ? 'scripts/verification/check-operational-sources.py'
+      : mutation === 'history-bytes' ? 'artifacts/repository-audits/proj-170-login-option-1-ownership.json' : null
+    if (bytePath) writeFileSync(join(path, bytePath), readFileSync(join(path, bytePath), 'utf8') + '\n# unapproved role-model drift\n')
+    else if (mutation === 'source-mode' || mutation === 'new-mode') {
+      chmodSync(join(path, mutation === 'source-mode' ? 'apps/api/src/iam/auth-store.ts' : 'apps/api/src/iam/role-catalog.ts'), 0o755)
+    } else if (mutation.endsWith('symlink')) {
+      const source = join(path, mutation === 'receipt-symlink' ? roleModelReceipt
+        : mutation === 'directory-symlink' ? 'apps/api/src/iam' : 'apps/api/src/iam/role-catalog.ts')
+      const target = source + '.original'
+      execFileSync('mv', [source, target])
+      symlinkSync(target, source)
+    } else if (mutation === 'missing-receipt') rmSync(file)
+    else writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0, mutation)
+  })
+}
+
+for (const verifier of ['local_ci_receipt', 'verify_branch_integration', 'verify_compact_login', 'verify_role_model']) {
+  test(`PROJ-171 preserves standalone ${verifier} verification`, t => {
+    const path = fixture(t)
+    const invoke = () => spawnSync('python3', ['-c',
+      'import importlib.util,pathlib,sys; p=pathlib.Path(sys.argv[1]); s=importlib.util.spec_from_file_location("checker",p/"scripts/verification/check-operational-sources.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.ROOT=p; getattr(m,sys.argv[2])()', path, verifier,
+    ], {encoding: 'utf8'})
+    const baseline = invoke()
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const source = join(path, 'scripts/verification/check-operational-sources.py')
+    writeFileSync(source, readFileSync(source, 'utf8') + '\n# standalone verifier must reject drift\n')
+    assert.notEqual(invoke().status, 0)
+  })
+}
+
+for (const [hash, mode] of [['0'.repeat(64), '100644'], [null, '100755']]) {
+  test(`PROJ-171 successor rejects an unrelated predecessor ${hash ? 'hash' : 'mode'}`, t => {
+    const path = fixture(t)
+    const receipt = JSON.parse(readFileSync(join(path, roleModelReceipt)))
+    const item = receipt.changes.find(item => item.candidatePath === 'apps/api/src/iam/auth-store.ts')
+    const result = spawnSync('python3', ['-c',
+      'import importlib.util,pathlib,sys; p=pathlib.Path(sys.argv[1]); s=importlib.util.spec_from_file_location("checker",p/"scripts/verification/check-operational-sources.py"); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.ROOT=p; m.role_model_file(p/"apps/api/src/iam/auth-store.ts",sys.argv[2],sys.argv[3])', path, hash || item.previousSha256, mode,
+    ], {encoding: 'utf8'})
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /PROJ-171 predecessor mismatch/)
+  })
+}
 
 for (const mutation of ['candidate', 'predecessor', 'scope', 'path', 'mode', 'base', 'task', 'missing-receipt', 'source-bytes', 'checker-bytes']) {
   test(`PROJ-170 compact login rejects ${mutation} tampering`, t => {
