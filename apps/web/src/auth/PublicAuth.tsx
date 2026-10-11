@@ -36,13 +36,13 @@ function clearLegacyIntent() {
   try {sessionStorage.removeItem('forum.public.intent'); sessionStorage.removeItem('forum.customer.intent')} catch { /* Storage is optional; no navigation context is written. */ }
 }
 function ModalHeader({title, dialogLabelId, onClose}: DialogHeaderProps) {
-  return <Dialog.Header className="public-auth-header">
-    <Dialog.Title id={dialogLabelId}>{title}</Dialog.Title>
+  return <Stack direction="horizontal" align="center" justify="space-between" gap="normal" padding="spacious" className="public-auth-header">
+    <Heading as="h2" id={dialogLabelId} className="public-auth-title">{title}</Heading>
     <IconButton icon={XIcon} aria-label="Закрыть окно" variant="invisible" onClick={() => onClose('close-button')} />
-  </Dialog.Header>
+  </Stack>
 }
-function ModalBody({children}: React.PropsWithChildren) {
-  return <Dialog.Body className="public-auth-modal-body">{children}</Dialog.Body>
+function ModalBody({children, dialogDescriptionId}: React.PropsWithChildren<{dialogDescriptionId?: string}>) {
+  return <Dialog.Body id={dialogDescriptionId} className="public-auth-modal-body">{children}</Dialog.Body>
 }
 export function PublicAuth({navigate = url => location.assign(url)}: {navigate?: (url: string) => void}) {
   const [view, setView] = useState<View>(() => {const mode = modeFromPath(); return mode ? {mode, modal: publicAuthBackground() !== null} : null})
@@ -142,14 +142,14 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
   const body = <Stack gap="spacious" className="public-auth-content">
     {message && <Banner title="Вход не завершён" variant="warning"><span role="alert">{message}</span></Banner>}
     {platformBlocked ? null : session.kind === 'authenticated' ? <Text as="p" role="status">Вы уже вошли в аккаунт</Text> : <>
-      <Button variant="primary" size="large" className="public-auth-sber"
+      <Button variant="primary" size="large" block className="public-auth-sber"
         disabled={session.kind !== 'guest' || redirecting || blocked || unavailable} onClick={start}>
         <span className="public-auth-label-layout"><img src={sberMark} alt="" aria-hidden className="public-auth-mark" /><span className="public-auth-label">Войти по Сбер ID</span></span>
       </Button>
       {session.kind === 'checking' && <Stack direction="horizontal" align="center" gap="normal"><Spinner size="small" /><Text role="status">Проверяем вход…</Text></Stack>}
       {redirecting && <Text role="status">Переходим к Сбер ID…</Text>}
     </>}
-    {blocked ? <Link href="mailto:info@astforum.ru">Тех. поддержка</Link> : session.kind !== 'authenticated' && <Text as="p">Если аккаунта ещё нет, он будет создан автоматически после входа через Сбер ID.</Text>}
+    {blocked ? <Link href="mailto:info@astforum.ru">Тех. поддержка</Link> : session.kind !== 'authenticated' && <Text as="p" className="public-auth-description">Нет аккаунта? Он будет создан автоматически после входа.</Text>}
     {unavailable && <Link href="/#demo">Записаться на демо</Link>}
     {message && !blocked && !unavailable && <Button disabled={redirecting || session.kind === 'checking'} onClick={() => {
       if (session.kind === 'unknown') {if (shared) shared.retry(); else setRetry(value => value+1)}
@@ -162,7 +162,7 @@ export function PublicAuth({navigate = url => location.assign(url)}: {navigate?:
       setView(null)
       if (view.modal) history.back()
       else {history.replaceState(history.state,'','/'); window.dispatchEvent(new PopStateEvent('popstate'))}
-    }} width="min(560px, max(calc(100vw - var(--base-size-32)), min(320px, 100vw)))" style={{maxWidth:'100vw'}} position="center">{body}</Dialog>
+    }} width="large" className="public-auth-dialog" position="center">{body}</Dialog>
   return <main className="public-auth-page"><Stack gap="spacious" padding={{narrow:"condensed", regular:"spacious"}} className="public-auth-panel">
     <Link href="/">АСТ Форум</Link><Heading as="h1" variant="large">{title}</Heading>{body}
   </Stack></main>

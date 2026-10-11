@@ -7,6 +7,31 @@ import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {test} from 'node:test'
 
+for (const mutation of ['candidate', 'predecessor', 'scope', 'path', 'mode', 'base', 'task', 'missing-receipt', 'source-bytes', 'checker-bytes']) {
+  test(`PROJ-170 compact login rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    const baseline = provenance(path)
+    assert.equal(baseline.status, 0, baseline.stderr)
+    const file = join(path, 'artifacts/repository-audits/proj-170-login-option-1-ownership.json')
+    const receipt = JSON.parse(readFileSync(file, 'utf8'))
+    if (mutation === 'candidate') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'predecessor') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes.push({...receipt.changes[0], candidatePath: 'package.json'})
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'base') receipt.baseSha = '0'.repeat(40)
+    if (mutation === 'task') receipt.taskCode = 'PROJ-999'
+    const sourceOnly = ['missing-receipt', 'source-bytes', 'checker-bytes'].includes(mutation)
+    if (mutation === 'missing-receipt') rmSync(file)
+    if (mutation === 'source-bytes' || mutation === 'checker-bytes') {
+      const source = join(path, mutation === 'source-bytes' ? 'apps/web/src/auth/PublicAuth.tsx' : 'scripts/verification/check-operational-sources.py')
+      writeFileSync(source, readFileSync(source, 'utf8') + '\n# unapproved compact-login drift\n')
+    }
+    if (!sourceOnly) writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}
+
 for (const mutation of ['candidate','predecessor','scope','path','mode','base','source-head','history','bytes','new-bytes','checker-bytes']) {
   test(`PROJ-169 main integration rejects ${mutation} tampering`, t => {
     const path = fixture(t)

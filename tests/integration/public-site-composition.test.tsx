@@ -275,7 +275,7 @@ describe('actual homepage + public authentication composition', () => {
     expect(screen.getByRole('dialog', {name:'Войти в аккаунт'})).toBeInTheDocument()
     expect(location.pathname).toBe('/login')
     expect(screen.queryByRole('link', {name:'Зарегистрироваться'})).not.toBeInTheDocument()
-    expect(screen.getByText('Если аккаунта ещё нет, он будет создан автоматически после входа через Сбер ID.')).toBeInTheDocument()
+    expect(screen.getByText('Нет аккаунта? Он будет создан автоматически после входа.')).toBeInTheDocument()
     retainedHome(heading)
   })
   it.each([
