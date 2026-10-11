@@ -39,7 +39,7 @@
 * `GET /api/iam/platform-users?cursor=&limit=` — минимальные данные существующих идентифицированных пользователей и их служебные назначения, только platform.roles.manage.
 * `POST /api/iam/platform-role-assignments` с `{targetUserId,roleCode,reason}` — назначает только platform_admin/platform_moderator активному идентифицированному пользователю.
 * `PATCH /api/iam/platform-role-assignments/{id}` с `{status,reason}` — меняет только active/revoked существующего назначения.
-* `GET /api/iam/organizations/{id}/members` — активному organization_admin своей компании.
+* `GET /api/iam/organizations/{id}/members` — активному organization_admin своей компании. Для каждого членства roles отражает сохранённые активные назначения, effectiveRoles и permissions — действующие права с учётом оснований; неподтверждённая duty остаётся видимой без права подписи.
 * `PATCH /api/iam/organizations/{id}/members/{membershipId}` с `{roles,status,reason}` — действующему organization_admin; роли только corporate, членство уже существует. Новое членство, принятие приглашения и внешняя верификация принадлежат отдельным фичам.
 * `GET /api/iam/audit-events?cursor=&limit=` — служебный аудит; администратор читает все служебные решения, модератор только свои.
 
