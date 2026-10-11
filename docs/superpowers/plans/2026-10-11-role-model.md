@@ -25,7 +25,7 @@
 
 **Files:**
 - Create `apps/api/migrations/008_iam_roles.sql`, a safe migration rollback procedure under `deployment/forum-api/`, `apps/api/src/iam/role-catalog.ts`, `role-store.ts`, `roles.controller.ts`, `apps/api/src/bootstrap-platform-admin.ts`, `apps/api/test/roles.test.ts`.
-- Modify `apps/api/src/migrate.ts`, `apps/api/src/app.ts`, `apps/api/src/iam/auth-store.ts`, `apps/api/src/organizations/organization-store.ts`, `deployment/forum-api/grant-runtime.sql`, `apps/api/package.json`, `apps/api/README.md`.
+- Modify `apps/api/src/migrate.ts`, `deployment/forum-db/apply-public.psql`, `apps/api/src/app.ts`, `apps/api/src/iam/auth-store.ts`, `apps/api/src/organizations/organization-store.ts`, `deployment/forum-api/grant-runtime.sql`, `apps/api/package.json`, `apps/api/README.md`.
 - Additional focused files under `apps/api/src/iam/` or `apps/api/test/` may separate role reads, mutations and request validation so no new file becomes an unreviewable monolith.
 
 **Interfaces:**
@@ -67,8 +67,9 @@ Validate all bodies/query/header values strictly; no client author selection. Se
 ### Task 2: Primer cabinet role management and browser verification
 
 **Files:**
-- Create `apps/web/src/home/RoleManagementSection.tsx`, `apps/web/src/home/roles.test.tsx`, and focused browser verification if needed.
-- Modify `apps/web/src/audience/intent.ts`, `apps/web/src/home/Cabinet.tsx`, `apps/profile-preview/src/ProfilePage.tsx` and existing cabinet navigation compositions as required; update routes in the established build config if new route publication requires it.
+- Create `apps/web/src/home/RoleManagementSection.tsx`, `apps/web/src/home/roles.test.tsx`, and focused browser verification if needed. Personal-session corporate contexts can reach this roles view through a permissions-aware link in My Organizations; the global Администрирование link appears only for platform.roles.manage.
+- Publish `/cabinet/roles/` through `scripts/deployment/build-web-release.mjs`, `scripts/deployment/web_release.py`, `deployment/release-manifest.schema.json` and their relevant publisher/manifest tests. Keep historical allowed route sets, add the exact new dev set; production remains `/` only.
+- Modify `apps/dev-gateway/forum_dev_auth.py` and `apps/dev-gateway/tests/test_auth_gateway.py` for the serving boundary. Modify `apps/web/src/audience/intent.ts`, `apps/web/src/home/Cabinet.tsx`, `apps/profile-preview/src/ProfilePage.tsx` and existing cabinet navigation compositions as required; update routes in the established build config if new route publication requires it.
 
 **Interfaces:**
 - Consumes Task 1's session additions and exact IAM API contracts; no frontend role decision grants server authority.
@@ -87,8 +88,22 @@ it('ordinary account cannot see platform role management',async()=>{
 
 - [ ] **Step 2: Run focused RED in apps/web.** `npm test -- --run src/home/roles.test.tsx`; confirm missing behavior is the failure. Request mocks represent complete Task 1 payloads and remain at the HTTP boundary, with real Primer components.
 - [ ] **Step 3: Build the view using existing Primer layout/navigation and Russian labels.** Extend Session fields for platformRoles/accessVersion/csrfToken. Treat unknown/malformed authorization data as unavailable. Keep current profile/settings/organizations flows working. Resolve context before loading members, read actual permissions from server, handle refusal/revocation/stale version by clearing sensitive stale state. Show effective/pending signer status honestly. Do not add new brand tokens, unrelated layout changes, custom primitives or production integrations.
-- [ ] **Step 4: Run GREEN plus web/profile relevant regression tests and checks.** In apps/web: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. In apps/profile-preview run its relevant tests/typecheck/build. Run `python3 /Users/vvv/.codex/skills/primer-design-system/scripts/validate_primer_ui.py /Users/vvv/.codex/worktrees/role-model/АСТ\ Форум`. Record existing baseline warnings separately from introduced findings.
-- [ ] **Step 5: Verify real local app against Task 1 API and isolated database.** Use only Codex iab for visible browser control. Cover desktop and 320/390/768 widths, keyboard focus, menu access, role assignment then revoke, old-cookie refusal, reload persistence, failure/retry. If using automated Playwright for repeatable verification, keep the user's visible browser in iab and write verification evidence to a task-private folder. Record fixture vs live-provider boundaries.
-- [ ] **Step 6: Self-review, GitNexus detect_changes, and commit.** `git commit -m 'feat(PROJ-171): add Primer role management to the cabinet'`. Report routes, checks, browser evidence and limitations; no external publication.
+- [ ] **Step 4: Add strict gateway method/path routing for the design's IAM endpoints and PATCH support.** Forward X-Forum-Context, X-Forum-CSRF, Idempotency-Key and If-Match unchanged to the API; preserve no-store and existing cookie/origin behavior. Reject unmatched IAM routes/methods, malformed UUID paths and traversal; never proxy a generic /api/iam wildcard. Test with the real stub upstream that supported requests reach it with exact headers/body/query, unsupported routes do not, and responses/failure states remain correct. Run `npm --workspace @astforum/dev-gateway test` (inspect the workspace name if different).
+- [ ] **Step 5: Run GREEN plus web/profile relevant regression tests and checks.** In apps/web: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`. In apps/profile-preview run its relevant tests/typecheck/build. Run `python3 /Users/vvv/.codex/skills/primer-design-system/scripts/validate_primer_ui.py /Users/vvv/.codex/worktrees/role-model/АСТ\ Форум`. Record existing baseline warnings separately from introduced findings.
+- [ ] **Step 6: Verify real local app against Task 1 API and isolated database.** Use only Codex iab for visible browser control. Cover desktop and 320/390/768 widths, keyboard focus, menu access, role assignment then revoke, old-cookie refusal, reload persistence, failure/retry. If using automated Playwright for repeatable verification, keep the user's visible browser in iab and write verification evidence to a task-private folder. Record fixture vs live-provider boundaries.
+- [ ] **Step 7: Self-review, GitNexus detect_changes, and commit.** `git commit -m 'feat(PROJ-171): add Primer role management to the cabinet'`. Report routes, checks, browser evidence and limitations; no external publication.
+
+### Task 3: Exact repository provenance integration
+
+**Files:**
+- Create `artifacts/repository-audits/proj-171-role-model-ownership.json`.
+- Modify `scripts/verification/check-operational-sources.py` and relevant verification regression tests in `scripts/verification/checks.test.mjs`.
+
+**Interfaces:** Consumes final Task 1/2 source bytes. Produces a bounded ownership successor for exact changed paths, predecessor hashes/modes and candidate hashes/modes; historical receipts remain immutable.
+
+- [ ] **Step 1: Read existing exact source ownership chain and tests.** Add regression coverage showing the prior verified source state can advance through PROJ-171, while forged scope/predecessors, changed source bytes/modes, unsafe symlinks and historical receipt tampering still fail. Existing security contracts must stay intact.
+- [ ] **Step 2: Implement a narrowly scoped exact successor using the established pattern.** Build receipt from initial branch base `1baa3f82144579f0e814d72a49f2192db1710d57` and reviewed final source bytes. Preserve all historical receipts byte-for-byte. Exclude only the checker's own candidate hash from the pinned manifest to avoid a hash cycle. No broad trust exemption or weakened verifier. Verify current new IAM source files as well as changed existing pinned files.
+- [ ] **Step 3: Run source verification and covering verifier tests.** `python3 scripts/verification/check-operational-sources.py` and `node --test scripts/verification/checks.test.mjs`; inspect layout/integration failures and resolve only concrete role-model provenance gaps. Record results and remaining constraints.
+- [ ] **Step 4: Commit and report.** Commit `chore(PROJ-171): preserve exact source provenance for IAM role model`. Do not modify functional IAM/UI code or any live environment; controller handles review and publication.
 
 Controller completion: perform task reviews and one final branch review, run required repository checks, push the task branch, create/attach PR with OP#PROJ-171 OP#PROJ-40 OP#PROJ-45, verify exact remote commit and OpenProject GitHub-tab links. Execute the explicit target-account bootstrap only after rechecking target schema/user and choosing the authorized dev release path; record actual live state separately from isolated tests. Never claim production publication.
