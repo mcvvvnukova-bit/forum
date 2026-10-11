@@ -13,7 +13,7 @@ before(async () => { await migrate(pool); });
 beforeEach(async () => {
   await pool.query(`TRUNCATE public.organization_additions,public.identity_profiles,public.organization_memberships,public.organization_authorities,public.organizations,public.users,public.external_identities,public.persons,public.participants,
     public.participant_memberships,public.role_assignments,public.sessions,public.authorization_attempts,
-    public.audit_events,public.outbox_events,public.organizations`);
+    public.audit_events,public.outbox_events,public.organizations CASCADE`);
 });
 after(async () => { await pool.end(); });
 

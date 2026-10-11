@@ -5,6 +5,7 @@ import {AuthError} from './auth-error.js';
 import {hashToken} from './crypto.js';
 import type {SberIdentity} from './sber-client.js';
 import {canonicalProfileFields,type PersonProfile} from './person-profile.js';
+import {assertIamReady,effectiveRoles} from './role-store.js';
 
 /** Only trusted, validated adapters call this store; browser routes cannot select a provider. */
 export interface AccountIdentity extends SberIdentity {provider?:string}
@@ -120,17 +121,21 @@ export class AuthStore {
   async session(token: string) {
     const client = await this.pool.connect();
     try {
+      await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
       const result = await client.query(`SELECT u.id, u.display_name AS "displayName", u.email,
-        (u.email_confirmed_at IS NOT NULL) AS "emailConfirmed", s.expires_at AS "expiresAt"
+        (u.email_confirmed_at IS NOT NULL) AS "emailConfirmed", s.expires_at AS "expiresAt",
+        u.access_version AS "accessVersion",s.csrf_token AS "csrfToken"
         FROM public.sessions s JOIN public.users u ON u.id = s.user_id
         WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now() AND u.status = 'active'`, [hashToken(token)]);
       const row = result.rows[0];
       if (!row) throw new AuthError('unauthenticated', 401);
+      await assertIamReady(client);
       const participant = await findIndividualParticipant(client, row.id);
-
-      const {expiresAt, ...user} = row;
-      return {user, participant, roles: ['individual'], expiresAt};
-    } finally { client.release(); }
+      const platformRoles=await effectiveRoles(client,row.id);
+      const {expiresAt,accessVersion,csrfToken,...user} = row;
+      await client.query('COMMIT');
+      return {user, participant, roles: ['individual'], expiresAt,platformRoles,accessVersion:Number(accessVersion),csrfToken};
+    } catch(error) {await client.query('ROLLBACK');throw error} finally { client.release(); }
   }
 
   async logout(token: string) {

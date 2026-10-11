@@ -290,3 +290,43 @@ Official sources consulted:
 - [OIDC ID token validation](https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation)
 
 Product decisions and their exact historical source provenance are in [the migration register](../../artifacts/repository-audits/document-migration-manifest.json); canonical requirements remain in Outline.
+# Scoped IAM roles (PROJ-171)
+
+Migration `008_iam_roles` is additive. Apply it with `npm run migrate` or the owner
+entrypoint `deployment/forum-db/apply-public.psql`, then apply the explicit runtime
+allowlist `deployment/forum-api/grant-runtime.sql`. Readiness and IAM reads fail
+closed if the migration, typed contract or required permissions are incomplete.
+Business `provider`/`customer` grants remain independent of these six IAM roles.
+
+The session keeps `user`, `participant`, `roles`, `expiresAt` and adds
+`platformRoles`, `accessVersion`, `csrfToken`. Resolve a tab's personal,
+organization or platform context with `POST /api/iam/context/resolve`; this does
+not switch a shared session. Protected IAM requests pass `X-Forum-Context`.
+Role and member mutations additionally require the configured `Origin`, the
+session's `X-Forum-CSRF`, `Idempotency-Key` (8–128 URL-safe characters), and for
+PATCH `If-Match: "1"` with the current row version. Catalogue and context listing
+are authenticated; cursor pages default to 25 and permit at most 100. All replies
+use `Cache-Control: no-store`. A replay rechecks current permissions before
+returning the original response. Journal rows persist for at least 24 hours.
+
+Only an owner can initialize the first platform administrator. Build first;
+use a privileged connection to the reviewed target database, and run:
+
+```sh
+npm run build
+npm run bootstrap:platform-admin -- --phone '+79010000001' --user-id '<verified-user-uuid>' --reason 'Owner-approved initial administrator'
+```
+
+The procedure creates no account, requires exactly one active canonical-phone
+match with a recorded Sber identity/profile, verifies the expected UUID and
+refuses a different existing admin. Repeat for the same active assignment is
+idempotent. Roles are stored by UUID; subsequent phone changes never transfer
+authority. CLI output contains only result status and IDs, never a DSN, phone or
+profile. Corporate access and signing are separate permissions; signing still
+requires current verified authority and document-specific scope checks in the
+consuming business module.
+
+Rollback application bytes while retaining this schema. The owner-only
+`deployment/forum-api/rollback-008-iam-roles.sql` is for a stopped, backed-up,
+unused installation; it refuses live assignments, IAM audit/idempotency data,
+changed versions or signer evidence. It never deletes IAM audit decisions.

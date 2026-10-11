@@ -37,7 +37,8 @@ async function organization(inn='9709128511'){
 async function member(userId:string,p:string,admin=false){
  await pool.query('INSERT INTO public.participant_memberships(user_id,participant_id) VALUES($1,$2)',[userId,p]);
  await pool.query(`INSERT INTO public.role_assignments(user_id,scope_type,scope_id,role) VALUES($1,'participant',$2,'provider')`,[userId,p]);
- await pool.query(`INSERT INTO public.organization_memberships(user_id,organization_id,status,basis_type,basis_reference,effective_from) SELECT $1,organization_id,'active','legacy','test-existing-evidence',now() FROM public.participants WHERE id=$2`,[userId,p]);
+ const membership=(await pool.query(`INSERT INTO public.organization_memberships(user_id,organization_id,status,basis_type,basis_reference,effective_from) SELECT $1,organization_id,'active','legacy','test-existing-evidence',now() FROM public.participants WHERE id=$2 RETURNING id,organization_id`,[userId,p])).rows[0];
+ for(const role of admin?['organization_employee','organization_admin']:['organization_employee'])await pool.query(`INSERT INTO public.iam_role_assignments(user_id,scope_type,scope_id,membership_id,role_code,created_by_user_id,reason) VALUES($1,'organization',$2,$3,$4,$1,'Trusted test membership')`,[userId,membership.organization_id,membership.id,role]);
  if(admin)await pool.query(`INSERT INTO public.organization_authorities(user_id,organization_id,authority_type,status,basis_type,basis_reference,approved_by_user_id,decided_at,effective_from) SELECT $1,organization_id,'administrator','confirmed','test','test-existing-evidence',$1,now(),now() FROM public.participants WHERE id=$2`,[userId,p]);
  if(admin)await pool.query(`INSERT INTO public.role_assignments(user_id,scope_type,scope_id,role) VALUES($1,'participant',$2,'organization_admin')`,[userId,p]);
 }
@@ -68,19 +69,21 @@ test('known company card remains pending and hides foreign members until own act
  await member(aliceId,o.p,true);
  const item=(await list()).json().items[0];assert.equal(item.status,'active');assert.equal(item.id,o.id);
  assert.deepEqual(item.members.map((m:{userId:string;fullName:string;roles:string[]})=>({userId:m.userId,fullName:m.fullName,roles:m.roles})).sort((a:{fullName:string},b:{fullName:string})=>a.fullName.localeCompare(b.fullName)),[
-  {userId:aliceId,fullName:'Алиса',roles:['organization_admin']},{userId:bobId,fullName:'Борис',roles:['organization_admin']}]);
+  {userId:aliceId,fullName:'Алиса',roles:['organization_admin','organization_employee']},{userId:bobId,fullName:'Борис',roles:['organization_admin','organization_employee']}]);
  assert.equal((await add('9709128511')).json().item.members.length,0,'POST never supplies member evidence');
- await pool.query("UPDATE public.participant_memberships SET status='revoked' WHERE user_id=$1 AND participant_id=$2",[aliceId,o.p]);
+ await pool.query("UPDATE public.organization_memberships SET status='revoked',revoked_at=now() WHERE user_id=$1 AND organization_id=$2",[aliceId,o.id]);
  const revoked=(await list()).json().items;assert.equal(revoked.length,1);assert.equal(revoked[0].status,'pending');assert.deepEqual(revoked[0].members,[]);
 });
-test('revoked grants, deactivated participants and users never disclose members',async()=>{
+test('business grant changes do not hide company membership while deactivated organizations and users hide members',async()=>{
  const o=await organization();await member(aliceId,o.p);await member(bobId,o.p,true);
  await pool.query("UPDATE public.users SET status='deactivated' WHERE id=$1",[bobId]);
  assert.equal((await list()).json().items[0].members.length,1);
  await pool.query('DELETE FROM public.role_assignments WHERE scope_id=$1 AND user_id=$2',[o.p,aliceId]);
- assert.equal((await list()).json().items.length,0);
+ assert.equal((await list()).json().items.length,1,'Current company membership does not require a business grant');
  await pool.query("INSERT INTO public.role_assignments(user_id,scope_type,scope_id,role) VALUES($1,'participant',$2,'provider')",[aliceId,o.p]);
  await pool.query("UPDATE public.participants SET status='deactivated' WHERE id=$1",[o.p]);
+ assert.equal((await list()).json().items.length,1,'Company membership does not depend on business participant status');
+ await pool.query("UPDATE public.organizations SET status='deactivated' WHERE id=$1",[o.id]);
  assert.equal((await list()).json().items.length,0);
 });
 test('cursor pages are stable, owner scoped and not a product count limit',async()=>{
@@ -103,7 +106,7 @@ test('partial newer schema fails closed on reads and additions, including empty 
 test('complete newer guard honors organizational revocation and requires current confirmed admin authority',async()=>{
  const o=await organization();await member(aliceId,o.p,true);await member(bobId,o.p,true);
  await pool.query("UPDATE public.organization_authorities SET status='pending',effective_from=NULL,decided_at=NULL,approved_by_user_id=NULL WHERE user_id=$1",[aliceId]);
-  const first=(await list()).json().items[0];assert.deepEqual(first.members.find((m:{userId:string;roles:string[]})=>m.userId===aliceId).roles,['organization_employee']);assert.deepEqual(first.members.find((m:{userId:string;roles:string[]})=>m.userId===bobId).roles,['organization_admin']);
+  const first=(await list()).json().items[0];assert.deepEqual(first.members.find((m:{userId:string;roles:string[]})=>m.userId===aliceId).roles,['organization_employee']);assert.deepEqual(first.members.find((m:{userId:string;roles:string[]})=>m.userId===bobId).roles,['organization_admin','organization_employee']);
   await pool.query("UPDATE public.organization_authorities SET effective_from=now()-interval '2 seconds',effective_until=now()-interval '1 second' WHERE user_id=$1",[bobId]);
   assert.deepEqual((await list()).json().items[0].members.find((m:{userId:string;roles:string[]})=>m.userId===bobId).roles,['organization_employee']);
   await pool.query("UPDATE public.organization_memberships SET status='revoked',revoked_at=now() WHERE user_id=$1",[bobId]);
@@ -114,7 +117,7 @@ test('complete newer guard honors organizational revocation and requires current
   await pool.query("UPDATE public.organizations SET status='deactivated'");assert.deepEqual((await list()).json().items[0].members,[]);
   await pool.query("UPDATE public.organizations SET status='active'; UPDATE public.organization_memberships SET status='active',revoked_at=NULL");
   await pool.query('DELETE FROM public.role_assignments WHERE user_id=$1 AND scope_id=$2',[bobId,o.p]);
-  assert.equal((await list(bob)).json().items.length,0,'General organization membership alone supplies no participant access');
+  assert.equal((await list(bob)).json().items.length,1,'Current company membership supplies viewing access independently of business grants');
 
 });
 

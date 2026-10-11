@@ -1,5 +1,6 @@
 import type {Pool,PoolClient} from 'pg';
 import {AuthError} from '../iam/auth-error.js';
+import {assertIamReady} from '../iam/role-store.js';
 export type OrganizationRole='organization_admin'|'organization_signer'|'organization_employee';
 export type OrganizationMember={userId:string;fullName:string;roles:OrganizationRole[]};
 export type MyOrganization={id:string;inn:string;name:string|null;status:'pending'|'active';members:OrganizationMember[]};
@@ -20,10 +21,10 @@ async function newerSchema(client:PoolClient):Promise<boolean>{
  if(!functionPresent||Object.entries(newerColumns).some(([table,names])=>names.some(name=>!columns.has(`${table}.${name}`))))throw new AuthError('temporarily_unavailable',503);
  return true;
 }
-function effectivePredicate(newer:boolean,alias='m',participant='p'){
- return `${alias}.status='active' AND u.status='active' AND ${participant}.status='active'
- AND EXISTS(SELECT 1 FROM public.role_assignments access WHERE access.user_id=${alias}.user_id AND access.scope_type='participant' AND access.scope_id=${participant}.id AND access.role=${participant}.role)
- ${newer?`AND public.effective_business_access(${alias}.user_id,${participant}.id,${participant}.role,false)` : ''}`;
+function effectivePredicate(){
+ return `m.status='active' AND m.revoked_at IS NULL AND m.effective_from<=now()
+  AND (m.effective_until IS NULL OR m.effective_until>now()) AND u.status='active'
+  AND o.registration_state='registered' AND o.status='active'`;
 }
 export class OrganizationStore {
  constructor(private readonly pool:Pool){}
@@ -32,6 +33,7 @@ export class OrganizationStore {
   try{
    await client.query('BEGIN');
    await newerSchema(client); // Partial newer deployments fail closed, never fall back.
+   await assertIamReady(client);
    const inserted=await client.query(`INSERT INTO public.organization_additions(user_id,inn) VALUES($1,$2)
     ON CONFLICT(user_id,inn) DO NOTHING RETURNING id`,[userId,inn]);
    if(inserted.rowCount)await client.query(`INSERT INTO public.audit_events(id,actor_user_id,action,data)
@@ -52,11 +54,11 @@ export class OrganizationStore {
   const client=await this.pool.connect();
   try{
    await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-   const newer=await newerSchema(client);
-   const effective=effectivePredicate(newer);
+   await newerSchema(client);await assertIamReady(client);
+   const effective=effectivePredicate();
    const rows=(await client.query<CardRow>(`WITH own AS(
     SELECT DISTINCT o.id,o.inn,o.legal_name AS name,true AS active FROM public.organizations o
-    JOIN public.participants p ON p.organization_id=o.id JOIN public.participant_memberships m ON m.participant_id=p.id
+    JOIN public.organization_memberships m ON m.organization_id=o.id
     JOIN public.users u ON u.id=m.user_id WHERE m.user_id=$1 AND ${effective}
    ), cards AS(
     SELECT * FROM own UNION ALL SELECT a.id,a.inn,o.legal_name AS name,false AS active
@@ -66,18 +68,14 @@ export class OrganizationStore {
    const page=rows.slice(0,50),activeIds=page.filter(r=>r.active).map(r=>r.id);
    const members=new Map<string,OrganizationMember[]>();
    if(activeIds.length){
-    const result=await client.query(`SELECT p.organization_id,u.id AS user_id,
+    const result=await client.query(`SELECT o.id AS organization_id,u.id AS user_id,
      coalesce(nullif(btrim(concat_ws(' ',person.family_name,person.given_name,person.middle_name)),''),u.display_name) AS full_name,
-     bool_or(EXISTS(SELECT 1 FROM public.role_assignments r WHERE r.user_id=m.user_id AND r.scope_type='participant'
-       AND r.scope_id=p.id AND r.role='organization_admin') ${newer?`AND public.effective_business_access(m.user_id,p.id,'organization_admin',false)
-       AND EXISTS(SELECT 1 FROM public.organization_authorities a WHERE a.user_id=m.user_id AND a.organization_id=p.organization_id
-       AND a.authority_type='administrator' AND a.status='confirmed' AND a.revoked_at IS NULL AND a.effective_from<=now() AND (a.effective_until IS NULL OR a.effective_until>now()))`:''}) AS admin
-     FROM public.participants p JOIN public.participant_memberships m ON m.participant_id=p.id JOIN public.users u ON u.id=m.user_id
-     LEFT JOIN public.persons person ON person.user_id=u.id WHERE p.organization_id=ANY($1::uuid[]) AND ${effective}
-     GROUP BY p.organization_id,u.id,person.family_name,person.given_name,person.middle_name,u.display_name ORDER BY full_name,u.id`,[activeIds]);
+     ARRAY(SELECT role_code FROM public.effective_iam_roles(u.id,o.id)) AS roles
+     FROM public.organizations o JOIN public.organization_memberships m ON m.organization_id=o.id JOIN public.users u ON u.id=m.user_id
+     LEFT JOIN public.persons person ON person.user_id=u.id WHERE o.id=ANY($1::uuid[]) AND ${effective}
+     ORDER BY full_name,u.id`,[activeIds]);
     for(const row of result.rows){const entries=members.get(row.organization_id)??[];
-     // Legacy accepted membership is employee status; admin inheritance is not a second assigned role.
-     entries.push({userId:row.user_id,fullName:row.full_name,roles:row.admin?['organization_admin']:['organization_employee']});members.set(row.organization_id,entries)}
+     entries.push({userId:row.user_id,fullName:row.full_name,roles:row.roles});members.set(row.organization_id,entries)}
    }
    await client.query('COMMIT');
    return {userId,items:page.map(r=>({id:r.id,inn:r.inn,name:r.name,status:r.active?'active':'pending',members:r.active?(members.get(r.id)??[]):[]})),
