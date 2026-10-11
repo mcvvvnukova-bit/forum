@@ -59,8 +59,22 @@ export async function manageableContexts(userId:string,signal:AbortSignal){
  const items=await pages('/api/iam/contexts',signal,v=>context(v,userId));if(new Set(items.map(c=>c.contextKey)).size!==items.length)throw new Error('Duplicate context')
  return items.filter(c=>c.contextKey==='platform'?c.permissions.includes('platform.roles.manage'):c.contextKey.startsWith('organization:')&&c.permissions.includes('organization.members.manage'))
 }
+async function organizationLabels(userId:string,signal:AbortSignal){
+ let cursor:string|null=null;const names:Record<string,string>={},seen=new Set<string>()
+ do{
+  const result=record(await request('/api/me/organizations'+(cursor?'?cursor='+encodeURIComponent(cursor):''),signal))
+  if(result.userId!==userId||!Array.isArray(result.items)||!(result.nextCursor===null||typeof result.nextCursor==='string'))throw new Error('Invalid organization metadata')
+  for(const value of result.items){
+   const item=record(value);if(!id(item.id)||typeof item.inn!=='string'||!/^([0-9]{10}|[0-9]{12})$/.test(item.inn)||!(item.name===null||typeof item.name==='string')||Object.hasOwn(names,item.id))throw new Error('Invalid organization metadata')
+   names[item.id]=`${typeof item.name==='string'&&item.name.trim()?item.name.trim():'Название недоступно'} — ИНН ${item.inn}`
+  }
+  cursor=result.nextCursor as string|null;if(cursor){if(seen.has(cursor))throw new Error('Repeated organization cursor');seen.add(cursor)}
+ }while(cursor&&!signal.aborted)
+ if(signal.aborted)throw new Error('Aborted');return names
+}
 export function RoleManagementSection({session,onExpired}:{session:Session;onExpired:()=>void}){
  const [contexts,setContexts]=useState<RoleContext[]>([]),[key,setKey]=useState(''),[catalogue,setCatalogue]=useState<Role[]>([])
+ const [companyLabels,setCompanyLabels]=useState<Record<string,string>>({})
  const [users,setUsers]=useState<PlatformUser[]>([]),[members,setMembers]=useState<Member[]>([]),[state,setState]=useState<State>('loading'),[attempt,setAttempt]=useState(0)
  const [selected,setSelected]=useState(''),[roleCode,setRoleCode]=useState<RoleCode>('platform_moderator'),[duties,setDuties]=useState<RoleCode[]>([])
  const [reason,setReason]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saved,setSaved]=useState(false),[saveError,setSaveError]=useState('')
@@ -91,6 +105,13 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   return()=>{active=false;abort.abort();window.clearTimeout(timer)}
  // Retrying must refresh both the catalogue and authoritative contexts.
  },[session,attempt])
+ // Names only decorate contexts already authorized by IAM; they never add a scope or grant.
+ useEffect(()=>{
+  setCompanyLabels({});if(!contexts.some(c=>c.contextKey.startsWith('organization:')))return
+  const abort=new AbortController(),timer=window.setTimeout(()=>abort.abort(),10_000);let active=true
+  void organizationLabels(session.user.id,abort.signal).then(names=>{if(active)setCompanyLabels(names)}).catch(error=>{if(active&&error instanceof Refusal&&error.status===401)failure(error)}).finally(()=>window.clearTimeout(timer))
+  return()=>{active=false;abort.abort();window.clearTimeout(timer)}
+ },[contexts,session.user.id])
  useEffect(()=>{
   if(!key||!contexts.some(c=>c.contextKey===key))return
   controller.current?.abort();const abort=new AbortController();controller.current=abort;const ticket=++generation.current,timer=window.setTimeout(()=>abort.abort(),10_000)
@@ -145,7 +166,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  function submit(event:FormEvent){event.preventDefault();if(platform&&user){const existing=user.platformRoles.find(r=>r.roleCode===roleCode);void mutate('/api/iam/platform-role-assignments',{targetUserId:user.userId,roleCode},existing?.status==='revoked'?existing.version:undefined)}else if(selectedMember?.status==='active'&&duties.length)void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:duties,status:'active'},selectedMember.version)}
  if(!validRoleSession(session))return <Banner variant="warning" title="Не удалось проверить права доступа"/>
  return <Stack>
-  {contexts.length>0&&<FormControl disabled={saving}><FormControl.Label>Область управления</FormControl.Label><Select ref={scopeRef} value={key} onChange={e=>change({key:e.target.value})} block>{contexts.map(c=><Select.Option key={c.contextKey} value={c.contextKey}>{c.contextKey==='platform'?'Платформа':`Компания ${c.contextKey.slice(13)}`}</Select.Option>)}</Select></FormControl>}
+  {contexts.length>0&&<FormControl disabled={saving}><FormControl.Label>Область управления</FormControl.Label><Select ref={scopeRef} value={key} onChange={e=>change({key:e.target.value})} block>{contexts.map(c=><Select.Option key={c.contextKey} value={c.contextKey}>{c.contextKey==='platform'?'Платформа':companyLabels[c.contextKey.slice(13)]??`Название и ИНН недоступны — компания ${c.contextKey.slice(13)}`}</Select.Option>)}</Select></FormControl>}
   {state==='loading'&&<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем роли…</Text></Stack>}
   {['unavailable','forbidden','stale'].includes(state)&&<Banner variant={state==='forbidden'?'critical':'warning'} title={state==='forbidden'?'Нет доступа к управлению ролями':state==='stale'?'Данные изменились. Загрузите актуальные права':'Не удалось загрузить роли'} primaryAction={<Button onClick={()=>{setKey('');setAttempt(n=>n+1)}}>Повторить</Button>}/>}
   {state==='ready'&&<>

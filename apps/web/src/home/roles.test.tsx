@@ -31,6 +31,35 @@ function api(options:{session?:unknown;contexts?:unknown[];response?:(url:string
  })
 }
 afterEach(()=>vi.unstubAllGlobals())
+const namedCompanies=[{id:other,inn:'500100732259',name:'ООО Север',status:'active',members:[]},{id:company,inn:'9709128511',name:'ООО Юг',status:'active',members:[]},{id:target,inn:'7707083893',name:'Компания без полномочий',status:'active',members:[]}]
+it('company labels match authorized context IDs rather than metadata order or extra cards',async()=>{
+ vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate(),corporate(other)],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:namedCompanies,nextCursor:null}):undefined}));page()
+ expect(await screen.findByRole('option',{name:'ООО Юг — ИНН 9709128511'})).toHaveValue(`organization:${company}`)
+ expect(screen.getByRole('option',{name:'ООО Север — ИНН 500100732259'})).toHaveValue(`organization:${other}`)
+ expect(screen.queryByRole('option',{name:/Компания без полномочий/})).not.toBeInTheDocument()
+ fireEvent.change(screen.getByLabelText('Область управления'),{target:{value:`organization:${other}`}});expect(await screen.findByText('Нет доступных участников')).toBeVisible();expect(screen.queryByRole('option',{name:member.displayName})).not.toBeInTheDocument()
+})
+it('late paginated company labels preserve selected context and unsaved reason',async()=>{
+ let finish:(response:Response)=>void=()=>{}
+ const f=api({session:{...session,platformRoles:[]},contexts:[corporate(),corporate(other)],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:[namedCompanies[1]],nextCursor:'second page'}):u==='/api/me/organizations?cursor=second%20page'?new Promise(r=>{finish=r}):undefined})
+ vi.stubGlobal('fetch',f);page();await screen.findByRole('option',{name:member.displayName});reason();fireEvent.change(screen.getByLabelText('Область управления'),{target:{value:`organization:${other}`}})
+ const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}))
+ await waitFor(()=>expect(f.mock.calls.some(([u])=>u==='/api/me/organizations?cursor=second%20page')).toBe(true));finish(Response.json({userId:owner,items:[namedCompanies[0]],nextCursor:null}))
+ await screen.findByRole('option',{name:'ООО Север — ИНН 500100732259'});expect(screen.getByLabelText('Область управления')).toHaveValue(`organization:${company}`);expect(screen.getByLabelText('Причина изменения')).toHaveValue('Согласовано владельцем');expect(screen.getByRole('option',{name:member.displayName})).toBeInTheDocument()
+})
+it('missing company name remains recognizable by INN without claiming a known name',async()=>{
+ vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:[{...namedCompanies[1],name:null}],nextCursor:null}):undefined}));page()
+ expect(await screen.findByRole('option',{name:'Название недоступно — ИНН 9709128511'})).toHaveValue(`organization:${company}`);await screen.findByRole('option',{name:member.displayName})
+})
+it.each(['unavailable','foreign-owner','repeated-cursor'])('company metadata %s uses honest fallback without changing IAM authority',async kind=>{
+ vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>u.startsWith('/api/me/organizations')?kind==='unavailable'?new Response(null,{status:503}):Response.json({userId:kind==='foreign-owner'?target:owner,items:kind==='repeated-cursor'&&u.includes('?')?[]:namedCompanies,nextCursor:kind==='repeated-cursor'?'repeat':null}):undefined}));page()
+ await screen.findByRole('option',{name:member.displayName});expect(screen.getByRole('option',{name:`Название и ИНН недоступны — компания ${company}`})).toHaveValue(`organization:${company}`);expect(screen.queryByRole('option',{name:/ООО/})).not.toBeInTheDocument();expect(screen.getByLabelText('Область управления')).toHaveValue(`organization:${company}`)
+})
+it('company metadata 401 clears protected data and refreshes the expired session',async()=>{
+ let expired=false
+ vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>{if(u==='/api/me/organizations'){expired=true;return new Response(null,{status:401})}if(u==='/api/auth/session'&&expired)return new Response(null,{status:401})}}));page()
+ await waitFor(()=>expect(location.pathname).toBe('/'));expect(screen.queryByRole('option',{name:member.displayName})).not.toBeInTheDocument();expect(screen.queryByLabelText('Участник компании')).not.toBeInTheDocument()
+})
 async function chooseUser(){await screen.findByRole('option',{name:'Проверенный пользователь'});fireEvent.change(screen.getByLabelText('Пользователь'),{target:{value:target}})}
 function reason(){fireEvent.change(screen.getByLabelText('Причина изменения'),{target:{value:'Согласовано владельцем'}})}
 it('ordinary session hides staff navigation and refuses the direct route',async()=>{vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[]}));page();expect(await screen.findByText('Нет доступа к управлению ролями')).toBeVisible();expect(screen.queryByRole('link',{name:'Администрирование'})).not.toBeInTheDocument();expect(screen.queryByText('Проверенный пользователь')).not.toBeInTheDocument()})

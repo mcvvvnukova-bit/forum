@@ -36,6 +36,20 @@ test('corporate signer request remains unconfirmed, switching clears prior compa
  await page.screenshot({path:resolve(evidence,'signer-awaiting-authority.png'),fullPage:true});await page.getByLabel('Область управления').selectOption(`organization:${other}`);await expect(page.getByRole('option',{name:'UI Сотрудник компании',exact:true})).toHaveCount(0)
  await page.goto('/cabinet/roles/?context=organization:00000000-0000-4000-8000-000000000000');await expect(page.getByText('Нет доступа к управлению ролями',{exact:true})).toBeVisible();await expect(page.getByLabel('Участник компании')).toHaveCount(0)
 })
+test('named company labels retain exact authorized context and draft safeguards',async({page})=>{
+ await page.setViewportSize({width:390,height:1000});await page.goto('/__fixture/login/corporate')
+ const info=await (await page.request.get('/__fixture/info')).json(),metadata=await (await page.request.get('/api/me/organizations')).json()
+ const first=metadata.items.find((item:{id:string})=>item.id===info.companies[0]),second=metadata.items.find((item:{id:string})=>item.id===info.companies[1])
+ await expect(page.getByRole('option',{name:`Тестовая компания 1 — ИНН ${first.inn}`,exact:true})).toHaveAttribute('value',`organization:${info.companies[0]}`)
+ await expect(page.getByRole('option',{name:`Тестовая компания 2 — ИНН ${second.inn}`,exact:true})).toHaveAttribute('value',`organization:${info.companies[1]}`)
+ await page.getByLabel('Область управления').selectOption({label:`Тестовая компания 1 — ИНН ${first.inn}`});await expect(page.getByRole('option',{name:'UI Сотрудник компании',exact:true})).toHaveCount(1)
+ await page.getByLabel('Причина изменения').fill('Unsaved reason remains in the named company')
+ await page.getByLabel('Область управления').selectOption({label:`Тестовая компания 2 — ИНН ${second.inn}`});await page.getByRole('button',{name:'Продолжить редактирование',exact:true}).click()
+ await expect(page.getByLabel('Область управления')).toHaveValue(`organization:${info.companies[0]}`);await expect(page.getByLabel('Причина изменения')).toHaveValue('Unsaved reason remains in the named company')
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:resolve(evidence,'named-company-selector-390.png'),fullPage:true})
+ await page.getByLabel('Область управления').selectOption({label:`Тестовая компания 2 — ИНН ${second.inn}`});await page.getByRole('button',{name:'Отменить изменения',exact:true}).click()
+ await expect(page.getByRole('option',{name:'UI Сотрудник компании',exact:true})).toHaveCount(0);await expect(page.getByLabel('Причина изменения')).toHaveValue('')
+})
 test('unavailable read retries against the real API and ordinary sessions stay forbidden',async({page})=>{
  await page.request.get('/__fixture/fail-reads?value=true')
  try{await page.goto('/__fixture/login/admin');await expect(page.getByText('Не удалось загрузить роли',{exact:true})).toBeVisible();await page.request.get('/__fixture/fail-reads?value=false');await page.getByRole('button',{name:'Повторить',exact:true}).filter({visible:true}).click();await expect(page.getByRole('heading',{name:'Служебные роли'})).toBeVisible()}finally{await page.request.get('/__fixture/fail-reads?value=false')}
