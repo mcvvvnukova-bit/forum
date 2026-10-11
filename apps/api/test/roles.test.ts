@@ -279,6 +279,78 @@ test('POST reactivation requires a current quoted version and fingerprints that 
  const unchanged=await mutate('/api/iam/platform-role-assignments',grant(bob.id));assert.equal(unchanged.statusCode,200,unchanged.body);
  assert.equal(unchanged.json().item.version,3);
 });
+// Hold both real mutations immediately before their new-duty/role writes.
+// Shared gates let both proceed together after release without adding a new
+// transaction-to-transaction lock dependency to the production FK interleaving.
+async function reciprocalWrites(first:()=>ReturnType<typeof mutate>,second:()=>ReturnType<typeof mutate>){
+ const blocker=await pool.connect();let pending:Array<ReturnType<typeof mutate>>=[];let transactionOpen=false;
+ try{
+  await pool.query(`CREATE FUNCTION public.wait_reciprocal_iam() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+   IF NEW.role_code IN ('organization_signer','platform_moderator') THEN
+    PERFORM pg_advisory_xact_lock_shared(hashtext('forum-test-reciprocal-iam'));
+   END IF;RETURN NEW;END $$;
+   CREATE TRIGGER wait_reciprocal_iam BEFORE INSERT OR UPDATE ON public.iam_role_assignments
+    FOR EACH ROW EXECUTE FUNCTION public.wait_reciprocal_iam()`);
+  await blocker.query('BEGIN');transactionOpen=true;await blocker.query("SELECT pg_advisory_xact_lock(hashtext('forum-test-reciprocal-iam'))");
+  const pid=(await blocker.query('SELECT pg_backend_pid() AS pid')).rows[0].pid;
+  pending=[first(),second()];
+  await waitForDatabase(async()=>(await pool.query(`SELECT count(*) FROM pg_stat_activity
+   WHERE datname=current_database() AND $1=ANY(pg_blocking_pids(pid))`,[pid])).rows[0].count==='2','both reciprocal IAM writes at the shared gate');
+  await blocker.query('ROLLBACK');transactionOpen=false;
+  return await Promise.all(pending);
+ }finally{
+  if(transactionOpen)await blocker.query('ROLLBACK');blocker.release();
+  await Promise.allSettled(pending);
+  await pool.query('DROP TRIGGER IF EXISTS wait_reciprocal_iam ON public.iam_role_assignments;DROP FUNCTION IF EXISTS public.wait_reciprocal_iam()');
+ }
+}
+const signerDuty={roles:['organization_employee','organization_signer'],status:'active',reason:'Reviewed additional signing duty'};
+async function reciprocalEffects(aliceAction='IAMOrganizationMemberUpdated'){
+ assert.equal((await pool.query('SELECT count(*) FROM public.iam_idempotency')).rows[0].count,'2');
+ assert.deepEqual((await pool.query("SELECT actor_user_id AS actor,action FROM public.audit_events WHERE action LIKE 'IAM%' ORDER BY actor_user_id")).rows,
+  [{actor:alice.id,action:aliceAction},{actor:bob.id,action:'IAMOrganizationMemberUpdated'}].sort((a,b)=>a.actor.localeCompare(b.actor)));
+ assert.deepEqual((await pool.query('SELECT actor_user_id FROM public.iam_idempotency ORDER BY actor_user_id')).rows.map(r=>r.actor_user_id),[alice.id,bob.id].sort());
+ assert.deepEqual((await pool.query('SELECT access_version FROM public.users ORDER BY display_name')).rows.map(r=>Number(r.access_version)),[2,2]);
+}
+test('reciprocal corporate new duties in independent companies both commit',async()=>{
+ const x=await company(),y=await company();
+ await membership(alice,x,['organization_admin']);await authority(alice,x);const bx=await membership(bob,x);
+ await membership(bob,y,['organization_admin']);await authority(bob,y);const ay=await membership(alice,y);
+ const responses=await reciprocalWrites(
+  ()=>mutate(`/api/iam/organizations/${x}/members/${bx}`,signerDuty,alice,`organization:${x}`,{'if-match':'"1"'}),
+  ()=>mutate(`/api/iam/organizations/${y}/members/${ay}`,signerDuty,bob,`organization:${y}`,{'if-match':'"1"'}));
+ assert.deepEqual(responses.map(r=>r.statusCode),[200,200],responses.map(r=>r.body).join(' '));
+ for(const r of responses){assert.equal(r.json().item.version,2);assert.deepEqual(r.json().item.roles,['organization_employee','organization_signer']);
+  assert.ok(!r.json().item.permissions.includes('organization.documents.sign'))}
+ assert.deepEqual((await pool.query("SELECT user_id AS target,created_by_user_id AS author FROM public.iam_role_assignments WHERE role_code='organization_signer' ORDER BY user_id")).rows,
+  [{target:bob.id,author:alice.id},{target:alice.id,author:bob.id}].sort((a,b)=>a.target.localeCompare(b.target)));
+ assert.deepEqual((await pool.query('SELECT version FROM public.organization_memberships WHERE id=ANY($1::uuid[])',[ [bx,ay] ])).rows.map(r=>r.version),[2,2]);
+ await reciprocalEffects();
+});
+test('reciprocal platform grant and corporate new duty both commit',async()=>{
+ await platformAdmin();const org=await company();await membership(bob,org,['organization_admin']);await authority(bob,org);const id=await membership(alice,org);
+ const responses=await reciprocalWrites(
+  ()=>mutate('/api/iam/platform-role-assignments',grant(bob.id)),
+  ()=>mutate(`/api/iam/organizations/${org}/members/${id}`,signerDuty,bob,`organization:${org}`,{'if-match':'"1"'}));
+ assert.deepEqual(responses.map(r=>r.statusCode),[201,200],responses.map(r=>r.body).join(' '));
+ assert.equal(responses[0].json().item.version,1);assert.equal(responses[1].json().item.version,2);
+ assert.deepEqual((await get('/api/auth/session',bob)).json().platformRoles,['platform_moderator']);
+ assert.deepEqual((await resolve(`organization:${org}`,alice)).json().roles,['organization_employee','organization_signer']);
+ await reciprocalEffects('IAMPlatformRoleGranted');
+});
+test('reciprocal platform PATCH and corporate new duty both commit',async()=>{
+ await platformAdmin();const assignment=(await pool.query(`INSERT INTO public.iam_role_assignments(user_id,scope_type,role_code,created_by_user_id,reason)
+  VALUES($1,'platform','platform_moderator',$2,'Trusted fixture') RETURNING id`,[bob.id,alice.id])).rows[0].id;
+ const org=await company();await membership(bob,org,['organization_admin']);await authority(bob,org);const id=await membership(alice,org);
+ const responses=await reciprocalWrites(
+  ()=>mutate(`/api/iam/platform-role-assignments/${assignment}`,{status:'revoked',reason:'Duty completed'},alice,'platform',{'if-match':'"1"'}),
+  ()=>mutate(`/api/iam/organizations/${org}/members/${id}`,signerDuty,bob,`organization:${org}`,{'if-match':'"1"'}));
+ assert.deepEqual(responses.map(r=>r.statusCode),[200,200],responses.map(r=>r.body).join(' '));
+ assert.equal(responses[0].json().item.version,2);assert.equal(responses[0].json().item.status,'revoked');assert.equal(responses[1].json().item.version,2);
+ assert.deepEqual((await get('/api/auth/session',bob)).json().platformRoles,[]);
+ assert.deepEqual((await resolve(`organization:${org}`,alice)).json().roles,['organization_employee','organization_signer']);
+ await reciprocalEffects('IAMPlatformRoleUpdated');
+});
 test('parallel platform administrator revocations retain one current administrator',async()=>{
  const a=await platformAdmin(),b=await platformAdmin(bob);
  const responses=await Promise.all([

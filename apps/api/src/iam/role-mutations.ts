@@ -21,6 +21,8 @@ export class RoleMutations {
   const client=await this.pool.connect();try{
    await client.query('BEGIN');
    // Lock scope, actor/key, then target rows; reauthorize after each blocking stage.
+   // User non-key writes need NO KEY UPDATE: author/journal FKs take KEY SHARE
+   // on other actors, including reciprocal edits in independent company scopes.
    await lockIamScope(client,organizationId);
    let actor=await roleActor(client,request.token);
    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[`forum-iam-idempotency:${actor.id}:${request.idempotencyKey}`]);
@@ -51,7 +53,7 @@ export class RoleMutations {
   return this.run(request,undefined,async(client,authorize)=>{
    const target=await client.query(`SELECT u.id FROM public.users u WHERE u.id=$1 AND u.status='active' AND EXISTS(
     SELECT 1 FROM public.external_identities e JOIN public.identity_profiles p ON p.identity_id=e.id AND p.user_id=e.user_id
-    WHERE e.user_id=u.id AND p.identified_at IS NOT NULL) FOR UPDATE OF u`,[input.targetUserId]);
+    WHERE e.user_id=u.id AND p.identified_at IS NOT NULL) FOR NO KEY UPDATE OF u`,[input.targetUserId]);
    if(!target.rowCount)throw new AuthError('not_found',404);
    const existing=(await client.query<PlatformAssignment>(`SELECT ${assignmentColumns} FROM public.iam_role_assignments
     WHERE user_id=$1 AND scope_type='platform' AND role_code=$2 FOR UPDATE`,[input.targetUserId,input.roleCode])).rows[0];
@@ -76,7 +78,7 @@ export class RoleMutations {
   return this.run(request,undefined,async(client,authorize)=>{
    const current=(await client.query<PlatformAssignment>(`SELECT r.id,r.user_id AS "userId",r.role_code AS "roleCode",r.status,r.version
     FROM public.iam_role_assignments r JOIN public.users u ON u.id=r.user_id
-    WHERE r.id=$1 AND r.scope_type='platform' FOR UPDATE OF r,u`,[id])).rows[0];
+    WHERE r.id=$1 AND r.scope_type='platform' FOR UPDATE OF r FOR NO KEY UPDATE OF u`,[id])).rows[0];
    const actor=await authorize();
    if(!current)throw new AuthError('not_found',404);
    if(current.version!==request.version)throw new AuthError('stale_version',412);
@@ -100,7 +102,7 @@ export class RoleMutations {
   return this.run(request,organizationId,async(client,authorize)=>{
    const m=(await client.query(`SELECT m.id,m.user_id,m.status,m.version,m.effective_from,m.effective_until,m.basis_type,
     m.approved_by_user_id,u.status AS user_status,u.display_name AS "displayName" FROM public.organization_memberships m JOIN public.users u ON u.id=m.user_id
-    WHERE m.id=$1 AND m.organization_id=$2 FOR UPDATE OF m,u`,[membershipId,organizationId])).rows[0];
+    WHERE m.id=$1 AND m.organization_id=$2 FOR UPDATE OF m FOR NO KEY UPDATE OF u`,[membershipId,organizationId])).rows[0];
    if(!m)throw new AuthError('not_found',404);
    await client.query('SELECT id FROM public.iam_role_assignments WHERE membership_id=$1 FOR UPDATE',[membershipId]);
    const actor=await authorize();
