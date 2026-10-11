@@ -304,10 +304,26 @@ organization or platform context with `POST /api/iam/context/resolve`; this does
 not switch a shared session. Protected IAM requests pass `X-Forum-Context`.
 Role and member mutations additionally require the configured `Origin`, the
 session's `X-Forum-CSRF`, `Idempotency-Key` (8–128 URL-safe characters), and for
-PATCH `If-Match: "1"` with the current row version. Catalogue and context listing
+PATCH `If-Match: "1"` with the current row version. POST
+`/api/iam/platform-role-assignments` creates a new assignment (201) or returns an
+already active assignment without changing it (200); neither needs `If-Match`.
+To reactivate a revoked assignment (200), send its current quoted version from
+`GET /api/iam/platform-users`, for example `If-Match: "2"`. Missing version on
+reactivation returns 400 `invalid_request`; a stale version returns 412
+`stale_version`. A supplied malformed version returns 400 even on creation or
+no-change requests. Valid supplied versions are compared only when POST changes
+an existing row. PATCH always requires and checks the current version.
+
+The idempotency fingerprint includes the parsed version (including its absence)
+for both POST and PATCH. Reuse the original headers and body to replay; changing
+or removing the version with the same key returns 409 `idempotency_conflict`
+after current authorization. Catalogue and context listing
 are authenticated; cursor pages default to 25 and permit at most 100. All replies
 use `Cache-Control: no-store`. A replay rechecks current permissions before
-returning the original response. Journal rows persist for at least 24 hours.
+returning the original response. Session, assignment, membership and authority
+expiry checks use current statement time. Mutations reauthorize after scope,
+idempotency and target-row lock waits; the last-admin decision uses fresh time
+after target locks. Journal rows persist for at least 24 hours.
 
 Only an owner can initialize the first platform administrator. Build first;
 use a privileged connection to the reviewed target database, and run:

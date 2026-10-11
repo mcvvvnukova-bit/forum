@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
-import {Pool} from 'pg';
+import {Pool,type PoolClient} from 'pg';
 import type {NestFastifyApplication} from '@nestjs/platform-fastify';
 import {createApp} from '../src/app.js';
 import {migrate} from '../src/migrate.js';
@@ -163,6 +163,121 @@ test('If-Match rejects missing malformed and stale updates without changing the 
   assert.equal(r.statusCode,status,r.body);
  }
  assert.equal((await resolve('platform',bob)).statusCode,200);
+});
+// Observe the actual PostgreSQL lock wait before expiring evidence. The time delay
+// only polls a condition; expiry is scheduled after the queued transaction began.
+async function waitForDatabase(condition:()=>Promise<boolean>,description:string){
+ const deadline=Date.now()+5000;
+ while(!await condition()){
+  assert.ok(Date.now()<deadline,`Timed out waiting for ${description}`);
+  await pool.query('SELECT pg_sleep(0.01)');
+ }
+}
+async function queuedExpiry(lock:(client:PoolClient)=>Promise<unknown>,request:()=>Promise<Awaited<ReturnType<typeof mutate>>>,
+ expire:()=>Promise<unknown>,expired:()=>Promise<boolean>){
+ const blocker=await pool.connect();let pending:ReturnType<typeof request>|undefined;
+ try{
+  await blocker.query('BEGIN');await lock(blocker);
+  const pid=(await blocker.query('SELECT pg_backend_pid() AS pid')).rows[0].pid;
+  pending=request();
+  await waitForDatabase(async()=>Boolean((await pool.query(`SELECT 1 FROM pg_stat_activity
+   WHERE datname=current_database() AND $1=ANY(pg_blocking_pids(pid)) AND xact_start<clock_timestamp()`,[pid])).rowCount),'queued IAM transaction');
+  await expire();await waitForDatabase(expired,'database evidence expiry');
+ }finally{await blocker.query('ROLLBACK');blocker.release()}
+ assert.ok(pending);return pending;
+}
+const platformLock=(client:PoolClient)=>client.query("SELECT pg_advisory_xact_lock(hashtext('forum-iam-platform'))");
+const organizationLock=(id:string)=>(client:PoolClient)=>client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[`forum-iam-organization:${id}`]);
+async function expireSession(actor:User){await pool.query("UPDATE public.sessions SET expires_at=clock_timestamp()+interval '20 milliseconds' WHERE user_id=$1",[actor.id])}
+async function sessionExpired(actor:User){return (await pool.query('SELECT bool_and(expires_at<=clock_timestamp()) AS expired FROM public.sessions WHERE user_id=$1',[actor.id])).rows[0].expired===true}
+async function expireAssignment(id:string){await pool.query("UPDATE public.iam_role_assignments SET effective_until=clock_timestamp()+interval '20 milliseconds' WHERE id=$1",[id])}
+async function assignmentExpired(id:string){return (await pool.query('SELECT effective_until<=clock_timestamp() AS expired FROM public.iam_role_assignments WHERE id=$1',[id])).rows[0].expired===true}
+async function expireAuthority(actor:User,org:string){await pool.query("UPDATE public.organization_authorities SET effective_until=clock_timestamp()+interval '20 milliseconds' WHERE user_id=$1 AND organization_id=$2",[actor.id,org])}
+async function authorityExpired(actor:User,org:string){return (await pool.query('SELECT bool_and(effective_until<=clock_timestamp()) AS expired FROM public.organization_authorities WHERE user_id=$1 AND organization_id=$2',[actor.id,org])).rows[0].expired===true}
+async function noGrant(){
+ assert.equal((await pool.query('SELECT count(*) FROM public.iam_role_assignments WHERE user_id=$1',[bob.id])).rows[0].count,'0');
+ assert.equal((await pool.query('SELECT count(*) FROM public.iam_idempotency')).rows[0].count,'0');
+ assert.equal((await pool.query("SELECT count(*) FROM public.audit_events WHERE action LIKE 'IAM%'")).rows[0].count,'0');
+ assert.equal((await pool.query('SELECT access_version FROM public.users WHERE id=$1',[bob.id])).rows[0].access_version,'1');
+}
+test('queued session expiry is rejected after the platform scope lock',async()=>{
+ await platformAdmin();
+ const r=await queuedExpiry(platformLock,()=>mutate('/api/iam/platform-role-assignments',grant(bob.id)),()=>expireSession(alice),()=>sessionExpired(alice));
+ assert.equal(r.statusCode,401,r.body);await noGrant();
+});
+test('queued platform authority expiry is rejected after the scope lock',async()=>{
+ const id=await platformAdmin();
+ const r=await queuedExpiry(platformLock,()=>mutate('/api/iam/platform-role-assignments',grant(bob.id)),()=>expireAssignment(id),()=>assignmentExpired(id));
+ assert.equal(r.statusCode,403,r.body);await noGrant();
+});
+test('queued replay rechecks expired session after the actor idempotency lock',async()=>{
+ await platformAdmin();const key=randomUUID();
+ const first=await mutate('/api/iam/platform-role-assignments',grant(bob.id),alice,'platform',{'idempotency-key':key});
+ assert.equal(first.statusCode,201,first.body);
+ const lock=(client:PoolClient)=>client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[`forum-iam-idempotency:${alice.id}:${key}`]);
+ const r=await queuedExpiry(lock,()=>mutate('/api/iam/platform-role-assignments',grant(bob.id),alice,'platform',{'idempotency-key':key}),()=>expireSession(alice),()=>sessionExpired(alice));
+ assert.equal(r.statusCode,401,r.body);
+ assert.equal((await pool.query('SELECT count(*) FROM public.iam_idempotency')).rows[0].count,'1');
+ assert.equal((await pool.query("SELECT count(*) FROM public.audit_events WHERE action='IAMPlatformRoleGranted'")).rows[0].count,'1');
+});
+test('queued grant rechecks session after a target user row lock',async()=>{
+ await platformAdmin();
+ const r=await queuedExpiry(client=>client.query('SELECT id FROM public.users WHERE id=$1 FOR UPDATE',[bob.id]),
+  ()=>mutate('/api/iam/platform-role-assignments',grant(bob.id)),()=>expireSession(alice),()=>sessionExpired(alice));
+ assert.equal(r.statusCode,401,r.body);await noGrant();
+});
+test('queued self revocation cannot count another platform admin expired during the wait',async()=>{
+ const other=await platformAdmin();const id=await platformAdmin(bob);
+ const r=await queuedExpiry(platformLock,()=>mutate(`/api/iam/platform-role-assignments/${id}`,{status:'revoked',reason:'End own duty'},bob,'platform',{'if-match':'"1"'}),
+  ()=>expireAssignment(other),()=>assignmentExpired(other));
+ assert.equal(r.statusCode,409,r.body);assert.equal(r.json().code,'last_admin');
+ assert.deepEqual((await get('/api/auth/session',bob)).json().platformRoles,['platform_admin']);
+ assert.equal((await pool.query('SELECT version FROM public.iam_role_assignments WHERE id=$1',[id])).rows[0].version,1);
+});
+test('queued corporate authority expiry prevents changing another member',async()=>{
+ const org=await company();await membership(alice,org,['organization_admin']);await authority(alice,org);const id=await membership(bob,org);
+ const r=await queuedExpiry(organizationLock(org),()=>mutate(`/api/iam/organizations/${org}/members/${id}`,{roles:['organization_signer'],status:'active',reason:'New duty'},alice,`organization:${org}`,{'if-match':'"1"'}),
+  ()=>expireAuthority(alice,org),()=>authorityExpired(alice,org));
+ assert.equal(r.statusCode,403,r.body);
+ assert.equal((await pool.query('SELECT version FROM public.organization_memberships WHERE id=$1',[id])).rows[0].version,1);
+ assert.equal((await pool.query('SELECT count(*) FROM public.iam_idempotency')).rows[0].count,'0');
+});
+test('queued corporate self downgrade cannot count another admin with expired membership',async()=>{
+ const org=await company(),other=await membership(alice,org,['organization_admin']);await authority(alice,org);
+ const id=await membership(bob,org,['organization_admin']);await authority(bob,org);
+ const r=await queuedExpiry(organizationLock(org),()=>mutate(`/api/iam/organizations/${org}/members/${id}`,{roles:['organization_employee'],status:'active',reason:'End own administrator duty'},bob,`organization:${org}`,{'if-match':'"1"'}),
+  ()=>pool.query("UPDATE public.organization_memberships SET effective_until=clock_timestamp()+interval '20 milliseconds' WHERE id=$1",[other]),
+  async()=>(await pool.query('SELECT effective_until<=clock_timestamp() AS expired FROM public.organization_memberships WHERE id=$1',[other])).rows[0].expired===true);
+ assert.equal(r.statusCode,409,r.body);assert.equal(r.json().code,'last_admin');
+ assert.deepEqual((await resolve(`organization:${org}`,bob)).json().roles,['organization_admin']);
+ assert.equal((await pool.query('SELECT version FROM public.organization_memberships WHERE id=$1',[id])).rows[0].version,1);
+});
+test('POST reactivation requires a current quoted version and fingerprints that version',async()=>{
+ await platformAdmin();const id=(await mutate('/api/iam/platform-role-assignments',grant(bob.id))).json().item.id;
+ const revoke=await mutate(`/api/iam/platform-role-assignments/${id}`,{status:'revoked',reason:'Retired'},alice,'platform',{'if-match':'"1"'});
+ assert.equal(revoke.statusCode,200,revoke.body);
+ for(const [headers,status,code] of [
+  [{},400,'invalid_request'],[{'if-match':'1'},400,'invalid_request'],[{'if-match':'"1"'},412,'stale_version']
+ ] as Array<[Record<string,string>,number,string]>){
+  const r=await mutate('/api/iam/platform-role-assignments',grant(bob.id),alice,'platform',headers);
+  assert.equal(r.statusCode,status,r.body);assert.equal(r.json().code,code);
+  assert.equal((await pool.query('SELECT status,version FROM public.iam_role_assignments WHERE id=$1',[id])).rows[0].status,'revoked');
+  assert.equal((await pool.query('SELECT version FROM public.iam_role_assignments WHERE id=$1',[id])).rows[0].version,2);
+  assert.equal((await pool.query('SELECT count(*) FROM public.iam_idempotency')).rows[0].count,'2');
+ }
+ const key=randomUUID();const headers={'if-match':'"2"','idempotency-key':key};
+ const restored=await mutate('/api/iam/platform-role-assignments',grant(bob.id),alice,'platform',headers);
+ assert.equal(restored.statusCode,200,restored.body);assert.equal(restored.json().item.version,3);
+ const replay=await mutate('/api/iam/platform-role-assignments',grant(bob.id),alice,'platform',headers);
+ assert.deepEqual(replay.json(),restored.json());
+ for(const changed of [{'if-match':'"3"'}, {}] as Array<Record<string,string>>){
+  const r=await mutate('/api/iam/platform-role-assignments',grant(bob.id),alice,'platform',{'idempotency-key':key,...changed});
+  assert.equal(r.statusCode,409,r.body);assert.equal(r.json().code,'idempotency_conflict');
+ }
+ assert.equal((await pool.query('SELECT access_version FROM public.users WHERE id=$1',[bob.id])).rows[0].access_version,'4');
+ assert.equal((await pool.query("SELECT count(*) FROM public.audit_events WHERE action='IAMPlatformRoleGranted'")).rows[0].count,'2');
+ const unchanged=await mutate('/api/iam/platform-role-assignments',grant(bob.id));assert.equal(unchanged.statusCode,200,unchanged.body);
+ assert.equal(unchanged.json().item.version,3);
 });
 test('parallel platform administrator revocations retain one current administrator',async()=>{
  const a=await platformAdmin(),b=await platformAdmin(bob);

@@ -20,7 +20,7 @@ export async function assertIamReady(client:PoolClient):Promise<void>{
 export async function roleActor(client:PoolClient,token:string):Promise<RoleActor>{
  const row=(await client.query(`SELECT u.id,u.access_version AS "accessVersion",s.csrf_token AS "csrfToken"
   FROM public.sessions s JOIN public.users u ON u.id=s.user_id
-  WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.status='active'`,[hashToken(token)])).rows[0];
+  WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>statement_timestamp() AND u.status='active'`,[hashToken(token)])).rows[0];
  if(!row)throw new AuthError('unauthenticated',401);
  await assertIamReady(client);return {...row,accessVersion:Number(row.accessVersion)};
 }
@@ -31,7 +31,7 @@ async function organizationPermissions(client:PoolClient,userId:string,organizat
  const permissions=permissionsFor(roles);
  if(roles.includes('organization_signer')&&(await client.query(`SELECT 1 FROM public.organization_authorities
   WHERE user_id=$1 AND organization_id=$2 AND authority_type='signer' AND status='confirmed' AND revoked_at IS NULL
-   AND effective_from<=now() AND (effective_until IS NULL OR effective_until>now())
+   AND effective_from<=statement_timestamp() AND (effective_until IS NULL OR effective_until>statement_timestamp())
    AND 'organization.documents.sign'=ANY(allowed_actions)`,[userId,organizationId])).rowCount)permissions.push('organization.documents.sign');
  return permissions;
 }

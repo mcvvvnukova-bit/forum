@@ -49,7 +49,8 @@ export class RolesController {
   const contextKey=this.key(req),csrfToken=headerValue(req,'x-forum-csrf');
   if(!csrfToken||!/^[\w-]{43}$/.test(csrfToken))throw new AuthError('invalid_csrf',403);
   const idempotencyKey=headerValue(req,'idempotency-key');if(!idempotencyKey||!/^[\w-]{8,128}$/.test(idempotencyKey))throw new AuthError('invalid_request');
-  const version=update?versionValue(headerValue(req,'if-match')):undefined;
+  const match=headerValue(req,'if-match');
+  const version=update||match!==undefined?versionValue(match):undefined;
   // Canonicalize recursively so a JSON property-order change is the same body.
   const requestHash=hashToken(JSON.stringify({method:req.method,path:req.url,contextKey,version,body:canonical(req.body)}));
   return {token,contextKey,csrfToken,idempotencyKey,requestHash,version};

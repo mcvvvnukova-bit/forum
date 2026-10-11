@@ -57,22 +57,23 @@ BEGIN
 END $$;
 CREATE TRIGGER iam_role_assignment_owner BEFORE UPDATE ON public.iam_role_assignments FOR EACH ROW EXECUTE FUNCTION public.guard_iam_role_owner();
 
--- This function is invoker-rights. It consumes confirmed evidence, never creates it.
+-- Invoker-rights; validity uses the current statement, including after lock waits.
+-- It consumes confirmed evidence, never creates it.
 CREATE FUNCTION public.effective_iam_roles(actor uuid,organization uuid DEFAULT NULL) RETURNS TABLE(role_code text)
  LANGUAGE sql STABLE SET search_path=pg_catalog AS $$
  SELECT r.role_code FROM public.iam_role_assignments r JOIN public.users u ON u.id=r.user_id
- WHERE u.id=actor AND u.status='active' AND r.status='active' AND r.effective_from<=now()
-  AND (r.effective_until IS NULL OR r.effective_until>now())
+ WHERE u.id=actor AND u.status='active' AND r.status='active' AND r.effective_from<=statement_timestamp()
+  AND (r.effective_until IS NULL OR r.effective_until>statement_timestamp())
   AND ((organization IS NULL AND r.scope_type='platform') OR
    (organization IS NOT NULL AND r.scope_type='organization' AND r.scope_id=organization AND EXISTS(
     SELECT 1 FROM public.organization_memberships m JOIN public.organizations o ON o.id=m.organization_id
     WHERE m.id=r.membership_id AND m.user_id=u.id AND o.id=organization AND m.status='active' AND m.revoked_at IS NULL
-     AND m.effective_from<=now() AND (m.effective_until IS NULL OR m.effective_until>now())
+     AND m.effective_from<=statement_timestamp() AND (m.effective_until IS NULL OR m.effective_until>statement_timestamp())
      AND o.registration_state='registered' AND o.status='active')
     AND (r.role_code<>'organization_admin' OR EXISTS(
      SELECT 1 FROM public.organization_authorities a WHERE a.user_id=u.id AND a.organization_id=organization
-      AND a.authority_type='administrator' AND a.status='confirmed' AND a.revoked_at IS NULL AND a.effective_from<=now()
-      AND (a.effective_until IS NULL OR a.effective_until>now())))))
+      AND a.authority_type='administrator' AND a.status='confirmed' AND a.revoked_at IS NULL AND a.effective_from<=statement_timestamp()
+      AND (a.effective_until IS NULL OR a.effective_until>statement_timestamp())))))
  ORDER BY r.role_code
 $$;
 INSERT INTO public.iam_role_assignments(user_id,scope_type,scope_id,membership_id,role_code,created_by_user_id,reason,effective_from,effective_until)

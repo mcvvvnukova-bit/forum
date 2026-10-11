@@ -126,7 +126,7 @@ export class AuthStore {
         (u.email_confirmed_at IS NOT NULL) AS "emailConfirmed", s.expires_at AS "expiresAt",
         u.access_version AS "accessVersion",s.csrf_token AS "csrfToken"
         FROM public.sessions s JOIN public.users u ON u.id = s.user_id
-        WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now() AND u.status = 'active'`, [hashToken(token)]);
+        WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > statement_timestamp() AND u.status = 'active'`, [hashToken(token)]);
       const row = result.rows[0];
       if (!row) throw new AuthError('unauthenticated', 401);
       await assertIamReady(client);
