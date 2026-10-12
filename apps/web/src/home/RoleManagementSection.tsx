@@ -91,7 +91,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  const [accessRevision,setAccessRevision]=useState(0)
  const usersRefresh=useRef<AbortController|null>(null),usersReadVersion=useRef(0),interruptedUsersRefresh=useRef(false)
  const generation=useRef(0),controller=useRef<AbortController|null>(null),submitting=useRef(false),mounted=useRef(true),expired=useRef(onExpired)
- const idempotency=useRef<{body:string;url:string;key:string}|null>(null),resolved=useRef<RoleContext|null>(null),scopeRef=useRef<HTMLSelectElement>(null),userRef=useRef<HTMLButtonElement>(null),memberRef=useRef<HTMLSelectElement>(null)
+ const idempotency=useRef(new Map<string,string>()),resolved=useRef<RoleContext|null>(null),scopeRef=useRef<HTMLSelectElement>(null),userRef=useRef<HTMLButtonElement>(null),memberRef=useRef<HTMLSelectElement>(null)
  expired.current=onExpired
  const platform=key==='platform',user=users.find(u=>u.userId===selected),selectedMember=members.find(m=>m.id===selected)
  const newRoles=choices.filter(code=>!user?.platformRoles.some(role=>role.roleCode===code&&role.status==='active'))
@@ -114,7 +114,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   else if(interruptedUsersRefresh.current){interruptedUsersRefresh.current=false;refreshPlatformUsers()}
   setAccessSaving(busy)
  }
- function clearData(){interruptedUsersRefresh.current=false;cancelUsersRefresh();setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setPickerOpen(false);setSearch('');setChoices(['platform_moderator']);setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current=null}
+ function clearData(){interruptedUsersRefresh.current=false;cancelUsersRefresh();setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setPickerOpen(false);setSearch('');setChoices(['platform_moderator']);setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current.clear()}
  function failure(error:unknown){clearData();if(error instanceof Refusal&&error.status===401){setState('expired');expired.current()}else setState(error instanceof Refusal&&[403,404].includes(error.status)?'forbidden':error instanceof Refusal&&error.status===412?'stale':'unavailable')}
  // Authorization contexts are local to this view. Resolving one does not alter the shared session.
  useEffect(()=>{
@@ -163,7 +163,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   apply(next)
  }
  function apply(next:{key?:string;selected?:string}){
-  setPending(null);setReason('');setChoices(['platform_moderator']);setInvalid(false);setSaved(false);setSaveError('');idempotency.current=null
+  setPending(null);setReason('');setChoices(['platform_moderator']);setInvalid(false);setSaved(false);setSaveError('');idempotency.current.clear()
   if(next.key!==undefined){controller.current?.abort();generation.current++;clearData();setKey(next.key);setState('loading');const url=new URL(location.href);url.searchParams.set('context',next.key);history.replaceState(history.state,'',url)}
   if(next.selected!==undefined){setSelected(next.selected);const m=members.find(x=>x.id===next.selected);setDuties(m?corporateRoles.filter(r=>m.roles.includes(r)):[])}
  }
@@ -182,8 +182,9 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
    for(const nextRole of batch??[undefined]){
    if(nextRole){body={targetUserId,roleCode:nextRole};currentVersion=users.find(item=>item.userId===targetUserId)?.platformRoles.find(role=>role.roleCode===nextRole&&role.status==='revoked')?.version}
   const payload=JSON.stringify({...body,reason:auditReason}),headers:Record<string,string>={'Content-Type':'application/json','Origin':location.origin,'X-Forum-Context':snapshot.contextKey,'X-Forum-CSRF':session.csrfToken!}
-  if(!idempotency.current||idempotency.current.body!==payload||idempotency.current.url!==url)idempotency.current={body:payload,url,key:crypto.randomUUID()}
-  headers['Idempotency-Key']=idempotency.current.key;if(currentVersion!==undefined)headers['If-Match']=`"${currentVersion}"`
+  const operation=JSON.stringify([url,payload,currentVersion??null])
+  if(!idempotency.current.has(operation))idempotency.current.set(operation,crypto.randomUUID())
+  headers['Idempotency-Key']=idempotency.current.get(operation)!;if(currentVersion!==undefined)headers['If-Match']=`"${currentVersion}"`
    const result=record(await request(url,abort.signal,{method:url==='/api/iam/platform-role-assignments'?'POST':'PATCH',headers,body:payload}))
    if(!mounted.current||ticket!==generation.current)return
    if(snapshot.contextKey==='platform'){
@@ -197,7 +198,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
     if(updated.userId===session.user.id&&!updated.permissions.includes('organization.members.manage')){failure(new Refusal(403,'forbidden'));expired.current();return}
     setMembers(old=>old.map(m=>m.id===selected?updated:m));if(updated.status==='revoked')setSelected('');setDuties(corporateRoles.filter(r=>updated.roles.includes(r)))
    }
-   completed++;idempotency.current=null
+   completed++;idempotency.current.delete(operation)
    }
    setReason('');if(!platform||batch)setChoices(['platform_moderator']);setSaved(true)
   }catch(error){if(mounted.current&&ticket===generation.current){if(error instanceof Refusal&&[401,403,404,412].includes(error.status))failure(error);else setSaveError(error instanceof Refusal&&error.code==='last_admin'?'Нельзя отозвать последнего действующего администратора':completed?`Назначено ролей: ${completed}. Не удалось назначить оставшиеся роли. Повторите попытку`:'Не удалось сохранить роли. Повторите попытку')}}
@@ -209,7 +210,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   interruptedUsersRefresh.current=false;cancelUsersRefresh()
   if(status==='deactivated'){
    setUsers(previous=>previous.filter(item=>item.userId!==userId))
-   if(selected===userId){setSelected('');setChoices(['platform_moderator']);setSaved(false);setSaveError('');idempotency.current=null}
+   if(selected===userId){setSelected('');setChoices(['platform_moderator']);setSaved(false);setSaveError('');idempotency.current.clear()}
    if(refreshPending)refreshPlatformUsers()
   }else refreshPlatformUsers()
  }
@@ -227,7 +228,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
    <form onSubmit={submit} noValidate><Stack>
     {platform?<Stack><Text as="label" id="platform-user-label">Пользователь</Text><SelectPanel title="Выберите пользователя" placeholder="Поиск пользователя" inputLabel="Поиск пользователя" anchorRef={userRef} open={pickerOpen} onOpenChange={open=>{if(!saving&&!accessSaving)setPickerOpen(open)}} selected={user?{id:user.userId,text:user.displayName}:undefined} onSelectedChange={(item:{id?:string|number}|undefined)=>{if(!saving&&!accessSaving){change({selected:String(item?.id??'')});setPickerOpen(false);setSearch('')}}} filterValue={search} onFilterChange={setSearch} items={users.filter(item=>item.displayName.toLocaleLowerCase().includes(search.toLocaleLowerCase())).map(item=>({id:item.userId,text:item.displayName}))} message={search&&!users.some(item=>item.displayName.toLocaleLowerCase().includes(search.toLocaleLowerCase()))?{title:'Пользователи не найдены',body:'Попробуйте другое имя',variant:'empty'}:undefined} renderAnchor={props=><Button {...props} ref={userRef} aria-labelledby="platform-user-label" disabled={saving||accessSaving}>{user?.displayName??'Выберите пользователя'}</Button>} secondaryAction={<SelectPanel.SecondaryActionButton disabled={saving||accessSaving||!selected} onClick={()=>{change({selected:''});setPickerOpen(false)}}>Очистить выбор</SelectPanel.SecondaryActionButton>}/></Stack>:<FormControl disabled={saving||accessSaving}><FormControl.Label>Участник компании</FormControl.Label><Select ref={memberRef} value={selected} block onChange={e=>change({selected:e.target.value})}><Select.Option value="">Выберите участника</Select.Option>{members.filter(m=>m.status==='active').map(item=><Select.Option key={item.id} value={item.id}>{item.displayName}</Select.Option>)}</Select></FormControl>}
     {!(platform?users.length:members.filter(m=>m.status==='active').length)&&<Text>Нет доступных участников</Text>}
-    {platform&&<CheckboxGroup><CheckboxGroup.Label>Служебные роли</CheckboxGroup.Label>{(['platform_moderator','platform_admin'] as const).map(code=>{const active=user?.platformRoles.some(role=>role.roleCode===code&&role.status==='active');return <FormControl key={code} disabled={saving||accessSaving||active}><Checkbox value={code} checked={active||choices.includes(code)} onChange={e=>{setChoices(previous=>e.target.checked?[...previous,code]:previous.filter(role=>role!==code));idempotency.current=null}}/><FormControl.Label>{labels[code]}</FormControl.Label>{active&&<FormControl.Caption>Уже назначена</FormControl.Caption>}</FormControl>})}</CheckboxGroup>}
+    {platform&&<CheckboxGroup><CheckboxGroup.Label>Служебные роли</CheckboxGroup.Label>{(['platform_moderator','platform_admin'] as const).map(code=>{const active=user?.platformRoles.some(role=>role.roleCode===code&&role.status==='active');return <FormControl key={code} disabled={saving||accessSaving||active}><Checkbox value={code} checked={active||choices.includes(code)} onChange={e=>{setChoices(previous=>e.target.checked?[...previous,code]:previous.filter(role=>role!==code));idempotency.current.clear()}}/><FormControl.Label>{labels[code]}</FormControl.Label>{active&&<FormControl.Caption>Уже назначена</FormControl.Caption>}</FormControl>})}</CheckboxGroup>}
     {selectedMember&&<Stack><Text>Действующие роли: {selectedMember.effectiveRoles.map(r=>labels[r]).join(', ')||'Нет'}</Text>{corporateRoles.map(r=><FormControl disabled={saving||accessSaving} key={r}><Checkbox checked={duties.includes(r)} onChange={e=>setDuties(previous=>corporateRoles.filter(x=>x===r?e.target.checked:previous.includes(x)))}/><FormControl.Label>{labels[r]}</FormControl.Label></FormControl>)}{selectedMember.roles.includes('organization_signer')&&<Text>{selectedMember.permissions.includes('organization.documents.sign')?'Подпись доступна только в подтверждённой области документа':'Подпись недоступна: подтверждение полномочий отсутствует или недействительно'}</Text>}</Stack>}
     {selectedMember?.status==='active'&&<Button variant="danger" disabled={saving||accessSaving} onClick={()=>void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:[],status:'revoked'},selectedMember.version)}>Отозвать доступ участника</Button>}
     {!platform&&<FormControl required disabled={saving||accessSaving}><FormControl.Label>Причина изменения</FormControl.Label><Textarea aria-label="Причина изменения" value={reason} onChange={e=>{setReason(e.target.value);setInvalid(false)}} block maxLength={1000} rows={3}/>{invalid&&<FormControl.Validation variant="error">Укажите причину изменения</FormControl.Validation>}</FormControl>}

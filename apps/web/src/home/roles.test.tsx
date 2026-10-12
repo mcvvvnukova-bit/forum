@@ -309,3 +309,30 @@ it.each(['active','deactivated'])('table revokes explicit row B (%s) while retai
  expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent(a.displayName);expect(screen.getByRole('checkbox',{name:'Администратор платформы'})).toBeChecked();expect(screen.queryByRole('button',{name:/Отозвать роль .* у Другой пользователь/})).not.toBeInTheDocument()
  expect(screen.getByText('Нет пользователей со служебными ролями')).toBeVisible();expect(screen.getByRole('heading',{name:'Пользователи со служебными ролями'})).toHaveFocus()
 })
+it('retains uncertain partial-grant identity across an independent B row revoke with A draft intact',async()=>{
+ let fail=true,moderatorGranted=false,bRevoked=false
+ const moderator={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1}
+ const admin={...moderator,id:memberId,roleCode:'platform_admin'}
+ const bRole={id:company,userId:other,roleCode:'platform_moderator',status:'active',version:3}
+ const a=()=>({userId:target,displayName:'Проверенный пользователь',platformRoles:moderatorGranted?[moderator]:[]})
+ const b=()=>({userId:other,displayName:'Другой пользователь',platformRoles:bRevoked?[]:[bRole]})
+ const f=api({response:(url,init)=>{
+  if(url.startsWith('/api/iam/platform-users'))return Response.json({items:[a(),b()],nextCursor:null})
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{...a(),status:'active',version:1},{...b(),status:'deactivated',version:1}],nextCursor:null})
+  if(url===`/api/iam/platform-role-assignments/${company}`){bRevoked=true;return Response.json({item:{...bRole,status:'revoked',version:4}})}
+  if(url==='/api/iam/platform-role-assignments'){
+   if(JSON.parse(String(init?.body)).roleCode==='platform_moderator'){moderatorGranted=true;return Response.json({item:moderator},{status:201})}
+   return fail?new Response(null,{status:503}):Response.json({item:admin},{status:201})
+  }
+ }});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}));fireEvent.click(screen.getByRole('button',{name:'Назначить роли'}))
+ await screen.findByText('Назначено ролей: 1. Не удалось назначить оставшиеся роли. Повторите попытку')
+ const uncertain=f.mock.calls.filter(([url])=>url==='/api/iam/platform-role-assignments')[1][1]!
+ fireEvent.click(await screen.findByRole('button',{name:'Отозвать роль Модератор платформы у Другой пользователь'}));await screen.findByText('Изменения сохранены')
+ expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent('Проверенный пользователь');expect(screen.getByRole('checkbox',{name:'Администратор платформы'})).toBeChecked();expect(screen.getByRole('checkbox',{name:'Модератор платформы'})).toBeDisabled()
+ const revoke=f.mock.calls.find(([url])=>url===`/api/iam/platform-role-assignments/${company}`)![1]!
+ expect(new Headers(revoke.headers).get('If-Match')).toBe('"3"');expect(new Headers(revoke.headers).get('Idempotency-Key')).not.toBe(new Headers(uncertain.headers).get('Idempotency-Key'))
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Назначить роль'}));await screen.findByText('Изменения сохранены')
+ const grants=f.mock.calls.filter(([url])=>url==='/api/iam/platform-role-assignments')
+ expect(grants.map(([,init])=>JSON.parse(String(init?.body)).roleCode)).toEqual(['platform_moderator','platform_admin','platform_admin'])
+ expect(new Headers(grants[2][1]!.headers).get('Idempotency-Key')).toBe(new Headers(uncertain.headers).get('Idempotency-Key'))
+})
