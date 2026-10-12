@@ -1,0 +1,49 @@
+import {fireEvent,render,screen,within} from '@testing-library/react'
+import {BaseStyles,ThemeProvider} from '@primer/react'
+import {expect,it,vi} from 'vitest'
+import {PlatformUsersTable} from './PlatformUsersTable'
+import type {UserDirectorySummary} from './UserAccessSection'
+const items:UserDirectorySummary[]=[
+ {userId:'b',displayName:'Борис',status:'deactivated',version:1,platformRoles:[{id:'rb',userId:'b',roleCode:'platform_admin',status:'active',version:2}]},
+ {userId:'a',displayName:'Анна',status:'active',version:1,platformRoles:[{id:'ra',userId:'a',roleCode:'platform_moderator',status:'active',version:1}]},
+ {userId:'c',displayName:'Вера',status:'active',version:1,platformRoles:[]},
+]
+function table(props:Partial<React.ComponentProps<typeof PlatformUsersTable>>={}){return render(<ThemeProvider><BaseStyles><PlatformUsersTable title="Пользователи со служебными ролями" items={items} state="ready" onRetry={()=>{}} {...props}/></BaseStyles></ThemeProvider>)}
+it('sorts actual rows, combines filters, clears them and returns filter focus',()=>{
+ table()
+ fireEvent.click(screen.getByRole('button',{name:'Сортировать: Пользователь'}))
+ const rows=screen.getAllByRole('row').slice(1);expect(within(rows[0]).getByText('Анна')).toBeVisible()
+ expect(screen.getByRole('columnheader',{name:/Пользователь/})).toHaveAttribute('aria-sort','ascending')
+ fireEvent.click(screen.getByRole('button',{name:'Фильтровать: Пользователь'}))
+ fireEvent.change(screen.getByLabelText('Фильтр: Пользователь'),{target:{value:'БОР'}})
+ fireEvent.keyDown(screen.getByLabelText('Фильтр: Пользователь'),{key:'Escape'})
+ expect(screen.getByRole('button',{name:'Фильтровать: Пользователь'})).toHaveFocus()
+ expect(screen.getByText('Борис')).toBeVisible();expect(screen.queryByText('Анна')).not.toBeInTheDocument()
+ fireEvent.click(screen.getByRole('button',{name:'Фильтровать: Статус входа'}))
+ fireEvent.change(screen.getByLabelText('Фильтр: Статус входа'),{target:{value:'active'}})
+ expect(screen.getByText('Нет пользователей по выбранным фильтрам')).toBeVisible()
+ fireEvent.click(screen.getByRole('button',{name:'Сбросить фильтры'}));expect(screen.getByText('Анна')).toBeVisible()
+})
+it('roles-only includes blocked role holders and explicit per-role actions',()=>{
+ const revoke=vi.fn();table({rolesOnly:true,onRevoke:revoke})
+ expect(screen.queryByText('Вера')).not.toBeInTheDocument();expect(screen.getByText('Вход заблокирован')).toBeVisible()
+ fireEvent.click(screen.getByRole('button',{name:'Отозвать роль Администратор платформы у Борис'}))
+ expect(revoke).toHaveBeenCalledWith(items[0],items[0].platformRoles[0])
+})
+it.each(['Служебные роли','Статус входа'])('sorts %s in both directions and filters role membership',column=>{
+ table({rolesOnly:true})
+ const sort=screen.getByRole('button',{name:`Сортировать: ${column}`});fireEvent.click(sort)
+ const first=screen.getAllByRole('row')[1].textContent;fireEvent.click(sort)
+ expect(screen.getAllByRole('row')[1].textContent).not.toBe(first)
+ expect(screen.getByRole('columnheader',{name:new RegExp(column)})).toHaveAttribute('aria-sort','descending')
+ fireEvent.click(screen.getByRole('button',{name:'Фильтровать: Служебные роли'}))
+ fireEvent.change(screen.getByLabelText('Фильтр: Служебные роли'),{target:{value:'platform_admin'}})
+ expect(screen.getByText('Борис')).toBeVisible();expect(screen.queryByText('Анна')).not.toBeInTheDocument()
+ fireEvent.click(screen.getByRole('button',{name:'Очистить фильтр'}));expect(screen.getByText('Анна')).toBeVisible()
+ fireEvent.click(screen.getByRole('button',{name:'Готово'}));expect(screen.getByRole('button',{name:'Фильтровать: Служебные роли'})).toHaveFocus()
+})
+it('retains unblock actions and disables both kinds of row mutation',()=>{
+ const unblock=vi.fn(),revoke=vi.fn();table({onUnblock:unblock,onRevoke:revoke,disabled:true})
+ const button=screen.getByRole('button',{name:'Разблокировать Борис'});expect(button).toBeDisabled();fireEvent.click(button);expect(unblock).not.toHaveBeenCalled()
+ expect(screen.getByRole('button',{name:'Отозвать роль Администратор платформы у Борис'})).toBeDisabled()
+})

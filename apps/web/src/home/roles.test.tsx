@@ -2,6 +2,7 @@ import {act,fireEvent,render,screen,waitFor,within} from '@testing-library/react
 import {BaseStyles,ThemeProvider} from '@primer/react'
 import {afterEach,expect,it,vi} from 'vitest'
 import {Cabinet} from './Cabinet'
+vi.mock('@primer/live-region-element',()=>({announce:vi.fn(async()=>{}),announceFromElement:vi.fn(async()=>{})}))
 const owner='11111111-1111-4111-8111-111111111111',target='22222222-2222-4222-8222-222222222222',company='33333333-3333-4333-8333-333333333333',other='44444444-4444-4444-8444-444444444444',memberId='55555555-5555-4555-8555-555555555555',assignmentId='66666666-6666-4666-8666-666666666666'
 const session={user:{id:owner,displayName:'Администратор'},roles:['individual'],participant:null,platformRoles:['platform_admin'],accessVersion:1,csrfToken:'a'.repeat(43)}
 const platform={contextKey:'platform',participantId:null,roles:['platform_admin'],permissions:['platform.roles.manage','platform.audit.read'],accessVersion:1}
@@ -15,7 +16,7 @@ const catalogue=[
  {code:'platform_admin',scope:'platform',permissions:['platform.moderation.review','platform.restrictions.manage','platform.audit.read','platform.roles.manage']},
 ]
 const member={id:memberId,userId:target,displayName:'Сотрудник первой компании',status:'active',version:1,roles:['organization_employee','organization_signer'],effectiveRoles:['organization_employee'],permissions:['organization.business.read']}
-function page(path='/cabinet/users/'){vi.stubGlobal('scrollTo',vi.fn());history.replaceState(null,'',path);return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><Cabinet/></BaseStyles></ThemeProvider>)}
+function page(path='/cabinet/users/'){HTMLElement.prototype.scrollTo=vi.fn();vi.stubGlobal('scrollTo',vi.fn());history.replaceState(null,'',path);return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><Cabinet/></BaseStyles></ThemeProvider>)}
 const organizationPath=(id=company)=>`/cabinet/users/?context=${encodeURIComponent(`organization:${id}`)}`
 function api(options:{session?:unknown;contexts?:unknown[];response?:(url:string,init?:RequestInit)=>Response|Promise<Response>|undefined}={}){
  return vi.fn(async(input:string|URL|Request,init?:RequestInit)=>{const url=String(input),custom=await options.response?.(url,init);if(custom)return custom
@@ -42,9 +43,9 @@ it('platform blocking has a separate section and removes a blocked user from rol
  fireEvent.click(screen.getByRole('button',{name:'Заблокировать вход'}))
  fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Заблокировать вход'}))
  await screen.findByText(/Действующие сеансы завершены/)
- fireEvent.mouseDown(screen.getByRole('tab',{name:'Служебные роли'}))
- expect(screen.getByLabelText('Пользователь')).toHaveValue('')
- expect(within(screen.getByLabelText('Пользователь')).queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()
+ fireEvent.mouseDown(screen.getByRole('tab',{name:'Роли'}))
+ expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent('Выберите пользователя')
+ await openPicker();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument();fireEvent.keyDown(screen.getByRole('combobox',{name:'Поиск пользователя'}),{key:'Escape'})
 })
 it('company role management does not expose platform blocking or request its data',async()=>{
  const f=api();vi.stubGlobal('fetch',f);page(organizationPath());await screen.findByRole('option',{name:member.displayName})
@@ -80,12 +81,14 @@ it('company metadata 401 clears protected data and refreshes the expired session
  vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>{if(u==='/api/me/organizations'){expired=true;return new Response(null,{status:401})}if(u==='/api/auth/session'&&expired)return new Response(null,{status:401})}}));page(organizationPath())
  await waitFor(()=>expect(location.pathname).toBe('/'));expect(screen.queryByRole('option',{name:member.displayName})).not.toBeInTheDocument();expect(screen.queryByLabelText('Участник компании')).not.toBeInTheDocument()
 })
-async function chooseUser(){await screen.findByRole('option',{name:'Проверенный пользователь'});fireEvent.change(screen.getByLabelText('Пользователь'),{target:{value:target}})}
+async function openPicker(){fireEvent.click(await screen.findByRole('button',{name:'Пользователь'}));return screen.findByRole('combobox',{name:'Поиск пользователя'})}
+async function chooseUser(name='Проверенный пользователь'){await openPicker();fireEvent.click(await screen.findByRole('option',{name}));}
+async function clearUser(){await openPicker();fireEvent.click(screen.getByRole('button',{name:'Очистить выбор'}))}
 function reason(){fireEvent.change(screen.getByLabelText('Причина изменения'),{target:{value:'Согласовано владельцем'}})}
 it('ordinary session hides staff navigation and refuses the direct route',async()=>{vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[]}));page();expect(await screen.findByText('Нет доступа к управлению ролями')).toBeVisible();expect(screen.queryByRole('link',{name:'Пользователи'})).not.toBeInTheDocument();expect(screen.queryByText('Администрирование')).not.toBeInTheDocument();expect(screen.queryByText('Справочники')).not.toBeInTheDocument();expect(screen.queryByText('Проверенный пользователь')).not.toBeInTheDocument()})
 it('malformed authorization data is unavailable and hides staff navigation',async()=>{vi.stubGlobal('fetch',api({session:{...session,platformRoles:['unknown_role']}}));page();expect(await screen.findByText('Не удалось проверить права доступа')).toBeVisible();expect(screen.queryByRole('link',{name:'Пользователи'})).not.toBeInTheDocument();expect(screen.queryByText('Администрирование')).not.toBeInTheDocument();expect(screen.queryByText('Справочники')).not.toBeInTheDocument()})
 it('admin navigation groups users after My Organizations and resolves context before reading users',async()=>{
- const f=api();vi.stubGlobal('fetch',f);page();await screen.findByRole('option',{name:'Проверенный пользователь'})
+ const f=api();vi.stubGlobal('fetch',f);page();await screen.findByRole('button',{name:'Пользователь'})
  const nav=screen.getByRole('navigation',{name:'Навигация личного кабинета'})
  const organization=within(nav).getByRole('link',{name:'Мои организации'})
  const heading=within(nav).getByText('Администрирование')
@@ -101,10 +104,10 @@ it('admin navigation groups users after My Organizations and resolves context be
  expect(f.mock.calls.findIndex(([u])=>u==='/api/iam/context/resolve')).toBeLessThan(f.mock.calls.findIndex(([u])=>String(u).startsWith('/api/iam/platform-users')))
 })
 it('grants without manual reason and prevents double grant with exact security headers',async()=>{let complete:(r:Response)=>void=()=>{};const f=api({response:u=>u==='/api/iam/platform-role-assignments'?new Promise(r=>{complete=r}):undefined});vi.stubGlobal('fetch',f);page();await chooseUser();expect(screen.queryByLabelText('Причина изменения')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Назначить роль'}));fireEvent.click(screen.getByRole('button',{name:'Назначаем…'}));await waitFor(()=>expect(f.mock.calls.filter(([u])=>u==='/api/iam/platform-role-assignments')).toHaveLength(1));const init=f.mock.calls.find(([u])=>u==='/api/iam/platform-role-assignments')![1]!,h=new Headers(init.headers);expect(h.get('X-Forum-CSRF')).toBe('a'.repeat(43));expect(h.get('X-Forum-Context')).toBe('platform');expect(h.get('Origin')).toBe(location.origin);expect(h.get('Idempotency-Key')).toMatch(/^[\w-]{8,128}$/);expect(h.has('If-Match')).toBe(false);expect(JSON.parse(String(init.body))).toEqual({targetUserId:target,roleCode:'platform_moderator',reason:'Назначение служебной роли через управление пользователями'});complete(Response.json({item:{id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1}},{status:201}));expect(await screen.findByText('Изменения сохранены')).toBeVisible()})
-it('revokes a role using the quoted current version',async()=>{let assignment={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1};const f=api({response:u=>{if(u.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',platformRoles:[assignment]}],nextCursor:null});if(u.endsWith(`/platform-role-assignments/${assignmentId}`)){assignment={...assignment,status:'revoked',version:2};return Response.json({item:assignment})}}});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('button',{name:'Отозвать роль'}));expect(await screen.findByText('Изменения сохранены')).toBeVisible();const init=f.mock.calls.find(([u])=>String(u).endsWith(`/platform-role-assignments/${assignmentId}`))![1]!;expect(init.method).toBe('PATCH');expect(new Headers(init.headers).get('If-Match')).toBe('"1"');expect(JSON.parse(String(init.body))).toEqual({status:'revoked',reason:'Отзыв служебной роли через управление пользователями'})})
+it('revokes a role using the quoted current version',async()=>{let assignment={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1};const f=api({response:u=>{if(u.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:[assignment]}],nextCursor:null});if(u.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',platformRoles:[assignment]}],nextCursor:null});if(u.endsWith(`/platform-role-assignments/${assignmentId}`)){assignment={...assignment,status:'revoked',version:2};return Response.json({item:assignment})}}});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('button',{name:/Отозвать роль .* у Проверенный пользователь/}));expect(await screen.findByText('Изменения сохранены')).toBeVisible();const init=f.mock.calls.find(([u])=>String(u).endsWith(`/platform-role-assignments/${assignmentId}`))![1]!;expect(init.method).toBe('PATCH');expect(new Headers(init.headers).get('If-Match')).toBe('"1"');expect(JSON.parse(String(init.body))).toEqual({status:'revoked',reason:'Отзыв служебной роли через управление пользователями'})})
 it.each([403,412])('clears sensitive data after mutation refusal %s',async status=>{vi.stubGlobal('fetch',api({response:u=>u==='/api/iam/platform-role-assignments'?Response.json({code:status===412?'stale_version':'forbidden'},{status}):undefined}));page();await chooseUser();fireEvent.click(screen.getByRole('button',{name:'Назначить роль'}));expect(await screen.findByText(status===412?'Данные изменились. Загрузите актуальные права':'Нет доступа к управлению ролями')).toBeVisible();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument();expect(screen.getAllByRole('button',{name:'Повторить'})[0]).toBeVisible()})
 it('401 clears roles and refreshes the session',async()=>{let expired=false;vi.stubGlobal('fetch',api({response:u=>{if(u.startsWith('/api/iam/platform-users')){expired=true;return new Response(null,{status:401})}if(u==='/api/auth/session'&&expired)return new Response(null,{status:401})}}));page();await waitFor(()=>expect(location.pathname).toBe('/'));expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()})
-it('unavailable reads can retry context and user loading',async()=>{let failing=true;vi.stubGlobal('fetch',api({response:u=>u.startsWith('/api/iam/platform-users')&&failing?new Response(null,{status:503}):undefined}));page();expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible();failing=false;fireEvent.click(screen.getAllByRole('button',{name:'Повторить'})[0]);await screen.findByRole('option',{name:'Проверенный пользователь'})})
+it('unavailable reads can retry context and user loading',async()=>{let failing=true;vi.stubGlobal('fetch',api({response:u=>u.startsWith('/api/iam/platform-users')&&failing?new Response(null,{status:503}):undefined}));page();expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible();failing=false;fireEvent.click(screen.getAllByRole('button',{name:'Повторить'})[0]);await screen.findByRole('button',{name:'Пользователь'})})
 it('wrong company resolve cannot cause a members request',async()=>{const f=api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>u==='/api/iam/context/resolve'?Response.json(corporate(other)):undefined});vi.stubGlobal('fetch',f);page(`/cabinet/users/?context=${encodeURIComponent(`organization:${company}`)}`);expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible();expect(f.mock.calls.some(([u])=>String(u).includes('/members'))).toBe(false)})
 it('company switch aborts old reads and cannot show delayed old members',async()=>{let resolveOld:(r:Response)=>void=()=>{};const f=api({session:{...session,platformRoles:[]},contexts:[corporate(),corporate(other)],response:u=>u===`/api/iam/organizations/${company}/members`?new Promise(r=>{resolveOld=r}):undefined});vi.stubGlobal('fetch',f);page(`/cabinet/users/?context=${encodeURIComponent(`organization:${company}`)}`);await waitFor(()=>expect(f.mock.calls.some(([u])=>u===`/api/iam/organizations/${company}/members`)).toBe(true));const signal=f.mock.calls.find(([u])=>u===`/api/iam/organizations/${company}/members`)![1]!.signal!;fireEvent.change(screen.getByLabelText('Область управления'),{target:{value:`organization:${other}`}});expect(signal.aborted).toBe(true);expect(await screen.findByText('Нет доступных участников')).toBeVisible();resolveOld(Response.json({items:[member],nextCursor:null}));await waitFor(()=>expect(screen.queryByText(member.displayName)).not.toBeInTheDocument())})
 it('signer duty does not imply signing rights and updates an existing active member only',async()=>{const f=api({session:{...session,platformRoles:[]},contexts:[corporate()],response:(u,init)=>u.endsWith(`/members/${memberId}`)?Response.json({item:{...member,version:2,roles:JSON.parse(String(init?.body)).roles}}):undefined});vi.stubGlobal('fetch',f);page(`/cabinet/users/?context=${encodeURIComponent(`organization:${company}`)}`);await screen.findByRole('option',{name:member.displayName});fireEvent.change(screen.getByLabelText('Участник компании'),{target:{value:memberId}});expect(await screen.findByText('Подпись недоступна: подтверждение полномочий отсутствует или недействительно')).toBeVisible();fireEvent.click(screen.getByLabelText('Администратор компании'));reason();fireEvent.click(screen.getByRole('button',{name:'Сохранить роли участника'}));expect(await screen.findByText('Изменения сохранены')).toBeVisible();const init=f.mock.calls.find(([u])=>String(u).endsWith(`/members/${memberId}`))![1]!;expect(new Headers(init.headers).get('X-Forum-Context')).toBe(`organization:${company}`);expect(new Headers(init.headers).get('If-Match')).toBe('"1"');expect(JSON.parse(String(init.body))).toEqual({roles:['organization_employee','organization_admin','organization_signer'],status:'active',reason:'Согласовано владельцем'});expect(String(init.body)).not.toContain('confirmed')})
@@ -117,19 +120,20 @@ it('self admin revocation clears protected user data and refreshes staff navigat
  const f=api({response:u=>{
   if(u==='/api/auth/session'&&revoked)return Response.json({...session,platformRoles:[]})
   if(u.startsWith('/api/iam/contexts')&&revoked)return Response.json({items:[],nextCursor:null})
+  if(u.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:owner,displayName:'Собственный администратор',status:'active',version:1,platformRoles:[mine]}],nextCursor:null})
   if(u.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:owner,displayName:'Собственный администратор',platformRoles:[mine]}],nextCursor:null})
   if(u.endsWith(`/platform-role-assignments/${assignmentId}`)){revoked=true;return Response.json({item:{...mine,status:'revoked',version:2}})}
  }})
- vi.stubGlobal('fetch',f);page();await screen.findByRole('option',{name:'Собственный администратор'});fireEvent.change(screen.getByLabelText('Пользователь'),{target:{value:owner}});fireEvent.click(screen.getByRole('button',{name:'Отозвать роль'}));expect(await screen.findByText('Нет доступа к управлению ролями')).toBeVisible();expect(screen.queryByRole('option',{name:'Собственный администратор'})).not.toBeInTheDocument();await waitFor(()=>{expect(screen.queryByRole('link',{name:'Пользователи'})).not.toBeInTheDocument();expect(screen.queryByText('Администрирование')).not.toBeInTheDocument();expect(screen.queryByText('Справочники')).not.toBeInTheDocument()})
+ vi.stubGlobal('fetch',f);page();await chooseUser('Собственный администратор');fireEvent.click(screen.getByRole('button',{name:/Отозвать роль .* у Собственный администратор/}));expect(await screen.findByText('Нет доступа к управлению ролями')).toBeVisible();expect(screen.queryByRole('option',{name:'Собственный администратор'})).not.toBeInTheDocument();await waitFor(()=>{expect(screen.queryByRole('link',{name:'Пользователи'})).not.toBeInTheDocument();expect(screen.queryByText('Администрирование')).not.toBeInTheDocument();expect(screen.queryByText('Справочники')).not.toBeInTheDocument()})
 })
 it('revokes existing member access with reason and current membership version',async()=>{const f=api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>u.endsWith(`/members/${memberId}`)?Response.json({item:{...member,status:'revoked',roles:[],effectiveRoles:[],permissions:[],version:2}}):undefined});vi.stubGlobal('fetch',f);page(`/cabinet/users/?context=${encodeURIComponent(`organization:${company}`)}`);await screen.findByRole('option',{name:member.displayName});fireEvent.change(screen.getByLabelText('Участник компании'),{target:{value:memberId}});reason();fireEvent.click(screen.getByRole('button',{name:'Отозвать доступ участника'}));expect(await screen.findByText('Изменения сохранены')).toBeVisible();expect(screen.queryByRole('option',{name:member.displayName})).not.toBeInTheDocument();const init=f.mock.calls.find(([u])=>String(u).endsWith(`/members/${memberId}`))![1]!;expect(new Headers(init.headers).get('If-Match')).toBe('"1"');expect(JSON.parse(String(init.body))).toEqual({roles:[],status:'revoked',reason:'Согласовано владельцем'})})
 it('empty context roles cannot authorize a platform-management view',async()=>{vi.stubGlobal('fetch',api({contexts:[{...platform,roles:[]}]}));page();expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()})
 it('missing catalogue roles make authorization unavailable',async()=>{vi.stubGlobal('fetch',api({response:u=>u==='/api/iam/roles'?Response.json({items:[]}):undefined}));page();expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()})
-it('unsaved user change returns keyboard focus to its own select after cancellation',async()=>{vi.stubGlobal('fetch',api());page();await chooseUser();fireEvent.change(screen.getByLabelText('Служебная роль'),{target:{value:'platform_admin'}});const select=screen.getByLabelText('Пользователь');fireEvent.change(select,{target:{value:''}});const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}));await waitFor(()=>expect(select).toHaveFocus());expect(select).toHaveValue(target)})
-it('changing service role remains an unsaved draft without a manual reason',async()=>{vi.stubGlobal('fetch',api());page();await chooseUser();fireEvent.change(screen.getByLabelText('Служебная роль'),{target:{value:'platform_admin'}});fireEvent.change(screen.getByLabelText('Пользователь'),{target:{value:''}});const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}));expect(screen.getByLabelText('Пользователь')).toHaveValue(target);expect(screen.getByLabelText('Служебная роль')).toHaveValue('platform_admin')})
+it('unsaved user change returns keyboard focus to its own select after cancellation',async()=>{vi.stubGlobal('fetch',api());page();await chooseUser();fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}));const select=screen.getByRole('button',{name:'Пользователь'});await clearUser();const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}));await waitFor(()=>expect(select).toHaveFocus());expect(select).toHaveTextContent('Проверенный пользователь')})
+it('changing service role remains an unsaved draft without a manual reason',async()=>{vi.stubGlobal('fetch',api());page();await chooseUser();fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}));await clearUser();const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}));expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent('Проверенный пользователь');expect(screen.getByRole('checkbox',{name:'Администратор платформы'})).toBeChecked()})
 
 it('platform users stay in platform context even when company management is available',async()=>{
- const f=api();vi.stubGlobal('fetch',f);page();await screen.findByRole('option',{name:'Проверенный пользователь'})
+ const f=api();vi.stubGlobal('fetch',f);page();await screen.findByRole('button',{name:'Пользователь'})
  expect(screen.queryByLabelText('Область управления')).not.toBeInTheDocument()
  expect(screen.queryByRole('option',{name:'Платформа'})).not.toBeInTheDocument()
  expect(f.mock.calls.some(([u])=>u==='/api/me/organizations'||String(u).includes('/members'))).toBe(false)
@@ -151,13 +155,13 @@ it('company management retains its selector without exposing the platform contex
 })
 
 it('platform user management uses its new title without the role catalogue or reason field',async()=>{
- vi.stubGlobal('fetch',api());page();await screen.findByRole('option',{name:'Проверенный пользователь'})
+ vi.stubGlobal('fetch',api());page();await screen.findByRole('button',{name:'Пользователь'})
  expect(screen.getByRole('heading',{level:1,name:'Управление пользователями'})).toBeVisible()
  expect(document.title).toBe('Управление пользователями | АСТ Форум')
- expect(screen.queryByRole('heading',{name:'Служебные роли'})).not.toBeInTheDocument()
+ expect(screen.queryByRole('heading',{name:'Роли'})).not.toBeInTheDocument()
  expect(screen.queryByRole('region',{name:'Каталог ролей'})).not.toBeInTheDocument()
  expect(screen.queryByLabelText('Причина изменения')).not.toBeInTheDocument()
- expect(screen.getByLabelText('Служебная роль')).toBeVisible()
+ expect(screen.getByRole('group',{name:'Служебные роли'})).toBeVisible()
 })
 it('company role changes still require a reason before making a request',async()=>{
  const f=api({session:{...session,platformRoles:[]},contexts:[corporate()]});vi.stubGlobal('fetch',f);page(organizationPath())
@@ -169,15 +173,15 @@ it('company role changes still require a reason before making a request',async()
 })
 it('tabs preserve the role draft and keep both panels mounted',async()=>{
  vi.stubGlobal('fetch',api());page();await chooseUser()
- expect(screen.getByRole('tab',{name:'Служебные роли'})).toHaveAttribute('aria-selected','true')
- fireEvent.change(screen.getByLabelText('Служебная роль'),{target:{value:'platform_admin'}})
+ expect(screen.getByRole('tab',{name:'Роли'})).toHaveAttribute('aria-selected','true')
+ fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}))
  fireEvent.keyDown(screen.getByRole('tab',{name:'Блокировка входа'}),{key:'Enter'})
  expect(await screen.findByRole('heading',{name:'Блокировка пользователей'})).toBeVisible()
  expect(screen.getAllByRole('tabpanel',{hidden:true})).toHaveLength(2)
- fireEvent.keyDown(screen.getByRole('tab',{name:'Служебные роли'}),{key:'Enter'})
- expect(screen.getByLabelText('Пользователь')).toHaveValue(target)
- expect(screen.getByLabelText('Служебная роль')).toHaveValue('platform_admin')
- expect(screen.getByRole('table',{name:'Все зарегистрированные пользователи'})).toBeVisible()
+ fireEvent.keyDown(screen.getByRole('tab',{name:'Роли'}),{key:'Enter'})
+ expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent('Проверенный пользователь')
+ expect(screen.getByRole('checkbox',{name:'Администратор платформы'})).toBeChecked()
+ expect(screen.getByText('Нет пользователей со служебными ролями')).toBeVisible()
 })
 it('role saving prevents mouse and keyboard tab changes and refreshes directory roles',async()=>{
  let complete:(value:Response)=>void=()=>{},assigned=false
@@ -192,7 +196,7 @@ it('role saving prevents mouse and keyboard tab changes and refreshes directory 
  expect(accessTab).toHaveAttribute('aria-selected','false')
  expect(screen.getByRole('button',{name:'Назначаем…'})).toBeVisible()
  assigned=true;complete(Response.json({item:role}))
- await waitFor(()=>expect(within(screen.getByRole('table',{name:'Все зарегистрированные пользователи'})).getByText('Модератор платформы')).toBeVisible())
+ await waitFor(()=>expect(within(screen.getByRole('table',{name:'Пользователи со служебными ролями'})).getByText('Модератор платформы')).toBeVisible())
 })
 it('access tab exposes parent directory failure and retry restores its protected controls',async()=>{
  let unavailable=true
@@ -248,17 +252,60 @@ it.each(['block','grant','revoke'])('late unblock selector refresh cannot undo a
   fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Заблокировать вход'}))
   await screen.findByText(/Вход пользователя «Проверенный пользователь» заблокирован/)
  }else{
-  fireEvent.mouseDown(screen.getByRole('tab',{name:'Служебные роли'}))
-  fireEvent.click(screen.getByRole('button',{name:action==='grant'?'Назначить роль':'Отозвать роль'}))
+  fireEvent.mouseDown(screen.getByRole('tab',{name:'Роли'}))
+  fireEvent.click(screen.getByRole('button',{name:action==='grant'?'Назначить роль':/Отозвать роль .* у Проверенный пользователь/}))
   await screen.findByText('Изменения сохранены')
  }
  await act(async()=>{complete(Response.json({items:staleItems,nextCursor:null}))})
  if(action==='block'){
-  fireEvent.mouseDown(screen.getByRole('tab',{name:'Служебные роли'}))
-  expect(within(screen.getByLabelText('Пользователь')).queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()
+  fireEvent.mouseDown(screen.getByRole('tab',{name:'Роли'}))
+  await openPicker();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument();fireEvent.keyDown(screen.getByRole('combobox',{name:'Поиск пользователя'}),{key:'Escape'})
  }else{
-  expect(screen.getByText(`Модератор платформы — ${action==='grant'?'действует':'отозвана'}`)).toBeVisible()
-  if(action==='revoke')expect(screen.queryByRole('button',{name:'Отозвать роль'})).not.toBeInTheDocument()
+  if(action==='grant')expect(within(screen.getByRole('table',{name:'Пользователи со служебными ролями'})).getByText('Модератор платформы')).toBeVisible();else expect(screen.getByText('Нет пользователей со служебными ролями')).toBeVisible()
+  if(action==='revoke')expect(screen.queryByRole('button',{name:/Отозвать роль .* у Проверенный пользователь/})).not.toBeInTheDocument()
  }
- expect(within(screen.getByLabelText('Пользователь')).getByRole('option',{name:'Новый пользователь'})).toBeInTheDocument()
+ await openPicker();expect(await screen.findByRole('option',{name:'Новый пользователь'})).toBeInTheDocument()
+})
+
+it('searches eligible users case-insensitively, reports an empty query result and clears selection',async()=>{
+ vi.stubGlobal('fetch',api());page();const search=await openPicker()
+ fireEvent.change(search,{target:{value:'ПРОВЕРЕННЫЙ'}});expect(screen.getByRole('option',{name:'Проверенный пользователь'})).toBeVisible()
+ fireEvent.change(search,{target:{value:'нет такого имени'}});expect(await screen.findByText('Пользователи не найдены')).toBeVisible();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()
+ fireEvent.change(search,{target:{value:'пользователь'}});fireEvent.click(screen.getByRole('option',{name:'Проверенный пользователь'}))
+ expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent('Проверенный пользователь');await clearUser()
+ expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent('Выберите пользователя');expect(screen.getByRole('button',{name:'Назначить роль'})).toBeDisabled()
+})
+it('multi-role grant preserves partial success and retries only the uncertain remainder with the same key',async()=>{
+ let fail=true,granted=false
+ const moderator={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1}
+ const admin={...moderator,id:memberId,roleCode:'platform_admin'}
+ const f=api({response:(url,init)=>{
+  if(url==='/api/iam/platform-role-assignments'){
+   if(JSON.parse(String(init?.body)).roleCode==='platform_moderator'){granted=true;return Response.json({item:moderator},{status:201})}
+   return fail?new Response(null,{status:503}):Response.json({item:admin},{status:201})
+  }
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:granted?[moderator]:[]}],nextCursor:null})
+ }});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}));fireEvent.click(screen.getByRole('button',{name:'Назначить роли'}))
+ await screen.findByText('Назначено ролей: 1. Не удалось назначить оставшиеся роли. Повторите попытку')
+ expect(screen.queryByText('Изменения сохранены')).not.toBeInTheDocument();expect(screen.getByRole('checkbox',{name:'Модератор платформы'})).toBeChecked();expect(screen.getByRole('checkbox',{name:'Модератор платформы'})).toBeDisabled();expect(screen.getByText('Уже назначена')).toBeVisible()
+ fail=false;fireEvent.click(screen.getByRole('button',{name:'Назначить роль'}));await screen.findByText('Изменения сохранены')
+ const calls=f.mock.calls.filter(([url])=>url==='/api/iam/platform-role-assignments')
+ expect(calls.map(([,init])=>JSON.parse(String(init?.body)).roleCode)).toEqual(['platform_moderator','platform_admin','platform_admin'])
+ expect(new Headers(calls[1][1]?.headers).get('Idempotency-Key')).toBe(new Headers(calls[2][1]?.headers).get('Idempotency-Key'))
+ expect(screen.getByRole('button',{name:'Назначить роль'})).toBeDisabled()
+})
+it.each(['active','deactivated'])('table revokes explicit row B (%s) while retaining selected A and its role draft',async status=>{
+ let revoked=false
+ const bRole={id:assignmentId,userId:other,roleCode:'platform_moderator',status:'active',version:4}
+ const a={userId:target,displayName:'Проверенный пользователь',platformRoles:[]},b={userId:other,displayName:'Другой пользователь',platformRoles:[bRole]}
+ const f=api({response:(url,init)=>{
+  if(url.startsWith('/api/iam/platform-users'))return Response.json({items:status==='active'?[a,b]:[a],nextCursor:null})
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{...a,status:'active',version:1},{...b,status,version:1,platformRoles:revoked?[]:[bRole]}],nextCursor:null})
+  if(url.endsWith(`/platform-role-assignments/${assignmentId}`)&&init?.method==='PATCH'){revoked=true;return Response.json({item:{...bRole,status:'revoked',version:5}})}
+ }});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}))
+ fireEvent.click(await screen.findByRole('button',{name:'Отозвать роль Модератор платформы у Другой пользователь'}));await screen.findByText('Изменения сохранены')
+ const init=f.mock.calls.find(([url])=>String(url).endsWith(`/platform-role-assignments/${assignmentId}`))![1]!
+ expect(init.method).toBe('PATCH');expect(new Headers(init.headers).get('If-Match')).toBe('"4"');expect(new Headers(init.headers).get('X-Forum-Context')).toBe('platform');expect(new Headers(init.headers).get('X-Forum-CSRF')).toBe(session.csrfToken)
+ expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent(a.displayName);expect(screen.getByRole('checkbox',{name:'Администратор платформы'})).toBeChecked();expect(screen.queryByRole('button',{name:/Отозвать роль .* у Другой пользователь/})).not.toBeInTheDocument()
+ expect(screen.getByText('Нет пользователей со служебными ролями')).toBeVisible();expect(screen.getByRole('heading',{name:'Пользователи со служебными ролями'})).toHaveFocus()
 })

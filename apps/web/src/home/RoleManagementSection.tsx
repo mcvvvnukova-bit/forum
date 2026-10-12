@@ -1,9 +1,9 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react'
-import {Banner,Button,Checkbox,Dialog,FormControl,Heading,Select,Spinner,Stack,Text,Textarea} from '@primer/react'
+import {Banner,Button,Checkbox,CheckboxGroup,Dialog,FormControl,Heading,Select,SelectPanel,Spinner,Stack,Text,Textarea} from '@primer/react'
 import type {Session} from '../audience/intent'
 import {FeatureFlags} from '@primer/react/experimental'
 import {UnderlinePanels} from '@primer/react/experimental'
-import {UserAccessSection,type DirectorySnapshot} from './UserAccessSection'
+import {UserAccessSection,type DirectorySnapshot,type PlatformAssignment} from './UserAccessSection'
 import {PlatformUsersTable} from './PlatformUsersTable'
 
 type RoleCode='individual'|'organization_employee'|'organization_admin'|'organization_signer'|'platform_moderator'|'platform_admin'
@@ -81,19 +81,21 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  const [contexts,setContexts]=useState<RoleContext[]>([]),[key,setKey]=useState(''),[catalogue,setCatalogue]=useState<Role[]>([])
  const [companyLabels,setCompanyLabels]=useState<Record<string,string>>({})
  const [users,setUsers]=useState<PlatformUser[]>([]),[members,setMembers]=useState<Member[]>([]),[state,setState]=useState<State>('loading'),[attempt,setAttempt]=useState(0)
- const [selected,setSelected]=useState(''),[roleCode,setRoleCode]=useState<RoleCode>('platform_moderator'),[duties,setDuties]=useState<RoleCode[]>([])
+ const [selected,setSelected]=useState(''),[choices,setChoices]=useState<RoleCode[]>(['platform_moderator']),[duties,setDuties]=useState<RoleCode[]>([])
  const [reason,setReason]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saved,setSaved]=useState(false),[saveError,setSaveError]=useState('')
  const [pending,setPending]=useState<{key?:string;selected?:string}|null>(null)
+ const [pickerOpen,setPickerOpen]=useState(false),[search,setSearch]=useState('')
  const [tab,setTab]=useState('roles')
  const [directory,setDirectory]=useState<DirectorySnapshot>({items:[],state:'loading',retry:()=>{}})
  const [accessSaving,setAccessSaving]=useState(false)
  const [accessRevision,setAccessRevision]=useState(0)
  const usersRefresh=useRef<AbortController|null>(null),usersReadVersion=useRef(0),interruptedUsersRefresh=useRef(false)
  const generation=useRef(0),controller=useRef<AbortController|null>(null),submitting=useRef(false),mounted=useRef(true),expired=useRef(onExpired)
- const idempotency=useRef<{body:string;url:string;key:string}|null>(null),resolved=useRef<RoleContext|null>(null),scopeRef=useRef<HTMLSelectElement>(null),userRef=useRef<HTMLSelectElement>(null)
+ const idempotency=useRef<{body:string;url:string;key:string}|null>(null),resolved=useRef<RoleContext|null>(null),scopeRef=useRef<HTMLSelectElement>(null),userRef=useRef<HTMLButtonElement>(null),memberRef=useRef<HTMLSelectElement>(null)
  expired.current=onExpired
  const platform=key==='platform',user=users.find(u=>u.userId===selected),selectedMember=members.find(m=>m.id===selected)
- const dirty=!!reason.trim()||platform&&roleCode!=='platform_moderator'||!!selectedMember&&duties.join(',')!==corporateRoles.filter(r=>selectedMember.roles.includes(r)).join(',')
+ const newRoles=choices.filter(code=>!user?.platformRoles.some(role=>role.roleCode===code&&role.status==='active'))
+ const dirty=!!reason.trim()||platform&&choices.join(',')!=='platform_moderator'||!!selectedMember&&duties.join(',')!==corporateRoles.filter(r=>selectedMember.roles.includes(r)).join(',')
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;controller.current?.abort();cancelUsersRefresh()}},[])
  useEffect(()=>{if(!dirty)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue=''};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[dirty])
  function cancelUsersRefresh(){++usersReadVersion.current;usersRefresh.current?.abort();usersRefresh.current=null}
@@ -112,7 +114,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   else if(interruptedUsersRefresh.current){interruptedUsersRefresh.current=false;refreshPlatformUsers()}
   setAccessSaving(busy)
  }
- function clearData(){interruptedUsersRefresh.current=false;cancelUsersRefresh();setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current=null}
+ function clearData(){interruptedUsersRefresh.current=false;cancelUsersRefresh();setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setPickerOpen(false);setSearch('');setChoices(['platform_moderator']);setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current=null}
  function failure(error:unknown){clearData();if(error instanceof Refusal&&error.status===401){setState('expired');expired.current()}else setState(error instanceof Refusal&&[403,404].includes(error.status)?'forbidden':error instanceof Refusal&&error.status===412?'stale':'unavailable')}
  // Authorization contexts are local to this view. Resolving one does not alter the shared session.
  useEffect(()=>{
@@ -161,11 +163,11 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   apply(next)
  }
  function apply(next:{key?:string;selected?:string}){
-  setPending(null);setReason('');setRoleCode('platform_moderator');setInvalid(false);setSaved(false);setSaveError('');idempotency.current=null
+  setPending(null);setReason('');setChoices(['platform_moderator']);setInvalid(false);setSaved(false);setSaveError('');idempotency.current=null
   if(next.key!==undefined){controller.current?.abort();generation.current++;clearData();setKey(next.key);setState('loading');const url=new URL(location.href);url.searchParams.set('context',next.key);history.replaceState(history.state,'',url)}
   if(next.selected!==undefined){setSelected(next.selected);const m=members.find(x=>x.id===next.selected);setDuties(m?corporateRoles.filter(r=>m.roles.includes(r)):[])}
  }
- async function mutate(url:string,body:Record<string,unknown>,currentVersion?:number){
+ async function mutate(url:string,body:Record<string,unknown>,currentVersion?:number,targetUserId=selected,batch?:RoleCode[],expectedRole?:RoleCode){
   if(submitting.current||accessSaving||!resolved.current||state!=='ready')return
   // Platform actions record their own audit description without asking for a manual reason.
   const auditReason=platform?(body.status==='revoked'?'Отзыв служебной роли через управление пользователями':'Назначение служебной роли через управление пользователями'):reason.trim()
@@ -175,33 +177,39 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   submitting.current=true;setSaving(true);setSaved(false);setSaveError('');setInvalid(false)
   const snapshot=resolved.current,abort=new AbortController(),timer=window.setTimeout(()=>abort.abort(),10_000),ticket=generation.current
   controller.current=abort
+  let completed=0
+  try{
+   for(const nextRole of batch??[undefined]){
+   if(nextRole){body={targetUserId,roleCode:nextRole};currentVersion=users.find(item=>item.userId===targetUserId)?.platformRoles.find(role=>role.roleCode===nextRole&&role.status==='revoked')?.version}
   const payload=JSON.stringify({...body,reason:auditReason}),headers:Record<string,string>={'Content-Type':'application/json','Origin':location.origin,'X-Forum-Context':snapshot.contextKey,'X-Forum-CSRF':session.csrfToken!}
   if(!idempotency.current||idempotency.current.body!==payload||idempotency.current.url!==url)idempotency.current={body:payload,url,key:crypto.randomUUID()}
   headers['Idempotency-Key']=idempotency.current.key;if(currentVersion!==undefined)headers['If-Match']=`"${currentVersion}"`
-  try{
    const result=record(await request(url,abort.signal,{method:url==='/api/iam/platform-role-assignments'?'POST':'PATCH',headers,body:payload}))
    if(!mounted.current||ticket!==generation.current)return
    if(snapshot.contextKey==='platform'){
-    const updated=assignment(result.item,selected);if(updated.roleCode!==body.roleCode&&url==='/api/iam/platform-role-assignments'||url!== '/api/iam/platform-role-assignments'&&updated.id!==url.split('/').at(-1)||updated.status!==(body.status??'active')||updated.version<(currentVersion??0))throw new Error('Invalid mutation result')
+    const updated=assignment(result.item,targetUserId);if(updated.roleCode!==body.roleCode&&url==='/api/iam/platform-role-assignments'||url!== '/api/iam/platform-role-assignments'&&(updated.id!==url.split('/').at(-1)||expectedRole!==undefined&&updated.roleCode!==expectedRole)||updated.status!==(body.status??'active')||updated.version<=(currentVersion??0))throw new Error('Invalid mutation result')
     if(updated.userId===session.user.id&&updated.roleCode==='platform_admin'&&updated.status==='revoked'){failure(new Refusal(403,'forbidden'));expired.current();return}
-    setUsers(old=>old.map(u=>u.userId===selected?{...u,platformRoles:[...u.platformRoles.filter(r=>r.roleCode!==updated.roleCode),updated]}:u))
+    setUsers(old=>old.map(u=>u.userId===targetUserId?{...u,platformRoles:[...u.platformRoles.filter(r=>r.roleCode!==updated.roleCode),updated]}:u))
+    setDirectory(old=>({...old,items:old.items.map(item=>item.userId===targetUserId?{...item,platformRoles:[...item.platformRoles.filter(role=>role.roleCode!==updated.roleCode),updated as PlatformAssignment]}:item)}))
     setAccessRevision(value=>value+1)
    }else{
     const updated=member(result.item);if(updated.id!==selected||updated.userId!==selectedMember?.userId||updated.version<=(currentVersion??0))throw new Error('Invalid member result')
     if(updated.userId===session.user.id&&!updated.permissions.includes('organization.members.manage')){failure(new Refusal(403,'forbidden'));expired.current();return}
     setMembers(old=>old.map(m=>m.id===selected?updated:m));if(updated.status==='revoked')setSelected('');setDuties(corporateRoles.filter(r=>updated.roles.includes(r)))
    }
-   setReason('');setRoleCode('platform_moderator');idempotency.current=null;setSaved(true)
-  }catch(error){if(mounted.current&&ticket===generation.current){if(error instanceof Refusal&&[401,403,404,412].includes(error.status))failure(error);else setSaveError(error instanceof Refusal&&error.code==='last_admin'?'Нельзя отозвать последнего действующего администратора':'Не удалось сохранить роли. Повторите попытку')}}
+   completed++;idempotency.current=null
+   }
+   setReason('');if(!platform||batch)setChoices(['platform_moderator']);setSaved(true)
+  }catch(error){if(mounted.current&&ticket===generation.current){if(error instanceof Refusal&&[401,403,404,412].includes(error.status))failure(error);else setSaveError(error instanceof Refusal&&error.code==='last_admin'?'Нельзя отозвать последнего действующего администратора':completed?`Назначено ролей: ${completed}. Не удалось назначить оставшиеся роли. Повторите попытку`:'Не удалось сохранить роли. Повторите попытку')}}
   finally{window.clearTimeout(timer);submitting.current=false;if(mounted.current){setSaving(false);if(refreshPending)refreshPlatformUsers()}}
  }
- function submit(event:FormEvent){event.preventDefault();if(platform&&user){const existing=user.platformRoles.find(r=>r.roleCode===roleCode);void mutate('/api/iam/platform-role-assignments',{targetUserId:user.userId,roleCode},existing?.status==='revoked'?existing.version:undefined)}else if(selectedMember?.status==='active'&&duties.length)void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:duties,status:'active'},selectedMember.version)}
+ function submit(event:FormEvent){event.preventDefault();if(platform&&user&&newRoles.length)void mutate('/api/iam/platform-role-assignments',{targetUserId:user.userId},undefined,user.userId,newRoles);else if(selectedMember?.status==='active'&&duties.length)void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:duties,status:'active'},selectedMember.version)}
  function accessChanged(userId:string,status:'active'|'deactivated'){
   const refreshPending=interruptedUsersRefresh.current||usersRefresh.current!==null
   interruptedUsersRefresh.current=false;cancelUsersRefresh()
   if(status==='deactivated'){
    setUsers(previous=>previous.filter(item=>item.userId!==userId))
-   if(selected===userId){setSelected('');setRoleCode('platform_moderator');setSaved(false);setSaveError('');idempotency.current=null}
+   if(selected===userId){setSelected('');setChoices(['platform_moderator']);setSaved(false);setSaveError('');idempotency.current=null}
    if(refreshPending)refreshPlatformUsers()
   }else refreshPlatformUsers()
  }
@@ -217,23 +225,22 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
    {!platform&&<section aria-label="Каталог ролей"><Heading as="h2" variant="small">Роли компании</Heading><Stack>{catalogue.filter(r=>r.scope==='organization').map(r=><Text key={r.code}>{labels[r.code]}{r.conditionalPermissions?.includes('organization.documents.sign')?' — подпись требует отдельного подтверждения':''}</Text>)}</Stack></section>}
    {saved&&<Text role="status">Изменения сохранены</Text>}{saveError&&<Banner variant="critical" title={saveError}/>}
    <form onSubmit={submit} noValidate><Stack>
-    <FormControl disabled={saving||accessSaving}><FormControl.Label>{platform?'Пользователь':'Участник компании'}</FormControl.Label><Select ref={userRef} value={selected} block onChange={e=>change({selected:e.target.value})}><Select.Option value="">Выберите {platform?'пользователя':'участника'}</Select.Option>{(platform?users:members.filter(m=>m.status==='active')).map(item=><Select.Option key={'id' in item?item.id:item.userId} value={'id' in item?item.id:item.userId}>{item.displayName}</Select.Option>)}</Select></FormControl>
+    {platform?<Stack><Text as="label" id="platform-user-label">Пользователь</Text><SelectPanel title="Выберите пользователя" placeholder="Поиск пользователя" inputLabel="Поиск пользователя" anchorRef={userRef} open={pickerOpen} onOpenChange={open=>{if(!saving&&!accessSaving)setPickerOpen(open)}} selected={user?{id:user.userId,text:user.displayName}:undefined} onSelectedChange={(item:{id?:string|number}|undefined)=>{if(!saving&&!accessSaving){change({selected:String(item?.id??'')});setPickerOpen(false);setSearch('')}}} filterValue={search} onFilterChange={setSearch} items={users.filter(item=>item.displayName.toLocaleLowerCase().includes(search.toLocaleLowerCase())).map(item=>({id:item.userId,text:item.displayName}))} message={search&&!users.some(item=>item.displayName.toLocaleLowerCase().includes(search.toLocaleLowerCase()))?{title:'Пользователи не найдены',body:'Попробуйте другое имя',variant:'empty'}:undefined} renderAnchor={props=><Button {...props} ref={userRef} aria-labelledby="platform-user-label" disabled={saving||accessSaving}>{user?.displayName??'Выберите пользователя'}</Button>} secondaryAction={<SelectPanel.SecondaryActionButton disabled={saving||accessSaving||!selected} onClick={()=>{change({selected:''});setPickerOpen(false)}}>Очистить выбор</SelectPanel.SecondaryActionButton>}/></Stack>:<FormControl disabled={saving||accessSaving}><FormControl.Label>Участник компании</FormControl.Label><Select ref={memberRef} value={selected} block onChange={e=>change({selected:e.target.value})}><Select.Option value="">Выберите участника</Select.Option>{members.filter(m=>m.status==='active').map(item=><Select.Option key={item.id} value={item.id}>{item.displayName}</Select.Option>)}</Select></FormControl>}
     {!(platform?users.length:members.filter(m=>m.status==='active').length)&&<Text>Нет доступных участников</Text>}
-    {platform&&<FormControl disabled={saving||accessSaving}><FormControl.Label>Служебная роль</FormControl.Label><Select value={roleCode} block onChange={e=>{setRoleCode(e.target.value as RoleCode);idempotency.current=null}}><Select.Option value="platform_moderator">Модератор платформы</Select.Option><Select.Option value="platform_admin">Администратор платформы</Select.Option></Select></FormControl>}
-    {user&&<Stack>{user.platformRoles.map(r=><Stack key={r.id}><Text>{labels[r.roleCode]} — {r.status==='active'?'действует':'отозвана'}</Text>{r.status==='active'&&<Button disabled={saving||accessSaving} onClick={()=>void mutate(`/api/iam/platform-role-assignments/${r.id}`,{status:'revoked'},r.version)}>Отозвать роль</Button>}</Stack>)}</Stack>}
+    {platform&&<CheckboxGroup><CheckboxGroup.Label>Служебные роли</CheckboxGroup.Label>{(['platform_moderator','platform_admin'] as const).map(code=>{const active=user?.platformRoles.some(role=>role.roleCode===code&&role.status==='active');return <FormControl key={code} disabled={saving||accessSaving||active}><Checkbox value={code} checked={active||choices.includes(code)} onChange={e=>{setChoices(previous=>e.target.checked?[...previous,code]:previous.filter(role=>role!==code));idempotency.current=null}}/><FormControl.Label>{labels[code]}</FormControl.Label>{active&&<FormControl.Caption>Уже назначена</FormControl.Caption>}</FormControl>})}</CheckboxGroup>}
     {selectedMember&&<Stack><Text>Действующие роли: {selectedMember.effectiveRoles.map(r=>labels[r]).join(', ')||'Нет'}</Text>{corporateRoles.map(r=><FormControl disabled={saving||accessSaving} key={r}><Checkbox checked={duties.includes(r)} onChange={e=>setDuties(previous=>corporateRoles.filter(x=>x===r?e.target.checked:previous.includes(x)))}/><FormControl.Label>{labels[r]}</FormControl.Label></FormControl>)}{selectedMember.roles.includes('organization_signer')&&<Text>{selectedMember.permissions.includes('organization.documents.sign')?'Подпись доступна только в подтверждённой области документа':'Подпись недоступна: подтверждение полномочий отсутствует или недействительно'}</Text>}</Stack>}
     {selectedMember?.status==='active'&&<Button variant="danger" disabled={saving||accessSaving} onClick={()=>void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:[],status:'revoked'},selectedMember.version)}>Отозвать доступ участника</Button>}
     {!platform&&<FormControl required disabled={saving||accessSaving}><FormControl.Label>Причина изменения</FormControl.Label><Textarea aria-label="Причина изменения" value={reason} onChange={e=>{setReason(e.target.value);setInvalid(false)}} block maxLength={1000} rows={3}/>{invalid&&<FormControl.Validation variant="error">Укажите причину изменения</FormControl.Validation>}</FormControl>}
-    <Button variant="primary" type="submit" disabled={saving||accessSaving||!selected||!platform&&!duties.length}>{saving?'Назначаем…':platform?'Назначить роль':'Сохранить роли участника'}</Button>
+    <Button variant="primary" type="submit" disabled={saving||accessSaving||!selected||!platform&&!duties.length||platform&&!newRoles.length}>{saving?'Назначаем…':platform?newRoles.length>1?'Назначить роли':'Назначить роль':'Сохранить роли участника'}</Button>
    </Stack></form>
 
   </>}
-  {pending&&<Dialog title="Отменить несохранённые изменения?" returnFocusRef={pending.selected!==undefined?userRef:scopeRef} onClose={()=>setPending(null)} footerButtons={[{content:'Продолжить редактирование',onClick:()=>setPending(null)},{content:'Отменить изменения',buttonType:'danger',onClick:()=>apply(pending)}]}><Text>При смене области или участника несохранённые изменения будут отменены.</Text></Dialog>}
+  {pending&&<Dialog title="Отменить несохранённые изменения?" returnFocusRef={pending.selected!==undefined?platform?userRef:memberRef:scopeRef} onClose={()=>setPending(null)} footerButtons={[{content:'Продолжить редактирование',onClick:()=>setPending(null)},{content:'Отменить изменения',buttonType:'danger',onClick:()=>apply(pending)}]}><Text>При смене области или участника несохранённые изменения будут отменены.</Text></Dialog>}
  </Stack>
  return platform?<FeatureFlags flags={{primer_react_underline_panels_controlled:true}}><UnderlinePanels aria-label="Управление пользователями" value={tab} onChange={({value})=>{if(!submitting.current&&!accessSaving)setTab(value)}}>
-  <UnderlinePanels.Tab value="roles">Служебные роли</UnderlinePanels.Tab>
+  <UnderlinePanels.Tab value="roles">Роли</UnderlinePanels.Tab>
   <UnderlinePanels.Tab value="access">Блокировка входа</UnderlinePanels.Tab>
-  <UnderlinePanels.Panel value="roles"><Stack>{roleForm}{state==='ready'&&<PlatformUsersTable title="Все зарегистрированные пользователи" items={directory.items} state={directory.state} onRetry={directory.retry}/>}</Stack></UnderlinePanels.Panel>
-  <UnderlinePanels.Panel value="access">{state==='ready'?<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={accessBusyChanged} onDirectoryChange={setDirectory} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>:tab==='access'&&feedback}</UnderlinePanels.Panel>
+  <UnderlinePanels.Panel value="roles"><Stack paddingBlock="normal">{roleForm}{state==='ready'&&<PlatformUsersTable title="Пользователи со служебными ролями" items={directory.items} state={directory.state} onRetry={directory.retry} rolesOnly disabled={saving||accessSaving} onRevoke={(item,role)=>void mutate(`/api/iam/platform-role-assignments/${role.id}`,{status:'revoked'},role.version,item.userId,undefined,role.roleCode)}/>}</Stack></UnderlinePanels.Panel>
+  <UnderlinePanels.Panel value="access"><Stack paddingBlock="normal">{state==='ready'?<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={accessBusyChanged} onDirectoryChange={setDirectory} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>:tab==='access'&&feedback}</Stack></UnderlinePanels.Panel>
  </UnderlinePanels></FeatureFlags>:roleForm
 }

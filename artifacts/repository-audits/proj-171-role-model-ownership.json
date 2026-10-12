@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "3b2010fb4115c71a5beed1bddc151d2e9f470433",
+  "sourceSha": "67803633da05c83198ac6ecde326e3d54c942f6b",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "6a9a403fa604b0d757d0eeb1bce2343c7cd5b044f57f3c97b4127226d6db6216",
+      "candidateSha256": "41b7e0cf111d3af61335853bfe09f3c022701d351109186f203e800bfe95b7da",
       "candidateMode": "100644"
     },
     {
@@ -264,12 +264,12 @@
     },
     {
       "path": "apps/web/src/home/RoleManagementSection.tsx",
-      "sha256": "1c9eff4cdc7e30b109e670172a49b605598489f150c6e8dffabaadae4f740ab1",
+      "sha256": "f8d58bce5c0b02cb09a1d77a18902cd6e04d885ec8ca8e8f1c0e93cf686d9278",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/roles.test.tsx",
-      "sha256": "fc75cdb77dd9450126926705d2d09df07637099b52dec3c98ab7f586fe5c44eb",
+      "sha256": "dd79b8c3baa948ad322383893e926e514ee2b421b8b48c8775dd9e8515e8b367",
       "mode": "100644"
     },
     {
@@ -324,7 +324,7 @@
     },
     {
       "path": "apps/web/src/home/PlatformUsersTable.tsx",
-      "sha256": "39bbd0d43529e237d9234b1977e828eefa8657de7df3122e766b6194cf7d830e",
+      "sha256": "1de094f1d6e3fa0aff0af1b583f2fd3844acbca55fff7b47a852ccdb0a7eeb30",
       "mode": "100644"
     },
     {
@@ -335,6 +335,16 @@
     {
       "path": "docs/plans/2026-10-12-gitnexus-plan-user-management-tabs.md",
       "sha256": "276feee5aad46001b79e363f6a44c62e6f6d18edf46cb0a58ffa5f227bc94c27",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/platform-users-table.test.tsx",
+      "sha256": "ca7e3715efae4d6daf48de39d577b938a9995ebd252715650d7ce76838d2a5f0",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-12-gitnexus-plan-user-role-table-controls.md",
+      "sha256": "0aa1d2b02fda7dcd486f05a342adf76fcb293342a497718f2e339b8215491f53",
       "mode": "100644"
     }
   ],

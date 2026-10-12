@@ -1,17 +1,32 @@
-import {useId} from 'react'
-import {Banner,Button,Heading,Spinner,Stack,Text} from '@primer/react'
-import {DataTable,Table} from '@primer/react/experimental'
-import type {State,UserDirectorySummary} from './UserAccessSection'
+import {useEffect,useId,useRef,useState} from 'react'
+import {AnchoredOverlay,Banner,Button,FormControl,Heading,IconButton,Select,Spinner,Stack,Text,TextInput} from '@primer/react'
+import {ArrowDownIcon,ArrowUpIcon,FilterIcon} from '@primer/octicons-react'
+import {Table} from '@primer/react/experimental'
+import type {PlatformAssignment,State,UserDirectorySummary} from './UserAccessSection'
 const labels={platform_admin:'Администратор платформы',platform_moderator:'Модератор платформы'}
-export function PlatformUsersTable({title,items,state,onRetry,onUnblock,disabled=false}:{title:string;items:UserDirectorySummary[];state:State;onRetry:()=>void;onUnblock?:(item:UserDirectorySummary)=>void;disabled?:boolean}){
- const headingId=useId()
+type Column='name'|'roles'|'status'
+const columns:Record<Column,string>={name:'Пользователь',roles:'Служебные роли',status:'Статус входа'}
+function value(item:UserDirectorySummary,column:Column){return column==='name'?item.displayName:column==='status'?item.status==='active'?'Вход разрешён':'Вход заблокирован':item.platformRoles.filter(role=>role.status==='active').map(role=>labels[role.roleCode]).sort().join(', ')||'Не назначены'}
+function ColumnFilter({column,filter,onChange}:{column:Column;filter:string;onChange:(value:string)=>void}){
+ const [open,setOpen]=useState(false),anchor=useRef<HTMLButtonElement>(null)
+ function close(){setOpen(false);anchor.current?.focus()}
+ return <AnchoredOverlay open={open} onOpen={()=>setOpen(true)} onClose={close} anchorRef={anchor} renderAnchor={props=><IconButton {...props} ref={anchor} icon={FilterIcon} aria-label={`Фильтровать: ${columns[column]}`} aria-pressed={!!filter}/>}>
+  <Stack padding="normal"><FormControl><FormControl.Label>{`Фильтр: ${columns[column]}`}</FormControl.Label>{column==='name'?<TextInput value={filter} onChange={e=>onChange(e.target.value)} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();close()}}}/>:<Select value={filter} onChange={e=>onChange(e.target.value)}><Select.Option value="">Все</Select.Option>{column==='roles'?<><Select.Option value="platform_moderator">Модератор платформы</Select.Option><Select.Option value="platform_admin">Администратор платформы</Select.Option><Select.Option value="none">Не назначены</Select.Option></>:<><Select.Option value="active">Вход разрешён</Select.Option><Select.Option value="deactivated">Вход заблокирован</Select.Option></>}</Select>}</FormControl><Button onClick={()=>onChange('')}>Очистить фильтр</Button><Button onClick={close}>Готово</Button></Stack>
+ </AnchoredOverlay>
+}
+export function PlatformUsersTable({title,items,state,onRetry,onUnblock,onRevoke,rolesOnly=false,disabled=false}:{title:string;items:UserDirectorySummary[];state:State;onRetry:()=>void;onUnblock?:(item:UserDirectorySummary)=>void;onRevoke?:(item:UserDirectorySummary,role:PlatformAssignment)=>void;rolesOnly?:boolean;disabled?:boolean}){
+ const headingId=useId(),heading=useRef<HTMLHeadingElement>(null),actionFocus=useRef(false),region=useRef<HTMLDivElement>(null),[filters,setFilters]=useState({name:'',roles:'',status:''}),[sort,setSort]=useState<{column:Column;direction:'ascending'|'descending'}|null>(null)
+ const source=items.filter(item=>!rolesOnly||item.platformRoles.some(role=>role.status==='active'))
+ const rows=source.filter(item=>item.displayName.toLocaleLowerCase().includes(filters.name.toLocaleLowerCase())&&(!filters.status||item.status===filters.status)&&(!filters.roles||(filters.roles==='none'?!item.platformRoles.some(role=>role.status==='active'):item.platformRoles.some(role=>role.status==='active'&&role.roleCode===filters.roles)))).map((item,index)=>({item,index})).sort((a,b)=>sort?(sort.direction==='ascending'?1:-1)*value(a.item,sort.column).localeCompare(value(b.item,sort.column),'ru')||a.index-b.index:a.index-b.index).map(row=>row.item)
+ useEffect(()=>{if(actionFocus.current&&!source.length){heading.current?.focus();actionFocus.current=false}},[source.length])
+ function action(callback:()=>void,returnFocus=false){if(returnFocus){actionFocus.current=true;region.current?.focus()}callback()}
  return <section aria-label={title}><Stack>
-  <Heading as="h2" variant="small" id={headingId}>{title}</Heading>
-  {state==='loading'?<Stack direction="horizontal"><Spinner size="small"/><Text role="status">Загружаем пользователей…</Text></Stack>:state!=='ready'?<Banner variant="warning" title="Список пользователей недоступен" primaryAction={<Button onClick={onRetry}>Повторить загрузку списка</Button>}/>:!items.length?<Text>{onUnblock?'Нет заблокированных пользователей':'Нет зарегистрированных пользователей'}</Text>:<Table.Container><DataTable aria-labelledby={headingId} data={items.map(item=>({...item,id:item.userId}))} columns={[
-   {header:'Пользователь',field:'displayName',rowHeader:true},
-   {header:'Служебные роли',field:'platformRoles',renderCell:item=>item.platformRoles.filter(role=>role.status==='active').map(role=>labels[role.roleCode]).join(', ')||'Не назначены'},
-   {header:'Статус входа',field:'status',renderCell:item=>item.status==='active'?'Вход разрешён':'Вход заблокирован'},
-   ...(onUnblock?[{header:'Действие',field:'userId' as const,renderCell:(item:UserDirectorySummary)=><Button disabled={disabled} onClick={()=>onUnblock(item)} aria-label={`Разблокировать ${item.displayName}`}>Разблокировать</Button>}]:[])
-  ]}/></Table.Container>}
+  <Heading as="h2" variant="small" id={headingId} ref={heading} tabIndex={-1}>{title}</Heading>
+  {state==='loading'?<Stack direction="horizontal"><Spinner size="small"/><Text role="status">Загружаем пользователей…</Text></Stack>:state!=='ready'?<Banner variant="warning" title="Список пользователей недоступен" primaryAction={<Button onClick={onRetry}>Повторить загрузку списка</Button>}/>:!source.length?<Text>{rolesOnly?'Нет пользователей со служебными ролями':onUnblock?'Нет заблокированных пользователей':'Нет зарегистрированных пользователей'}</Text>:<>
+   {Object.values(filters).some(Boolean)&&<Button onClick={()=>setFilters({name:'',roles:'',status:''})}>Сбросить фильтры</Button>}
+   <Table.Container ref={region} tabIndex={0} role="region" aria-labelledby={headingId}><Table aria-labelledby={headingId} gridTemplateColumns={`repeat(${onRevoke||onUnblock?4:3}, minmax(max-content, 1fr))`}><Table.Head><Table.Row>{(Object.keys(columns) as Column[]).map(column=><Table.Header key={column} aria-sort={sort?.column===column?sort.direction:'none'}><Stack direction="horizontal" align="center"><Text>{columns[column]}</Text><IconButton icon={sort?.column===column&&sort.direction==='descending'?ArrowDownIcon:ArrowUpIcon} aria-label={`Сортировать: ${columns[column]}`} onClick={()=>setSort(previous=>({column,direction:previous?.column===column&&previous.direction==='ascending'?'descending':'ascending'}))}/><ColumnFilter column={column} filter={filters[column]} onChange={next=>setFilters(previous=>({...previous,[column]:next}))}/></Stack></Table.Header>)}{(onRevoke||onUnblock)&&<Table.Header>Действие</Table.Header>}</Table.Row></Table.Head><Table.Body>
+    {!rows.length?<Table.Row><Table.Cell colSpan={onRevoke||onUnblock?4:3}>Нет пользователей по выбранным фильтрам</Table.Cell></Table.Row>:rows.map(item=><Table.Row key={item.userId}><Table.Cell scope="row">{item.displayName}</Table.Cell><Table.Cell>{value(item,'roles')}</Table.Cell><Table.Cell>{value(item,'status')}</Table.Cell>{(onRevoke||onUnblock)&&<Table.Cell><Stack>{onRevoke&&item.platformRoles.filter(role=>role.status==='active').map(role=><Button key={role.id} disabled={disabled} onClick={()=>action(()=>onRevoke(item,role),true)} aria-label={`Отозвать роль ${labels[role.roleCode]} у ${item.displayName}`}>Отозвать {labels[role.roleCode]}</Button>)}{onUnblock&&<Button disabled={disabled} onClick={()=>action(()=>onUnblock(item))} aria-label={`Разблокировать ${item.displayName}`}>Разблокировать</Button>}</Stack></Table.Cell>}</Table.Row>)}
+   </Table.Body></Table></Table.Container>
+  </>}
  </Stack></section>
 }
