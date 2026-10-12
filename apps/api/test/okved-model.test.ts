@@ -31,6 +31,7 @@ type MalformedGroups={groups:Record<string,unknown>[]};
 const invalidCases:[string,(r:MalformedRows,g:MalformedGroups)=>unknown][]=[
   ['duplicate codes',(r,g)=>r.okveds.push(r.okveds[0])],
   ['missing parent',(r,g)=>r.okveds.splice(1,1)],
+  ['skipped hierarchy level',(r,g)=>r.okveds[3].code='01.1.11'],
   ['numeric code',(r,g)=>r.okveds[0].code=1],
   ['empty name',(r,g)=>r.okveds[0].name='  '],
   ['unknown section',(r,g)=>r.okveds[0].group='Z'],

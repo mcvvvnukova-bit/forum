@@ -24,7 +24,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "56ef83f302e5b79f4d7e05d9e5dcff52c203cfe86accffc3164197ebea40188d",
+      "candidateSha256": "7ade04ec102942376173eef319688496fbee6896ad6eb1c2b263418c8bb94165",
       "candidateMode": "100644"
     }
   ],
@@ -61,7 +61,7 @@
     },
     {
       "path": "apps/api/src/references/okved-model.ts",
-      "sha256": "d815a6926f72ca91ce5d1d908e2c61253a7a275b3da5080f3524cda568ff0b2c",
+      "sha256": "e956ad3fccb0b977b952d7948635737b2aaae1db36838c5d3a811523e7ad44c2",
       "mode": "100644"
     },
     {
@@ -76,7 +76,7 @@
     },
     {
       "path": "apps/api/test/okved-model.test.ts",
-      "sha256": "c8cdf503a6dcb06a5e1ef009c5aad62f97185afba8041e0fb19dc7644331eb8a",
+      "sha256": "cdc3fe3db389796c4d166afbccfeb07d0ff1db2cd1040bcce947cdda8ddb26be",
       "mode": "100644"
     },
     {

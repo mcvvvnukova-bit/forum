@@ -848,7 +848,7 @@ def verify_compact_login():
 
 # Bounded dependency/integration successor for PROJ-172. Historical receipts
 # remain immutable. Exclude only this checker's candidate hash to avoid a cycle.
-OKVED_INTEGRATION_MANIFEST_SHA256 = 'e485fd69457dfd759cfe88cbf90b26f325bf568d6894e292d013a548e1e68dd8'
+OKVED_INTEGRATION_MANIFEST_SHA256 = '3e4f7e5f44e26ef7f3ceb8f57e835eace7c16685493bfaaff7e64b80301b0310'
 
 
 @lru_cache(maxsize=1)

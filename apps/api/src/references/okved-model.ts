@@ -35,7 +35,7 @@ export function normalizeSnapshot(codesPayload:unknown,groupsPayload:unknown):Ok
   if (sections.size!==groups.length) throw new Error('Duplicate FNS group');
   const okveds=list(object(codesPayload).okveds).map(value=>{
     const r=object(value),code=text(r.code,8),group=text(r.group,1),name=text(r.name,4000);
-    if (!/^\d{2}(?:\.\d{1,2}(?:\.\d{1,2})?)?$/.test(code) || !sections.has(group)) throw new Error('Invalid OKVED code or group');
+    if (!/^\d{2}(?:\.\d{1,2}|\.\d{2}\.\d{1,2})?$/.test(code) || !sections.has(group)) throw new Error('Invalid OKVED code or group');
     if (r.selectable!==undefined && typeof r.selectable!=='boolean') throw new Error('Invalid selectable flag');
     if (r.description!==undefined && (typeof r.description!=='string' || r.description.length>100_000 || r.description.includes('\0'))) throw new Error('Invalid description');
     const parentCode=code.length===2?null:([5,8].includes(code.length)?code.slice(0,-1):code.slice(0,code.lastIndexOf('.')));
