@@ -6,7 +6,7 @@ import {buildProfileSections, type ProfileSection, type SberProfile} from './pro
 
 type ProfileView = 'profile' | 'work' | 'settings' | 'organizations' | 'roles'
 type Account = {managePlatform?:boolean; root: string; logo: string; displayName: string; individual: boolean; onLogout: () => void; leaving: boolean; logoutFailed: boolean}
-export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView; account?: Account; settingsContent?:ReactNode; organizations?:ReactNode; rolesContent?:ReactNode}
+export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView; account?: Account; settingsContent?:ReactNode; organizations?:ReactNode; rolesContent?:ReactNode; rolesTitle?:string}
 const icons = {personal: PersonIcon, identity: FileIcon, addresses: LocationIcon, tax: FileIcon, contacts: MailIcon, pension: ShieldLockIcon, work: BriefcaseIcon, education: BookIcon, 'self-employment': PersonIcon, 'international-passport': FileIcon, 'previous-passport': FileIcon}
 function ProfileNavigation({onNavigate, disabled = false, view, root, settings=false, live=false, managePlatform=false}: {onNavigate?: () => void; disabled?: boolean; view: ProfileView; root: string; settings?:boolean; live?:boolean; managePlatform?:boolean}) {
   const profileRoot = root
@@ -40,7 +40,7 @@ function ProfileCard({section}: {section: ProfileSection}) {
     </div>)}</dl>
   </section>
 }
-export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile', account, settingsContent, organizations, rolesContent}: ProfilePageProps) {
+export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile', account, settingsContent, organizations, rolesContent, rolesTitle='Управление пользователями'}: ProfilePageProps) {
   const profileRoot = account?.root ?? import.meta.env.BASE_URL
   const [dialog, setDialog] = useState<'edit' | 'menu' | 'support' | null>(null)
   const editRef = useRef<HTMLButtonElement>(null)
@@ -76,7 +76,7 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
           {!account && <Banner title="Демонстрационный профиль" description="Все показанные данные вымышлены. Подключение к Сбер ID отсутствует."/>}
           {account?.logoutFailed && <Banner title="Не удалось выйти. Повторите попытку" variant="warning"/>}
           <div className="page-heading">
-          <div>{view!=='roles' && view!=='settings' && view!=='organizations' && <Text as="p" size="small" className="eyebrow muted">Мой профиль</Text>}<Heading as="h1" variant="large" id={view==='organizations'?'organizations-heading':undefined}>{view==='roles'?'Управление ролями':view==='organizations'?'Мои организации':view==='settings'?'Настройки':view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
+          <div>{view!=='roles' && view!=='settings' && view!=='organizations' && <Text as="p" size="small" className="eyebrow muted">Мой профиль</Text>}<Heading as="h1" variant="large" id={view==='organizations'?'organizations-heading':undefined}>{view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
           {view!=='roles' && view!=='settings' && view!=='organizations' && <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>}
           </div>
         </Stack>

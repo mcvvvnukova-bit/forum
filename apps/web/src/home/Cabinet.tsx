@@ -25,7 +25,8 @@ function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; 
   const userId=session.user.id
   const path=location.pathname.replace(/\/$/,'')
   const view=path==='/cabinet/roles'?'roles':path==='/cabinet/organizations'?'organizations':path==='/cabinet/settings'?'settings':path==='/cabinet/work'?'work':'profile'
-  useEffect(()=>{document.title=`${view==='roles'?'Управление ролями':view==='organizations'?'Мои организации':view==='settings'?'Настройки':view==='work'?'Работа':'Личные данные'} | АСТ Форум`},[view])
+  const rolesTitle=new URLSearchParams(location.search).get('context')?.startsWith('organization:')?'Управление ролями':'Управление пользователями'
+  useEffect(()=>{document.title=`${view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view==='work'?'Работа':'Личные данные'} | АСТ Форум`},[view,rolesTitle])
   useEffect(()=>{
     if(view==='roles'||view==='settings'||view==='organizations')return
     const controller=new AbortController()
@@ -58,7 +59,7 @@ function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; 
   if(value.kind==='expired')return null
   return <ProfilePage profile={value.kind==='ready'?value.profile:{}} approvedScopes={profileScopes}
     state={view==='roles'||view==='settings'||view==='organizations'?'ready':value.kind==='ready'?'ready':value.kind==='error'?'error':'loading'} view={view}
-    rolesContent={view==='roles'?<RoleManagementSection session={session} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:undefined}
+    rolesTitle={rolesTitle} rolesContent={view==='roles'?<RoleManagementSection session={session} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:undefined}
     organizations={view==='organizations'?<Organizations key={userId} userId={userId} roleSession={session} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:undefined}
     settingsContent={<SettingsSection userId={userId} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>}
     onRetry={()=>{setValue({kind:'loading'});setAttempt(n=>n+1)}}
