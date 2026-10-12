@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react'
-import {Banner,Button,Checkbox,CheckboxGroup,Dialog,FormControl,Heading,Select,SelectPanel,Spinner,Stack,Text,Textarea} from '@primer/react'
+import {Banner,Button,Checkbox,CheckboxGroup,FormControl,Heading,Select,SelectPanel,Spinner,Stack,Text,Textarea} from '@primer/react'
 import type {Session} from '../audience/intent'
 import {FeatureFlags} from '@primer/react/experimental'
 import {UnderlinePanels} from '@primer/react/experimental'
@@ -83,7 +83,6 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  const [users,setUsers]=useState<PlatformUser[]>([]),[members,setMembers]=useState<Member[]>([]),[state,setState]=useState<State>('loading'),[attempt,setAttempt]=useState(0)
  const [selected,setSelected]=useState(''),[choices,setChoices]=useState<RoleCode[]>(['platform_moderator']),[duties,setDuties]=useState<RoleCode[]>([])
  const [reason,setReason]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saved,setSaved]=useState(false),[saveError,setSaveError]=useState('')
- const [pending,setPending]=useState<{key?:string;selected?:string}|null>(null)
  const [pickerOpen,setPickerOpen]=useState(false),[search,setSearch]=useState('')
  const [tab,setTab]=useState('roles')
  const [directory,setDirectory]=useState<DirectorySnapshot>({items:[],state:'loading',retry:()=>{}})
@@ -159,11 +158,10 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  },[key,contexts,session.user.id])
  function change(next:{key?:string;selected?:string}){
   if(submitting.current||accessSaving)return
-  if(dirty){setPending(next);return}
   apply(next)
  }
  function apply(next:{key?:string;selected?:string}){
-  setPending(null);setReason('');setChoices(['platform_moderator']);setInvalid(false);setSaved(false);setSaveError('');idempotency.current.clear()
+  setReason('');setChoices(['platform_moderator']);setInvalid(false);setSaved(false);setSaveError('');idempotency.current.clear()
   if(next.key!==undefined){controller.current?.abort();generation.current++;clearData();setKey(next.key);setState('loading');const url=new URL(location.href);url.searchParams.set('context',next.key);history.replaceState(history.state,'',url)}
   if(next.selected!==undefined){setSelected(next.selected);const m=members.find(x=>x.id===next.selected);setDuties(m?corporateRoles.filter(r=>m.roles.includes(r)):[])}
  }
@@ -236,7 +234,6 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
    </Stack></form>
 
   </>}
-  {pending&&<Dialog title="Отменить несохранённые изменения?" returnFocusRef={pending.selected!==undefined?platform?userRef:memberRef:scopeRef} onClose={()=>setPending(null)} footerButtons={[{content:'Продолжить редактирование',onClick:()=>setPending(null)},{content:'Отменить изменения',buttonType:'danger',onClick:()=>apply(pending)}]}><Text>При смене области или участника несохранённые изменения будут отменены.</Text></Dialog>}
  </Stack>
  return platform?<FeatureFlags flags={{primer_react_underline_panels_controlled:true}}><UnderlinePanels aria-label="Управление пользователями" value={tab} onChange={({value})=>{if(!submitting.current&&!accessSaving)setTab(value)}}>
   <UnderlinePanels.Tab value="roles">Роли</UnderlinePanels.Tab>
