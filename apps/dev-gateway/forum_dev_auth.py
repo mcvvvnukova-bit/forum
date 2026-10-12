@@ -181,8 +181,9 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
             try:
                 connection.request(self.command, self.path, body=self.rfile.read(length) if length else None, headers=headers)
                 response = connection.getresponse()
-                payload = response.read(65537)
-                if len(payload) > 65536:
+                response_cap = 8 * 1024 * 1024 if self.command == "GET" and urlsplit(self.path).path == "/api/iam/platform-user-access" else 65536
+                payload = response.read(response_cap + 1)
+                if len(payload) > response_cap:
                     raise ValueError("Oversized API response")
                 self.send_response(response.status)
                 for key, value in response.getheaders():

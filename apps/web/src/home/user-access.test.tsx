@@ -113,10 +113,19 @@ it.each(['missing','bad-id','empty-name','unknown-role','duplicate-code','duplic
 it('search preserves target, supports no results and clears actual selection',async()=>{
  vi.stubGlobal('fetch',api());page();await select()
  fireEvent.click(screen.getByRole('button',{name:'Пользователь для блокировки'}))
+ expect(screen.getByRole('combobox',{name:'Поиск пользователя'})).toHaveAttribute('placeholder','Поиск пользователя')
  fireEvent.change(screen.getByRole('combobox',{name:'Поиск пользователя'}),{target:{value:'никого'}})
  expect(await screen.findByText('Пользователи не найдены')).toBeVisible()
  expect(screen.getByText('Статус входа: разрешён')).toBeVisible()
  fireEvent.click(screen.getByRole('button',{name:'Очистить выбор'}))
  expect(screen.getByRole('button',{name:'Заблокировать вход'})).toBeDisabled()
  expect(screen.queryByText('Блокировка пользователей')).not.toBeInTheDocument()
+})
+
+it.each(['access-status','platform-code','assignment-status'])('rejects nested %s enums without protected controls',async kind=>{
+ const role={id:owner,userId:target,roleCode:kind==='platform-code'?['platform_admin']:'platform_admin',status:kind==='assignment-status'?['active']:'active',version:1}
+ vi.stubGlobal('fetch',api(()=>Response.json({items:[{...active,status:kind==='access-status'?['active']:'active',platformRoles:[role]}],nextCursor:null})));page()
+ expect(await screen.findByText('Не удалось загрузить доступ пользователей')).toBeVisible()
+ expect(screen.queryByRole('button',{name:'Пользователь для блокировки'})).not.toBeInTheDocument()
+ expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })

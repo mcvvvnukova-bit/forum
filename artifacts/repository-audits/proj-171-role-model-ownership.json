@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "95f30b98014f6f7ae2a87f74bcf01673d43d14a1",
+  "sourceSha": "e9f5d2c03221b2c4dd0c637c89b038adb4972624",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
       "previousSha256": "563e80a9f823c14239d0909318a18b634963afeb0fc91f3f10fa8ba0c08a3f56",
       "previousMode": "100644",
       "candidatePath": "apps/api/README.md",
-      "candidateSha256": "1d946ce1a97d1140ad25c881aed9daa9ae52bef3429c77cbfb93c22cfa7c03a1",
+      "candidateSha256": "009cfdd770e061b58dfddf6d6e29151dcfdde1bc645cfa5bd2f1413e0e345f45",
       "candidateMode": "100644"
     },
     {
@@ -81,7 +81,7 @@
       "previousSha256": "8908448268a14522e1a6bb29180b248c92c6f109d336b782a6f6edb9fba0d2bf",
       "previousMode": "100644",
       "candidatePath": "apps/dev-gateway/forum_dev_auth.py",
-      "candidateSha256": "68ca0b7d399e43a6f32dbe0dead00bb36d067a8bb543f31903dd6ce10268bfd2",
+      "candidateSha256": "9e15086a946ce31dc6b68dc04c3165ff0e4960e39c2c34f47be6a25877a97f4f",
       "candidateMode": "100644"
     },
     {
@@ -89,7 +89,7 @@
       "previousSha256": "1d3865edd67d4466122b813284968d467746e8f7c4a2eb1c3d4e8fe21ed225f4",
       "previousMode": "100644",
       "candidatePath": "apps/dev-gateway/tests/test_auth_gateway.py",
-      "candidateSha256": "a16ec9f87d3fc0e753a0ac4edad2c7ec0b894d5d1b67fab33993dd08288413f6",
+      "candidateSha256": "798bd25ffbb08ab70c80c589a9cde35c78561243e97b4bf1d2592d816384ae43",
       "candidateMode": "100644"
     },
     {
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "9f74b5d093a7c1ed544e1b2b6e0fb389a770be2965013cf02336af22575daf56",
+      "candidateSha256": "c4699d658660261690a7bd4eafb611033f6a482ef5824de61b08eef6e3288447",
       "candidateMode": "100644"
     },
     {
@@ -218,6 +218,14 @@
       "previousMode": "100644",
       "candidatePath": "tests/integration/test_web_release.py",
       "candidateSha256": "3eefd2dd0c0b7501d6ffd04ed54554a2fb9b172c48f7d19e643ff340f51b322f",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/dev-gateway/README.md",
+      "previousSha256": "9d127c38597f8caed88fbb75fc603958ed2c2f25b573e91071f11f58934a839d",
+      "previousMode": "100644",
+      "candidatePath": "apps/dev-gateway/README.md",
+      "candidateSha256": "3e6093c3afa57f29e7cbe357aefd6d3381e061f49ac30e5e05cd987492a90f98",
       "candidateMode": "100644"
     }
   ],
@@ -264,12 +272,12 @@
     },
     {
       "path": "apps/web/src/home/RoleManagementSection.tsx",
-      "sha256": "92fcb13b047fadd723eec2d26cf05d04a012bfd3432b17d2cc1ac3b73daba92c",
+      "sha256": "be1ebe5be151af441005f62bec98aef63c09e0593484f90d69a938c5389ac341",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/roles.test.tsx",
-      "sha256": "454a5bb14834d079f6156953787a67dce57da9cee3be323b05e0f0e395b09382",
+      "sha256": "b7045bfd505cc93e3c15f031efe4686d77857faa89d652293fe5b92977b29928",
       "mode": "100644"
     },
     {
@@ -314,12 +322,12 @@
     },
     {
       "path": "apps/web/src/home/UserAccessSection.tsx",
-      "sha256": "579c7f1d706d47e08b4f7977e4a50ac41de659154898519fb073067443d9af08",
+      "sha256": "d528e7d24dfefe85b21333f7387a5b512fcac68932e0832012bca0f86123927d",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/user-access.test.tsx",
-      "sha256": "f9f5ff38f22c4a1904f354d83a82e3d3dc171e5e27d067d05f6f676fbde8dcd1",
+      "sha256": "0ee36c21f1bfc2f3f4b8a8f9d5092398c2480db40452fa6d492e7f3ff3e8047e",
       "mode": "100644"
     },
     {

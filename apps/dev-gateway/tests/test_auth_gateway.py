@@ -3,6 +3,7 @@ from __future__ import annotations
 import http.client
 import contextlib
 import io
+import json
 import importlib.util
 import os
 import sys
@@ -312,6 +313,41 @@ class AuthGatewayTest(unittest.TestCase):
             self.assertEqual(status, 502)
             self.assertEqual(headers['cache-control'], 'no-store')
             self.assertEqual(payload, '{"code":"temporarily_unavailable"}')
+
+    def test_access_directory_response_cap_preserves_large_utf8_page_and_limits_other_routes(self):
+        directory = {"items": [{"userId": f"{user:08x}-1111-4111-8111-111111111111", "displayName": f"Пользователь {user}", "status": "active", "version": 1, "platformRoles": [], "organizations": [{"id": f"{company:08x}-2222-4222-8222-222222222222", "name": f"Общество с ограниченной ответственностью «Проектная строительная компания {company}»", "roles": ["organization_employee"]} for company in range(12)]} for user in range(25)], "nextCursor": None}
+        valid_payload = json.dumps(directory, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        self.assertGreater(len(valid_payload), 65536)
+        upstream = {"payload": valid_payload}
+        class ApiHandler(BaseHTTPRequestHandler):
+            def respond(self):
+                self.rfile.read(int(self.headers.get("Content-Length", "0")))
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(upstream["payload"])))
+                self.end_headers()
+                try:
+                    self.wfile.write(upstream["payload"])
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+            do_GET = do_PATCH = respond
+            def log_message(self, *_): pass
+        with GatewayServer(ApiHandler) as api, GatewayServer(self.make_handler(f"http://127.0.0.1:{api.port}")) as gateway:
+            status, headers, payload = gateway.request("GET", "/api/iam/platform-user-access?limit=25&cursor=opaque")
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(payload), directory)
+            self.assertEqual(int(headers["content-length"]), len(valid_payload))
+            self.assertEqual(headers["cache-control"], "no-store")
+            for method, path in [("GET", "/api/iam/platform-users"), ("PATCH", "/api/iam/platform-user-access/11111111-1111-4111-8111-111111111111")]:
+                with self.subTest(method=method, path=path):
+                    status, _, payload = gateway.request(method, path, "{}" if method == "PATCH" else None)
+                    self.assertEqual(status, 502)
+                    self.assertEqual(json.loads(payload), {"code": "temporarily_unavailable"})
+            upstream["payload"] = b"x" * (8 * 1024 * 1024 + 1)
+            status, _, payload = gateway.request("GET", "/api/iam/platform-user-access")
+            self.assertEqual(status, 502)
+            self.assertEqual(json.loads(payload), {"code": "temporarily_unavailable"})
+            self.assertEqual(gateway.request("PATCH", "/api/iam/platform-user-access/11111111-1111-4111-8111-111111111111", "x" * 4097)[0], 400)
 
     def test_iam_exact_routes_forward_method_query_body_and_all_concurrency_headers(self):
         requests = []

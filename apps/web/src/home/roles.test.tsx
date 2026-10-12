@@ -336,3 +336,18 @@ it('retains uncertain partial-grant identity across an independent B row revoke 
  expect(grants.map(([,init])=>JSON.parse(String(init?.body)).roleCode)).toEqual(['platform_moderator','platform_admin','platform_admin'])
  expect(new Headers(grants[2][1]!.headers).get('Idempotency-Key')).toBe(new Headers(uncertain.headers).get('Idempotency-Key'))
 })
+
+it.each(['catalogue-scope','assignment-status','member-status'])('rejects nested %s in role management metadata',async kind=>{
+ vi.stubGlobal('fetch',api({contexts:kind==='member-status'?[corporate()]:undefined,response:url=>{
+  if(kind==='catalogue-scope'&&url==='/api/iam/roles')return Response.json({items:catalogue.map((item,index)=>index===0?{...item,scope:['person']}:item),nextCursor:null})
+  if(kind==='assignment-status'&&url.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',platformRoles:[{id:assignmentId,userId:target,roleCode:'platform_admin',status:['active'],version:1}]}],nextCursor:null})
+  if(kind==='member-status'&&url.includes('/members'))return Response.json({items:[{...member,status:['active']}],nextCursor:null})
+ }}));page(kind==='member-status'?organizationPath():undefined)
+ expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible()
+ expect(screen.queryByRole('button',{name:'Назначить роль'})).not.toBeInTheDocument()
+ expect(screen.queryByRole('button',{name:'Сохранить роли компании'})).not.toBeInTheDocument()
+})
+it('role picker localizes actual search placeholder',async()=>{
+ vi.stubGlobal('fetch',api());page();await openPicker()
+ expect(screen.getByRole('combobox',{name:'Поиск пользователя'})).toHaveAttribute('placeholder','Поиск пользователя')
+})
