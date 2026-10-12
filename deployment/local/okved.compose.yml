@@ -1,0 +1,46 @@
+name: forum-okved-local
+services:
+  postgres:
+    image: postgres@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
+    platform: linux/amd64
+    environment:
+      POSTGRES_USER: forum_local
+      POSTGRES_PASSWORD: local-reference-only
+      POSTGRES_DB: forum_reference_local
+    ports:
+      - "127.0.0.1:55476:5432"
+    volumes:
+      - okved_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U forum_local -d forum_reference_local"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    restart: unless-stopped
+  migrate:
+    image: forum-okved-reference-local
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://forum_local:local-reference-only@postgres/forum_reference_local
+      PUBLIC_ORIGIN: https://localhost
+    command: ["sh", "-c", "node dist/migrate.js && node dist/reference-cli.js migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+  worker:
+    image: forum-okved-reference-local
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://forum_local:local-reference-only@postgres/forum_reference_local
+    command: ["node", "dist/reference-worker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+volumes:
+  okved_data:

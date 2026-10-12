@@ -12,7 +12,9 @@
     "test": "tsc -p tsconfig.test.json && node --test --test-concurrency=1 .test-build/test/*.test.js",
     "test:browser": "tsc -p tsconfig.test.json && node test/browser-smoke.mjs",
     "start": "node --env-file-if-exists=.env dist/main.js",
-    "migrate": "node --env-file-if-exists=.env dist/migrate.js"
+    "migrate": "node --env-file-if-exists=.env dist/migrate.js",
+    "references": "node --env-file-if-exists=.env dist/reference-cli.js",
+    "worker:references": "node --env-file-if-exists=.env dist/reference-worker.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
@@ -23,6 +25,7 @@
     "fastify": "5.12.5",
     "jose": "^6.2.12",
     "pg": "^8.23.0",
+    "pg-boss": "12.37.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "uuid": "^13.0.2"
