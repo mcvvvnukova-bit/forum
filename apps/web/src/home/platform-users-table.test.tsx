@@ -50,6 +50,16 @@ it('retains unblock actions and disables both kinds of row mutation',()=>{
  const button=screen.getByRole('button',{name:'Разблокировать Борис'});expect(button).toBeDisabled();fireEvent.click(button);expect(unblock).not.toHaveBeenCalled()
  expect(screen.getByRole('button',{name:'Отозвать роль Администратор платформы у Борис'})).toBeDisabled()
 })
+it('blocked table has no status controls while retaining filters for other columns',()=>{
+ table({items:[items[0]],onUnblock:vi.fn(),showOrganizations:true})
+ expect(screen.getByRole('columnheader',{name:'Статус входа'})).toBeVisible()
+ expect(screen.getByRole('columnheader',{name:'Статус входа'})).not.toHaveAttribute('aria-sort')
+ expect(screen.queryByRole('button',{name:'Сортировать: Статус входа'})).not.toBeInTheDocument()
+ expect(screen.queryByRole('button',{name:'Фильтровать: Статус входа'})).not.toBeInTheDocument()
+ expect(screen.getByRole('button',{name:'Сортировать: Пользователь'})).toBeVisible()
+ expect(screen.getByRole('button',{name:'Фильтровать: Роли'})).toBeVisible()
+ expect(screen.getByRole('button',{name:'Фильтровать: Организация'})).toBeVisible()
+})
 
 it('access mode lists and filters current companies and corporate assignments',()=>{
  table({showOrganizations:true,items:[{...items[0],organizations:[{id:'11111111-1111-4111-8111-111111111111',name:'Компания А',roles:['organization_admin']},{id:'22222222-2222-4222-8222-222222222222',name:'Компания Б',roles:[]}]}]})

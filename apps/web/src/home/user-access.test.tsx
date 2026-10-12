@@ -22,6 +22,18 @@ async function confirm(label='Заблокировать вход'){
  const dialog=await screen.findByRole('dialog');fireEvent.click(within(dialog).getByRole('button',{name:label}))
 }
 afterEach(()=>{vi.unstubAllGlobals();vi.clearAllMocks()})
+it('block picker offers only active users across pages without status descriptions',async()=>{
+ const blocked={...active,userId:'33333333-3333-4333-8333-333333333333',displayName:'Заблокированный пользователь',status:'deactivated'}
+ vi.stubGlobal('fetch',api(url=>Response.json(url.includes('?cursor=')?{items:[{...active,userId:owner,displayName:'Администратор'}],nextCursor:null}:{items:[active,blocked],nextCursor:'next'})))
+ page();fireEvent.click(await screen.findByRole('button',{name:'Пользователь для блокировки'}))
+ expect(screen.getAllByRole('option').map(option=>option.textContent)).toEqual(['Проверенный пользователь','Администратор'])
+ expect(screen.getByRole('button',{name:'Разблокировать Заблокированный пользователь'})).toBeVisible()
+ fireEvent.change(screen.getByRole('combobox',{name:'Поиск пользователя'}),{target:{value:'ЗАБЛОКИРОВАННЫЙ'}})
+ expect(await screen.findByText('Пользователи не найдены')).toBeVisible()
+ expect(screen.queryByRole('option')).not.toBeInTheDocument()
+ fireEvent.change(screen.getByRole('combobox',{name:'Поиск пользователя'}),{target:{value:'ПРОВЕРЕННЫЙ'}})
+ expect(screen.getByRole('option',{name:'Проверенный пользователь'})).toBeVisible()
+})
 it('confirms block and unblock with current version and complete security headers',async()=>{
  const f=api((url,init)=>init?.method==='PATCH'?Response.json({item:{...active,status:JSON.parse(String(init.body)).status,version:url.endsWith(target)?Number(JSON.parse(new Headers(init.headers).get('If-Match')!))+1:0}}):undefined)
  vi.stubGlobal('fetch',f);page();await select();await confirm()
