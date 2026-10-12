@@ -110,9 +110,14 @@ export class RoleStore {
     WHERE u.status='active' AND u.id::text>$1 AND EXISTS(SELECT 1 FROM public.external_identities e
      JOIN public.identity_profiles p ON p.identity_id=e.id AND p.user_id=e.user_id WHERE e.user_id=u.id AND p.identified_at IS NOT NULL)
     ORDER BY u.id LIMIT $2`,[after,query.limit+1])).rows;
-   for(const user of users)user.platformRoles=(await client.query(`SELECT ${assignmentColumns} FROM public.iam_role_assignments
-    WHERE user_id=$1 AND scope_type='platform' ORDER BY role_code`,[user.userId])).rows;
-   return page(actor,kind,users,query.limit,item=>item.userId);
+   const result=page(actor,kind,users,query.limit,item=>item.userId);
+   const assignments=result.items.length?(await client.query<PlatformAssignment>(`SELECT ${assignmentColumns} FROM public.iam_role_assignments
+    WHERE user_id=ANY($1::uuid[]) AND scope_type='platform' ORDER BY user_id,role_code`,[result.items.map(user=>user.userId)])).rows:[];
+   const byUser=new Map<string,PlatformAssignment[]>();
+   for(const assignment of assignments){
+    const roles=byUser.get(assignment.userId)??[];roles.push(assignment);byUser.set(assignment.userId,roles);
+   }
+   return {...result,items:result.items.map(user=>({...user,platformRoles:byUser.get(user.userId)??[]}))};
   });
  }
  async members(token:string,key:string,organizationId:string,query:PageRequest){

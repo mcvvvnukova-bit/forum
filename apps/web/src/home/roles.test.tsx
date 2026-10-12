@@ -1,4 +1,4 @@
-import {fireEvent,render,screen,waitFor,within} from '@testing-library/react'
+import {act,fireEvent,render,screen,waitFor,within} from '@testing-library/react'
 import {BaseStyles,ThemeProvider} from '@primer/react'
 import {afterEach,expect,it,vi} from 'vitest'
 import {Cabinet} from './Cabinet'
@@ -209,4 +209,56 @@ it('access tab exposes parent directory failure and retry restores its protected
  expect(await screen.findByRole('heading',{name:'Блокировка пользователей'})).toBeVisible()
  expect(await screen.findByRole('option',{name:'Проверенный пользователь — вход разрешён'})).toBeVisible()
  expect(screen.getByRole('tab',{name:'Блокировка входа'})).toHaveAttribute('aria-selected','true')
+})
+
+it.each(['block','grant','revoke'])('late unblock selector refresh cannot undo a later %s mutation',async action=>{
+ const a={userId:other,displayName:'Новый пользователь',status:'deactivated',version:1,platformRoles:[]}
+ const initialRole={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1}
+ let b={userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:action==='revoke'?[initialRole]:[]}
+ let aStatus='deactivated',readCount=0,staleItems:unknown[]=[],complete:(response:Response)=>void=()=>{}
+ const eligible=()=>[{...a,status:aStatus},b].filter(item=>item.status==='active').map(({userId,displayName,platformRoles})=>({userId,displayName,platformRoles}))
+ const f=api({response:(url,init)=>{
+  if(url.startsWith('/api/iam/platform-users')){
+   ++readCount
+   if(readCount===2){staleItems=eligible();return new Promise(resolve=>{complete=resolve})}
+   return Response.json({items:eligible(),nextCursor:null})
+  }
+  if(url.startsWith('/api/iam/platform-user-access')){
+   if(init?.method==='PATCH'){
+    const status=JSON.parse(String(init.body)).status
+    if(url.endsWith(other)){aStatus=status;return Response.json({item:{...a,status,version:2}})}
+    b={...b,status,version:2};return Response.json({item:{...b,platformRoles:undefined}})
+   }
+   return Response.json({items:[{...a,status:aStatus,version:aStatus==='active'?2:1},b],nextCursor:null})
+  }
+  if(url.startsWith('/api/iam/platform-role-assignments')&&['POST','PATCH'].includes(String(init?.method))){
+   const updated={...initialRole,status:action==='revoke'?'revoked':'active',version:action==='revoke'?2:1}
+   b={...b,platformRoles:[updated]};return Response.json({item:updated})
+  }
+ }})
+ vi.stubGlobal('fetch',f);page();await chooseUser()
+ fireEvent.mouseDown(screen.getByRole('tab',{name:'Блокировка входа'}))
+ fireEvent.click(await screen.findByRole('button',{name:'Разблокировать Новый пользователь'}))
+ fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Разблокировать вход'}))
+ await screen.findByText(/Вход пользователя «Новый пользователь» разрешён/)
+ await waitFor(()=>expect(readCount).toBe(2))
+ if(action==='block'){
+  fireEvent.change(screen.getByLabelText('Пользователь для блокировки'),{target:{value:target}})
+  fireEvent.click(screen.getByRole('button',{name:'Заблокировать вход'}))
+  fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Заблокировать вход'}))
+  await screen.findByText(/Вход пользователя «Проверенный пользователь» заблокирован/)
+ }else{
+  fireEvent.mouseDown(screen.getByRole('tab',{name:'Служебные роли'}))
+  fireEvent.click(screen.getByRole('button',{name:action==='grant'?'Назначить роль':'Отозвать роль'}))
+  await screen.findByText('Изменения сохранены')
+ }
+ await act(async()=>{complete(Response.json({items:staleItems,nextCursor:null}))})
+ if(action==='block'){
+  fireEvent.mouseDown(screen.getByRole('tab',{name:'Служебные роли'}))
+  expect(within(screen.getByLabelText('Пользователь')).queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()
+ }else{
+  expect(screen.getByText(`Модератор платформы — ${action==='grant'?'действует':'отозвана'}`)).toBeVisible()
+  if(action==='revoke')expect(screen.queryByRole('button',{name:'Отозвать роль'})).not.toBeInTheDocument()
+ }
+ expect(within(screen.getByLabelText('Пользователь')).getByRole('option',{name:'Новый пользователь'})).toBeInTheDocument()
 })

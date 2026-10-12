@@ -850,3 +850,50 @@ test('access directory batches assignments once per populated page without readi
  assert.ok(!tail.result.items.some(item=>item.userId===alice.id));
  const empty=await read(100,continuation);assert.deepEqual(empty.result.items,[]);assert.equal(empty.result.nextCursor,null);
 });
+
+test('eligible platform users batch assignments per page and exclude blocked and unidentified accounts',async()=>{
+ await platformAdmin();
+ const fixtures:User[]=[];
+ for(let n=1;n<=102;n++)fixtures.push(await user('Eligible directory user '+n));
+ await pool.query(`INSERT INTO public.iam_role_assignments(user_id,scope_type,role_code,created_by_user_id,reason)
+  SELECT id,'platform','platform_moderator',$1,'Synthetic eligible directory fixture' FROM public.users
+  WHERE display_name LIKE 'Eligible directory user %'`,[alice.id]);
+ await pool.query(`INSERT INTO public.iam_role_assignments(user_id,scope_type,role_code,status,revoked_at,created_by_user_id,reason)
+  VALUES($1,'platform','platform_moderator','revoked',now(),$1,'Synthetic revoked role')`,[alice.id]);
+ await membership(bob,await company(),['organization_admin']);
+ const blocked=fixtures[0],unidentified=fixtures[1];
+ await pool.query("UPDATE public.users SET status='deactivated' WHERE id=$1",[blocked.id]);
+ await pool.query('DELETE FROM public.identity_profiles WHERE user_id=$1',[unidentified.id]);
+ const statements:{sql:string;values?:unknown[]}[]=[];
+ const observedPool=new Proxy(pool,{get(target,key){
+  if(key==='connect')return async()=>{
+   const client=await target.connect();
+   return new Proxy(client,{get(target,key){
+    if(key==='query')return (sql:string,values?:unknown[])=>{statements.push({sql,values});return target.query(sql,values)};
+    const value=Reflect.get(target,key);return typeof value==='function'?value.bind(target):value;
+   }});
+  };
+  const value=Reflect.get(target,key);return typeof value==='function'?value.bind(target):value;
+ }});
+ const store=new RoleStore(observedPool);
+ const read=async(limit:number,cursor?:string)=>{
+  statements.length=0;
+  const result=await store.platformUsers(alice.token,'platform',{limit,cursor});
+  const assignments=statements.filter(statement=>/FROM public\.iam_role_assignments\b/.test(statement.sql));
+  assert.equal(assignments.length,result.items.length?1:0,'eligible assignment query count must be constant per page');
+  if(result.items.length)assert.deepEqual(assignments[0].values?.[0],result.items.map(item=>item.userId),'eligible batch excludes lookahead');
+  assert.equal(statements[0].sql,'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');assert.equal(statements.at(-1)?.sql,'COMMIT');
+  return {result,count:statements.length};
+ };
+ const small=await read(25);assert.equal(small.result.items.length,25);assert.ok(small.result.nextCursor);
+ const large=await read(100);assert.equal(large.result.items.length,100);assert.ok(large.result.nextCursor);assert.equal(large.count,small.count);
+ const tail=await read(100,large.result.nextCursor!);assert.equal(tail.result.items.length,2);assert.equal(tail.result.nextCursor,null);
+ const all=[...large.result.items,...tail.result.items];assert.equal(new Set(all.map(item=>item.userId)).size,102);
+ assert.ok(!all.some(item=>item.userId===blocked.id||item.userId===unidentified.id));
+ const expected=(await pool.query<PlatformAssignment>(`SELECT id,user_id AS "userId",role_code AS "roleCode",status,version FROM public.iam_role_assignments WHERE scope_type='platform' ORDER BY user_id,role_code`)).rows;
+ for(const item of all)assert.deepEqual(item.platformRoles,expected.filter(role=>role.userId===item.userId));
+ assert.deepEqual(all.find(item=>item.userId===bob.id)?.platformRoles,[]);
+ // Authoritative eligibility change makes the signed continuation empty without deleting accounts.
+ await pool.query("UPDATE public.users SET status='deactivated' WHERE id::text>$1 AND id<>$2",[large.result.items.at(-1)!.userId,alice.id]);
+ const empty=await read(100,large.result.nextCursor!);assert.deepEqual(empty.result.items,[]);assert.equal(empty.result.nextCursor,null);
+});

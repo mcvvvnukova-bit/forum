@@ -88,14 +88,31 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  const [directory,setDirectory]=useState<DirectorySnapshot>({items:[],state:'loading',retry:()=>{}})
  const [accessSaving,setAccessSaving]=useState(false)
  const [accessRevision,setAccessRevision]=useState(0)
+ const usersRefresh=useRef<AbortController|null>(null),usersReadVersion=useRef(0),interruptedUsersRefresh=useRef(false)
  const generation=useRef(0),controller=useRef<AbortController|null>(null),submitting=useRef(false),mounted=useRef(true),expired=useRef(onExpired)
  const idempotency=useRef<{body:string;url:string;key:string}|null>(null),resolved=useRef<RoleContext|null>(null),scopeRef=useRef<HTMLSelectElement>(null),userRef=useRef<HTMLSelectElement>(null)
  expired.current=onExpired
  const platform=key==='platform',user=users.find(u=>u.userId===selected),selectedMember=members.find(m=>m.id===selected)
  const dirty=!!reason.trim()||platform&&roleCode!=='platform_moderator'||!!selectedMember&&duties.join(',')!==corporateRoles.filter(r=>selectedMember.roles.includes(r)).join(',')
- useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;controller.current?.abort()}},[])
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;controller.current?.abort();cancelUsersRefresh()}},[])
  useEffect(()=>{if(!dirty)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue=''};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[dirty])
- function clearData(){setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current=null}
+ function cancelUsersRefresh(){++usersReadVersion.current;usersRefresh.current?.abort();usersRefresh.current=null}
+ function refreshPlatformUsers(){
+  if(!mounted.current||resolved.current?.contextKey!=='platform')return
+  cancelUsersRefresh()
+  const abort=new AbortController(),readVersion=usersReadVersion.current,ticket=generation.current
+  usersRefresh.current=abort
+  const timer=window.setTimeout(()=>abort.abort(),10_000)
+  void pages('/api/iam/platform-users',abort.signal,platformUser,{'X-Forum-Context':'platform'}).then(items=>{
+   if(mounted.current&&ticket===generation.current&&readVersion===usersReadVersion.current&&!abort.signal.aborted)setUsers(items)
+  }).catch(error=>{if(mounted.current&&ticket===generation.current&&readVersion===usersReadVersion.current)failure(error)}).finally(()=>{window.clearTimeout(timer);if(usersRefresh.current===abort)usersRefresh.current=null})
+ }
+ function accessBusyChanged(busy:boolean){
+  if(busy){interruptedUsersRefresh.current=usersRefresh.current!==null;cancelUsersRefresh()}
+  else if(interruptedUsersRefresh.current){interruptedUsersRefresh.current=false;refreshPlatformUsers()}
+  setAccessSaving(busy)
+ }
+ function clearData(){interruptedUsersRefresh.current=false;cancelUsersRefresh();setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current=null}
  function failure(error:unknown){clearData();if(error instanceof Refusal&&error.status===401){setState('expired');expired.current()}else setState(error instanceof Refusal&&[403,404].includes(error.status)?'forbidden':error instanceof Refusal&&error.status===412?'stale':'unavailable')}
  // Authorization contexts are local to this view. Resolving one does not alter the shared session.
  useEffect(()=>{
@@ -153,6 +170,8 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   // Platform actions record their own audit description without asking for a manual reason.
   const auditReason=platform?(body.status==='revoked'?'Отзыв служебной роли через управление пользователями':'Назначение служебной роли через управление пользователями'):reason.trim()
   if(!auditReason||auditReason.length>1000){setInvalid(true);return}
+  const refreshPending=platform&&usersRefresh.current!==null
+  cancelUsersRefresh()
   submitting.current=true;setSaving(true);setSaved(false);setSaveError('');setInvalid(false)
   const snapshot=resolved.current,abort=new AbortController(),timer=window.setTimeout(()=>abort.abort(),10_000),ticket=generation.current
   controller.current=abort
@@ -174,19 +193,17 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
    }
    setReason('');setRoleCode('platform_moderator');idempotency.current=null;setSaved(true)
   }catch(error){if(mounted.current&&ticket===generation.current){if(error instanceof Refusal&&[401,403,404,412].includes(error.status))failure(error);else setSaveError(error instanceof Refusal&&error.code==='last_admin'?'Нельзя отозвать последнего действующего администратора':'Не удалось сохранить роли. Повторите попытку')}}
-  finally{window.clearTimeout(timer);submitting.current=false;if(mounted.current)setSaving(false)}
+  finally{window.clearTimeout(timer);submitting.current=false;if(mounted.current){setSaving(false);if(refreshPending)refreshPlatformUsers()}}
  }
  function submit(event:FormEvent){event.preventDefault();if(platform&&user){const existing=user.platformRoles.find(r=>r.roleCode===roleCode);void mutate('/api/iam/platform-role-assignments',{targetUserId:user.userId,roleCode},existing?.status==='revoked'?existing.version:undefined)}else if(selectedMember?.status==='active'&&duties.length)void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:duties,status:'active'},selectedMember.version)}
  function accessChanged(userId:string,status:'active'|'deactivated'){
+  const refreshPending=interruptedUsersRefresh.current||usersRefresh.current!==null
+  interruptedUsersRefresh.current=false;cancelUsersRefresh()
   if(status==='deactivated'){
    setUsers(previous=>previous.filter(item=>item.userId!==userId))
    if(selected===userId){setSelected('');setRoleCode('platform_moderator');setSaved(false);setSaveError('');idempotency.current=null}
-  }else{
-   const signal=controller.current?.signal,ticket=generation.current
-   if(signal)void pages('/api/iam/platform-users',signal,platformUser,{'X-Forum-Context':'platform'}).then(items=>{
-    if(mounted.current&&ticket===generation.current)setUsers(items)
-   }).catch(error=>{if(mounted.current&&ticket===generation.current)failure(error)})
-  }
+   if(refreshPending)refreshPlatformUsers()
+  }else refreshPlatformUsers()
  }
  if(!validRoleSession(session))return <Banner variant="warning" title="Не удалось проверить права доступа"/>
  const feedback=<>
@@ -217,6 +234,6 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   <UnderlinePanels.Tab value="roles">Служебные роли</UnderlinePanels.Tab>
   <UnderlinePanels.Tab value="access">Блокировка входа</UnderlinePanels.Tab>
   <UnderlinePanels.Panel value="roles"><Stack>{roleForm}{state==='ready'&&<PlatformUsersTable title="Все зарегистрированные пользователи" items={directory.items} state={directory.state} onRetry={directory.retry}/>}</Stack></UnderlinePanels.Panel>
-  <UnderlinePanels.Panel value="access">{state==='ready'?<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={setAccessSaving} onDirectoryChange={setDirectory} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>:tab==='access'&&feedback}</UnderlinePanels.Panel>
+  <UnderlinePanels.Panel value="access">{state==='ready'?<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={accessBusyChanged} onDirectoryChange={setDirectory} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>:tab==='access'&&feedback}</UnderlinePanels.Panel>
  </UnderlinePanels></FeatureFlags>:roleForm
 }

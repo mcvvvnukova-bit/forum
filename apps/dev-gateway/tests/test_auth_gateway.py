@@ -332,23 +332,36 @@ class AuthGatewayTest(unittest.TestCase):
                   ('POST', '/api/iam/context/resolve'), ('GET', '/api/iam/platform-users?limit=25'),
                   ('POST', '/api/iam/platform-role-assignments'), ('PATCH', '/api/iam/platform-role-assignments/'+uuid),
                   ('GET', '/api/iam/organizations/'+uuid+'/members?cursor=opaque'),
-                  ('PATCH', '/api/iam/organizations/'+uuid+'/members/'+uuid), ('GET','/api/iam/audit-events')]
+                  ('PATCH', '/api/iam/organizations/'+uuid+'/members/'+uuid), ('GET','/api/iam/audit-events'),
+                  ('GET','/api/iam/platform-user-access?cursor=opaque%2Bcursor&limit=100'),
+                  ('PATCH','/api/iam/platform-user-access/'+uuid)]
         with GatewayServer(ApiHandler) as api, GatewayServer(self.make_handler(f'http://127.0.0.1:{api.port}')) as gateway:
             for method,path in routes:
                 with self.subTest(method=method,path=path):
-                    body = '{"reason":"fixture"}' if method in {'POST','PATCH'} else None
+                    body = ('{"status":"deactivated"}' if path.startswith('/api/iam/platform-user-access/') else '{"reason":"fixture"}') if method in {'POST','PATCH'} else None
                     status,response_headers,_ = gateway.request(method,path,body,headers)
                     self.assertEqual(status,200)
                     self.assertEqual(response_headers['cache-control'],'no-store')
-            expected = [(method,path,'{"reason":"fixture"}' if method in {'POST','PATCH'} else '',headers) for method,path in routes]
+            expected = [(method,path,('{"status":"deactivated"}' if path.startswith('/api/iam/platform-user-access/') else '{"reason":"fixture"}') if method in {'POST','PATCH'} else '',headers) for method,path in routes]
             self.assertEqual(requests,expected)
             self.assertEqual(gateway.request('PATCH',routes[5][1],'{}',{**headers,'If-Match':'"stale"'})[0],412)
+            status,response_headers,payload = gateway.request('PATCH','/api/iam/platform-user-access/'+uuid,'{"status":"active"}',{**headers,'If-Match':'"stale"'})
+            self.assertEqual(status,412)
+            self.assertEqual(response_headers['cache-control'],'no-store')
+            self.assertEqual(payload,'{"items":[],"nextCursor":null}')
+            self.assertEqual(requests[-1],('PATCH','/api/iam/platform-user-access/'+uuid,'{"status":"active"}',{**headers,'If-Match':'"stale"'}))
             accepted = len(requests)
             invalid = [('HEAD','/api/iam/roles'), ('POST','/api/iam/roles'), ('GET','/api/iam/context/resolve'),
                        ('PUT','/api/iam/platform-role-assignments/'+uuid), ('GET','/api/iam/organizations/not-uuid/members'),
                        ('PATCH','/api/iam/organizations/'+uuid+'/members/other'), ('GET','/api/iam/roles/'),
                        ('GET','/api/iam/../profile'), ('GET','/api/iam/%2e%2e/profile'), ('GET','/api/iam/users'),
-                       ('PATCH','/api/iam/platform-role-assignments/'+uuid+'/extra'), ('GET','/api/iamx/roles')]
+                       ('PATCH','/api/iam/platform-role-assignments/'+uuid+'/extra'), ('GET','/api/iamx/roles'),
+                       ('HEAD','/api/iam/platform-user-access'), ('POST','/api/iam/platform-user-access'),
+                       ('GET','/api/iam/platform-user-access/'+uuid), ('PATCH','/api/iam/platform-user-access'),
+                       ('PATCH','/api/iam/platform-user-access/not-uuid'), ('PATCH','/api/iam/platform-user-access/'+uuid+'/extra'),
+                       ('PUT','/api/iam/platform-user-access/'+uuid), ('DELETE','/api/iam/platform-user-access/'+uuid),
+                       ('OPTIONS','/api/iam/platform-user-access/'+uuid), ('GET','/api/iam/platform-user-access/'),
+                       ('GET','/api/iam/platform-user-access/../roles'), ('GET','/api/iam/platform-user-access/%2e%2e/roles')]
             for method,path in invalid:
                 with self.subTest(method=method,path=path): self.assertEqual(gateway.request(method,path,'{}')[0],404)
             self.assertEqual(len(requests),accepted)

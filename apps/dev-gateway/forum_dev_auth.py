@@ -124,9 +124,9 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def _handle_iam(self, path: str, *, send_body: bool) -> None:
             uuid = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
             allowed = {
-                "GET": [r"/api/iam/(?:roles|contexts|platform-users|audit-events)", rf"/api/iam/organizations/{uuid}/members"],
+                "GET": [r"/api/iam/(?:roles|contexts|platform-users|platform-user-access|audit-events)", rf"/api/iam/organizations/{uuid}/members"],
                 "POST": [r"/api/iam/(?:context/resolve|platform-role-assignments)"],
-                "PATCH": [rf"/api/iam/platform-role-assignments/{uuid}", rf"/api/iam/organizations/{uuid}/members/{uuid}"],
+                "PATCH": [rf"/api/iam/platform-user-access/{uuid}", rf"/api/iam/platform-role-assignments/{uuid}", rf"/api/iam/organizations/{uuid}/members/{uuid}"],
             }
             if not any(re.fullmatch(pattern, path) for pattern in allowed.get(self.command, [])):
                 self._send_text(HTTPStatus.NOT_FOUND, "Not found", send_body=send_body)
