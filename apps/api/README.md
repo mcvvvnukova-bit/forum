@@ -356,3 +356,5 @@ Rollback application bytes while retaining this schema. The owner-only
 `deployment/forum-api/rollback-008-iam-roles.sql` is for a stopped, backed-up,
 unused installation; it refuses live assignments, IAM audit/idempotency data,
 changed versions or signer evidence. It never deletes IAM audit decisions.
+
+GET `/api/iam/platform-user-access` returns every registered account, including blocked and unidentified users. Each list item adds mandatory `platformRoles: [{id, userId, roleCode, status, version}]` containing only platform-scope assignments (active and revoked); no organization assignments are exposed. The existing transaction, authorization and signed keyset pagination apply. PATCH returns the unchanged bare access item `{userId, displayName, status, version}`.

@@ -1,7 +1,10 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react'
 import {Banner,Button,Checkbox,Dialog,FormControl,Heading,Select,Spinner,Stack,Text,Textarea} from '@primer/react'
 import type {Session} from '../audience/intent'
-import {UserAccessSection} from './UserAccessSection'
+import {FeatureFlags} from '@primer/react/experimental'
+import {UnderlinePanels} from '@primer/react/experimental'
+import {UserAccessSection,type DirectorySnapshot} from './UserAccessSection'
+import {PlatformUsersTable} from './PlatformUsersTable'
 
 type RoleCode='individual'|'organization_employee'|'organization_admin'|'organization_signer'|'platform_moderator'|'platform_admin'
 export type RoleContext={contextKey:string;participantId:string|null;roles:RoleCode[];permissions:string[];accessVersion:number}
@@ -81,6 +84,8 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  const [selected,setSelected]=useState(''),[roleCode,setRoleCode]=useState<RoleCode>('platform_moderator'),[duties,setDuties]=useState<RoleCode[]>([])
  const [reason,setReason]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saved,setSaved]=useState(false),[saveError,setSaveError]=useState('')
  const [pending,setPending]=useState<{key?:string;selected?:string}|null>(null)
+ const [tab,setTab]=useState('roles')
+ const [directory,setDirectory]=useState<DirectorySnapshot>({items:[],state:'loading',retry:()=>{}})
  const [accessSaving,setAccessSaving]=useState(false)
  const [accessRevision,setAccessRevision]=useState(0)
  const generation=useRef(0),controller=useRef<AbortController|null>(null),submitting=useRef(false),mounted=useRef(true),expired=useRef(onExpired)
@@ -90,7 +95,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  const dirty=!!reason.trim()||platform&&roleCode!=='platform_moderator'||!!selectedMember&&duties.join(',')!==corporateRoles.filter(r=>selectedMember.roles.includes(r)).join(',')
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;controller.current?.abort()}},[])
  useEffect(()=>{if(!dirty)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue=''};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[dirty])
- function clearData(){resolved.current=null;setUsers([]);setMembers([]);setSelected('');setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current=null}
+ function clearData(){setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current=null}
  function failure(error:unknown){clearData();if(error instanceof Refusal&&error.status===401){setState('expired');expired.current()}else setState(error instanceof Refusal&&[403,404].includes(error.status)?'forbidden':error instanceof Refusal&&error.status===412?'stale':'unavailable')}
  // Authorization contexts are local to this view. Resolving one does not alter the shared session.
  useEffect(()=>{
@@ -184,7 +189,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   }
  }
  if(!validRoleSession(session))return <Banner variant="warning" title="Не удалось проверить права доступа"/>
- return <Stack>
+ const roleForm=<Stack>
   {organizationManagement&&contexts.length>0&&<FormControl disabled={saving||accessSaving}><FormControl.Label>Область управления</FormControl.Label><Select ref={scopeRef} value={key} onChange={e=>change({key:e.target.value})} block>{contexts.map(c=><Select.Option key={c.contextKey} value={c.contextKey}>{companyLabels[c.contextKey.slice(13)]??`Название и ИНН недоступны — компания ${c.contextKey.slice(13)}`}</Select.Option>)}</Select></FormControl>}
   {state==='loading'&&<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем роли…</Text></Stack>}
   {['unavailable','forbidden','stale'].includes(state)&&<Banner variant={state==='forbidden'?'critical':'warning'} title={state==='forbidden'?'Нет доступа к управлению ролями':state==='stale'?'Данные изменились. Загрузите актуальные права':'Не удалось загрузить роли'} primaryAction={<Button onClick={()=>{setKey('');setAttempt(n=>n+1)}}>Повторить</Button>}/>}
@@ -201,8 +206,14 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
     {!platform&&<FormControl required disabled={saving||accessSaving}><FormControl.Label>Причина изменения</FormControl.Label><Textarea aria-label="Причина изменения" value={reason} onChange={e=>{setReason(e.target.value);setInvalid(false)}} block maxLength={1000} rows={3}/>{invalid&&<FormControl.Validation variant="error">Укажите причину изменения</FormControl.Validation>}</FormControl>}
     <Button variant="primary" type="submit" disabled={saving||accessSaving||!selected||!platform&&!duties.length}>{saving?'Назначаем…':platform?'Назначить роль':'Сохранить роли участника'}</Button>
    </Stack></form>
-   {platform&&<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={setAccessSaving} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>}
+
   </>}
   {pending&&<Dialog title="Отменить несохранённые изменения?" returnFocusRef={pending.selected!==undefined?userRef:scopeRef} onClose={()=>setPending(null)} footerButtons={[{content:'Продолжить редактирование',onClick:()=>setPending(null)},{content:'Отменить изменения',buttonType:'danger',onClick:()=>apply(pending)}]}><Text>При смене области или участника несохранённые изменения будут отменены.</Text></Dialog>}
  </Stack>
+ return platform?<FeatureFlags flags={{primer_react_underline_panels_controlled:true}}><UnderlinePanels aria-label="Управление пользователями" value={tab} onChange={({value})=>{if(!submitting.current&&!accessSaving)setTab(value)}}>
+  <UnderlinePanels.Tab value="roles">Служебные роли</UnderlinePanels.Tab>
+  <UnderlinePanels.Tab value="access">Блокировка входа</UnderlinePanels.Tab>
+  <UnderlinePanels.Panel value="roles"><Stack>{roleForm}{state==='ready'&&<PlatformUsersTable title="Все зарегистрированные пользователи" items={directory.items} state={directory.state} onRetry={directory.retry}/>}</Stack></UnderlinePanels.Panel>
+  <UnderlinePanels.Panel value="access">{state==='ready'&&<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={setAccessSaving} onDirectoryChange={setDirectory} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>}</UnderlinePanels.Panel>
+ </UnderlinePanels></FeatureFlags>:roleForm
 }

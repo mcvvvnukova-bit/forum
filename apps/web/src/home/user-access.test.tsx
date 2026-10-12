@@ -4,7 +4,7 @@ import {afterEach,expect,it,vi} from 'vitest'
 import {UserAccessSection} from './UserAccessSection'
 const owner='11111111-1111-4111-8111-111111111111',target='22222222-2222-4222-8222-222222222222'
 const session={user:{id:owner,displayName:'Администратор'},roles:['individual'],participant:null,platformRoles:['platform_admin'],accessVersion:1,csrfToken:'a'.repeat(43)}
-const active={userId:target,displayName:'Проверенный пользователь',status:'active',version:1}
+const active={userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:[]}
 const props={session,revision:0,disabled:false,onBusyChange:vi.fn(),onChanged:vi.fn(),onExpired:vi.fn(),onForbidden:vi.fn()}
 function page(){return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><UserAccessSection {...props}/></BaseStyles></ThemeProvider>)}
 function api(custom?:(url:string,init?:RequestInit)=>Response|Promise<Response>|undefined){
@@ -79,4 +79,22 @@ it('ignores late mutation completion after unmount and releases shared busy stat
  complete(Response.json({item:{...active,status:'deactivated',version:2}}))
  await waitFor(()=>expect(props.onBusyChange).toHaveBeenLastCalledWith(false))
  expect(props.onChanged).not.toHaveBeenCalled()
+})
+it('row unblock confirms, preserves roles in directory and returns focus to surviving form action',async()=>{
+ const role={id:'33333333-3333-4333-8333-333333333333',userId:target,roleCode:'platform_moderator',status:'active',version:1}
+ const onDirectoryChange=vi.fn()
+ vi.stubGlobal('fetch',api((url,init)=>init?.method==='PATCH'?Response.json({item:{...active,status:'active',version:2}}):Response.json({items:[{...active,status:'deactivated',platformRoles:[role]}],nextCursor:null})))
+ render(<ThemeProvider><BaseStyles><UserAccessSection {...props} onDirectoryChange={onDirectoryChange}/></BaseStyles></ThemeProvider>)
+ fireEvent.click(await screen.findByRole('button',{name:'Разблокировать Проверенный пользователь'}))
+ fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Разблокировать вход'}))
+ expect(await screen.findByText('Нет заблокированных пользователей')).toBeVisible()
+ await waitFor(()=>expect(onDirectoryChange.mock.lastCall?.[0].items[0].platformRoles).toEqual([role]))
+ await waitFor(()=>expect(screen.getByRole('button',{name:'Заблокировать вход'})).toHaveFocus())
+})
+it.each(['missing','foreign-user','duplicate-id','duplicate-code','corporate','bad-version'])('rejects %s directory assignments',async kind=>{
+ const role={id:'33333333-3333-4333-8333-333333333333',userId:kind==='foreign-user'?owner:target,roleCode:kind==='corporate'?'organization_admin':'platform_admin',status:'active',version:kind==='bad-version'?0:1}
+ const platformRoles=kind==='missing'?undefined:kind==='duplicate-id'?[role,{...role,roleCode:'platform_moderator'}]:kind==='duplicate-code'?[role,{...role,id:owner}]:[role]
+ vi.stubGlobal('fetch',api(()=>Response.json({items:[{...active,platformRoles}],nextCursor:null})));page()
+ expect(await screen.findByText('Не удалось загрузить доступ пользователей')).toBeVisible()
+ expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })

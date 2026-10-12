@@ -134,6 +134,8 @@ export class RoleStore {
    const kind='platform-user-access',after=afterCursor(actor,kind,query.cursor);
    const users=(await client.query<UserAccess>(`SELECT u.id AS "userId",u.display_name AS "displayName",u.status,
     u.access_version::double precision AS version FROM public.users u WHERE u.id::text>$1 ORDER BY u.id LIMIT $2`,[after,query.limit+1])).rows;
+   for(const user of users as (UserAccess&{platformRoles:unknown[]})[])user.platformRoles=(await client.query(`SELECT ${assignmentColumns} FROM public.iam_role_assignments
+    WHERE user_id=$1 AND scope_type='platform' ORDER BY role_code`,[user.userId])).rows;
    return page(actor,kind,users,query.limit,item=>item.userId);
   });
  }

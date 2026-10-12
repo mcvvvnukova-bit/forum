@@ -90,7 +90,9 @@ test('platform administrator blocks every session and future login, then restore
  const login=(token:string)=>store.authenticate({subject:identity.subject,alternateSubjects:[],displayName:'Bob',email:null,emailConfirmed:false,claims:{},profile:{family_name:'Bob'}},'login',token,3600);
  await login(secondToken);
  const listed=await get('/api/iam/platform-user-access',alice,'platform');assert.equal(listed.statusCode,200,listed.body);
- assert.deepEqual(listed.json().items.find((u:{userId:string})=>u.userId===bob.id),{userId:bob.id,displayName:'Bob',status:'active',version:1});
+ const bobAccess=listed.json().items.find((u:{userId:string})=>u.userId===bob.id);
+ assert.deepEqual({...bobAccess,platformRoles:[]},{userId:bob.id,displayName:'Bob',status:'active',version:1,platformRoles:[]});
+ assert.equal(bobAccess.platformRoles[0].roleCode,'platform_admin');
  const key=randomUUID(),headers={'if-match':'"1"','idempotency-key':key};
  const blocked=await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',headers);
  assert.equal(blocked.statusCode,200,blocked.body);assert.equal(blocked.json().item.version,2);
@@ -782,3 +784,14 @@ test('local bootstrap CLI requires exact arguments and prints only sanitized sta
  assert.equal(invalid.status,1);assert.deepEqual(JSON.parse(invalid.stderr),{status:'failed',code:'invalid_request'});
  assert.ok(!invalid.stderr.includes('private-invalid-value'));
 });
+test('access directory includes blocked and unidentified platform roles without corporate leakage',async()=>{
+ await platformAdmin();const roleId=await platformAdmin(bob);
+ await pool.query("UPDATE public.users SET status='deactivated' WHERE id=$1",[bob.id]);
+ await pool.query('DELETE FROM public.identity_profiles WHERE user_id=$1',[bob.id]);
+ await membership(bob,await company(),['organization_admin','organization_employee']);
+ const response=await get('/api/iam/platform-user-access',alice,'platform');assert.equal(response.statusCode,200,response.body);
+ const item=response.json().items.find((u:{userId:string})=>u.userId===bob.id);
+ assert.equal(item.status,'deactivated');assert.deepEqual(item.platformRoles,[{id:roleId,userId:bob.id,roleCode:'platform_admin',status:'active',version:1}]);
+ assert.equal((await get('/api/iam/platform-users',alice,'platform')).json().items.some((u:{userId:string})=>u.userId===bob.id),false);
+ const empty=response.json().items.find((u:{userId:string})=>u.userId===alice.id);assert.ok(empty.platformRoles.every((r:{roleCode:string})=>r.roleCode.startsWith('platform_')));
+})
