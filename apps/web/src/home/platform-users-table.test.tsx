@@ -74,7 +74,8 @@ it('access mode sorts organization rows both ways and filters deduplicated corpo
  fireEvent.click(sort);expect(names()).toEqual(['Борис','Анна','Вера'])
  expect(screen.getByRole('columnheader',{name:/^Организация/})).toHaveAttribute('aria-sort','descending')
  const boris=screen.getAllByRole('row').find(row=>within(row).queryByText('Борис'))!
- expect(within(boris).getByText('Администратор компании, Администратор платформы')).toBeVisible()
+ expect(within(boris).getByText('Администратор компании')).toBeVisible()
+ expect(within(boris).getByText('Администратор платформы')).toBeVisible()
  fireEvent.click(screen.getByRole('button',{name:'Фильтровать: Роли'}))
  fireEvent.change(screen.getByLabelText('Фильтр: Роли'),{target:{value:'organization_admin'}});expect(names()).toEqual(['Борис'])
  fireEvent.change(screen.getByLabelText('Фильтр: Роли'),{target:{value:'organization_employee'}});expect(names()).toEqual(['Анна'])
