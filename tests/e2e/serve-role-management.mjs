@@ -38,7 +38,7 @@ const vite=await createServer({root:join(root,'apps/web'),configFile:join(root,'
  const url=new URL(req.url,origin)
  if(url.pathname.startsWith('/__fixture/login/')){
   const account=identities[url.pathname.split('/').at(-1)];if(!account){res.statusCode=404;res.end();return}
-  res.setHeader('Set-Cookie',`forum_session=${account.token}; HttpOnly; SameSite=Lax; Path=/`);res.setHeader('Cache-Control','no-store');res.statusCode=303;res.setHeader('Location','/cabinet/roles/');res.end();return
+  res.setHeader('Set-Cookie',`forum_session=${account.token}; HttpOnly; SameSite=Lax; Path=/`);res.setHeader('Cache-Control','no-store');res.statusCode=303;res.setHeader('Location','/cabinet/users/');res.end();return
  }
  if(url.pathname==='/__fixture/info'){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({users:Object.fromEntries(Object.entries(identities).map(([name,actor])=>[name,actor.id])),companies}));return}
  if(url.pathname==='/__fixture/fail-reads'){failReads=url.searchParams.get('value')==='true';res.end('ok');return}

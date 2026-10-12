@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "b89562abe4dbe79af9dccdda655a0f0bd865fd20",
+  "sourceSha": "50ab8f191ea47ebee0fa3958091839f62e8f8389",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -97,7 +97,7 @@
       "previousSha256": "48deef6ec04936fce0aae05cbb75c2ef120da3edc9ff70401accad825492bcc0",
       "previousMode": "100644",
       "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
-      "candidateSha256": "e6cb1e3e82e32190e0faf7bed641597fffeeba69a8a97009f0d9d5514969a55b",
+      "candidateSha256": "f594229e5a592418e9882bd73e4b8fd8444ff5de50550f946b80ff8132787188",
       "candidateMode": "100644"
     },
     {
@@ -113,7 +113,7 @@
       "previousSha256": "af00a73b8911d59a99d7e6f933b63bd4a0aa966a012d5b3ef3e4758f3d7d662b",
       "previousMode": "100644",
       "candidatePath": "apps/web/src/home/App.tsx",
-      "candidateSha256": "4ab2761d19e34b28bf7ddaf40fef6e71b24a60c310c96ff8497b99b54eac6375",
+      "candidateSha256": "80f18e869e28f32269b61f0bfdcfb3ed3356df2f6ab9c27927e8fccd03aa60fe",
       "candidateMode": "100644"
     },
     {
@@ -121,7 +121,7 @@
       "previousSha256": "2eda65f5cbd901cf12eb458f5327bc0948180ae32b6b17e29b620d3568e0ff4f",
       "previousMode": "100644",
       "candidatePath": "apps/web/src/home/Cabinet.tsx",
-      "candidateSha256": "4a63e10ad447a44e73f08e0ed1761d3b423a86dbe935ab1a8fc5cea9f9c1a588",
+      "candidateSha256": "763772e1aabf2a2fd63af2168ac1bf0a356082b63510f90f31f7cb483df06c3a",
       "candidateMode": "100644"
     },
     {
@@ -129,7 +129,7 @@
       "previousSha256": "9a65d5cc4831859554b2a417bce20e6865f16513aa8022ae67a8b1541bf3034f",
       "previousMode": "100644",
       "candidatePath": "apps/web/src/home/Organizations.tsx",
-      "candidateSha256": "901fcc11461279eab624f936eac3aca5383f4c2356f2165f4c8e42c54e68de16",
+      "candidateSha256": "7ee3f8224bf872fb0aa56d5faf0b2355bd5208f6016f3f44ff69c45695225934",
       "candidateMode": "100644"
     },
     {
@@ -161,7 +161,7 @@
       "previousSha256": "f26cf0e8fe8517f3552b13c41025a27d6df0ce7010d989b4f8976e4b02a2a02c",
       "previousMode": "100644",
       "candidatePath": "deployment/release-manifest.schema.json",
-      "candidateSha256": "d7b881dc9c7a180095ee7a8572f35efdb8d96ae8dce67079f0c9c6d09d660885",
+      "candidateSha256": "28cae2e85df10f19bbf36bdc1cf9e0dc357beb503e273c91cc122f123d165bab",
       "candidateMode": "100644"
     },
     {
@@ -169,7 +169,7 @@
       "previousSha256": "f22960eec9427e7a9694de090d93f73aae2e4e3d0408f8f0337614fb98cf90e0",
       "previousMode": "100644",
       "candidatePath": "scripts/deployment/build-web-release.mjs",
-      "candidateSha256": "390dbe5c2fac3bcad187f03c215300cb67004fef2d3790ab0063dc0c44db24d5",
+      "candidateSha256": "be609c9e883b54de9dbcc710a8395760e35176e46bf25ef45d072db01fde8895",
       "candidateMode": "100644"
     },
     {
@@ -185,7 +185,7 @@
       "previousSha256": "9550c61ff63a48ba4e7abe8e2e8d56d214c3778f7bd39bd56b9fb5ea4c21954f",
       "previousMode": "100644",
       "candidatePath": "scripts/deployment/web_release.py",
-      "candidateSha256": "16f1b47da00cf03ac0b0231b55574b9f34cbcc8b9451e9fead3d27bee5bf1b6b",
+      "candidateSha256": "ba20961b7f2d2a28b6f2ecc88f9a803ac7b0ea8b031a0c440d745b09d7314c67",
       "candidateMode": "100644"
     },
     {
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "949236618b47fd7d980c31a5d380424ddc7f28d326b6bf8a3b93defa85b643ca",
+      "candidateSha256": "1d1544ac3bd1ac8178a62955bade54adb096929c7904e46c32573807a13707e4",
       "candidateMode": "100644"
     },
     {
@@ -209,7 +209,7 @@
       "previousSha256": "70407485c7fbc48e3a46182cd775f3eecb027d95808559c929ded965699042d8",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/web-build-inputs.test.mjs",
-      "candidateSha256": "6352aa926cbd70c2ff518fe8d1883db470b6e841f3958f74b38d62c451058b1a",
+      "candidateSha256": "3e3cc8b718608164c17581832dacebd1a2627b23c66bde1b67235211c1f56f51",
       "candidateMode": "100644"
     },
     {
@@ -217,7 +217,7 @@
       "previousSha256": "5ae0820aca1dac149cc2311f107a9dab00ff61207c62fdd746efb018f435e74c",
       "previousMode": "100644",
       "candidatePath": "tests/integration/test_web_release.py",
-      "candidateSha256": "66d6ac144b9830def1b66190d064a793635dff01ec0f6327c4ff5900f3289d03",
+      "candidateSha256": "3eefd2dd0c0b7501d6ffd04ed54554a2fb9b172c48f7d19e643ff340f51b322f",
       "candidateMode": "100644"
     }
   ],
@@ -269,7 +269,7 @@
     },
     {
       "path": "apps/web/src/home/roles.test.tsx",
-      "sha256": "bd3ef515fbe7bd75b38ad260b65e10f1e78b4fcd119af217b2a9dbc92bdcb1a6",
+      "sha256": "03931f93d55e11990ef77f7c6b5c69ea92fd6c8bfc0100df829db774f97dae9c",
       "mode": "100644"
     },
     {
@@ -284,12 +284,12 @@
     },
     {
       "path": "docs/plans/2026-10-11-role-model.md",
-      "sha256": "82d65c8dd0918401dc0a52a581f11aaed05d8f5eaf45cc5e9d31f83d9cb2559b",
+      "sha256": "f34d3d165825c91d2263329964cd60e03a55d9656e5a0c6512445bcbbf5d87fa",
       "mode": "100644"
     },
     {
       "path": "scripts/verification/web-role-routes.test.mjs",
-      "sha256": "06139451d0f9adea182c63024b8527658d36cd94495908b1465002ccdca0f6a5",
+      "sha256": "5d9c73109ad201a50834ff9a3ad1ae40803fb753ebc98179bbd85fdab7668ff1",
       "mode": "100644"
     },
     {
@@ -299,17 +299,17 @@
     },
     {
       "path": "tests/e2e/role-management.spec.ts",
-      "sha256": "d9a5b6c7c6507ba437d8466f22a1e462a395db4e99189ccac8e71980b47b8a96",
+      "sha256": "ba057e1676044403fce6df6195eb004be0ec15acd2292c28158ab8070963176a",
       "mode": "100644"
     },
     {
       "path": "tests/e2e/serve-role-management.mjs",
-      "sha256": "a0891dc452590f58d87b4d4c7e68cf03bac826beae04e0dc5a080ebc6934072c",
+      "sha256": "5a161a83c057e6ef141ae2f03edbf20902fc4ba520c843f26135fc93ee343a50",
       "mode": "100644"
     },
     {
       "path": "tests/integration/test_role_web_routes.py",
-      "sha256": "b1be9552e2a2153fe5c3a668a0d3983cf3609c9b88e258426a0c3a1c5f14e5fc",
+      "sha256": "2b212c2c1a255208ba37ff810eb8df6d37ab8d00c9e0a2250c7cf23644b80c16",
       "mode": "100644"
     },
     {

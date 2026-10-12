@@ -68,7 +68,7 @@ Validate all bodies/query/header values strictly; no client author selection. Se
 
 **Files:**
 - Create `apps/web/src/home/RoleManagementSection.tsx`, `apps/web/src/home/roles.test.tsx`, and focused browser verification if needed. Personal-session corporate contexts can reach this roles view through a permissions-aware link in My Organizations; the global Администрирование link appears only for platform.roles.manage.
-- Publish `/cabinet/roles/` through `scripts/deployment/build-web-release.mjs`, `scripts/deployment/web_release.py`, `deployment/release-manifest.schema.json` and their relevant publisher/manifest tests. Keep historical allowed route sets, add the exact new dev set; production remains `/` only.
+- Publish `/cabinet/users/` through `scripts/deployment/build-web-release.mjs`, `scripts/deployment/web_release.py`, `deployment/release-manifest.schema.json` and their relevant publisher/manifest tests. Keep historical allowed route sets, add the exact new dev set; production remains `/` only.
 - Modify `apps/dev-gateway/forum_dev_auth.py` and `apps/dev-gateway/tests/test_auth_gateway.py` for the serving boundary. Modify `apps/web/src/audience/intent.ts`, `apps/web/src/home/Cabinet.tsx`, `apps/profile-preview/src/ProfilePage.tsx` and existing cabinet navigation compositions as required; update routes in the established build config if new route publication requires it.
 
 **Interfaces:**

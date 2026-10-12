@@ -24,7 +24,7 @@ function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; 
   expiredRef.current=onExpired
   const userId=session.user.id
   const path=location.pathname.replace(/\/$/,'')
-  const view=path==='/cabinet/roles'?'roles':path==='/cabinet/organizations'?'organizations':path==='/cabinet/settings'?'settings':path==='/cabinet/work'?'work':'profile'
+  const view=path==='/cabinet/users'?'roles':path==='/cabinet/organizations'?'organizations':path==='/cabinet/settings'?'settings':path==='/cabinet/work'?'work':'profile'
   const rolesTitle=new URLSearchParams(location.search).get('context')?.startsWith('organization:')?'Управление ролями':'Управление пользователями'
   useEffect(()=>{document.title=`${view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view==='work'?'Работа':'Личные данные'} | АСТ Форум`},[view,rolesTitle])
   useEffect(()=>{

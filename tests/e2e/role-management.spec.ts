@@ -29,18 +29,18 @@ test('role grant, reload persistence, revoke and old-cookie refusal use the real
 })
 test('corporate signer request remains unconfirmed, switching clears prior company and foreign IDs show no members',async({page})=>{
  await page.goto('/__fixture/login/corporate');const info=await (await page.request.get('/__fixture/info')).json();const company=info.companies[0],other=info.companies[1]
- await page.goto(`/cabinet/roles/?context=${encodeURIComponent(`organization:${company}`)}`)
+ await page.goto(`/cabinet/users/?context=${encodeURIComponent(`organization:${company}`)}`)
  await page.getByLabel('Область управления').selectOption(`organization:${company}`);await expect(page.getByRole('option',{name:'UI Сотрудник компании',exact:true})).toHaveCount(1)
  const option=page.getByRole('option',{name:'UI Сотрудник компании',exact:true});const membership=await option.getAttribute('value');await page.getByLabel('Участник компании').selectOption(membership!)
  await page.getByLabel('Лицо с правом подписи',{exact:true}).check();await page.getByLabel('Причина изменения').fill('Synthetic signer duty, no evidence supplied');await page.getByRole('button',{name:'Сохранить роли участника'}).click()
  await expect(page.getByText('Подпись недоступна: подтверждение полномочий отсутствует или недействительно',{exact:true})).toBeVisible();await page.reload();await page.getByLabel('Участник компании').selectOption(membership!);await expect(page.getByLabel('Лицо с правом подписи',{exact:true})).toBeChecked()
  await page.screenshot({path:resolve(evidence,'signer-awaiting-authority.png'),fullPage:true});await page.getByLabel('Область управления').selectOption(`organization:${other}`);await expect(page.getByRole('option',{name:'UI Сотрудник компании',exact:true})).toHaveCount(0)
- await page.goto('/cabinet/roles/?context=organization:00000000-0000-4000-8000-000000000000');await expect(page.getByText('Нет доступа к управлению ролями',{exact:true})).toBeVisible();await expect(page.getByLabel('Участник компании')).toHaveCount(0)
+ await page.goto('/cabinet/users/?context=organization:00000000-0000-4000-8000-000000000000');await expect(page.getByText('Нет доступа к управлению ролями',{exact:true})).toBeVisible();await expect(page.getByLabel('Участник компании')).toHaveCount(0)
 })
 test('named company labels retain exact authorized context and draft safeguards',async({page})=>{
  await page.setViewportSize({width:390,height:1000});await page.goto('/__fixture/login/corporate')
  const info=await (await page.request.get('/__fixture/info')).json(),metadata=await (await page.request.get('/api/me/organizations')).json()
- await page.goto(`/cabinet/roles/?context=${encodeURIComponent(`organization:${info.companies[0]}`)}`)
+ await page.goto(`/cabinet/users/?context=${encodeURIComponent(`organization:${info.companies[0]}`)}`)
  const first=metadata.items.find((item:{id:string})=>item.id===info.companies[0]),second=metadata.items.find((item:{id:string})=>item.id===info.companies[1])
  await expect(page.getByRole('option',{name:`Тестовая компания 1 — ИНН ${first.inn}`,exact:true})).toHaveAttribute('value',`organization:${info.companies[0]}`)
  await expect(page.getByRole('option',{name:`Тестовая компания 2 — ИНН ${second.inn}`,exact:true})).toHaveAttribute('value',`organization:${info.companies[1]}`)

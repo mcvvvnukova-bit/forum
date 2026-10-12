@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from scripts.deployment.web_release import fingerprint, inventory, validate_artifact
 
-ROUTES=['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/cabinet/', '/cabinet/work/', '/cabinet/settings/', '/cabinet/organizations/', '/cabinet/roles/']
+ROUTES=['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/cabinet/', '/cabinet/work/', '/cabinet/settings/', '/cabinet/organizations/', '/cabinet/users/']
 class RoleWebRoutes(unittest.TestCase):
     def artifact(self, directory, routes, environment='dev'):
         root=Path(directory);site=root/'site';site.mkdir()
@@ -25,7 +25,7 @@ class RoleWebRoutes(unittest.TestCase):
     def test_dev_roles_page_is_owned_by_the_exact_current_route_set(self):
         with tempfile.TemporaryDirectory() as root:
             _,pages=validate_artifact(self.artifact(root,ROUTES),'a'*40,'dev')
-            self.assertIn('cabinet/roles/index.html',pages)
+            self.assertIn('cabinet/users/index.html',pages)
     def test_unknown_extra_route_is_rejected_before_publication(self):
         with tempfile.TemporaryDirectory() as root:
             with self.assertRaisesRegex(ValueError,'Route inventory mismatch'):
@@ -33,4 +33,4 @@ class RoleWebRoutes(unittest.TestCase):
     def test_roles_route_is_not_a_production_page(self):
         with tempfile.TemporaryDirectory() as root:
             with self.assertRaisesRegex(ValueError,'Route inventory mismatch'):
-                validate_artifact(self.artifact(root,['/','/cabinet/roles/'],'production'),'a'*40,'production')
+                validate_artifact(self.artifact(root,['/','/cabinet/users/'],'production'),'a'*40,'production')

@@ -23,7 +23,7 @@ function ProfileNavigation({onNavigate, disabled = false, view, root, settings=f
       <NavList.Group hideDivider>
         <NavList.GroupHeading>Администрирование</NavList.GroupHeading>
         <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><BookIcon/></NavList.LeadingVisual>Справочники</NavList.Item>
-        <NavList.Item href={`${root}roles/#main`} onClick={onNavigate} aria-current={view==='roles'?'page':undefined}><NavList.LeadingVisual><PeopleIcon/></NavList.LeadingVisual>Пользователи</NavList.Item>
+        <NavList.Item href={`${root}users/#main`} onClick={onNavigate} aria-current={view==='roles'?'page':undefined}><NavList.LeadingVisual><PeopleIcon/></NavList.LeadingVisual>Пользователи</NavList.Item>
       </NavList.Group>
       <NavList.Divider/>
     </>}
