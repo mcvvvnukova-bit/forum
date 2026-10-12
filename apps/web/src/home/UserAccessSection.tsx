@@ -1,11 +1,12 @@
 import {useEffect,useRef,useState} from 'react'
-import {Banner,Button,Dialog,FormControl,Heading,Select,Spinner,Stack,Text} from '@primer/react'
+import {Banner,Button,Dialog,Heading,SelectPanel,Spinner,Stack,Text} from '@primer/react'
 import {PlatformUsersTable} from './PlatformUsersTable'
 import type {Session} from '../audience/intent'
 
 type UserAccess={userId:string;displayName:string;status:'active'|'deactivated';version:number}
 export type PlatformAssignment={id:string;userId:string;roleCode:'platform_admin'|'platform_moderator';status:'active'|'revoked';version:number}
-export type UserDirectorySummary=UserAccess&{platformRoles:PlatformAssignment[]}
+export type OrganizationMembershipSummary={id:string;name:string;roles:('organization_admin'|'organization_employee'|'organization_signer')[]}
+export type UserDirectorySummary=UserAccess&{platformRoles:PlatformAssignment[];organizations:OrganizationMembershipSummary[]}
 export type DirectorySnapshot={items:UserDirectorySummary[];state:State;retry:()=>void}
 export type State='loading'|'ready'|'unavailable'|'stale'|'forbidden'
 class AccessError extends Error {
@@ -40,7 +41,14 @@ function directoryUser(value:unknown):UserDirectorySummary{
   if(typeof role.id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(role.id)||role.userId!==user.userId||!['platform_admin','platform_moderator'].includes(String(role.roleCode))||!['active','revoked'].includes(String(role.status))||typeof role.version!=='number'||!Number.isSafeInteger(role.version)||role.version<1||ids.has(role.id)||codes.has(String(role.roleCode)))throw new Error('Invalid platform role')
   ids.add(role.id);codes.add(String(role.roleCode));return role as PlatformAssignment
  })
- return {...user,platformRoles}
+ if(!Array.isArray(item.organizations))throw new Error('Invalid organizations')
+ const organizationIds=new Set<string>()
+ const organizations=item.organizations.map(value=>{
+  const organization=object(value)
+  if(typeof organization.id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(organization.id)||organizationIds.has(organization.id.toLowerCase())||typeof organization.name!=='string'||!organization.name.trim()||!Array.isArray(organization.roles)||organization.roles.some(code=>!['organization_admin','organization_employee','organization_signer'].includes(String(code)))||new Set(organization.roles).size!==organization.roles.length)throw new Error('Invalid organization')
+  organizationIds.add(organization.id.toLowerCase());return organization as OrganizationMembershipSummary
+ })
+ return {...user,platformRoles,organizations}
 }
 async function usersPage(signal:AbortSignal):Promise<UserDirectorySummary[]>{
  const users:UserDirectorySummary[]=[],cursors=new Set<string>(),ids=new Set<string>()
@@ -61,7 +69,8 @@ export function UserAccessSection({session,revision,disabled,onBusyChange,onChan
  const [users,setUsers]=useState<UserDirectorySummary[]>([]),[selected,setSelected]=useState(''),[state,setState]=useState<State>('loading')
  const [attempt,setAttempt]=useState(0),[confirm,setConfirm]=useState(false),[saving,setSaving]=useState(false)
  const [message,setMessage]=useState(''),[error,setError]=useState('')
- const selectRef=useRef<HTMLSelectElement>(null),buttonRef=useRef<HTMLButtonElement>(null)
+ const [pickerOpen,setPickerOpen]=useState(false),[search,setSearch]=useState('')
+ const selectRef=useRef<HTMLButtonElement>(null),buttonRef=useRef<HTMLButtonElement>(null)
  const controller=useRef<AbortController|null>(null),generation=useRef(0),busy=useRef(false)
  const idempotency=useRef<{signature:string;key:string}|null>(null)
  const callbacks=useRef({onBusyChange,onChanged,onExpired,onForbidden,onDirectoryChange});callbacks.current={onBusyChange,onChanged,onExpired,onForbidden,onDirectoryChange}
@@ -69,7 +78,7 @@ export function UserAccessSection({session,revision,disabled,onBusyChange,onChan
  const user=users.find(item=>item.userId===selected)
  function refusal(reason:unknown){
   if(reason instanceof AccessError&&[401,403,404,412].includes(reason.status)){
-   setUsers([]);setConfirm(false);setError('');idempotency.current=null
+   setUsers([]);setPickerOpen(false);setConfirm(false);setError('');idempotency.current=null
    setState(reason.status===412?'stale':'forbidden')
    if(reason.status===401)callbacks.current.onExpired()
    if(reason.status===403)callbacks.current.onForbidden()
@@ -78,7 +87,7 @@ export function UserAccessSection({session,revision,disabled,onBusyChange,onChan
  useEffect(()=>{
   controller.current?.abort()
   const abort=new AbortController(),ticket=++generation.current
-  controller.current=abort;busy.current=false;callbacks.current.onBusyChange(false);setSaving(false);setState('loading');setUsers([]);setConfirm(false);setError('');idempotency.current=null
+  controller.current=abort;busy.current=false;callbacks.current.onBusyChange(false);setSaving(false);setState('loading');setUsers([]);setPickerOpen(false);setConfirm(false);setError('');idempotency.current=null
   const timer=window.setTimeout(()=>abort.abort(),10_000)
   void usersPage(abort.signal).then(items=>{
    if(ticket!==generation.current)return
@@ -97,7 +106,7 @@ export function UserAccessSection({session,revision,disabled,onBusyChange,onChan
   if(idempotency.current?.signature!==signature)idempotency.current={signature,key:crypto.randomUUID()}
   const abort=new AbortController();controller.current?.abort();controller.current=abort
   const timer=window.setTimeout(()=>abort.abort(),10_000)
-  busy.current=true;callbacks.current.onBusyChange(true);setSaving(true);setError('');setMessage('')
+  busy.current=true;callbacks.current.onBusyChange(true);setSaving(true);setPickerOpen(false);setError('');setMessage('')
   try{
    const result=object(await request(`/api/iam/platform-user-access/${target.userId}`,abort.signal,{
     method:'PATCH',headers:{'Content-Type':'application/json','X-Forum-Context':'platform','X-Forum-CSRF':session.csrfToken!,
@@ -112,18 +121,13 @@ export function UserAccessSection({session,revision,disabled,onBusyChange,onChan
   }catch(reason){if(ticket===generation.current){setConfirm(false);refusal(reason)}}
   finally{window.clearTimeout(timer);if(ticket===generation.current){busy.current=false;callbacks.current.onBusyChange(false);setSaving(false)}}
  }
- return <section aria-labelledby="user-access-heading"><Stack>
-  <Heading as="h2" variant="small" id="user-access-heading">Блокировка пользователей</Heading>
-  <Text>Блокировка запрещает вход на платформу и завершает все действующие сеансы. Назначенные роли сохраняются.</Text>
+ return <section aria-label="Блокировка входа"><Stack>
   {message&&<Text role="status">{message}</Text>}
   {state==='loading'&&<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем доступ пользователей…</Text></Stack>}
   {state!=='loading'&&state!=='ready'&&<Banner variant={state==='forbidden'?'critical':'warning'} title={state==='stale'?'Доступ изменился. Загрузите актуальные данные':state==='forbidden'?'Нет доступа к блокировке пользователей':'Не удалось загрузить доступ пользователей'} primaryAction={<Button onClick={()=>setAttempt(value=>value+1)}>Загрузить доступ заново</Button>}/>}
   {error&&<Banner variant="critical" title={error}/>}
   {state==='ready'&&<>
-   <FormControl disabled={saving||disabled}><FormControl.Label>Пользователь для блокировки</FormControl.Label><Select ref={selectRef} block value={selected} onChange={event=>{setSelected(event.target.value);setMessage('');setError('');idempotency.current=null}}>
-    <Select.Option value="">Выберите пользователя</Select.Option>
-    {users.map(item=><Select.Option key={item.userId} value={item.userId}>{item.displayName} — {item.status==='active'?'вход разрешён':'вход заблокирован'}</Select.Option>)}
-   </Select></FormControl>
+   <Stack><Heading as="h2" variant="small" id="access-user-label">Пользователь для блокировки</Heading><SelectPanel title="Выберите пользователя" placeholder="Поиск пользователя" inputLabel="Поиск пользователя" anchorRef={selectRef} open={pickerOpen} onOpenChange={open=>{if(!saving&&!disabled)setPickerOpen(open)}} selected={user?{id:user.userId,text:user.displayName}:undefined} onSelectedChange={(item:{id?:string|number}|undefined)=>{if(!saving&&!disabled){const next=String(item?.id??'');if(next!==selected){setSelected(next);setMessage('');setError('');idempotency.current=null}setPickerOpen(false);setSearch('')}}} filterValue={search} onFilterChange={setSearch} items={users.filter(item=>item.displayName.toLocaleLowerCase().includes(search.toLocaleLowerCase())).map(item=>({id:item.userId,text:item.displayName,description:item.status==='active'?'Вход разрешён':'Вход заблокирован'}))} message={search&&!users.some(item=>item.displayName.toLocaleLowerCase().includes(search.toLocaleLowerCase()))?{title:'Пользователи не найдены',body:'Попробуйте другое имя',variant:'empty'}:undefined} renderAnchor={props=><Button {...props} ref={selectRef} aria-labelledby="access-user-label" disabled={saving||disabled}>{user?.displayName??'Выберите пользователя'}</Button>} secondaryAction={<SelectPanel.SecondaryActionButton disabled={saving||disabled||!selected} onClick={()=>{setSelected('');setMessage('');setError('');idempotency.current=null;setPickerOpen(false);setSearch('')}}>Очистить выбор</SelectPanel.SecondaryActionButton>}/></Stack>
    {!users.length&&<Text>Нет доступных пользователей</Text>}
    {user&&<Text>Статус входа: {user.status==='active'?'разрешён':'заблокирован'}</Text>}
    {user?.userId===session.user.id&&<Text>Нельзя заблокировать свой вход на платформу.</Text>}
@@ -131,7 +135,7 @@ export function UserAccessSection({session,revision,disabled,onBusyChange,onChan
     {saving?'Сохраняем…':user?.status==='deactivated'?'Разблокировать вход':'Заблокировать вход'}
    </Button>
   </>}
-  <PlatformUsersTable title="Заблокированные пользователи" items={users.filter(item=>item.status==='deactivated')} state={state} onRetry={()=>setAttempt(value=>value+1)} disabled={saving||disabled} onUnblock={item=>{if(busy.current||disabled)return;setSelected(item.userId);setError('');setMessage('');setConfirm(true)}}/>
+  <PlatformUsersTable showOrganizations title="Заблокированные пользователи" items={users.filter(item=>item.status==='deactivated')} state={state} onRetry={()=>setAttempt(value=>value+1)} disabled={saving||disabled} onUnblock={item=>{if(busy.current||disabled)return;if(item.userId!==selected)idempotency.current=null;setPickerOpen(false);setSelected(item.userId);setError('');setMessage('');setConfirm(true)}}/>
   {confirm&&user&&<Dialog title={user.status==='active'?'Заблокировать вход пользователя?':'Разблокировать вход пользователя?'} returnFocusRef={buttonRef} onClose={()=>{if(!busy.current)setConfirm(false)}} footerButtons={[
    {content:'Отмена',disabled:saving,onClick:()=>setConfirm(false)},
    {content:saving?'Сохраняем…':user.status==='active'?'Заблокировать вход':'Разблокировать вход',buttonType:user.status==='active'?'danger':'primary',disabled:saving||disabled,onClick:()=>void changeAccess()}

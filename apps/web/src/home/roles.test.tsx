@@ -25,7 +25,7 @@ function api(options:{session?:unknown;contexts?:unknown[];response?:(url:string
   if(url.startsWith('/api/iam/contexts'))return Response.json({items:options.contexts??[platform,corporate(),corporate(other)],nextCursor:null})
   if(url==='/api/iam/roles')return Response.json({items:catalogue})
   if(url==='/api/iam/context/resolve'){const key=JSON.parse(String(init?.body)).contextKey;return Response.json(key==='platform'?platform:corporate(key.slice(13)))}
-  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:[]}],nextCursor:null})
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,organizations:[],platformRoles:[]}],nextCursor:null})
   if(url.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',platformRoles:[]}],nextCursor:null})
   if(url===`/api/iam/organizations/${company}/members`)return Response.json({items:[member],nextCursor:null})
   if(url===`/api/iam/organizations/${other}/members`)return Response.json({items:[],nextCursor:null})
@@ -38,8 +38,8 @@ it('platform blocking has a separate section and removes a blocked user from rol
  const f=api({response:(url,init)=>url===`/api/iam/platform-user-access/${target}`&&init?.method==='PATCH'?Response.json({item:{userId:target,displayName:'Проверенный пользователь',status:'deactivated',version:2}}):undefined})
  vi.stubGlobal('fetch',f);page();await chooseUser()
  fireEvent.mouseDown(screen.getByRole('tab',{name:'Блокировка входа'}))
- expect(await screen.findByRole('heading',{name:'Блокировка пользователей'})).toBeVisible()
- fireEvent.change(screen.getByLabelText('Пользователь для блокировки'),{target:{value:target}})
+ expect(await screen.findByRole('heading',{name:'Пользователь для блокировки'})).toBeVisible()
+ fireEvent.click(screen.getByRole('button',{name:'Пользователь для блокировки'}));fireEvent.click(await screen.findByRole('option',{name:/Проверенный пользователь/}))
  fireEvent.click(screen.getByRole('button',{name:'Заблокировать вход'}))
  fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Заблокировать вход'}))
  await screen.findByText(/Действующие сеансы завершены/)
@@ -49,7 +49,7 @@ it('platform blocking has a separate section and removes a blocked user from rol
 })
 it('company role management does not expose platform blocking or request its data',async()=>{
  const f=api();vi.stubGlobal('fetch',f);page(organizationPath());await screen.findByRole('option',{name:member.displayName})
- expect(screen.queryByRole('heading',{name:'Блокировка пользователей'})).not.toBeInTheDocument()
+ expect(screen.queryByRole('heading',{name:'Пользователь для блокировки'})).not.toBeInTheDocument()
  expect(f.mock.calls.some(([url])=>String(url).startsWith('/api/iam/platform-user-access'))).toBe(false)
 })
 const namedCompanies=[{id:other,inn:'500100732259',name:'ООО Север',status:'active',members:[]},{id:company,inn:'9709128511',name:'ООО Юг',status:'active',members:[]},{id:target,inn:'7707083893',name:'Компания без полномочий',status:'active',members:[]}]
@@ -104,7 +104,7 @@ it('admin navigation groups users after My Organizations and resolves context be
  expect(f.mock.calls.findIndex(([u])=>u==='/api/iam/context/resolve')).toBeLessThan(f.mock.calls.findIndex(([u])=>String(u).startsWith('/api/iam/platform-users')))
 })
 it('grants without manual reason and prevents double grant with exact security headers',async()=>{let complete:(r:Response)=>void=()=>{};const f=api({response:u=>u==='/api/iam/platform-role-assignments'?new Promise(r=>{complete=r}):undefined});vi.stubGlobal('fetch',f);page();await chooseUser();expect(screen.queryByLabelText('Причина изменения')).not.toBeInTheDocument();fireEvent.click(screen.getByRole('button',{name:'Назначить роль'}));fireEvent.click(screen.getByRole('button',{name:'Назначаем…'}));await waitFor(()=>expect(f.mock.calls.filter(([u])=>u==='/api/iam/platform-role-assignments')).toHaveLength(1));const init=f.mock.calls.find(([u])=>u==='/api/iam/platform-role-assignments')![1]!,h=new Headers(init.headers);expect(h.get('X-Forum-CSRF')).toBe('a'.repeat(43));expect(h.get('X-Forum-Context')).toBe('platform');expect(h.get('Origin')).toBe(location.origin);expect(h.get('Idempotency-Key')).toMatch(/^[\w-]{8,128}$/);expect(h.has('If-Match')).toBe(false);expect(JSON.parse(String(init.body))).toEqual({targetUserId:target,roleCode:'platform_moderator',reason:'Назначение служебной роли через управление пользователями'});complete(Response.json({item:{id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1}},{status:201}));expect(await screen.findByText('Изменения сохранены')).toBeVisible()})
-it('revokes a role using the quoted current version',async()=>{let assignment={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1};const f=api({response:u=>{if(u.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:[assignment]}],nextCursor:null});if(u.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',platformRoles:[assignment]}],nextCursor:null});if(u.endsWith(`/platform-role-assignments/${assignmentId}`)){assignment={...assignment,status:'revoked',version:2};return Response.json({item:assignment})}}});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('button',{name:/Отозвать роль .* у Проверенный пользователь/}));expect(await screen.findByText('Изменения сохранены')).toBeVisible();const init=f.mock.calls.find(([u])=>String(u).endsWith(`/platform-role-assignments/${assignmentId}`))![1]!;expect(init.method).toBe('PATCH');expect(new Headers(init.headers).get('If-Match')).toBe('"1"');expect(JSON.parse(String(init.body))).toEqual({status:'revoked',reason:'Отзыв служебной роли через управление пользователями'})})
+it('revokes a role using the quoted current version',async()=>{let assignment={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1};const f=api({response:u=>{if(u.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,organizations:[],platformRoles:[assignment]}],nextCursor:null});if(u.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',platformRoles:[assignment]}],nextCursor:null});if(u.endsWith(`/platform-role-assignments/${assignmentId}`)){assignment={...assignment,status:'revoked',version:2};return Response.json({item:assignment})}}});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('button',{name:/Отозвать роль .* у Проверенный пользователь/}));expect(await screen.findByText('Изменения сохранены')).toBeVisible();const init=f.mock.calls.find(([u])=>String(u).endsWith(`/platform-role-assignments/${assignmentId}`))![1]!;expect(init.method).toBe('PATCH');expect(new Headers(init.headers).get('If-Match')).toBe('"1"');expect(JSON.parse(String(init.body))).toEqual({status:'revoked',reason:'Отзыв служебной роли через управление пользователями'})})
 it.each([403,412])('clears sensitive data after mutation refusal %s',async status=>{vi.stubGlobal('fetch',api({response:u=>u==='/api/iam/platform-role-assignments'?Response.json({code:status===412?'stale_version':'forbidden'},{status}):undefined}));page();await chooseUser();fireEvent.click(screen.getByRole('button',{name:'Назначить роль'}));expect(await screen.findByText(status===412?'Данные изменились. Загрузите актуальные права':'Нет доступа к управлению ролями')).toBeVisible();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument();expect(screen.getAllByRole('button',{name:'Повторить'})[0]).toBeVisible()})
 it('401 clears roles and refreshes the session',async()=>{let expired=false;vi.stubGlobal('fetch',api({response:u=>{if(u.startsWith('/api/iam/platform-users')){expired=true;return new Response(null,{status:401})}if(u==='/api/auth/session'&&expired)return new Response(null,{status:401})}}));page();await waitFor(()=>expect(location.pathname).toBe('/'));expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()})
 it('unavailable reads can retry context and user loading',async()=>{let failing=true;vi.stubGlobal('fetch',api({response:u=>u.startsWith('/api/iam/platform-users')&&failing?new Response(null,{status:503}):undefined}));page();expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible();failing=false;fireEvent.click(screen.getAllByRole('button',{name:'Повторить'})[0]);await screen.findByRole('button',{name:'Пользователь'})})
@@ -120,7 +120,7 @@ it('self admin revocation clears protected user data and refreshes staff navigat
  const f=api({response:u=>{
   if(u==='/api/auth/session'&&revoked)return Response.json({...session,platformRoles:[]})
   if(u.startsWith('/api/iam/contexts')&&revoked)return Response.json({items:[],nextCursor:null})
-  if(u.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:owner,displayName:'Собственный администратор',status:'active',version:1,platformRoles:[mine]}],nextCursor:null})
+  if(u.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:owner,displayName:'Собственный администратор',status:'active',version:1,organizations:[],platformRoles:[mine]}],nextCursor:null})
   if(u.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:owner,displayName:'Собственный администратор',platformRoles:[mine]}],nextCursor:null})
   if(u.endsWith(`/platform-role-assignments/${assignmentId}`)){revoked=true;return Response.json({item:{...mine,status:'revoked',version:2}})}
  }})
@@ -176,7 +176,7 @@ it('tabs preserve the role draft and keep both panels mounted',async()=>{
  expect(screen.getByRole('tab',{name:'Роли'})).toHaveAttribute('aria-selected','true')
  fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}))
  fireEvent.keyDown(screen.getByRole('tab',{name:'Блокировка входа'}),{key:'Enter'})
- expect(await screen.findByRole('heading',{name:'Блокировка пользователей'})).toBeVisible()
+ expect(await screen.findByRole('heading',{name:'Пользователь для блокировки'})).toBeVisible()
  expect(screen.getAllByRole('tabpanel',{hidden:true})).toHaveLength(2)
  fireEvent.keyDown(screen.getByRole('tab',{name:'Роли'}),{key:'Enter'})
  expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent('Проверенный пользователь')
@@ -188,7 +188,7 @@ it('role saving prevents mouse and keyboard tab changes and refreshes directory 
  const role={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1}
  vi.stubGlobal('fetch',api({response:(url,init)=>{
   if(url==='/api/iam/platform-role-assignments'&&init?.method==='POST')return new Promise(resolve=>{complete=resolve})
-  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:assigned?[role]:[]}],nextCursor:null})
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,organizations:[],platformRoles:assigned?[role]:[]}],nextCursor:null})
  }}));page();await chooseUser()
  fireEvent.click(screen.getByRole('button',{name:'Назначить роль'}))
  const accessTab=screen.getByRole('tab',{name:'Блокировка входа'})
@@ -210,17 +210,17 @@ it('access tab exposes parent directory failure and retry restores its protected
  expect(screen.queryByText('Проверенный пользователь')).not.toBeInTheDocument()
  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
  unavailable=false;fireEvent.click(within(panel).getAllByRole('button',{name:'Повторить'})[0])
- expect(await screen.findByRole('heading',{name:'Блокировка пользователей'})).toBeVisible()
- expect(await screen.findByRole('option',{name:'Проверенный пользователь — вход разрешён'})).toBeVisible()
+ expect(await screen.findByRole('heading',{name:'Пользователь для блокировки'})).toBeVisible()
+ expect(await screen.findByRole('button',{name:'Пользователь для блокировки'})).toBeVisible()
  expect(screen.getByRole('tab',{name:'Блокировка входа'})).toHaveAttribute('aria-selected','true')
 })
 
 it.each(['block','grant','revoke'])('late unblock selector refresh cannot undo a later %s mutation',async action=>{
- const a={userId:other,displayName:'Новый пользователь',status:'deactivated',version:1,platformRoles:[]}
+ const a={userId:other,displayName:'Новый пользователь',status:'deactivated',version:1,organizations:[],platformRoles:[]}
  const initialRole={id:assignmentId,userId:target,roleCode:'platform_moderator',status:'active',version:1}
- let b={userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:action==='revoke'?[initialRole]:[]}
+ let b={userId:target,displayName:'Проверенный пользователь',status:'active',version:1,organizations:[],platformRoles:action==='revoke'?[initialRole]:[]}
  let aStatus='deactivated',readCount=0,staleItems:unknown[]=[],complete:(response:Response)=>void=()=>{}
- const eligible=()=>[{...a,status:aStatus},b].filter(item=>item.status==='active').map(({userId,displayName,platformRoles})=>({userId,displayName,platformRoles}))
+ const eligible=()=>[{...a,organizations:[],status:aStatus},b].filter(item=>item.status==='active').map(({userId,displayName,platformRoles})=>({userId,displayName,platformRoles}))
  const f=api({response:(url,init)=>{
   if(url.startsWith('/api/iam/platform-users')){
    ++readCount
@@ -231,9 +231,9 @@ it.each(['block','grant','revoke'])('late unblock selector refresh cannot undo a
    if(init?.method==='PATCH'){
     const status=JSON.parse(String(init.body)).status
     if(url.endsWith(other)){aStatus=status;return Response.json({item:{...a,status,version:2}})}
-    b={...b,status,version:2};return Response.json({item:{...b,platformRoles:undefined}})
+    b={...b,organizations:[],status,version:2};return Response.json({item:{...b,platformRoles:undefined}})
    }
-   return Response.json({items:[{...a,status:aStatus,version:aStatus==='active'?2:1},b],nextCursor:null})
+   return Response.json({items:[{...a,organizations:[],status:aStatus,version:aStatus==='active'?2:1},{...b,organizations:[]}],nextCursor:null})
   }
   if(url.startsWith('/api/iam/platform-role-assignments')&&['POST','PATCH'].includes(String(init?.method))){
    const updated={...initialRole,status:action==='revoke'?'revoked':'active',version:action==='revoke'?2:1}
@@ -247,7 +247,7 @@ it.each(['block','grant','revoke'])('late unblock selector refresh cannot undo a
  await screen.findByText(/Вход пользователя «Новый пользователь» разрешён/)
  await waitFor(()=>expect(readCount).toBe(2))
  if(action==='block'){
-  fireEvent.change(screen.getByLabelText('Пользователь для блокировки'),{target:{value:target}})
+  fireEvent.click(screen.getByRole('button',{name:'Пользователь для блокировки'}));fireEvent.click(await screen.findByRole('option',{name:/Проверенный пользователь/}))
   fireEvent.click(screen.getByRole('button',{name:'Заблокировать вход'}))
   fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Заблокировать вход'}))
   await screen.findByText(/Вход пользователя «Проверенный пользователь» заблокирован/)
@@ -284,7 +284,7 @@ it('multi-role grant preserves partial success and retries only the uncertain re
    if(JSON.parse(String(init?.body)).roleCode==='platform_moderator'){granted=true;return Response.json({item:moderator},{status:201})}
    return fail?new Response(null,{status:503}):Response.json({item:admin},{status:201})
   }
-  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:granted?[moderator]:[]}],nextCursor:null})
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1,organizations:[],platformRoles:granted?[moderator]:[]}],nextCursor:null})
  }});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}));fireEvent.click(screen.getByRole('button',{name:'Назначить роли'}))
  await screen.findByText('Назначено ролей: 1. Не удалось назначить оставшиеся роли. Повторите попытку')
  expect(screen.queryByText('Изменения сохранены')).not.toBeInTheDocument();expect(screen.getByRole('checkbox',{name:'Модератор платформы'})).toBeChecked();expect(screen.getByRole('checkbox',{name:'Модератор платформы'})).toBeDisabled();expect(screen.getByText('Уже назначена')).toBeVisible()
@@ -300,7 +300,7 @@ it.each(['active','deactivated'])('table revokes explicit row B (%s) while retai
  const a={userId:target,displayName:'Проверенный пользователь',platformRoles:[]},b={userId:other,displayName:'Другой пользователь',platformRoles:[bRole]}
  const f=api({response:(url,init)=>{
   if(url.startsWith('/api/iam/platform-users'))return Response.json({items:status==='active'?[a,b]:[a],nextCursor:null})
-  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{...a,status:'active',version:1},{...b,status,version:1,platformRoles:revoked?[]:[bRole]}],nextCursor:null})
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{...a,organizations:[],status:'active',version:1},{...b,organizations:[],status,version:1,platformRoles:revoked?[]:[bRole]}],nextCursor:null})
   if(url.endsWith(`/platform-role-assignments/${assignmentId}`)&&init?.method==='PATCH'){revoked=true;return Response.json({item:{...bRole,status:'revoked',version:5}})}
  }});vi.stubGlobal('fetch',f);page();await chooseUser();fireEvent.click(screen.getByRole('checkbox',{name:'Администратор платформы'}))
  fireEvent.click(await screen.findByRole('button',{name:'Отозвать роль Модератор платформы у Другой пользователь'}));await screen.findByText('Изменения сохранены')
@@ -318,7 +318,7 @@ it('retains uncertain partial-grant identity across an independent B row revoke 
  const b=()=>({userId:other,displayName:'Другой пользователь',platformRoles:bRevoked?[]:[bRole]})
  const f=api({response:(url,init)=>{
   if(url.startsWith('/api/iam/platform-users'))return Response.json({items:[a(),b()],nextCursor:null})
-  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{...a(),status:'active',version:1},{...b(),status:'deactivated',version:1}],nextCursor:null})
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{...a(),organizations:[],status:'active',version:1},{...b(),organizations:[],status:'deactivated',version:1}],nextCursor:null})
   if(url===`/api/iam/platform-role-assignments/${company}`){bRevoked=true;return Response.json({item:{...bRole,status:'revoked',version:4}})}
   if(url==='/api/iam/platform-role-assignments'){
    if(JSON.parse(String(init?.body)).roleCode==='platform_moderator'){moderatorGranted=true;return Response.json({item:moderator},{status:201})}

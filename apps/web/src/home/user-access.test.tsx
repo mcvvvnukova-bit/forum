@@ -2,9 +2,12 @@ import {fireEvent,render,screen,waitFor,within} from '@testing-library/react'
 import {BaseStyles,ThemeProvider} from '@primer/react'
 import {afterEach,expect,it,vi} from 'vitest'
 import {UserAccessSection} from './UserAccessSection'
+Object.defineProperty(HTMLElement.prototype,'scrollTo',{value:vi.fn(),configurable:true})
+vi.mock('@primer/live-region-element',()=>({announce:vi.fn(async()=>{}),announceFromElement:vi.fn(async()=>{})}))
+Object.defineProperty(HTMLElement.prototype,'clear',{value:vi.fn(),configurable:true})
 const owner='11111111-1111-4111-8111-111111111111',target='22222222-2222-4222-8222-222222222222'
 const session={user:{id:owner,displayName:'Администратор'},roles:['individual'],participant:null,platformRoles:['platform_admin'],accessVersion:1,csrfToken:'a'.repeat(43)}
-const active={userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:[]}
+const active={userId:target,displayName:'Проверенный пользователь',status:'active',version:1,platformRoles:[],organizations:[]}
 const props={session,revision:0,disabled:false,onBusyChange:vi.fn(),onChanged:vi.fn(),onExpired:vi.fn(),onForbidden:vi.fn()}
 function page(){return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><UserAccessSection {...props}/></BaseStyles></ThemeProvider>)}
 function api(custom?:(url:string,init?:RequestInit)=>Response|Promise<Response>|undefined){
@@ -13,7 +16,7 @@ function api(custom?:(url:string,init?:RequestInit)=>Response|Promise<Response>|
   return Response.json({items:[active,{...active,userId:owner,displayName:'Администратор'}],nextCursor:null})
  })
 }
-async function select(id=target){await screen.findByRole('option',{name:'Проверенный пользователь — вход разрешён'});fireEvent.change(screen.getByLabelText('Пользователь для блокировки'),{target:{value:id}})}
+async function select(id=target){fireEvent.click(await screen.findByRole('button',{name:'Пользователь для блокировки'}));fireEvent.click(await screen.findByRole('option',{name:new RegExp(id===owner?'Администратор':'Проверенный пользователь')}))}
 async function confirm(label='Заблокировать вход'){
  fireEvent.click(screen.getByRole('button',{name:label}))
  const dialog=await screen.findByRole('dialog');fireEvent.click(within(dialog).getByRole('button',{name:label}))
@@ -42,7 +45,7 @@ it('cancel does not send a mutation and self blocking is disabled',async()=>{
  fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Отмена'}))
  await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
  expect(f.mock.calls.filter(([,init])=>init?.method==='PATCH')).toHaveLength(0)
- fireEvent.change(screen.getByLabelText('Пользователь для блокировки'),{target:{value:owner}})
+ await select(owner)
  expect(screen.getByRole('button',{name:'Заблокировать вход'})).toBeDisabled()
  expect(screen.getByText('Нельзя заблокировать свой вход на платформу.')).toBeVisible()
 })
@@ -53,6 +56,7 @@ it('prevents double submission and keeps idempotency key after uncertain failure
  const dialog=screen.getByRole('dialog');expect(within(dialog).getByRole('button',{name:'Сохраняем…'})).toBeDisabled()
  expect(props.onBusyChange).toHaveBeenCalledWith(true)
  complete(new Response(null,{status:503}));await screen.findByText('Не удалось изменить доступ. Повторите попытку')
+ fireEvent.click(screen.getByRole('button',{name:'Пользователь для блокировки'}));fireEvent.change(screen.getByRole('combobox',{name:'Поиск пользователя'}),{target:{value:'нет совпадений'}});fireEvent.keyDown(screen.getByRole('combobox',{name:'Поиск пользователя'}),{key:'Escape'})
  await confirm();complete(Response.json({item:{...active,status:'deactivated',version:2}}))
  await screen.findByText(/Действующие сеансы завершены/)
  const calls=f.mock.calls.filter(([,init])=>init?.method==='PATCH');expect(calls).toHaveLength(2)
@@ -82,13 +86,15 @@ it('ignores late mutation completion after unmount and releases shared busy stat
 })
 it('row unblock confirms, preserves roles in directory and returns focus to surviving form action',async()=>{
  const role={id:'33333333-3333-4333-8333-333333333333',userId:target,roleCode:'platform_moderator',status:'active',version:1}
+ const organizations=[{id:owner,name:'Компания А',roles:['organization_employee']}]
  const onDirectoryChange=vi.fn()
- vi.stubGlobal('fetch',api((url,init)=>init?.method==='PATCH'?Response.json({item:{...active,status:'active',version:2}}):Response.json({items:[{...active,status:'deactivated',platformRoles:[role]}],nextCursor:null})))
+ vi.stubGlobal('fetch',api((url,init)=>init?.method==='PATCH'?Response.json({item:{...active,status:'active',version:2}}):Response.json({items:[{...active,status:'deactivated',platformRoles:[role],organizations}],nextCursor:null})))
  render(<ThemeProvider><BaseStyles><UserAccessSection {...props} onDirectoryChange={onDirectoryChange}/></BaseStyles></ThemeProvider>)
  fireEvent.click(await screen.findByRole('button',{name:'Разблокировать Проверенный пользователь'}))
  fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Разблокировать вход'}))
  expect(await screen.findByText('Нет заблокированных пользователей')).toBeVisible()
  await waitFor(()=>expect(onDirectoryChange.mock.lastCall?.[0].items[0].platformRoles).toEqual([role]))
+ expect(onDirectoryChange.mock.lastCall?.[0].items[0].organizations).toEqual(organizations)
  await waitFor(()=>expect(screen.getByRole('button',{name:'Заблокировать вход'})).toHaveFocus())
 })
 it.each(['missing','foreign-user','duplicate-id','duplicate-code','corporate','bad-version'])('rejects %s directory assignments',async kind=>{
@@ -97,4 +103,20 @@ it.each(['missing','foreign-user','duplicate-id','duplicate-code','corporate','b
  vi.stubGlobal('fetch',api(()=>Response.json({items:[{...active,platformRoles}],nextCursor:null})));page()
  expect(await screen.findByText('Не удалось загрузить доступ пользователей')).toBeVisible()
  expect(screen.queryByRole('table')).not.toBeInTheDocument()
+})
+
+it.each(['missing','bad-id','empty-name','unknown-role','duplicate-code','duplicate-id'])('rejects %s organization metadata',async kind=>{
+ const organization={id:kind==='bad-id'?'invalid':owner,name:kind==='empty-name'?' ':'Компания А',roles:kind==='unknown-role'?['individual']:kind==='duplicate-code'?['organization_admin','organization_admin']:['organization_admin']}
+ vi.stubGlobal('fetch',api(()=>Response.json({items:[{...active,organizations:kind==='missing'?undefined:kind==='duplicate-id'?[organization,organization]:[organization]}],nextCursor:null})));page()
+ expect(await screen.findByText('Не удалось загрузить доступ пользователей')).toBeVisible()
+})
+it('search preserves target, supports no results and clears actual selection',async()=>{
+ vi.stubGlobal('fetch',api());page();await select()
+ fireEvent.click(screen.getByRole('button',{name:'Пользователь для блокировки'}))
+ fireEvent.change(screen.getByRole('combobox',{name:'Поиск пользователя'}),{target:{value:'никого'}})
+ expect(await screen.findByText('Пользователи не найдены')).toBeVisible()
+ expect(screen.getByText('Статус входа: разрешён')).toBeVisible()
+ fireEvent.click(screen.getByRole('button',{name:'Очистить выбор'}))
+ expect(screen.getByRole('button',{name:'Заблокировать вход'})).toBeDisabled()
+ expect(screen.queryByText('Блокировка пользователей')).not.toBeInTheDocument()
 })

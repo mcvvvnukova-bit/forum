@@ -146,7 +146,17 @@ export class RoleStore {
    for(const assignment of assignments){
     const roles=byUser.get(assignment.userId)??[];roles.push(assignment);byUser.set(assignment.userId,roles);
    }
-   return {...result,items:result.items.map(user=>({...user,platformRoles:byUser.get(user.userId)??[]}))};
+   const organizations=result.items.length?(await client.query<{userId:string;id:string;name:string;roles:string[]}>(`SELECT m.user_id AS "userId",o.id,coalesce(nullif(btrim(o.legal_name),''),o.inn) AS name,
+    ARRAY(SELECT r.role_code FROM public.iam_role_assignments r WHERE r.membership_id=m.id AND r.user_id=m.user_id
+     AND r.scope_type='organization' AND r.scope_id=m.organization_id AND r.status='active'
+     AND r.effective_from<=statement_timestamp() AND (r.effective_until IS NULL OR r.effective_until>statement_timestamp()) ORDER BY r.role_code) AS roles
+    FROM public.organization_memberships m JOIN public.organizations o ON o.id=m.organization_id
+    WHERE m.user_id=ANY($1::uuid[]) AND m.status='active' AND m.revoked_at IS NULL
+     AND m.effective_from<=statement_timestamp() AND (m.effective_until IS NULL OR m.effective_until>statement_timestamp())
+     AND o.registration_state='registered' AND o.status='active' ORDER BY m.user_id,name,o.id`,[result.items.map(user=>user.userId)])).rows:[];
+   const organizationsByUser=new Map<string,{id:string;name:string;roles:string[]}[]>();
+   for(const {userId,...organization} of organizations){const items=organizationsByUser.get(userId)??[];items.push(organization);organizationsByUser.set(userId,items)}
+   return {...result,items:result.items.map(user=>({...user,platformRoles:byUser.get(user.userId)??[],organizations:organizationsByUser.get(user.userId)??[]}))};
   });
  }
  async audit(token:string,key:string,query:PageRequest){

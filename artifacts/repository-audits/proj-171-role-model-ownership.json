@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "67803633da05c83198ac6ecde326e3d54c942f6b",
+  "sourceSha": "02a6c4690ef4cb52aa6141bc84af2209bf61ed81",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "b9c302fbd3407a752202a49f717bb56112dd2220782b50fb177abf65e1e9494c",
+      "candidateSha256": "49ed8828c586d44823e3feee5949b29e1a1db7162f2045732290f3d24be07549",
       "candidateMode": "100644"
     },
     {
@@ -249,7 +249,7 @@
     },
     {
       "path": "apps/api/src/iam/role-store.ts",
-      "sha256": "53fbd73f12b30c88e096e7188ee16f3618809d47e1b8f572ffdf5a3478534dbd",
+      "sha256": "2fb92ca0c6a65dcd1131b81f533a012c9e973dfbcd3dc3e562af678206859a99",
       "mode": "100644"
     },
     {
@@ -259,7 +259,7 @@
     },
     {
       "path": "apps/api/test/roles.test.ts",
-      "sha256": "0fcf854165a6898959e6e5daf5aa74987e9ba6e6006e665d0da7a747dc04efc2",
+      "sha256": "2f2cc58452f47912db0fa16f7b97b637ffd32a9a500a0522eb0426a40343ada1",
       "mode": "100644"
     },
     {
@@ -269,7 +269,7 @@
     },
     {
       "path": "apps/web/src/home/roles.test.tsx",
-      "sha256": "95e69e5727f8f581e5d5f0d1ff5e56f03faf3ce141dc0e04790c6184fb06e2eb",
+      "sha256": "454a5bb14834d079f6156953787a67dce57da9cee3be323b05e0f0e395b09382",
       "mode": "100644"
     },
     {
@@ -314,17 +314,17 @@
     },
     {
       "path": "apps/web/src/home/UserAccessSection.tsx",
-      "sha256": "d4118f9e42edf0af2d52b27c5ddaed93b75a8fe759538461dc9d3369111fa746",
+      "sha256": "961458767e095c362e167bd6a19a93cedbe3cc9f626a1111f1919994b35d37da",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/user-access.test.tsx",
-      "sha256": "f7390bf348159cf6e27dc3425e36741db01763e895941faaeb929f34750c78b8",
+      "sha256": "1efcdf6dbb66dd500699827a27124854e32526f38bc36061cb1ab92cc18072b0",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/PlatformUsersTable.tsx",
-      "sha256": "1de094f1d6e3fa0aff0af1b583f2fd3844acbca55fff7b47a852ccdb0a7eeb30",
+      "sha256": "f98fbc6feac85e8a5a6e280fade2261a7b883a672d92dff5d17bb36217878bc7",
       "mode": "100644"
     },
     {
@@ -339,12 +339,17 @@
     },
     {
       "path": "apps/web/src/home/platform-users-table.test.tsx",
-      "sha256": "b03059d639715ee7ef0795a5ced4877320b565bf542dc2e71b71f327a2eed90e",
+      "sha256": "44f84cad32e9439bae08630698fa20be0ec3a74602ecfc2864d2ded18d2b052a",
       "mode": "100644"
     },
     {
       "path": "docs/plans/2026-10-12-gitnexus-plan-user-role-table-controls.md",
       "sha256": "0aa1d2b02fda7dcd486f05a342adf76fcb293342a497718f2e339b8215491f53",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-12-user-access-directory-controls.md",
+      "sha256": "1c71bac222abfedd41beff811cc73e773ac4654f851b130e809d23b1bb7eda7a",
       "mode": "100644"
     }
   ],

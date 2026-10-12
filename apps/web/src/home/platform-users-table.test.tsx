@@ -4,9 +4,9 @@ import {expect,it,vi} from 'vitest'
 import {PlatformUsersTable} from './PlatformUsersTable'
 import type {UserDirectorySummary} from './UserAccessSection'
 const items:UserDirectorySummary[]=[
- {userId:'b',displayName:'Борис',status:'deactivated',version:1,platformRoles:[{id:'rb',userId:'b',roleCode:'platform_admin',status:'active',version:2}]},
- {userId:'a',displayName:'Анна',status:'active',version:1,platformRoles:[{id:'ra',userId:'a',roleCode:'platform_moderator',status:'active',version:1}]},
- {userId:'c',displayName:'Вера',status:'active',version:1,platformRoles:[]},
+ {userId:'b',displayName:'Борис',status:'deactivated',version:1,organizations:[],platformRoles:[{id:'rb',userId:'b',roleCode:'platform_admin',status:'active',version:2}]},
+ {userId:'a',displayName:'Анна',status:'active',version:1,organizations:[],platformRoles:[{id:'ra',userId:'a',roleCode:'platform_moderator',status:'active',version:1}]},
+ {userId:'c',displayName:'Вера',status:'active',version:1,organizations:[],platformRoles:[]},
 ]
 function table(props:Partial<React.ComponentProps<typeof PlatformUsersTable>>={}){return render(<ThemeProvider><BaseStyles><PlatformUsersTable title="Пользователи со служебными ролями" items={items} state="ready" onRetry={()=>{}} {...props}/></BaseStyles></ThemeProvider>)}
 it('sorts actual rows, combines filters, clears them and returns filter focus',()=>{
@@ -49,4 +49,17 @@ it('retains unblock actions and disables both kinds of row mutation',()=>{
  const unblock=vi.fn(),revoke=vi.fn();table({onUnblock:unblock,onRevoke:revoke,disabled:true})
  const button=screen.getByRole('button',{name:'Разблокировать Борис'});expect(button).toBeDisabled();fireEvent.click(button);expect(unblock).not.toHaveBeenCalled()
  expect(screen.getByRole('button',{name:'Отозвать роль Администратор платформы у Борис'})).toBeDisabled()
+})
+
+it('access mode lists and filters current companies and corporate assignments',()=>{
+ table({showOrganizations:true,items:[{...items[0],organizations:[{id:'11111111-1111-4111-8111-111111111111',name:'Компания А',roles:['organization_admin']},{id:'22222222-2222-4222-8222-222222222222',name:'Компания Б',roles:[]}]}]})
+ expect(screen.getByRole('columnheader',{name:/^Роли/})).toBeVisible()
+ expect(screen.getByRole('columnheader',{name:/^Организация/})).toBeVisible()
+ expect(screen.getByText(/Администратор компании/)).toBeVisible()
+ expect(screen.getByText('Компания Б')).toBeVisible()
+ fireEvent.click(screen.getByRole('button',{name:'Фильтровать: Организация'}))
+ fireEvent.change(screen.getByLabelText('Фильтр: Организация'),{target:{value:'несуществующая'}})
+ expect(screen.getByText('Нет пользователей по выбранным фильтрам')).toHaveAttribute('colspan','4')
+ fireEvent.change(screen.getByLabelText('Фильтр: Организация'),{target:{value:'КОМПАНИЯ Б'}})
+ expect(screen.getByText('Борис')).toBeVisible()
 })

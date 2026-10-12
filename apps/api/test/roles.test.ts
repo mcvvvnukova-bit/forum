@@ -92,7 +92,7 @@ test('platform administrator blocks every session and future login, then restore
  await login(secondToken);
  const listed=await get('/api/iam/platform-user-access',alice,'platform');assert.equal(listed.statusCode,200,listed.body);
  const bobAccess=listed.json().items.find((u:{userId:string})=>u.userId===bob.id);
- assert.deepEqual({...bobAccess,platformRoles:[]},{userId:bob.id,displayName:'Bob',status:'active',version:1,platformRoles:[]});
+ assert.deepEqual({...bobAccess,platformRoles:[]},{userId:bob.id,displayName:'Bob',status:'active',version:1,platformRoles:[],organizations:[]});
  assert.equal(bobAccess.platformRoles[0].roleCode,'platform_admin');
  const key=randomUUID(),headers={'if-match':'"1"','idempotency-key':key};
  const blocked=await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',headers);
@@ -144,13 +144,14 @@ test('blocking lists unverified accounts and uses a signed cursor separate from 
  assert.equal((await get('/api/auth/session',bob)).statusCode,401);
 });
 test('blocking access works with runtime ACLs and rolls back status sessions and idempotency when audit fails',async()=>{
- await platformAdmin();
+ await platformAdmin();const organization=await company();await membership(bob,organization);
  await pool.query("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='forum_role_runtime') THEN CREATE ROLE forum_role_runtime;END IF;END $$");
  runtimeGrants('forum_role_runtime',await readFile('../../deployment/forum-api/grant-runtime.sql','utf8'));
  const restricted=new Pool({connectionString:testDatabaseUrl(process.env.TEST_DATABASE_URL),options:'-c role=forum_role_runtime'});
  const ownerApp=app;app=await createApp({publicOrigin:'https://forum.example',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:false,sessionTtlSeconds:3600},restricted);
  try{
-  assert.equal((await get('/api/iam/platform-user-access',alice,'platform')).statusCode,200);
+  const directory=await get('/api/iam/platform-user-access',alice,'platform');assert.equal(directory.statusCode,200,directory.body);
+  assert.deepEqual(directory.json().items.find((item:{userId:string})=>item.userId===bob.id).organizations,[{id:organization,name:'Synthetic organization',roles:['organization_employee']}]);
   await pool.query('REVOKE INSERT ON public.audit_events FROM forum_role_runtime');
   assert.equal((await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':'"1"'})).statusCode,503);
   assert.equal((await get('/api/auth/session',bob)).statusCode,200);
@@ -785,16 +786,20 @@ test('local bootstrap CLI requires exact arguments and prints only sanitized sta
  assert.equal(invalid.status,1);assert.deepEqual(JSON.parse(invalid.stderr),{status:'failed',code:'invalid_request'});
  assert.ok(!invalid.stderr.includes('private-invalid-value'));
 });
-test('access directory includes blocked and unidentified platform roles without corporate leakage',async()=>{
+test('access directory includes blocked users with current corporate memberships and isolated platform roles',async()=>{
  await platformAdmin();const roleId=await platformAdmin(bob);
  await pool.query("UPDATE public.users SET status='deactivated' WHERE id=$1",[bob.id]);
  await pool.query('DELETE FROM public.identity_profiles WHERE user_id=$1',[bob.id]);
- await membership(bob,await company(),['organization_admin','organization_employee']);
+ const organization=await company();await membership(bob,organization,['organization_admin','organization_employee']);
+ const second=await company();await membership(bob,second,[]);
+ await pool.query("UPDATE public.organizations SET legal_name=CASE WHEN id=$1 THEN 'Компания А' ELSE 'Компания Б' END WHERE id=ANY($2::uuid[])",[organization,[organization,second]]);
+
  const response=await get('/api/iam/platform-user-access',alice,'platform');assert.equal(response.statusCode,200,response.body);
  const item=response.json().items.find((u:{userId:string})=>u.userId===bob.id);
+ assert.deepEqual(item.organizations,[{id:organization,name:'Компания А',roles:['organization_admin','organization_employee']},{id:second,name:'Компания Б',roles:[]}]);
  assert.equal(item.status,'deactivated');assert.deepEqual(item.platformRoles,[{id:roleId,userId:bob.id,roleCode:'platform_admin',status:'active',version:1}]);
  assert.equal((await get('/api/iam/platform-users',alice,'platform')).json().items.some((u:{userId:string})=>u.userId===bob.id),false);
- const empty=response.json().items.find((u:{userId:string})=>u.userId===alice.id);assert.ok(empty.platformRoles.every((r:{roleCode:string})=>r.roleCode.startsWith('platform_')));
+ const empty=response.json().items.find((u:{userId:string})=>u.userId===alice.id);assert.deepEqual(empty.organizations,[]);assert.ok(empty.platformRoles.every((r:{roleCode:string})=>r.roleCode.startsWith('platform_')));
 })
 
 test('access directory batches assignments once per populated page without reading lookahead roles',async()=>{
@@ -822,9 +827,11 @@ test('access directory batches assignments once per populated page without readi
  const read=async(limit:number,cursor?:string)=>{
   statements.length=0;
   const result=await store.userAccess(alice.token,'platform',{limit,cursor}) as {items:(UserAccess&{platformRoles:PlatformAssignment[]})[];nextCursor:string|null};
-  const assignments=statements.filter(statement=>/FROM public\.iam_role_assignments\b/.test(statement.sql));
+  const assignments=statements.filter(statement=>/FROM public\.iam_role_assignments\b/.test(statement.sql)&&!statement.sql.includes('FROM public.organization_memberships m JOIN'));
   assert.equal(assignments.length,result.items.length?1:0,'assignment query count must be independent of page size');
   if(result.items.length)assert.deepEqual(assignments[0].values?.[0],result.items.map(item=>item.userId),'batch must exclude pagination lookahead and other pages');
+  const organizations=statements.filter(statement=>statement.sql.includes('FROM public.organization_memberships m JOIN public.organizations o'));
+  assert.equal(organizations.length,result.items.length?1:0);if(result.items.length)assert.deepEqual(organizations[0].values?.[0],result.items.map(item=>item.userId));
   assert.equal(statements[0].sql,'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
   assert.equal(statements.at(-1)?.sql,'COMMIT');
   return {result,count:statements.length};
@@ -879,7 +886,7 @@ test('eligible platform users batch assignments per page and exclude blocked and
  const read=async(limit:number,cursor?:string)=>{
   statements.length=0;
   const result=await store.platformUsers(alice.token,'platform',{limit,cursor});
-  const assignments=statements.filter(statement=>/FROM public\.iam_role_assignments\b/.test(statement.sql));
+  const assignments=statements.filter(statement=>/FROM public\.iam_role_assignments\b/.test(statement.sql)&&!statement.sql.includes('FROM public.organization_memberships m JOIN'));
   assert.equal(assignments.length,result.items.length?1:0,'eligible assignment query count must be constant per page');
   if(result.items.length)assert.deepEqual(assignments[0].values?.[0],result.items.map(item=>item.userId),'eligible batch excludes lookahead');
   assert.equal(statements[0].sql,'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');assert.equal(statements.at(-1)?.sql,'COMMIT');
@@ -896,4 +903,25 @@ test('eligible platform users batch assignments per page and exclude blocked and
  // Authoritative eligibility change makes the signed continuation empty without deleting accounts.
  await pool.query("UPDATE public.users SET status='deactivated' WHERE id::text>$1 AND id<>$2",[large.result.items.at(-1)!.userId,alice.id]);
  const empty=await read(100,large.result.nextCursor!);assert.deepEqual(empty.result.items,[]);assert.equal(empty.result.nextCursor,null);
+});
+
+test('access directory excludes noncurrent memberships and assignments and invalid organizations',async()=>{
+ await platformAdmin();
+ const expected:{id:string;name:string;roles:string[]}[]=[];
+ for(const kind of ['revoked','pending','expired','future','inactive','unregistered','retained']){
+  const organization=await company(),member=await membership(bob,organization,['organization_employee','organization_admin','organization_signer']);
+  if(kind==='revoked')await pool.query("UPDATE public.organization_memberships SET status='revoked',revoked_at=now() WHERE id=$1",[member]);
+  if(kind==='pending')await pool.query("UPDATE public.organization_memberships SET status='pending',effective_from=NULL WHERE id=$1",[member]);
+  if(kind==='expired')await pool.query("UPDATE public.organization_memberships SET effective_from=now()-interval '2 days',effective_until=now()-interval '1 day' WHERE id=$1",[member]);
+  if(kind==='future')await pool.query("UPDATE public.organization_memberships SET effective_from=now()+interval '1 day' WHERE id=$1",[member]);
+  if(kind==='inactive')await pool.query("UPDATE public.organizations SET status='deactivated' WHERE id=$1",[organization]);
+  if(kind==='unregistered')await pool.query("UPDATE public.organizations SET registration_state='pending',registered_at=NULL WHERE id=$1",[organization]);
+  if(kind==='retained'){
+   await pool.query("UPDATE public.iam_role_assignments SET status='revoked',revoked_at=now() WHERE membership_id=$1 AND role_code='organization_admin'",[member]);
+   await pool.query("UPDATE public.iam_role_assignments SET effective_from=now()-interval '2 days',effective_until=now()-interval '1 day' WHERE membership_id=$1 AND role_code='organization_signer'",[member]);
+   expected.push({id:organization,name:'Synthetic organization',roles:['organization_employee']});
+  }
+ }
+ const result=await get('/api/iam/platform-user-access',alice,'platform');assert.equal(result.statusCode,200,result.body);
+ assert.deepEqual(result.json().items.find((item:{userId:string})=>item.userId===bob.id).organizations,expected);
 });

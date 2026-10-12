@@ -848,7 +848,7 @@ def verify_compact_login():
 
 # Exact successor for the reviewed IAM role model. Historical receipts are fixed.
 # Only this checker's candidate hash is omitted from the manifest to avoid a cycle.
-ROLE_MODEL_MANIFEST_SHA256 = '9f8ad3025243507337ccafca31b18e070f0b39580dbde8f114404b7aeb3dc470'
+ROLE_MODEL_MANIFEST_SHA256 = '7c12a7ccf86d64be75d9a32d58963fa2bcb5b31f7c73ba3557e12b74a92b31d2'
 
 
 @lru_cache(maxsize=1)
