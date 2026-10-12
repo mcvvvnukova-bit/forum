@@ -134,9 +134,14 @@ export class RoleStore {
    const kind='platform-user-access',after=afterCursor(actor,kind,query.cursor);
    const users=(await client.query<UserAccess>(`SELECT u.id AS "userId",u.display_name AS "displayName",u.status,
     u.access_version::double precision AS version FROM public.users u WHERE u.id::text>$1 ORDER BY u.id LIMIT $2`,[after,query.limit+1])).rows;
-   for(const user of users as (UserAccess&{platformRoles:unknown[]})[])user.platformRoles=(await client.query(`SELECT ${assignmentColumns} FROM public.iam_role_assignments
-    WHERE user_id=$1 AND scope_type='platform' ORDER BY role_code`,[user.userId])).rows;
-   return page(actor,kind,users,query.limit,item=>item.userId);
+   const result=page(actor,kind,users,query.limit,item=>item.userId);
+   const assignments=result.items.length?(await client.query<PlatformAssignment>(`SELECT ${assignmentColumns} FROM public.iam_role_assignments
+    WHERE user_id=ANY($1::uuid[]) AND scope_type='platform' ORDER BY user_id,role_code`,[result.items.map(user=>user.userId)])).rows:[];
+   const byUser=new Map<string,PlatformAssignment[]>();
+   for(const assignment of assignments){
+    const roles=byUser.get(assignment.userId)??[];roles.push(assignment);byUser.set(assignment.userId,roles);
+   }
+   return {...result,items:result.items.map(user=>({...user,platformRoles:byUser.get(user.userId)??[]}))};
   });
  }
  async audit(token:string,key:string,query:PageRequest){

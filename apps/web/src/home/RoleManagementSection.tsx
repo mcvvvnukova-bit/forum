@@ -189,10 +189,13 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   }
  }
  if(!validRoleSession(session))return <Banner variant="warning" title="Не удалось проверить права доступа"/>
- const roleForm=<Stack>
-  {organizationManagement&&contexts.length>0&&<FormControl disabled={saving||accessSaving}><FormControl.Label>Область управления</FormControl.Label><Select ref={scopeRef} value={key} onChange={e=>change({key:e.target.value})} block>{contexts.map(c=><Select.Option key={c.contextKey} value={c.contextKey}>{companyLabels[c.contextKey.slice(13)]??`Название и ИНН недоступны — компания ${c.contextKey.slice(13)}`}</Select.Option>)}</Select></FormControl>}
+ const feedback=<>
   {state==='loading'&&<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем роли…</Text></Stack>}
   {['unavailable','forbidden','stale'].includes(state)&&<Banner variant={state==='forbidden'?'critical':'warning'} title={state==='forbidden'?'Нет доступа к управлению ролями':state==='stale'?'Данные изменились. Загрузите актуальные права':'Не удалось загрузить роли'} primaryAction={<Button onClick={()=>{setKey('');setAttempt(n=>n+1)}}>Повторить</Button>}/>}
+ </>
+ const roleForm=<Stack>
+  {organizationManagement&&contexts.length>0&&<FormControl disabled={saving||accessSaving}><FormControl.Label>Область управления</FormControl.Label><Select ref={scopeRef} value={key} onChange={e=>change({key:e.target.value})} block>{contexts.map(c=><Select.Option key={c.contextKey} value={c.contextKey}>{companyLabels[c.contextKey.slice(13)]??`Название и ИНН недоступны — компания ${c.contextKey.slice(13)}`}</Select.Option>)}</Select></FormControl>}
+  {(!platform||tab==='roles')&&feedback}
   {state==='ready'&&<>
    {!platform&&<section aria-label="Каталог ролей"><Heading as="h2" variant="small">Роли компании</Heading><Stack>{catalogue.filter(r=>r.scope==='organization').map(r=><Text key={r.code}>{labels[r.code]}{r.conditionalPermissions?.includes('organization.documents.sign')?' — подпись требует отдельного подтверждения':''}</Text>)}</Stack></section>}
    {saved&&<Text role="status">Изменения сохранены</Text>}{saveError&&<Banner variant="critical" title={saveError}/>}
@@ -214,6 +217,6 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   <UnderlinePanels.Tab value="roles">Служебные роли</UnderlinePanels.Tab>
   <UnderlinePanels.Tab value="access">Блокировка входа</UnderlinePanels.Tab>
   <UnderlinePanels.Panel value="roles"><Stack>{roleForm}{state==='ready'&&<PlatformUsersTable title="Все зарегистрированные пользователи" items={directory.items} state={directory.state} onRetry={directory.retry}/>}</Stack></UnderlinePanels.Panel>
-  <UnderlinePanels.Panel value="access">{state==='ready'&&<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={setAccessSaving} onDirectoryChange={setDirectory} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>}</UnderlinePanels.Panel>
+  <UnderlinePanels.Panel value="access">{state==='ready'?<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={setAccessSaving} onDirectoryChange={setDirectory} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>:tab==='access'&&feedback}</UnderlinePanels.Panel>
  </UnderlinePanels></FeatureFlags>:roleForm
 }

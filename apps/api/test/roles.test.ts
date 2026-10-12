@@ -8,6 +8,7 @@ import type {NestFastifyApplication} from '@nestjs/platform-fastify';
 import {createApp} from '../src/app.js';
 import {migrate} from '../src/migrate.js';
 import {AuthStore} from '../src/iam/auth-store.js';
+import {RoleStore,type UserAccess,type PlatformAssignment} from '../src/iam/role-store.js';
 import {testDatabaseUrl} from './test-database.js';
 
 let pool:Pool,app:NestFastifyApplication;
@@ -795,3 +796,57 @@ test('access directory includes blocked and unidentified platform roles without 
  assert.equal((await get('/api/iam/platform-users',alice,'platform')).json().items.some((u:{userId:string})=>u.userId===bob.id),false);
  const empty=response.json().items.find((u:{userId:string})=>u.userId===alice.id);assert.ok(empty.platformRoles.every((r:{roleCode:string})=>r.roleCode.startsWith('platform_')));
 })
+
+test('access directory batches assignments once per populated page without reading lookahead roles',async()=>{
+ await platformAdmin();
+ await pool.query(`INSERT INTO public.iam_role_assignments(user_id,scope_type,role_code,status,revoked_at,created_by_user_id,reason)
+  VALUES($1,'platform','platform_moderator','revoked',now(),$1,'Synthetic revoked directory fixture')`,[alice.id]);
+ await pool.query(`INSERT INTO public.users(id,display_name,status)
+  SELECT ('ffffffff-ffff-4fff-8fff-'||lpad(n::text,12,'0'))::uuid,'Directory user '||n,CASE WHEN n%2=0 THEN 'deactivated' ELSE 'active' END
+  FROM generate_series(1,102) n`);
+ await pool.query(`INSERT INTO public.iam_role_assignments(user_id,scope_type,role_code,status,created_by_user_id,reason)
+  SELECT id,'platform','platform_moderator','active',$1,'Synthetic batched directory fixture'
+  FROM public.users WHERE display_name LIKE 'Directory user %'`,[alice.id]);
+ const statements:{sql:string;values?:unknown[]}[]=[];
+ const observedPool=new Proxy(pool,{get(target,key){
+  if(key==='connect')return async()=>{
+   const client=await target.connect();
+   return new Proxy(client,{get(target,key){
+    if(key==='query')return (sql:string,values?:unknown[])=>{statements.push({sql,values});return target.query(sql,values)};
+    const value=Reflect.get(target,key);return typeof value==='function'?value.bind(target):value;
+   }});
+  };
+  const value=Reflect.get(target,key);return typeof value==='function'?value.bind(target):value;
+ }});
+ const store=new RoleStore(observedPool);
+ const read=async(limit:number,cursor?:string)=>{
+  statements.length=0;
+  const result=await store.userAccess(alice.token,'platform',{limit,cursor}) as {items:(UserAccess&{platformRoles:PlatformAssignment[]})[];nextCursor:string|null};
+  const assignments=statements.filter(statement=>/FROM public\.iam_role_assignments\b/.test(statement.sql));
+  assert.equal(assignments.length,result.items.length?1:0,'assignment query count must be independent of page size');
+  if(result.items.length)assert.deepEqual(assignments[0].values?.[0],result.items.map(item=>item.userId),'batch must exclude pagination lookahead and other pages');
+  assert.equal(statements[0].sql,'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+  assert.equal(statements.at(-1)?.sql,'COMMIT');
+  return {result,count:statements.length};
+ };
+ const small=await read(25);assert.equal(small.result.items.length,25);assert.ok(small.result.nextCursor);
+ const large=await read(100);assert.equal(large.result.items.length,100);assert.ok(large.result.nextCursor);
+ assert.equal(large.count,small.count,'database round trips must stay constant as the page grows');
+ const tail=await read(100,large.result.nextCursor!);assert.equal(tail.result.items.length,4);assert.equal(tail.result.nextCursor,null);
+ const all=[...large.result.items,...tail.result.items];assert.equal(new Set(all.map(item=>item.userId)).size,104);
+ const expected=(await pool.query<PlatformAssignment>(`SELECT id,user_id AS "userId",role_code AS "roleCode",status,version FROM public.iam_role_assignments WHERE scope_type='platform' ORDER BY user_id,role_code`)).rows;
+ for(const item of all){
+  assert.deepEqual(item.platformRoles,expected.filter(role=>role.userId===item.userId));
+  assert.ok(Array.isArray(item.platformRoles));
+  assert.ok(item.platformRoles.every(role=>role.userId===item.userId));
+  assert.deepEqual(item.platformRoles.map(role=>role.roleCode),[...item.platformRoles.map(role=>role.roleCode)].sort());
+  if(item.displayName.startsWith('Directory user '))assert.equal(item.platformRoles[0].roleCode,'platform_moderator');
+  if(item.userId===bob.id)assert.deepEqual(item.platformRoles,[]);
+ }
+ // Remove all directory rows after actor, retaining the authorized session, to exercise an empty continuation.
+ const continuation=large.result.nextCursor!;
+ await pool.query('DELETE FROM public.iam_role_assignments WHERE user_id IN(SELECT id FROM public.users WHERE id::text>$1 AND id<>$2)',[large.result.items.at(-1)!.userId,alice.id]);
+ await pool.query('DELETE FROM public.users WHERE id::text>$1 AND id<>$2',[large.result.items.at(-1)!.userId,alice.id]);
+ assert.ok(!tail.result.items.some(item=>item.userId===alice.id));
+ const empty=await read(100,continuation);assert.deepEqual(empty.result.items,[]);assert.equal(empty.result.nextCursor,null);
+});
