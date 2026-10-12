@@ -18,6 +18,7 @@ COPY --from=build --chown=node:node /app/apps/api ./apps/api
 COPY --from=build --chown=node:node /app/apps/api/dist ./dist
 COPY --chown=node:node apps/api/package.json ./
 COPY --chown=node:node apps/api/migrations ./migrations
+COPY --chown=node:node apps/api/reference-migrations ./reference-migrations
 USER node
 EXPOSE 3001
 CMD ["node", "dist/main.js"]
