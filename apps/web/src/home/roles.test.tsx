@@ -16,6 +16,7 @@ const catalogue=[
 ]
 const member={id:memberId,userId:target,displayName:'Сотрудник первой компании',status:'active',version:1,roles:['organization_employee','organization_signer'],effectiveRoles:['organization_employee'],permissions:['organization.business.read']}
 function page(path='/cabinet/roles/'){vi.stubGlobal('scrollTo',vi.fn());history.replaceState(null,'',path);return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><Cabinet/></BaseStyles></ThemeProvider>)}
+const organizationPath=(id=company)=>`/cabinet/roles/?context=${encodeURIComponent(`organization:${id}`)}`
 function api(options:{session?:unknown;contexts?:unknown[];response?:(url:string,init?:RequestInit)=>Response|Promise<Response>|undefined}={}){
  return vi.fn(async(input:string|URL|Request,init?:RequestInit)=>{const url=String(input),custom=await options.response?.(url,init);if(custom)return custom
   if(url==='/api/auth/session')return Response.json(options.session??session)
@@ -33,7 +34,7 @@ function api(options:{session?:unknown;contexts?:unknown[];response?:(url:string
 afterEach(()=>vi.unstubAllGlobals())
 const namedCompanies=[{id:other,inn:'500100732259',name:'ООО Север',status:'active',members:[]},{id:company,inn:'9709128511',name:'ООО Юг',status:'active',members:[]},{id:target,inn:'7707083893',name:'Компания без полномочий',status:'active',members:[]}]
 it('company labels match authorized context IDs rather than metadata order or extra cards',async()=>{
- vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate(),corporate(other)],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:namedCompanies,nextCursor:null}):undefined}));page()
+ vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate(),corporate(other)],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:namedCompanies,nextCursor:null}):undefined}));page(organizationPath())
  expect(await screen.findByRole('option',{name:'ООО Юг — ИНН 9709128511'})).toHaveValue(`organization:${company}`)
  expect(screen.getByRole('option',{name:'ООО Север — ИНН 500100732259'})).toHaveValue(`organization:${other}`)
  expect(screen.queryByRole('option',{name:/Компания без полномочий/})).not.toBeInTheDocument()
@@ -42,22 +43,22 @@ it('company labels match authorized context IDs rather than metadata order or ex
 it('late paginated company labels preserve selected context and unsaved reason',async()=>{
  let finish:(response:Response)=>void=()=>{}
  const f=api({session:{...session,platformRoles:[]},contexts:[corporate(),corporate(other)],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:[namedCompanies[1]],nextCursor:'second page'}):u==='/api/me/organizations?cursor=second%20page'?new Promise(r=>{finish=r}):undefined})
- vi.stubGlobal('fetch',f);page();await screen.findByRole('option',{name:member.displayName});reason();fireEvent.change(screen.getByLabelText('Область управления'),{target:{value:`organization:${other}`}})
+ vi.stubGlobal('fetch',f);page(organizationPath());await screen.findByRole('option',{name:member.displayName});reason();fireEvent.change(screen.getByLabelText('Область управления'),{target:{value:`organization:${other}`}})
  const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}))
  await waitFor(()=>expect(f.mock.calls.some(([u])=>u==='/api/me/organizations?cursor=second%20page')).toBe(true));finish(Response.json({userId:owner,items:[namedCompanies[0]],nextCursor:null}))
  await screen.findByRole('option',{name:'ООО Север — ИНН 500100732259'});expect(screen.getByLabelText('Область управления')).toHaveValue(`organization:${company}`);expect(screen.getByLabelText('Причина изменения')).toHaveValue('Согласовано владельцем');expect(screen.getByRole('option',{name:member.displayName})).toBeInTheDocument()
 })
 it('missing company name remains recognizable by INN without claiming a known name',async()=>{
- vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:[{...namedCompanies[1],name:null}],nextCursor:null}):undefined}));page()
+ vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:[{...namedCompanies[1],name:null}],nextCursor:null}):undefined}));page(organizationPath())
  expect(await screen.findByRole('option',{name:'Название недоступно — ИНН 9709128511'})).toHaveValue(`organization:${company}`);await screen.findByRole('option',{name:member.displayName})
 })
 it.each(['unavailable','foreign-owner','repeated-cursor'])('company metadata %s uses honest fallback without changing IAM authority',async kind=>{
- vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>u.startsWith('/api/me/organizations')?kind==='unavailable'?new Response(null,{status:503}):Response.json({userId:kind==='foreign-owner'?target:owner,items:kind==='repeated-cursor'&&u.includes('?')?[]:namedCompanies,nextCursor:kind==='repeated-cursor'?'repeat':null}):undefined}));page()
+ vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>u.startsWith('/api/me/organizations')?kind==='unavailable'?new Response(null,{status:503}):Response.json({userId:kind==='foreign-owner'?target:owner,items:kind==='repeated-cursor'&&u.includes('?')?[]:namedCompanies,nextCursor:kind==='repeated-cursor'?'repeat':null}):undefined}));page(organizationPath())
  await screen.findByRole('option',{name:member.displayName});expect(screen.getByRole('option',{name:`Название и ИНН недоступны — компания ${company}`})).toHaveValue(`organization:${company}`);expect(screen.queryByRole('option',{name:/ООО/})).not.toBeInTheDocument();expect(screen.getByLabelText('Область управления')).toHaveValue(`organization:${company}`)
 })
 it('company metadata 401 clears protected data and refreshes the expired session',async()=>{
  let expired=false
- vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>{if(u==='/api/me/organizations'){expired=true;return new Response(null,{status:401})}if(u==='/api/auth/session'&&expired)return new Response(null,{status:401})}}));page()
+ vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate()],response:u=>{if(u==='/api/me/organizations'){expired=true;return new Response(null,{status:401})}if(u==='/api/auth/session'&&expired)return new Response(null,{status:401})}}));page(organizationPath())
  await waitFor(()=>expect(location.pathname).toBe('/'));expect(screen.queryByRole('option',{name:member.displayName})).not.toBeInTheDocument();expect(screen.queryByLabelText('Участник компании')).not.toBeInTheDocument()
 })
 async function chooseUser(){await screen.findByRole('option',{name:'Проверенный пользователь'});fireEvent.change(screen.getByLabelText('Пользователь'),{target:{value:target}})}
@@ -106,4 +107,26 @@ it('revokes existing member access with reason and current membership version',a
 it('empty context roles cannot authorize a platform-management view',async()=>{vi.stubGlobal('fetch',api({contexts:[{...platform,roles:[]}]}));page();expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()})
 it('missing catalogue roles make authorization unavailable',async()=>{vi.stubGlobal('fetch',api({response:u=>u==='/api/iam/roles'?Response.json({items:[]}):undefined}));page();expect(await screen.findByText('Не удалось загрузить роли')).toBeVisible();expect(screen.queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()})
 it('unsaved user change returns keyboard focus to its own select after cancellation',async()=>{vi.stubGlobal('fetch',api());page();await chooseUser();reason();const select=screen.getByLabelText('Пользователь');fireEvent.change(select,{target:{value:''}});const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}));await waitFor(()=>expect(select).toHaveFocus());expect(select).toHaveValue(target)})
-it('changing service role is an unsaved draft even before entering its reason',async()=>{vi.stubGlobal('fetch',api());page();await chooseUser();fireEvent.change(screen.getByLabelText('Служебная роль'),{target:{value:'platform_admin'}});fireEvent.change(screen.getByLabelText('Область управления'),{target:{value:`organization:${company}`}});const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}));expect(screen.getByLabelText('Область управления')).toHaveValue('platform');expect(screen.getByLabelText('Служебная роль')).toHaveValue('platform_admin')})
+it('changing service role is an unsaved draft even before entering its reason',async()=>{vi.stubGlobal('fetch',api());page();await chooseUser();fireEvent.change(screen.getByLabelText('Служебная роль'),{target:{value:'platform_admin'}});fireEvent.change(screen.getByLabelText('Пользователь'),{target:{value:''}});const dialog=await screen.findByRole('dialog',{name:'Отменить несохранённые изменения?'});fireEvent.click(within(dialog).getByRole('button',{name:'Продолжить редактирование'}));expect(screen.getByLabelText('Пользователь')).toHaveValue(target);expect(screen.getByLabelText('Служебная роль')).toHaveValue('platform_admin')})
+
+it('platform users stay in platform context even when company management is available',async()=>{
+ const f=api();vi.stubGlobal('fetch',f);page();await screen.findByRole('option',{name:'Проверенный пользователь'})
+ expect(screen.queryByLabelText('Область управления')).not.toBeInTheDocument()
+ expect(screen.queryByRole('option',{name:'Платформа'})).not.toBeInTheDocument()
+ expect(f.mock.calls.some(([u])=>u==='/api/me/organizations'||String(u).includes('/members'))).toBe(false)
+ const resolves=f.mock.calls.filter(([u])=>u==='/api/iam/context/resolve')
+ expect(resolves).toHaveLength(1)
+ expect(JSON.parse(String(resolves[0][1]!.body))).toEqual({contextKey:'platform'})
+})
+it('platform users refuse company-only authority instead of opening the first organization',async()=>{
+ const f=api({session:{...session,platformRoles:[]},contexts:[corporate()]});vi.stubGlobal('fetch',f);page()
+ expect(await screen.findByText('Нет доступа к управлению ролями')).toBeVisible()
+ expect(screen.queryByLabelText('Область управления')).not.toBeInTheDocument()
+ expect(f.mock.calls.some(([u])=>u==='/api/iam/context/resolve'||String(u).includes('/members')||String(u).startsWith('/api/iam/platform-users'))).toBe(false)
+})
+it('company management retains its selector without exposing the platform context',async()=>{
+ const f=api();vi.stubGlobal('fetch',f);page(organizationPath());await screen.findByRole('option',{name:member.displayName})
+ expect(screen.getByLabelText('Область управления')).toHaveValue(`organization:${company}`)
+ expect(screen.queryByRole('option',{name:'Платформа'})).not.toBeInTheDocument()
+ expect(f.mock.calls.some(([u])=>String(u).startsWith('/api/iam/platform-users'))).toBe(false)
+})

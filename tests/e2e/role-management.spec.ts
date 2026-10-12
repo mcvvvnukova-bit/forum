@@ -6,10 +6,10 @@ test.beforeAll(async()=>{await mkdir(evidence,{recursive:true})})
 for(const width of [1440,768,390,320])test(`real API roles layout, menu and focus at ${width}`,async({page})=>{
  await page.setViewportSize({width,height:1000});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message))
  await page.goto('/__fixture/login/admin');await expect(page.getByRole('heading',{name:'Служебные роли'})).toBeVisible()
- await expect(page.getByLabel('Область управления')).toHaveValue('platform')
+ await expect(page.getByLabel('Область управления')).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  if(width<768){const opener=page.getByRole('button',{name:'Открыть меню профиля'});await opener.click();const dialog=page.getByRole('dialog',{name:'Разделы профиля'});await expect(dialog.getByText('Администрирование',{exact:true})).toBeVisible();await expect(dialog.getByText('Справочники',{exact:true})).toBeVisible();await expect(dialog.getByRole('link',{name:'Пользователи'})).toBeVisible();await page.keyboard.press('Escape');await expect(opener).toBeFocused()}
- await page.getByLabel('Область управления').press('Tab');await expect(page.getByLabel('Пользователь')).toBeFocused()
+ await page.getByLabel('Пользователь',{exact:true}).press('Tab');await expect(page.getByLabel('Служебная роль')).toBeFocused()
  await page.screenshot({path:resolve(evidence,`roles-${width}.png`),fullPage:true});await page.reload();await expect(page.getByRole('heading',{name:'Служебные роли'})).toBeVisible();expect(errors).toEqual([])
 })
 test('role grant, reload persistence, revoke and old-cookie refusal use the real API',async({page,browser})=>{
@@ -29,6 +29,7 @@ test('role grant, reload persistence, revoke and old-cookie refusal use the real
 })
 test('corporate signer request remains unconfirmed, switching clears prior company and foreign IDs show no members',async({page})=>{
  await page.goto('/__fixture/login/corporate');const info=await (await page.request.get('/__fixture/info')).json();const company=info.companies[0],other=info.companies[1]
+ await page.goto(`/cabinet/roles/?context=${encodeURIComponent(`organization:${company}`)}`)
  await page.getByLabel('Область управления').selectOption(`organization:${company}`);await expect(page.getByRole('option',{name:'UI Сотрудник компании',exact:true})).toHaveCount(1)
  const option=page.getByRole('option',{name:'UI Сотрудник компании',exact:true});const membership=await option.getAttribute('value');await page.getByLabel('Участник компании').selectOption(membership!)
  await page.getByLabel('Лицо с правом подписи',{exact:true}).check();await page.getByLabel('Причина изменения').fill('Synthetic signer duty, no evidence supplied');await page.getByRole('button',{name:'Сохранить роли участника'}).click()
@@ -39,6 +40,7 @@ test('corporate signer request remains unconfirmed, switching clears prior compa
 test('named company labels retain exact authorized context and draft safeguards',async({page})=>{
  await page.setViewportSize({width:390,height:1000});await page.goto('/__fixture/login/corporate')
  const info=await (await page.request.get('/__fixture/info')).json(),metadata=await (await page.request.get('/api/me/organizations')).json()
+ await page.goto(`/cabinet/roles/?context=${encodeURIComponent(`organization:${info.companies[0]}`)}`)
  const first=metadata.items.find((item:{id:string})=>item.id===info.companies[0]),second=metadata.items.find((item:{id:string})=>item.id===info.companies[1])
  await expect(page.getByRole('option',{name:`Тестовая компания 1 — ИНН ${first.inn}`,exact:true})).toHaveAttribute('value',`organization:${info.companies[0]}`)
  await expect(page.getByRole('option',{name:`Тестовая компания 2 — ИНН ${second.inn}`,exact:true})).toHaveAttribute('value',`organization:${info.companies[1]}`)
