@@ -63,3 +63,20 @@ it('access mode lists and filters current companies and corporate assignments',(
  fireEvent.change(screen.getByLabelText('Фильтр: Организация'),{target:{value:'КОМПАНИЯ Б'}})
  expect(screen.getByText('Борис')).toBeVisible()
 })
+
+it('access mode sorts organization rows both ways and filters deduplicated corporate roles',()=>{
+ const organizations=[{id:'11111111-1111-4111-8111-111111111111',name:'Компания Б',roles:['organization_admin' as const]},{id:'22222222-2222-4222-8222-222222222222',name:'Компания В',roles:['organization_admin' as const]}]
+ table({showOrganizations:true,items:[{...items[0],organizations},{...items[1],organizations:[{id:'33333333-3333-4333-8333-333333333333',name:'Компания А',roles:['organization_employee']}]},{...items[2],organizations:[{id:'44444444-4444-4444-8444-444444444444',name:'Компания А',roles:[]}]}]})
+ const names=()=>screen.getAllByRole('row').slice(1).map(row=>within(row).getByRole('rowheader').textContent)
+ const sort=screen.getByRole('button',{name:'Сортировать: Организация'})
+ fireEvent.click(sort);expect(names()).toEqual(['Анна','Вера','Борис'])
+ expect(screen.getByRole('columnheader',{name:/^Организация/})).toHaveAttribute('aria-sort','ascending')
+ fireEvent.click(sort);expect(names()).toEqual(['Борис','Анна','Вера'])
+ expect(screen.getByRole('columnheader',{name:/^Организация/})).toHaveAttribute('aria-sort','descending')
+ const boris=screen.getAllByRole('row').find(row=>within(row).queryByText('Борис'))!
+ expect(within(boris).getByText('Администратор компании, Администратор платформы')).toBeVisible()
+ fireEvent.click(screen.getByRole('button',{name:'Фильтровать: Роли'}))
+ fireEvent.change(screen.getByLabelText('Фильтр: Роли'),{target:{value:'organization_admin'}});expect(names()).toEqual(['Борис'])
+ fireEvent.change(screen.getByLabelText('Фильтр: Роли'),{target:{value:'organization_employee'}});expect(names()).toEqual(['Анна'])
+ fireEvent.change(screen.getByLabelText('Фильтр: Роли'),{target:{value:'none'}});expect(names()).toEqual(['Вера'])
+})

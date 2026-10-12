@@ -105,8 +105,8 @@ it.each(['missing','foreign-user','duplicate-id','duplicate-code','corporate','b
  expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })
 
-it.each(['missing','bad-id','empty-name','unknown-role','duplicate-code','duplicate-id'])('rejects %s organization metadata',async kind=>{
- const organization={id:kind==='bad-id'?'invalid':owner,name:kind==='empty-name'?' ':'Компания А',roles:kind==='unknown-role'?['individual']:kind==='duplicate-code'?['organization_admin','organization_admin']:['organization_admin']}
+it.each(['missing','bad-id','empty-name','unknown-role','duplicate-code','duplicate-id','nested-code','duplicate-nested-code'])('rejects %s organization metadata',async kind=>{
+ const organization={id:kind==='bad-id'?'invalid':owner,name:kind==='empty-name'?' ':'Компания А',roles:kind==='nested-code'?[['organization_admin']]:kind==='duplicate-nested-code'?[['organization_admin'],['organization_admin']]:kind==='unknown-role'?['individual']:kind==='duplicate-code'?['organization_admin','organization_admin']:['organization_admin']}
  vi.stubGlobal('fetch',api(()=>Response.json({items:[{...active,organizations:kind==='missing'?undefined:kind==='duplicate-id'?[organization,organization]:[organization]}],nextCursor:null})));page()
  expect(await screen.findByText('Не удалось загрузить доступ пользователей')).toBeVisible()
 })

@@ -45,7 +45,7 @@ function directoryUser(value:unknown):UserDirectorySummary{
  const organizationIds=new Set<string>()
  const organizations=item.organizations.map(value=>{
   const organization=object(value)
-  if(typeof organization.id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(organization.id)||organizationIds.has(organization.id.toLowerCase())||typeof organization.name!=='string'||!organization.name.trim()||!Array.isArray(organization.roles)||organization.roles.some(code=>!['organization_admin','organization_employee','organization_signer'].includes(String(code)))||new Set(organization.roles).size!==organization.roles.length)throw new Error('Invalid organization')
+  if(typeof organization.id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(organization.id)||organizationIds.has(organization.id.toLowerCase())||typeof organization.name!=='string'||!organization.name.trim()||!Array.isArray(organization.roles)||organization.roles.some(code=>typeof code!=='string'||!['organization_admin','organization_employee','organization_signer'].includes(code))||new Set(organization.roles).size!==organization.roles.length)throw new Error('Invalid organization')
   organizationIds.add(organization.id.toLowerCase());return organization as OrganizationMembershipSummary
  })
  return {...user,platformRoles,organizations}

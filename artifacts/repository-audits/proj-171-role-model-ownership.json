@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "02a6c4690ef4cb52aa6141bc84af2209bf61ed81",
+  "sourceSha": "95f30b98014f6f7ae2a87f74bcf01673d43d14a1",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "49ed8828c586d44823e3feee5949b29e1a1db7162f2045732290f3d24be07549",
+      "candidateSha256": "9f74b5d093a7c1ed544e1b2b6e0fb389a770be2965013cf02336af22575daf56",
       "candidateMode": "100644"
     },
     {
@@ -314,12 +314,12 @@
     },
     {
       "path": "apps/web/src/home/UserAccessSection.tsx",
-      "sha256": "961458767e095c362e167bd6a19a93cedbe3cc9f626a1111f1919994b35d37da",
+      "sha256": "579c7f1d706d47e08b4f7977e4a50ac41de659154898519fb073067443d9af08",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/user-access.test.tsx",
-      "sha256": "1efcdf6dbb66dd500699827a27124854e32526f38bc36061cb1ab92cc18072b0",
+      "sha256": "f9f5ff38f22c4a1904f354d83a82e3d3dc171e5e27d067d05f6f676fbde8dcd1",
       "mode": "100644"
     },
     {
@@ -339,7 +339,7 @@
     },
     {
       "path": "apps/web/src/home/platform-users-table.test.tsx",
-      "sha256": "44f84cad32e9439bae08630698fa20be0ec3a74602ecfc2864d2ded18d2b052a",
+      "sha256": "6e04c9e4eee11c97e19729ef3278396dff69a51338e0031a5d9eb2bdd8d4deef",
       "mode": "100644"
     },
     {
