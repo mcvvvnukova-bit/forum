@@ -33,8 +33,11 @@ it('roles-only includes blocked role holders and explicit per-role actions',()=>
 it.each(['Служебные роли','Статус входа'])('sorts %s in both directions and filters role membership',column=>{
  table({rolesOnly:true})
  const sort=screen.getByRole('button',{name:`Сортировать: ${column}`});fireEvent.click(sort)
- const first=screen.getAllByRole('row')[1].textContent;fireEvent.click(sort)
- expect(screen.getAllByRole('row')[1].textContent).not.toBe(first)
+ const displayedNames=()=>screen.getAllByRole('row').slice(1).map(row=>within(row).getByRole('rowheader').textContent)
+ expect(displayedNames()).toEqual(['Борис','Анна'])
+ expect(screen.getByRole('columnheader',{name:new RegExp(column)})).toHaveAttribute('aria-sort','ascending')
+ fireEvent.click(sort)
+ expect(displayedNames()).toEqual(['Анна','Борис'])
  expect(screen.getByRole('columnheader',{name:new RegExp(column)})).toHaveAttribute('aria-sort','descending')
  fireEvent.click(screen.getByRole('button',{name:'Фильтровать: Служебные роли'}))
  fireEvent.change(screen.getByLabelText('Фильтр: Служебные роли'),{target:{value:'platform_admin'}})

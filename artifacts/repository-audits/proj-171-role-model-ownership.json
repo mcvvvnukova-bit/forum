@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "ddf5aa0a9095f82db56ec42150fae836c55b7ad9c6d2b2a327c8edaa7ff555e6",
+      "candidateSha256": "b9c302fbd3407a752202a49f717bb56112dd2220782b50fb177abf65e1e9494c",
       "candidateMode": "100644"
     },
     {
@@ -299,7 +299,7 @@
     },
     {
       "path": "tests/e2e/role-management.spec.ts",
-      "sha256": "ba057e1676044403fce6df6195eb004be0ec15acd2292c28158ab8070963176a",
+      "sha256": "c9ad80999accf20861edb4826f37d149cbfa5c175584d229728f93c82f900aed",
       "mode": "100644"
     },
     {
@@ -339,7 +339,7 @@
     },
     {
       "path": "apps/web/src/home/platform-users-table.test.tsx",
-      "sha256": "ca7e3715efae4d6daf48de39d577b938a9995ebd252715650d7ce76838d2a5f0",
+      "sha256": "b03059d639715ee7ef0795a5ced4877320b565bf542dc2e71b71f327a2eed90e",
       "mode": "100644"
     },
     {

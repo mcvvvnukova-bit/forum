@@ -1,7 +1,14 @@
-import {test,expect} from '@playwright/test'
+import {test,expect,type Page} from '@playwright/test'
 import {mkdir} from 'node:fs/promises'
 import {resolve} from 'node:path'
 const evidence=process.env.ROLE_UI_EVIDENCE_DIR??resolve('.superpowers/sdd/2026-10-11-role-model/task-2-evidence/screenshots')
+async function selectPlatformUser(page:Page,name:string){
+ await page.getByRole('button',{name:'Пользователь',exact:true}).click()
+ const search=page.getByRole('combobox',{name:'Поиск пользователя',exact:true})
+ await expect(search).toBeFocused();await search.fill(name)
+ await page.getByRole('option',{name,exact:true}).click()
+ await expect(page.getByRole('button',{name:'Пользователь',exact:true})).toContainText(name)
+}
 test.beforeAll(async()=>{await mkdir(evidence,{recursive:true})})
 for(const width of [1440,768,390,320])test(`real API roles layout, menu and focus at ${width}`,async({page})=>{
  await page.setViewportSize({width,height:1000});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message))
@@ -9,23 +16,39 @@ for(const width of [1440,768,390,320])test(`real API roles layout, menu and focu
  await expect(page.getByLabel('Область управления')).toHaveCount(0);await expect(page.getByLabel('Причина изменения')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Служебные роли'})).toHaveCount(0)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  if(width<768){const opener=page.getByRole('button',{name:'Открыть меню профиля'});await opener.click();const dialog=page.getByRole('dialog',{name:'Разделы профиля'});await expect(dialog.getByText('Администрирование',{exact:true})).toBeVisible();await expect(dialog.getByText('Справочники',{exact:true})).toBeVisible();await expect(dialog.getByRole('link',{name:'Пользователи'})).toBeVisible();await page.keyboard.press('Escape');await expect(opener).toBeFocused()}
- await page.getByLabel('Пользователь',{exact:true}).press('Tab');await expect(page.getByLabel('Служебная роль')).toBeFocused()
+ const userControl=page.getByRole('button',{name:'Пользователь',exact:true})
+ await userControl.press('Enter');await expect(page.getByRole('combobox',{name:'Поиск пользователя',exact:true})).toBeFocused()
+ await page.keyboard.press('Escape');await expect(userControl).toBeFocused()
+ await userControl.press('Tab');await expect(page.getByRole('checkbox',{name:'Модератор платформы',exact:true})).toBeFocused()
+ await page.keyboard.press('Tab');await expect(page.getByRole('checkbox',{name:'Администратор платформы',exact:true})).toBeFocused()
  await page.screenshot({path:resolve(evidence,`roles-${width}.png`),fullPage:true});await page.reload();await expect(page.getByRole('heading',{name:'Управление пользователями',level:1})).toBeVisible();await expect(page.getByLabel('Пользователь',{exact:true})).toBeVisible();expect(errors).toEqual([])
 })
 test('role grant, reload persistence, revoke and old-cookie refusal use the real API',async({page,browser})=>{
  await page.goto('/__fixture/login/admin');const info=await (await page.request.get('/__fixture/info')).json()
- await page.getByLabel('Пользователь',{exact:true}).selectOption(info.users.ordinary);await page.getByLabel('Служебная роль').selectOption('platform_admin')
+ const usersResponse=await page.request.get('/api/iam/platform-users',{headers:{'X-Forum-Context':'platform'}});expect(usersResponse.status()).toBe(200)
+ const ordinary=(await usersResponse.json()).items.find((item:{userId:string})=>item.userId===info.users.ordinary);expect(ordinary).toBeTruthy()
+ await selectPlatformUser(page,ordinary.displayName)
+ await page.getByRole('checkbox',{name:'Модератор платформы',exact:true}).uncheck()
+ await page.getByRole('checkbox',{name:'Администратор платформы',exact:true}).check()
  await expect(page.getByLabel('Причина изменения')).toHaveCount(0)
  const grant=page.waitForResponse(r=>r.url().endsWith('/api/iam/platform-role-assignments')&&r.request().method()==='POST')
- await page.getByRole('button',{name:'Назначить роль',exact:true}).click();const granted=await grant;expect([200,201]).toContain(granted.status());expect((await granted.json()).item.status).toBe('active');await expect(page.getByRole('status')).toContainText('Изменения сохранены')
- await page.reload();await page.getByLabel('Пользователь',{exact:true}).selectOption(info.users.ordinary);await expect(page.getByText('Администратор платформы — действует',{exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'Назначить роль',exact:true}).click();const granted=await grant;expect([200,201]).toContain(granted.status());const grantedRole=(await granted.json()).item;expect(grantedRole.status).toBe('active');expect(grantedRole.userId).toBe(info.users.ordinary);expect(grantedRole.roleCode).toBe('platform_admin');await expect(page.getByRole('status')).toContainText('Изменения сохранены')
+ await page.reload();await selectPlatformUser(page,ordinary.displayName)
+ await expect(page.getByRole('checkbox',{name:'Администратор платформы',exact:true})).toBeChecked();await expect(page.getByRole('checkbox',{name:'Администратор платформы',exact:true})).toBeDisabled()
+ const roleTable=page.getByRole('table',{name:'Пользователи со служебными ролями',exact:true})
+ const rowRevoke=roleTable.getByRole('button',{name:`Отозвать роль Администратор платформы у ${ordinary.displayName}`,exact:true})
+ await expect(rowRevoke).toBeVisible()
  const oldContext=await browser.newContext(),oldPage=await oldContext.newPage();await oldPage.goto('http://127.0.0.1:5191/__fixture/login/ordinary');await expect(oldPage.getByRole('heading',{name:'Управление пользователями',level:1})).toBeVisible();await expect(oldPage.getByLabel('Пользователь',{exact:true})).toBeVisible()
  expect((await oldPage.request.get('http://127.0.0.1:5191/api/iam/platform-users',{headers:{'X-Forum-Context':'platform'}})).status()).toBe(200)
- const revoke=page.waitForResponse(r=>r.url().includes('/api/iam/platform-role-assignments/')&&r.request().method()==='PATCH');await page.getByRole('button',{name:'Отозвать роль',exact:true}).click();expect((await revoke).status()).toBe(200)
- await expect(page.getByText('Администратор платформы — отозвана',{exact:true})).toBeVisible();await page.screenshot({path:resolve(evidence,'revoked-role.png'),fullPage:true})
+ const revoke=page.waitForResponse(r=>r.url().includes('/api/iam/platform-role-assignments/')&&r.request().method()==='PATCH');await rowRevoke.click();const revoked=await revoke;expect(revoked.status()).toBe(200);expect(revoked.url()).toContain(`/platform-role-assignments/${grantedRole.id}`);expect(revoked.request().headers()['if-match']).toBe(`"${grantedRole.version}"`);const revokedRole=(await revoked.json()).item;expect(revokedRole.id).toBe(grantedRole.id);expect(revokedRole.userId).toBe(info.users.ordinary);expect(revokedRole.roleCode).toBe('platform_admin');expect(revokedRole.status).toBe('revoked')
+ await expect(page.getByRole('checkbox',{name:'Администратор платформы',exact:true})).not.toBeChecked();await expect(page.getByRole('checkbox',{name:'Администратор платформы',exact:true})).toBeEnabled();await expect(rowRevoke).toHaveCount(0);await page.screenshot({path:resolve(evidence,'revoked-role.png'),fullPage:true})
  expect((await oldPage.request.get('http://127.0.0.1:5191/api/iam/platform-users',{headers:{'X-Forum-Context':'platform'}})).status()).toBe(403)
  await oldPage.reload();await expect(oldPage.getByText('Нет доступа к управлению ролями',{exact:true})).toBeVisible();await expect(oldPage.getByRole('link',{name:'Пользователи'})).toHaveCount(0)
- await page.reload();await page.getByLabel('Пользователь',{exact:true}).selectOption(info.users.ordinary);await expect(page.getByText('Администратор платформы — отозвана',{exact:true})).toBeVisible();await oldContext.close()
+ await page.reload();await selectPlatformUser(page,ordinary.displayName)
+ await expect(page.getByRole('checkbox',{name:'Администратор платформы',exact:true})).not.toBeChecked();await expect(page.getByRole('checkbox',{name:'Администратор платформы',exact:true})).toBeEnabled()
+ await expect(page.getByRole('button',{name:`Отозвать роль Администратор платформы у ${ordinary.displayName}`,exact:true})).toHaveCount(0)
+ await expect(page.getByRole('table',{name:'Пользователи со служебными ролями',exact:true}).getByText(ordinary.displayName,{exact:true})).toHaveCount(0)
+ await oldContext.close()
 })
 test('corporate signer request remains unconfirmed, switching clears prior company and foreign IDs show no members',async({page})=>{
  await page.goto('/__fixture/login/corporate');const info=await (await page.request.get('/__fixture/info')).json();const company=info.companies[0],other=info.companies[1]
