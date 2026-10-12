@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-172",
+  "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/api/package.json",
+      "previousSha256": "f9c973a3ea0e7514bb9e769355d5ff3a8bc1444fea3968c474986403f48eba81",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/package.json",
+      "candidateSha256": "5389ac5aa625ab617edcabc6553ba45de44f78699a8b5aa3936cacfb9f7bdccd",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "package-lock.json",
+      "previousSha256": "001c8b83f831a6c61137b5205c145845e15b4bfd26acee99d5002491284a77ad",
+      "previousMode": "100644",
+      "candidatePath": "package-lock.json",
+      "candidateSha256": "e81550c6cbb7c32137d8b3bb018e1134e5a71088629ea29a7e34cd008c53ae5a",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "56ef83f302e5b79f4d7e05d9e5dcff52c203cfe86accffc3164197ebea40188d",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/api/migrations/references/001_okved_fns.sql",
+      "sha256": "c73a593c26877d40c76d5149cd681649814370e5f80ecb203714def2d68ffb5e",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/reference-cli.ts",
+      "sha256": "76e2b172a68d1e2d842c5c9075b146fc0f96e2935eb98146c0d252dc55487993",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/reference-worker.ts",
+      "sha256": "016b99ee879da292912bb176dd6c1f22dc15885559030d069f0b1924bf275b5b",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/config.ts",
+      "sha256": "0b06c26d4f3acd8451b3e5d8c010992de6bdaa7c744ab86238b38bf2005231a1",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/fns-source.ts",
+      "sha256": "e736a55db63c80d66cf99b7b7cb16d3942ddf9e1e91686740b4784c20dc7b63c",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/migrate.ts",
+      "sha256": "5f47db00ee286a2d6d54fb5627f3f7562fe50146985fe1b93ca2e126f2195b8e",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okved-model.ts",
+      "sha256": "d815a6926f72ca91ce5d1d908e2c61253a7a275b3da5080f3524cda568ff0b2c",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okved-sync.ts",
+      "sha256": "d325c9dadbaba2d1474746b041f8251103c926d3450c6b0bc229870caaf988e2",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okved-worker.ts",
+      "sha256": "3938fc6621e73a456f9efeac63ab538f5e51fd0feedf37ce3cd0c2888ff89d03",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okved-model.test.ts",
+      "sha256": "c8cdf503a6dcb06a5e1ef009c5aad62f97185afba8041e0fb19dc7644331eb8a",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okved-ownership.test.ts",
+      "sha256": "dc11c5064c47709b446caee06bf85fe47fe980d32ae1513a3f0e7252440e8a21",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okved-sync.test.ts",
+      "sha256": "6904b1a1464783b67d611252a094240aeacb190871b896024ed4a9732cde3676",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okved-worker.test.ts",
+      "sha256": "344e023293df38ab38bb13f1acd8dabeb7b55f643ff67dceb5a23af44b04e156",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/reference-test-database.ts",
+      "sha256": "9bf74d634336255649c14c3167b55d1295144e24d03c0ea418847d6a93effbeb",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/local/okved.compose.yml",
+      "sha256": "1c8655682b972c8f4a62a9c517358cfa4e581bf25476c4e9218fd47b8f3c35fc",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-12-PROJ-172-okved-fns-integration.md",
+      "sha256": "137cac7906d21e9d65dcb1c50920194ba83f1ec8f1667e9836bc3c331436f8d3",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/deployment/build-reference-local.sh",
+      "sha256": "6c9df4aeeca107a3d804213abfbc8b14c888f509f0357b98d417717dac80fc50",
+      "mode": "100644"
+    }
+  ]
+}

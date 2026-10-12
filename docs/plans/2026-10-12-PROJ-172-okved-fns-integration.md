@@ -13,19 +13,20 @@ SHA-256 вычисляется по отсортированным полям к
 
 Прикладной сервис владеет `public.okveds`, `okved_groups`, `okved_reference_state`, `okved_imports`. Существующие внутренние классификации не входят в UPDATE. Исчезнувшие коды получают `is_active=false`; строки и внешние ключи сохраняются. Для новых выборов потребители используют `WHERE is_active AND selectable`; исторические ссылки читаются без этого фильтра. Публикация атомарна, revision и исходный хэш защищают принятие от устаревших снимков. Session advisory lock сериализует загрузку и решение; требуется прямое соединение PostgreSQL или session pooling, transaction pooling непригоден.
 
-Собственная миграционная цепочка `reference-migrations/001_okved_fns.sql` расширяет bootstrap-таблицу и создает отсутствующие справочники внутренних классификаций. Перед ней обязательны основные миграции с маркером `003_public_schema`. pg-boss использует отдельную схему `forum_reference_jobs`; миграции и создание очереди выполняются только командой `references migrate`, worker запускается с `migrate:false`.
+Собственная миграционная цепочка `migrations/references/001_okved_fns.sql` расширяет bootstrap-таблицу и создает отсутствующие справочники внутренних классификаций. Перед ней обязательны основные миграции с маркером `003_public_schema`. pg-boss использует отдельную схему `forum_reference_jobs`; миграции и создание очереди выполняются только командой `references migrate`, worker запускается с `migrate:false`. SQL попадает в образ через существующую копию каталога `migrations`.
 
 ## Локальный стенд Docker
 
 Из корня отдельной рабочей копии:
 
 ```sh
-docker compose -f deployment/local/okved.compose.yml up --build -d
+bash scripts/deployment/build-reference-local.sh
+docker compose -f deployment/local/okved.compose.yml up --no-build -d
 docker compose -f deployment/local/okved.compose.yml logs worker
 docker compose -f deployment/local/okved.compose.yml exec worker node dist/reference-cli.js list
 ```
 
-Это отдельная локальная база на `127.0.0.1:55476`, собственный volume и локальные демонстрационные учетные данные. Начальный импорт выполняется после запуска worker. Контейнер продолжает еженедельные проверки, пока компьютер и Docker работают. Остановка сохраняет данные:
+Скрипт передает ограниченный контекст через stdin из каталога с ASCII-путем: это устраняет отказ BuildKit при кириллице в пути рабочей копии и исключает локальные секреты. Стенд использует отдельную локальную базу на `127.0.0.1:55476`, собственный volume и локальные демонстрационные учетные данные. Начальный импорт выполняется после запуска worker. Контейнер продолжает еженедельные проверки, пока компьютер и Docker работают. Остановка сохраняет данные:
 
 ```sh
 docker compose -f deployment/local/okved.compose.yml down

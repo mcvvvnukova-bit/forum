@@ -1,4 +1,4 @@
--- Extends the existing bootstrap layout without deleting historical codes or mappings.
+-- Reference-domain chain; extends bootstrap without deleting historical codes or mappings.
 CREATE TABLE IF NOT EXISTS public.business_segments (
   code text PRIMARY KEY, name text NOT NULL UNIQUE, description text,
   created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
