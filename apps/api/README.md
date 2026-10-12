@@ -292,6 +292,16 @@ Official sources consulted:
 Product decisions and their exact historical source provenance are in [the migration register](../../artifacts/repository-audits/document-migration-manifest.json); canonical requirements remain in Outline.
 # Scoped IAM roles (PROJ-171)
 
+Platform administrators also manage account access through
+`GET /api/iam/platform-user-access` (all registered accounts, signed pagination)
+and `PATCH /api/iam/platform-user-access/:id` with `{status: "active" | "deactivated"}`.
+The returned `version` is the user's `access_version`; send it in `If-Match` along
+with the same platform context, Origin, CSRF and idempotency headers as role mutations.
+Blocking atomically revokes every session and records `IAMUserAccessChanged` in
+the audit log. Login and blocking serialize on the user row. Roles and memberships
+are retained; unblocking requires a fresh login and never restores old sessions.
+Self blocking and removal of the last effective platform administrator are refused.
+
 Migration `008_iam_roles` is additive. Apply it with `npm run migrate` or the owner
 entrypoint `deployment/forum-db/apply-public.psql`, then apply the explicit runtime
 allowlist `deployment/forum-api/grant-runtime.sql`. Readiness and IAM reads fail

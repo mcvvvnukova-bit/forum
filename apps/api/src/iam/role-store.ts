@@ -78,6 +78,7 @@ function page<T>(actor:RoleActor,kind:string,items:T[],limit:number,key:(item:T)
  return {items:items.slice(0,limit),nextCursor:items.length>limit?nextCursor(actor,kind,key(items[limit-1])):null};
 }
 export type PlatformAssignment={id:string;userId:string;roleCode:RoleCode;status:'active'|'revoked';version:number};
+export type UserAccess={userId:string;displayName:string;status:'active'|'deactivated';version:number};
 export const assignmentColumns='id,user_id AS "userId",role_code AS "roleCode",status,version';
 export class RoleStore {
  constructor(private readonly pool:Pool){}
@@ -126,6 +127,16 @@ export class RoleStore {
    return page(actor,kind,items,query.limit,item=>item.id);
   });
  }
+ async userAccess(token:string,key:string,query:PageRequest){
+  return this.read(token,async(client,actor)=>{
+   if(key!=='platform')throw new AuthError('forbidden',403);
+   requireAll((await authorizationContext(client,actor,key)).permissions,['platform.roles.manage']);
+   const kind='platform-user-access',after=afterCursor(actor,kind,query.cursor);
+   const users=(await client.query<UserAccess>(`SELECT u.id AS "userId",u.display_name AS "displayName",u.status,
+    u.access_version::double precision AS version FROM public.users u WHERE u.id::text>$1 ORDER BY u.id LIMIT $2`,[after,query.limit+1])).rows;
+   return page(actor,kind,users,query.limit,item=>item.userId);
+  });
+ }
  async audit(token:string,key:string,query:PageRequest){
   return this.read(token,async(client,actor)=>{
    const context=await authorizationContext(client,actor,key);requireAll(context.permissions,['platform.audit.read']);
@@ -134,7 +145,7 @@ export class RoleStore {
     jsonb_strip_nulls(jsonb_build_object('assignmentId',data->'assignmentId','targetUserId',data->'targetUserId',
      'roleCode',data->'roleCode','status',data->'status','reason',data->'reason','resourceId',data->'resourceId')) AS data
     FROM public.audit_events WHERE action IN ('IAMPlatformAdminBootstrapped','IAMPlatformRoleGranted','IAMPlatformRoleUpdated',
-     'IAMModerationReviewed','IAMRestrictionChanged') AND ($1::boolean OR actor_user_id=$2) AND id::text>$3
+     'IAMModerationReviewed','IAMRestrictionChanged','IAMUserAccessChanged') AND ($1::boolean OR actor_user_id=$2) AND id::text>$3
     ORDER BY id LIMIT $4`,[context.roles.includes('platform_admin'),actor.id,after,query.limit+1])).rows;
    return page(actor,kind,rows,query.limit,item=>item.id);
   });

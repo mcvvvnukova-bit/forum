@@ -37,6 +37,8 @@ export class RolesController {
  }
  @Get('/platform-users')
  async users(@Req() req:FastifyRequest,@Res() reply:FastifyReply){return this.respond(reply,()=>this.store().platformUsers(this.token(req),this.key(req),pageValue(req)))}
+ @Get('/platform-user-access')
+ async userAccess(@Req() req:FastifyRequest,@Res() reply:FastifyReply){return this.respond(reply,()=>this.store().userAccess(this.token(req),this.key(req),pageValue(req)))}
  @Get('/organizations/:id/members')
  async members(@Param('id') id:string,@Req() req:FastifyRequest,@Res() reply:FastifyReply){
   return this.respond(reply,()=>this.store().members(this.token(req),this.key(req),uuidValue(id),pageValue(req)));
@@ -72,6 +74,14 @@ export class RolesController {
    const request=this.request(req,true),body=bodyValue(req.body,['status','reason']);
    if(!['active','revoked'].includes(body.status as string))throw new AuthError('invalid_request');
    return new RoleMutations(this.runtime.pool!).updatePlatform(request,uuidValue(id),{status:body.status as 'active'|'revoked',reason:reasonValue(body.reason)});
+  });
+ }
+ @Patch('/platform-user-access/:id')
+ async updateUserAccess(@Param('id') id:string,@Req() req:FastifyRequest,@Res() reply:FastifyReply){
+  return this.change(reply,()=>{
+   const request=this.request(req,true),body=bodyValue(req.body,['status']);
+   if(!['active','deactivated'].includes(body.status as string))throw new AuthError('invalid_request');
+   return new RoleMutations(this.runtime.pool!).updateUserAccess(request,uuidValue(id),body.status as 'active'|'deactivated');
   });
  }
  @Patch('/organizations/:id/members/:membershipId')

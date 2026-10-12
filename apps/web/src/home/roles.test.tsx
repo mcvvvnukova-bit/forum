@@ -24,6 +24,7 @@ function api(options:{session?:unknown;contexts?:unknown[];response?:(url:string
   if(url.startsWith('/api/iam/contexts'))return Response.json({items:options.contexts??[platform,corporate(),corporate(other)],nextCursor:null})
   if(url==='/api/iam/roles')return Response.json({items:catalogue})
   if(url==='/api/iam/context/resolve'){const key=JSON.parse(String(init?.body)).contextKey;return Response.json(key==='platform'?platform:corporate(key.slice(13)))}
+  if(url.startsWith('/api/iam/platform-user-access'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',status:'active',version:1}],nextCursor:null})
   if(url.startsWith('/api/iam/platform-users'))return Response.json({items:[{userId:target,displayName:'Проверенный пользователь',platformRoles:[]}],nextCursor:null})
   if(url===`/api/iam/organizations/${company}/members`)return Response.json({items:[member],nextCursor:null})
   if(url===`/api/iam/organizations/${other}/members`)return Response.json({items:[],nextCursor:null})
@@ -32,6 +33,22 @@ function api(options:{session?:unknown;contexts?:unknown[];response?:(url:string
  })
 }
 afterEach(()=>vi.unstubAllGlobals())
+it('platform blocking has a separate section and removes a blocked user from role assignment',async()=>{
+ const f=api({response:(url,init)=>url===`/api/iam/platform-user-access/${target}`&&init?.method==='PATCH'?Response.json({item:{userId:target,displayName:'Проверенный пользователь',status:'deactivated',version:2}}):undefined})
+ vi.stubGlobal('fetch',f);page();await chooseUser()
+ expect(await screen.findByRole('heading',{name:'Блокировка пользователей'})).toBeVisible()
+ fireEvent.change(screen.getByLabelText('Пользователь для блокировки'),{target:{value:target}})
+ fireEvent.click(screen.getByRole('button',{name:'Заблокировать вход'}))
+ fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button',{name:'Заблокировать вход'}))
+ await screen.findByText(/Действующие сеансы завершены/)
+ expect(screen.getByLabelText('Пользователь')).toHaveValue('')
+ expect(within(screen.getByLabelText('Пользователь')).queryByRole('option',{name:'Проверенный пользователь'})).not.toBeInTheDocument()
+})
+it('company role management does not expose platform blocking or request its data',async()=>{
+ const f=api();vi.stubGlobal('fetch',f);page(organizationPath());await screen.findByRole('option',{name:member.displayName})
+ expect(screen.queryByRole('heading',{name:'Блокировка пользователей'})).not.toBeInTheDocument()
+ expect(f.mock.calls.some(([url])=>String(url).startsWith('/api/iam/platform-user-access'))).toBe(false)
+})
 const namedCompanies=[{id:other,inn:'500100732259',name:'ООО Север',status:'active',members:[]},{id:company,inn:'9709128511',name:'ООО Юг',status:'active',members:[]},{id:target,inn:'7707083893',name:'Компания без полномочий',status:'active',members:[]}]
 it('company labels match authorized context IDs rather than metadata order or extra cards',async()=>{
  vi.stubGlobal('fetch',api({session:{...session,platformRoles:[]},contexts:[corporate(),corporate(other)],response:u=>u==='/api/me/organizations'?Response.json({userId:owner,items:namedCompanies,nextCursor:null}):undefined}));page(organizationPath())

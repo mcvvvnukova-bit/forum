@@ -82,6 +82,83 @@ async function mutate(url:string,payload:Record<string,unknown>,actor=alice,cont
    'idempotency-key':randomUUID(),...headers},payload});
 }
 const grant=(targetUserId:string,roleCode='platform_moderator')=>({targetUserId,roleCode,reason:'Reviewed duty assignment'});
+const accessUrl=(id:string)=>`/api/iam/platform-user-access/${id}`;
+test('platform administrator blocks every session and future login, then restores access without reviving sessions',async()=>{
+ await platformAdmin();await platformAdmin(bob);
+ const identity=(await pool.query('SELECT subject FROM public.external_identities WHERE user_id=$1',[bob.id])).rows[0];
+ const store=new AuthStore(pool),secondToken=randomUUID().replaceAll('-','').padEnd(43,'x');
+ const login=(token:string)=>store.authenticate({subject:identity.subject,alternateSubjects:[],displayName:'Bob',email:null,emailConfirmed:false,claims:{},profile:{family_name:'Bob'}},'login',token,3600);
+ await login(secondToken);
+ const listed=await get('/api/iam/platform-user-access',alice,'platform');assert.equal(listed.statusCode,200,listed.body);
+ assert.deepEqual(listed.json().items.find((u:{userId:string})=>u.userId===bob.id),{userId:bob.id,displayName:'Bob',status:'active',version:1});
+ const key=randomUUID(),headers={'if-match':'"1"','idempotency-key':key};
+ const blocked=await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',headers);
+ assert.equal(blocked.statusCode,200,blocked.body);assert.equal(blocked.json().item.version,2);
+ assert.deepEqual((await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',headers)).json(),blocked.json());
+ assert.equal((await get('/api/auth/session',bob)).statusCode,401);
+ assert.equal((await get('/api/profile',bob)).statusCode,401);
+ assert.equal((await get('/api/me/organizations',bob)).statusCode,401);
+ await assert.rejects(store.session(secondToken),{code:'unauthenticated'});
+ await assert.rejects(login('n'.repeat(43)),{code:'account_deactivated'});
+ assert.equal((await pool.query('SELECT count(*) FROM public.sessions WHERE user_id=$1 AND revoked_at IS NULL',[bob.id])).rows[0].count,'0');
+ assert.equal((await pool.query("SELECT status FROM public.iam_role_assignments WHERE user_id=$1 AND role_code='platform_admin'",[bob.id])).rows[0].status,'active');
+ assert.equal((await get('/api/iam/platform-users',alice,'platform')).json().items.some((u:{userId:string})=>u.userId===bob.id),false);
+ assert.equal((await get('/api/iam/platform-user-access',alice,'platform')).json().items.find((u:{userId:string})=>u.userId===bob.id).status,'deactivated');
+ assert.equal((await mutate(accessUrl(bob.id),{status:'active'},alice,'platform',{'if-match':'"1"'})).statusCode,412);
+ const restored=await mutate(accessUrl(bob.id),{status:'active'},alice,'platform',{'if-match':'"2"'});assert.equal(restored.statusCode,200,restored.body);
+ assert.equal(restored.json().item.version,3);
+ assert.equal((await get('/api/auth/session',bob)).statusCode,401);
+ await assert.rejects(store.session(secondToken),{code:'unauthenticated'});
+ const fresh='f'.repeat(43);await login(fresh);assert.deepEqual((await store.session(fresh)).platformRoles,['platform_admin']);
+ const audit=(await get('/api/iam/audit-events',alice,'platform')).json().items.filter((e:{action:string})=>e.action==='IAMUserAccessChanged');
+ assert.equal(audit.length,2);assert.ok(audit.every((e:{data:{targetUserId:string}})=>e.data.targetUserId===bob.id));
+});
+test('blocking is restricted to platform administrators and protects self, versions, input and security headers',async()=>{
+ assert.equal((await get('/api/iam/platform-user-access',alice,'platform')).statusCode,403);
+ await platformAdmin();await mutate('/api/iam/platform-role-assignments',grant(bob.id));
+ assert.equal((await get('/api/iam/platform-user-access',bob,'platform')).statusCode,403);
+ assert.equal((await mutate(accessUrl(alice.id),{status:'deactivated'},bob,'platform',{'if-match':'"1"'})).statusCode,403);
+ assert.equal((await mutate(accessUrl(alice.id),{status:'deactivated'},alice,'platform',{'if-match':'"1"'})).json().code,'self_block');
+ assert.equal((await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':'"1"'})).statusCode,412);
+ for(const [headers,status] of [[{},400],[{'if-match':'"2"',origin:'https://foreign.example'},403],[{'if-match':'"2"','x-forum-csrf':'x'.repeat(43)},403]] as const){
+  assert.equal((await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',headers)).statusCode,status);
+ }
+ assert.equal((await mutate(accessUrl(bob.id),{status:'active',reason:'unexpected'},alice,'platform',{'if-match':'"2"'})).statusCode,400);
+ assert.equal((await mutate(accessUrl(bob.id),{status:'revoked'},alice,'platform',{'if-match':'"2"'})).statusCode,400);
+ assert.equal((await mutate(accessUrl(randomUUID()),{status:'deactivated'},alice,'platform',{'if-match':'"1"'})).statusCode,404);
+ assert.equal((await mutate(accessUrl(bob.id),{status:'deactivated'},alice,`person:${alice.id}`,{'if-match':'"2"'})).statusCode,403);
+ assert.equal((await get('/api/iam/platform-user-access',alice,`person:${alice.id}`)).statusCode,403);
+});
+test('blocking lists unverified accounts and uses a signed cursor separate from role assignment',async()=>{
+ await platformAdmin();await pool.query('DELETE FROM public.identity_profiles WHERE user_id=$1',[bob.id]);
+ assert.equal((await get('/api/iam/platform-users',alice,'platform')).json().items.some((u:{userId:string})=>u.userId===bob.id),false);
+ const first=await get('/api/iam/platform-user-access?limit=1',alice,'platform');assert.equal(first.statusCode,200,first.body);
+ const next=first.json().nextCursor;assert.equal(typeof next,'string');
+ const second=await get('/api/iam/platform-user-access?limit=1&cursor='+encodeURIComponent(next),alice,'platform');assert.equal(second.statusCode,200,second.body);
+ assert.deepEqual(new Set([...first.json().items,...second.json().items].map((u:{userId:string})=>u.userId)),new Set([alice.id,bob.id]));
+ assert.equal((await get('/api/iam/platform-users?cursor='+encodeURIComponent(next),alice,'platform')).statusCode,400);
+ assert.equal((await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':'"1"'})).statusCode,200);
+ assert.equal((await get('/api/auth/session',bob)).statusCode,401);
+});
+test('blocking access works with runtime ACLs and rolls back status sessions and idempotency when audit fails',async()=>{
+ await platformAdmin();
+ await pool.query("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='forum_role_runtime') THEN CREATE ROLE forum_role_runtime;END IF;END $$");
+ runtimeGrants('forum_role_runtime',await readFile('../../deployment/forum-api/grant-runtime.sql','utf8'));
+ const restricted=new Pool({connectionString:testDatabaseUrl(process.env.TEST_DATABASE_URL),options:'-c role=forum_role_runtime'});
+ const ownerApp=app;app=await createApp({publicOrigin:'https://forum.example',databaseUrl:testDatabaseUrl(process.env.TEST_DATABASE_URL),secureCookies:false,sessionTtlSeconds:3600},restricted);
+ try{
+  assert.equal((await get('/api/iam/platform-user-access',alice,'platform')).statusCode,200);
+  await pool.query('REVOKE INSERT ON public.audit_events FROM forum_role_runtime');
+  assert.equal((await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':'"1"'})).statusCode,503);
+  assert.equal((await get('/api/auth/session',bob)).statusCode,200);
+  assert.equal((await pool.query('SELECT status,access_version FROM public.users WHERE id=$1',[bob.id])).rows[0].status,'active');
+  assert.equal((await pool.query('SELECT count(*) FROM public.iam_idempotency')).rows[0].count,'0');
+  await pool.query('GRANT INSERT ON public.audit_events TO forum_role_runtime');
+  const blocked=await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':'"1"'});assert.equal(blocked.statusCode,200,blocked.body);
+  assert.equal((await get('/api/auth/session',bob)).statusCode,401);
+  assert.equal((await mutate(accessUrl(bob.id),{status:'active'},alice,'platform',{'if-match':'"2"'})).statusCode,200);
+ }finally{await pool.query('GRANT INSERT ON public.audit_events TO forum_role_runtime');await app.close();app=ownerApp;await restricted.end()}
+});
 async function company(){
  const id=randomUUID();await pool.query(`INSERT INTO public.organizations(id,legal_status,inn,legal_name,registration_state,registered_at)
   VALUES($1,'legal_entity',$2,'Synthetic organization','registered',now())`,[id,String(Math.floor(Math.random()*9000000000)+1000000000)]);
@@ -187,6 +264,35 @@ async function queuedExpiry(lock:(client:PoolClient)=>Promise<unknown>,request:(
  assert.ok(pending);return pending;
 }
 const platformLock=(client:PoolClient)=>client.query("SELECT pg_advisory_xact_lock(hashtext('forum-iam-platform'))");
+test('a login racing with blocking cannot leave an authenticated session',async()=>{
+ await platformAdmin();
+ const identity=(await pool.query('SELECT subject FROM public.external_identities WHERE user_id=$1',[bob.id])).rows[0];
+ const blocker=await pool.connect(),store=new AuthStore(pool),token='r'.repeat(43);
+ let block:ReturnType<typeof mutate>|undefined,login:Promise<unknown>|undefined;
+ try{
+  await blocker.query('BEGIN');await blocker.query('SELECT id FROM public.users WHERE id=$1 FOR UPDATE',[bob.id]);
+  block=mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':'"1"'});
+  login=store.authenticate({subject:identity.subject,alternateSubjects:[],displayName:'Bob',email:null,emailConfirmed:false,claims:{},profile:{family_name:'Bob'}},'login',token,3600);
+  void login.catch(()=>{}); // Observe rejection while the test coordinates row locks.
+  // Observe both requests actually waiting on the same user row before release.
+  await waitForDatabase(async()=>Number((await pool.query(`SELECT count(*) FROM pg_stat_activity
+   WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%public.users%'
+    AND cardinality(pg_blocking_pids(pid))>0`)).rows[0].count)>=2,'concurrent login and block');
+ }finally{await blocker.query('ROLLBACK');blocker.release()}
+ assert.ok(block);assert.ok(login);const [blocked,authenticated]=await Promise.allSettled([block,login]);
+ assert.equal(blocked.status,'fulfilled');if(blocked.status==='fulfilled')assert.equal(blocked.value.statusCode,200,blocked.value.body);
+ if(authenticated.status==='rejected')assert.equal(authenticated.reason.code,'account_deactivated');
+ await assert.rejects(store.session(token),{code:'unauthenticated'});
+ assert.equal((await pool.query('SELECT count(*) FROM public.sessions WHERE user_id=$1 AND revoked_at IS NULL',[bob.id])).rows[0].count,'0');
+});
+test('queued blocking rechecks the administrator session after the target row lock',async()=>{
+ await platformAdmin();
+ const result=await queuedExpiry(client=>client.query('SELECT id FROM public.users WHERE id=$1 FOR UPDATE',[bob.id]),
+  ()=>mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':'"1"'}),()=>expireSession(alice),()=>sessionExpired(alice));
+ assert.equal(result.statusCode,401,result.body);
+ assert.equal((await get('/api/auth/session',bob)).statusCode,200);
+ assert.equal((await pool.query('SELECT count(*) FROM public.iam_idempotency')).rows[0].count,'0');
+});
 const organizationLock=(id:string)=>(client:PoolClient)=>client.query('SELECT pg_advisory_xact_lock(hashtext($1))',[`forum-iam-organization:${id}`]);
 async function expireSession(actor:User){await pool.query("UPDATE public.sessions SET expires_at=clock_timestamp()+interval '20 milliseconds' WHERE user_id=$1",[actor.id])}
 async function sessionExpired(actor:User){return (await pool.query('SELECT bool_and(expires_at<=clock_timestamp()) AS expired FROM public.sessions WHERE user_id=$1',[actor.id])).rows[0].expired===true}

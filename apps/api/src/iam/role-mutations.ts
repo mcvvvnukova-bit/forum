@@ -1,6 +1,6 @@
 import type {Pool,PoolClient} from 'pg';
 import {AuthError} from './auth-error.js';
-import {assignmentColumns,authorizationContext,effectiveRoles,projectMember,roleActor,type PlatformAssignment,type RoleActor} from './role-store.js';
+import {assignmentColumns,authorizationContext,effectiveRoles,projectMember,roleActor,type PlatformAssignment,type RoleActor,type UserAccess} from './role-store.js';
 import {requireAll,type RoleCode} from './role-catalog.js';
 
 export type MutationRequest={token:string;contextKey:string;csrfToken:string;idempotencyKey:string;requestHash:string;version?:number};
@@ -96,6 +96,29 @@ export class RoleMutations {
    await bumpAccess(client,current.userId);
    await auditIam(client,actor.id,'IAMPlatformRoleUpdated',{assignmentId:id,targetUserId:current.userId,roleCode:current.roleCode,status:input.status,reason:input.reason});
    return {status:200,body:{item:row}};
+  });
+ }
+ async updateUserAccess(request:MutationRequest,userId:string,status:UserAccess['status']):Promise<MutationResult>{
+  return this.run(request,undefined,async(client,authorize)=>{
+   // Login locks this same user row before creating a session, so concurrent
+   // login either finishes before revocation or observes the blocked status.
+   const current=(await client.query<UserAccess>(`SELECT u.id AS "userId",u.display_name AS "displayName",u.status,
+    u.access_version::double precision AS version FROM public.users u WHERE u.id=$1 FOR NO KEY UPDATE OF u`,[userId])).rows[0];
+   const actor=await authorize();
+   if(!current)throw new AuthError('not_found',404);
+   if(current.version!==request.version)throw new AuthError('stale_version',412);
+   if(status==='deactivated'&&userId===actor.id)throw new AuthError('self_block',409);
+   if(current.status===status)return {status:200,body:{item:current}};
+   if(status==='deactivated'&&(await effectiveRoles(client,userId)).includes('platform_admin')){
+    const others=await client.query(`SELECT 1 FROM public.users u WHERE u.id<>$1
+     AND EXISTS(SELECT 1 FROM public.effective_iam_roles(u.id,NULL) r WHERE r.role_code='platform_admin') LIMIT 1`,[userId]);
+    if(!others.rowCount)throw new AuthError('last_admin',409);
+   }
+   const item=(await client.query<UserAccess>(`UPDATE public.users SET status=$2,access_version=access_version+1 WHERE id=$1
+    RETURNING id AS "userId",display_name AS "displayName",status,access_version::double precision AS version`,[userId,status])).rows[0];
+   if(status==='deactivated')await client.query('UPDATE public.sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL',[userId]);
+   await auditIam(client,actor.id,'IAMUserAccessChanged',{targetUserId:userId,previousStatus:current.status,status});
+   return {status:200,body:{item}};
   });
  }
  async updateMember(request:MutationRequest,organizationId:string,membershipId:string,input:{roles:RoleCode[];status:'active'|'revoked';reason:string}):Promise<MutationResult>{

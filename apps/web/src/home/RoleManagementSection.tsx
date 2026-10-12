@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react'
 import {Banner,Button,Checkbox,Dialog,FormControl,Heading,Select,Spinner,Stack,Text,Textarea} from '@primer/react'
 import type {Session} from '../audience/intent'
+import {UserAccessSection} from './UserAccessSection'
 
 type RoleCode='individual'|'organization_employee'|'organization_admin'|'organization_signer'|'platform_moderator'|'platform_admin'
 export type RoleContext={contextKey:string;participantId:string|null;roles:RoleCode[];permissions:string[];accessVersion:number}
@@ -80,6 +81,8 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  const [selected,setSelected]=useState(''),[roleCode,setRoleCode]=useState<RoleCode>('platform_moderator'),[duties,setDuties]=useState<RoleCode[]>([])
  const [reason,setReason]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saved,setSaved]=useState(false),[saveError,setSaveError]=useState('')
  const [pending,setPending]=useState<{key?:string;selected?:string}|null>(null)
+ const [accessSaving,setAccessSaving]=useState(false)
+ const [accessRevision,setAccessRevision]=useState(0)
  const generation=useRef(0),controller=useRef<AbortController|null>(null),submitting=useRef(false),mounted=useRef(true),expired=useRef(onExpired)
  const idempotency=useRef<{body:string;url:string;key:string}|null>(null),resolved=useRef<RoleContext|null>(null),scopeRef=useRef<HTMLSelectElement>(null),userRef=useRef<HTMLSelectElement>(null)
  expired.current=onExpired
@@ -131,7 +134,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   return()=>{generation.current++;abort.abort();window.clearTimeout(timer)}
  },[key,contexts,session.user.id])
  function change(next:{key?:string;selected?:string}){
-  if(submitting.current)return
+  if(submitting.current||accessSaving)return
   if(dirty){setPending(next);return}
   apply(next)
  }
@@ -141,7 +144,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   if(next.selected!==undefined){setSelected(next.selected);const m=members.find(x=>x.id===next.selected);setDuties(m?corporateRoles.filter(r=>m.roles.includes(r)):[])}
  }
  async function mutate(url:string,body:Record<string,unknown>,currentVersion?:number){
-  if(submitting.current||!resolved.current||state!=='ready')return
+  if(submitting.current||accessSaving||!resolved.current||state!=='ready')return
   // Platform actions record their own audit description without asking for a manual reason.
   const auditReason=platform?(body.status==='revoked'?'Отзыв служебной роли через управление пользователями':'Назначение служебной роли через управление пользователями'):reason.trim()
   if(!auditReason||auditReason.length>1000){setInvalid(true);return}
@@ -158,6 +161,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
     const updated=assignment(result.item,selected);if(updated.roleCode!==body.roleCode&&url==='/api/iam/platform-role-assignments'||url!== '/api/iam/platform-role-assignments'&&updated.id!==url.split('/').at(-1)||updated.status!==(body.status??'active')||updated.version<(currentVersion??0))throw new Error('Invalid mutation result')
     if(updated.userId===session.user.id&&updated.roleCode==='platform_admin'&&updated.status==='revoked'){failure(new Refusal(403,'forbidden'));expired.current();return}
     setUsers(old=>old.map(u=>u.userId===selected?{...u,platformRoles:[...u.platformRoles.filter(r=>r.roleCode!==updated.roleCode),updated]}:u))
+    setAccessRevision(value=>value+1)
    }else{
     const updated=member(result.item);if(updated.id!==selected||updated.userId!==selectedMember?.userId||updated.version<=(currentVersion??0))throw new Error('Invalid member result')
     if(updated.userId===session.user.id&&!updated.permissions.includes('organization.members.manage')){failure(new Refusal(403,'forbidden'));expired.current();return}
@@ -168,24 +172,36 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   finally{window.clearTimeout(timer);submitting.current=false;if(mounted.current)setSaving(false)}
  }
  function submit(event:FormEvent){event.preventDefault();if(platform&&user){const existing=user.platformRoles.find(r=>r.roleCode===roleCode);void mutate('/api/iam/platform-role-assignments',{targetUserId:user.userId,roleCode},existing?.status==='revoked'?existing.version:undefined)}else if(selectedMember?.status==='active'&&duties.length)void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:duties,status:'active'},selectedMember.version)}
+ function accessChanged(userId:string,status:'active'|'deactivated'){
+  if(status==='deactivated'){
+   setUsers(previous=>previous.filter(item=>item.userId!==userId))
+   if(selected===userId){setSelected('');setRoleCode('platform_moderator');setSaved(false);setSaveError('');idempotency.current=null}
+  }else{
+   const signal=controller.current?.signal,ticket=generation.current
+   if(signal)void pages('/api/iam/platform-users',signal,platformUser,{'X-Forum-Context':'platform'}).then(items=>{
+    if(mounted.current&&ticket===generation.current)setUsers(items)
+   }).catch(error=>{if(mounted.current&&ticket===generation.current)failure(error)})
+  }
+ }
  if(!validRoleSession(session))return <Banner variant="warning" title="Не удалось проверить права доступа"/>
  return <Stack>
-  {organizationManagement&&contexts.length>0&&<FormControl disabled={saving}><FormControl.Label>Область управления</FormControl.Label><Select ref={scopeRef} value={key} onChange={e=>change({key:e.target.value})} block>{contexts.map(c=><Select.Option key={c.contextKey} value={c.contextKey}>{companyLabels[c.contextKey.slice(13)]??`Название и ИНН недоступны — компания ${c.contextKey.slice(13)}`}</Select.Option>)}</Select></FormControl>}
+  {organizationManagement&&contexts.length>0&&<FormControl disabled={saving||accessSaving}><FormControl.Label>Область управления</FormControl.Label><Select ref={scopeRef} value={key} onChange={e=>change({key:e.target.value})} block>{contexts.map(c=><Select.Option key={c.contextKey} value={c.contextKey}>{companyLabels[c.contextKey.slice(13)]??`Название и ИНН недоступны — компания ${c.contextKey.slice(13)}`}</Select.Option>)}</Select></FormControl>}
   {state==='loading'&&<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем роли…</Text></Stack>}
   {['unavailable','forbidden','stale'].includes(state)&&<Banner variant={state==='forbidden'?'critical':'warning'} title={state==='forbidden'?'Нет доступа к управлению ролями':state==='stale'?'Данные изменились. Загрузите актуальные права':'Не удалось загрузить роли'} primaryAction={<Button onClick={()=>{setKey('');setAttempt(n=>n+1)}}>Повторить</Button>}/>}
   {state==='ready'&&<>
    {!platform&&<section aria-label="Каталог ролей"><Heading as="h2" variant="small">Роли компании</Heading><Stack>{catalogue.filter(r=>r.scope==='organization').map(r=><Text key={r.code}>{labels[r.code]}{r.conditionalPermissions?.includes('organization.documents.sign')?' — подпись требует отдельного подтверждения':''}</Text>)}</Stack></section>}
    {saved&&<Text role="status">Изменения сохранены</Text>}{saveError&&<Banner variant="critical" title={saveError}/>}
    <form onSubmit={submit} noValidate><Stack>
-    <FormControl disabled={saving}><FormControl.Label>{platform?'Пользователь':'Участник компании'}</FormControl.Label><Select ref={userRef} value={selected} block onChange={e=>change({selected:e.target.value})}><Select.Option value="">Выберите {platform?'пользователя':'участника'}</Select.Option>{(platform?users:members.filter(m=>m.status==='active')).map(item=><Select.Option key={'id' in item?item.id:item.userId} value={'id' in item?item.id:item.userId}>{item.displayName}</Select.Option>)}</Select></FormControl>
+    <FormControl disabled={saving||accessSaving}><FormControl.Label>{platform?'Пользователь':'Участник компании'}</FormControl.Label><Select ref={userRef} value={selected} block onChange={e=>change({selected:e.target.value})}><Select.Option value="">Выберите {platform?'пользователя':'участника'}</Select.Option>{(platform?users:members.filter(m=>m.status==='active')).map(item=><Select.Option key={'id' in item?item.id:item.userId} value={'id' in item?item.id:item.userId}>{item.displayName}</Select.Option>)}</Select></FormControl>
     {!(platform?users.length:members.filter(m=>m.status==='active').length)&&<Text>Нет доступных участников</Text>}
-    {platform&&<FormControl disabled={saving}><FormControl.Label>Служебная роль</FormControl.Label><Select value={roleCode} block onChange={e=>{setRoleCode(e.target.value as RoleCode);idempotency.current=null}}><Select.Option value="platform_moderator">Модератор платформы</Select.Option><Select.Option value="platform_admin">Администратор платформы</Select.Option></Select></FormControl>}
-    {user&&<Stack>{user.platformRoles.map(r=><Stack key={r.id}><Text>{labels[r.roleCode]} — {r.status==='active'?'действует':'отозвана'}</Text>{r.status==='active'&&<Button disabled={saving} onClick={()=>void mutate(`/api/iam/platform-role-assignments/${r.id}`,{status:'revoked'},r.version)}>Отозвать роль</Button>}</Stack>)}</Stack>}
-    {selectedMember&&<Stack><Text>Действующие роли: {selectedMember.effectiveRoles.map(r=>labels[r]).join(', ')||'Нет'}</Text>{corporateRoles.map(r=><FormControl disabled={saving} key={r}><Checkbox checked={duties.includes(r)} onChange={e=>setDuties(previous=>corporateRoles.filter(x=>x===r?e.target.checked:previous.includes(x)))}/><FormControl.Label>{labels[r]}</FormControl.Label></FormControl>)}{selectedMember.roles.includes('organization_signer')&&<Text>{selectedMember.permissions.includes('organization.documents.sign')?'Подпись доступна только в подтверждённой области документа':'Подпись недоступна: подтверждение полномочий отсутствует или недействительно'}</Text>}</Stack>}
-    {selectedMember?.status==='active'&&<Button variant="danger" disabled={saving} onClick={()=>void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:[],status:'revoked'},selectedMember.version)}>Отозвать доступ участника</Button>}
-    {!platform&&<FormControl required disabled={saving}><FormControl.Label>Причина изменения</FormControl.Label><Textarea aria-label="Причина изменения" value={reason} onChange={e=>{setReason(e.target.value);setInvalid(false)}} block maxLength={1000} rows={3}/>{invalid&&<FormControl.Validation variant="error">Укажите причину изменения</FormControl.Validation>}</FormControl>}
-    <Button variant="primary" type="submit" disabled={saving||!selected||!platform&&!duties.length}>{saving?'Назначаем…':platform?'Назначить роль':'Сохранить роли участника'}</Button>
+    {platform&&<FormControl disabled={saving||accessSaving}><FormControl.Label>Служебная роль</FormControl.Label><Select value={roleCode} block onChange={e=>{setRoleCode(e.target.value as RoleCode);idempotency.current=null}}><Select.Option value="platform_moderator">Модератор платформы</Select.Option><Select.Option value="platform_admin">Администратор платформы</Select.Option></Select></FormControl>}
+    {user&&<Stack>{user.platformRoles.map(r=><Stack key={r.id}><Text>{labels[r.roleCode]} — {r.status==='active'?'действует':'отозвана'}</Text>{r.status==='active'&&<Button disabled={saving||accessSaving} onClick={()=>void mutate(`/api/iam/platform-role-assignments/${r.id}`,{status:'revoked'},r.version)}>Отозвать роль</Button>}</Stack>)}</Stack>}
+    {selectedMember&&<Stack><Text>Действующие роли: {selectedMember.effectiveRoles.map(r=>labels[r]).join(', ')||'Нет'}</Text>{corporateRoles.map(r=><FormControl disabled={saving||accessSaving} key={r}><Checkbox checked={duties.includes(r)} onChange={e=>setDuties(previous=>corporateRoles.filter(x=>x===r?e.target.checked:previous.includes(x)))}/><FormControl.Label>{labels[r]}</FormControl.Label></FormControl>)}{selectedMember.roles.includes('organization_signer')&&<Text>{selectedMember.permissions.includes('organization.documents.sign')?'Подпись доступна только в подтверждённой области документа':'Подпись недоступна: подтверждение полномочий отсутствует или недействительно'}</Text>}</Stack>}
+    {selectedMember?.status==='active'&&<Button variant="danger" disabled={saving||accessSaving} onClick={()=>void mutate(`/api/iam/organizations/${key.slice(13)}/members/${selectedMember.id}`,{roles:[],status:'revoked'},selectedMember.version)}>Отозвать доступ участника</Button>}
+    {!platform&&<FormControl required disabled={saving||accessSaving}><FormControl.Label>Причина изменения</FormControl.Label><Textarea aria-label="Причина изменения" value={reason} onChange={e=>{setReason(e.target.value);setInvalid(false)}} block maxLength={1000} rows={3}/>{invalid&&<FormControl.Validation variant="error">Укажите причину изменения</FormControl.Validation>}</FormControl>}
+    <Button variant="primary" type="submit" disabled={saving||accessSaving||!selected||!platform&&!duties.length}>{saving?'Назначаем…':platform?'Назначить роль':'Сохранить роли участника'}</Button>
    </Stack></form>
+   {platform&&<UserAccessSection session={session} revision={accessRevision} disabled={saving} onBusyChange={setAccessSaving} onChanged={accessChanged} onExpired={()=>failure(new Refusal(401,'unauthenticated'))} onForbidden={()=>{failure(new Refusal(403,'forbidden'));expired.current()}}/>}
   </>}
   {pending&&<Dialog title="Отменить несохранённые изменения?" returnFocusRef={pending.selected!==undefined?userRef:scopeRef} onClose={()=>setPending(null)} footerButtons={[{content:'Продолжить редактирование',onClick:()=>setPending(null)},{content:'Отменить изменения',buttonType:'danger',onClick:()=>apply(pending)}]}><Text>При смене области или участника несохранённые изменения будут отменены.</Text></Dialog>}
  </Stack>
