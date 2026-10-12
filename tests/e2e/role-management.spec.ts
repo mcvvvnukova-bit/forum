@@ -8,7 +8,7 @@ for(const width of [1440,768,390,320])test(`real API roles layout, menu and focu
  await page.goto('/__fixture/login/admin');await expect(page.getByRole('heading',{name:'Служебные роли'})).toBeVisible()
  await expect(page.getByLabel('Область управления')).toHaveValue('platform')
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
- if(width<768){const opener=page.getByRole('button',{name:'Открыть меню профиля'});await opener.click();const dialog=page.getByRole('dialog',{name:'Разделы профиля'});await expect(dialog.getByRole('link',{name:'Администрирование'})).toBeVisible();await page.keyboard.press('Escape');await expect(opener).toBeFocused()}
+ if(width<768){const opener=page.getByRole('button',{name:'Открыть меню профиля'});await opener.click();const dialog=page.getByRole('dialog',{name:'Разделы профиля'});await expect(dialog.getByText('Администрирование',{exact:true})).toBeVisible();await expect(dialog.getByText('Справочники',{exact:true})).toBeVisible();await expect(dialog.getByRole('link',{name:'Пользователи'})).toBeVisible();await page.keyboard.press('Escape');await expect(opener).toBeFocused()}
  await page.getByLabel('Область управления').press('Tab');await expect(page.getByLabel('Пользователь')).toBeFocused()
  await page.screenshot({path:resolve(evidence,`roles-${width}.png`),fullPage:true});await page.reload();await expect(page.getByRole('heading',{name:'Служебные роли'})).toBeVisible();expect(errors).toEqual([])
 })
@@ -24,7 +24,7 @@ test('role grant, reload persistence, revoke and old-cookie refusal use the real
  await page.getByLabel('Причина изменения').fill('Synthetic UI acceptance revoke');const revoke=page.waitForResponse(r=>r.url().includes('/api/iam/platform-role-assignments/')&&r.request().method()==='PATCH');await page.getByRole('button',{name:'Отозвать роль',exact:true}).click();expect((await revoke).status()).toBe(200)
  await expect(page.getByText('Администратор платформы — отозвана',{exact:true})).toBeVisible();await page.screenshot({path:resolve(evidence,'revoked-role.png'),fullPage:true})
  expect((await oldPage.request.get('http://127.0.0.1:5191/api/iam/platform-users',{headers:{'X-Forum-Context':'platform'}})).status()).toBe(403)
- await oldPage.reload();await expect(oldPage.getByText('Нет доступа к управлению ролями',{exact:true})).toBeVisible();await expect(oldPage.getByRole('link',{name:'Администрирование'})).toHaveCount(0)
+ await oldPage.reload();await expect(oldPage.getByText('Нет доступа к управлению ролями',{exact:true})).toBeVisible();await expect(oldPage.getByRole('link',{name:'Пользователи'})).toHaveCount(0)
  await page.reload();await page.getByLabel('Пользователь',{exact:true}).selectOption(info.users.ordinary);await expect(page.getByText('Администратор платформы — отозвана',{exact:true})).toBeVisible();await oldContext.close()
 })
 test('corporate signer request remains unconfirmed, switching clears prior company and foreign IDs show no members',async({page})=>{
@@ -53,5 +53,5 @@ test('named company labels retain exact authorized context and draft safeguards'
 test('unavailable read retries against the real API and ordinary sessions stay forbidden',async({page})=>{
  await page.request.get('/__fixture/fail-reads?value=true')
  try{await page.goto('/__fixture/login/admin');await expect(page.getByText('Не удалось загрузить роли',{exact:true})).toBeVisible();await page.request.get('/__fixture/fail-reads?value=false');await page.getByRole('button',{name:'Повторить',exact:true}).filter({visible:true}).click();await expect(page.getByRole('heading',{name:'Служебные роли'})).toBeVisible()}finally{await page.request.get('/__fixture/fail-reads?value=false')}
- await page.goto('/__fixture/login/ordinary');await expect(page.getByText('Нет доступа к управлению ролями',{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Администрирование'})).toHaveCount(0)
+ await page.goto('/__fixture/login/ordinary');await expect(page.getByText('Нет доступа к управлению ролями',{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Пользователи'})).toHaveCount(0)
 })

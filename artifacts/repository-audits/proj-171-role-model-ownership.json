@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "fac0eb6833d9aae8500cb32076542a4dcbc3b601",
+  "sourceSha": "5e8730dc6c1d9c806c4323922f3d47f9a766945d",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -97,7 +97,7 @@
       "previousSha256": "48deef6ec04936fce0aae05cbb75c2ef120da3edc9ff70401accad825492bcc0",
       "previousMode": "100644",
       "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
-      "candidateSha256": "27739d5694f6fac9e20d975aa3c8f63802b15429f0d88e664ae79bddfc0c4704",
+      "candidateSha256": "f141c221c983394a38389517c0c17038dc17ce8cea96999894380865a7fb1d42",
       "candidateMode": "100644"
     },
     {
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "337ed4c4b7d73f9503fe120628d0b74ba8a61da6b56620f39dd60f8f0a7e7a68",
+      "candidateSha256": "f3d01888ece321cf5da85ab2348ce448d0cceec0fe6fd2e19143eb3ef7a3f2b7",
       "candidateMode": "100644"
     },
     {
@@ -269,7 +269,7 @@
     },
     {
       "path": "apps/web/src/home/roles.test.tsx",
-      "sha256": "9269b3a5f439326d0d8339343a1a3abbdd1eae776fcfa184de5972314bdb109b",
+      "sha256": "ec8d5fd84da1dd72fa3f6925206b9598ef5fa116138053bd4687d7c9b46fa120",
       "mode": "100644"
     },
     {
@@ -299,7 +299,7 @@
     },
     {
       "path": "tests/e2e/role-management.spec.ts",
-      "sha256": "5a787d5c404921211f2307c50360ad43a70aba75e7458d9eee0fdda8f1a556bf",
+      "sha256": "f9921938815e108dd28e420b7cebfd5eb441f4e2c26cf970a64dff24132009b0",
       "mode": "100644"
     },
     {

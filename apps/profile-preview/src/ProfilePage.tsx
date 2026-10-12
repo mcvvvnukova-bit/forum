@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react'
 import type {ReactNode} from 'react'
 import {Banner, Button, Dialog, Heading, Link, IconButton, NavList, Spinner, Stack, Text} from '@primer/react'
-import {BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PersonIcon, QuestionIcon, ShieldLockIcon, SignOutIcon, ThreeBarsIcon} from '@primer/octicons-react'
+import {BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PeopleIcon, PersonIcon, QuestionIcon, ShieldLockIcon, SignOutIcon, ThreeBarsIcon} from '@primer/octicons-react'
 import {buildProfileSections, type ProfileSection, type SberProfile} from './profile'
 
 type ProfileView = 'profile' | 'work' | 'settings' | 'organizations' | 'roles'
@@ -18,8 +18,16 @@ function ProfileNavigation({onNavigate, disabled = false, view, root, settings=f
     </NavList.Group>
     <NavList.Divider/>
     {live ? <NavList.Item href={`${root}organizations/#main`} onClick={onNavigate} aria-current={view === 'organizations' ? 'page' : undefined}><NavList.LeadingVisual><OrganizationIcon/></NavList.LeadingVisual>Мои организации</NavList.Item> : <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><OrganizationIcon/></NavList.LeadingVisual>Добавить компанию</NavList.Item>}
+    {managePlatform&&<>
+      <NavList.Divider/>
+      <NavList.Group hideDivider>
+        <NavList.GroupHeading>Администрирование</NavList.GroupHeading>
+        <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><BookIcon/></NavList.LeadingVisual>Справочники</NavList.Item>
+        <NavList.Item href={`${root}roles/#main`} onClick={onNavigate} aria-current={view==='roles'?'page':undefined}><NavList.LeadingVisual><PeopleIcon/></NavList.LeadingVisual>Пользователи</NavList.Item>
+      </NavList.Group>
+      <NavList.Divider/>
+    </>}
     {settings?<NavList.Item href={`${root}settings/#main`} onClick={onNavigate} aria-current={view==='settings'?'page':undefined}><NavList.LeadingVisual><GearIcon/></NavList.LeadingVisual>Настройки</NavList.Item>:<NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><GearIcon/></NavList.LeadingVisual>Настройки</NavList.Item>}
-    {managePlatform&&<NavList.Item href={`${root}roles/#main`} onClick={onNavigate} aria-current={view==='roles'?'page':undefined}><NavList.LeadingVisual><ShieldLockIcon/></NavList.LeadingVisual>Администрирование</NavList.Item>}
   </NavList>
 }
 function ProfileCard({section}: {section: ProfileSection}) {
