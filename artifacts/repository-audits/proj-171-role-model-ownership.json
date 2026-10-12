@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "50ab8f191ea47ebee0fa3958091839f62e8f8389",
+  "sourceSha": "d1a4c2891fc0a9be003ac33b0ad8e01b600c08b5",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "1d1544ac3bd1ac8178a62955bade54adb096929c7904e46c32573807a13707e4",
+      "candidateSha256": "61169d5bf76a30118882fb426e50efbb7e05f56e70809cf46a1802f87fcc14c8",
       "candidateMode": "100644"
     },
     {
@@ -314,7 +314,7 @@
     },
     {
       "path": "apps/web/src/home/UserAccessSection.tsx",
-      "sha256": "57074a6f82355483749987433d7bb553539e23e98cad89b6f62b803fbb2c5b8e",
+      "sha256": "33269fe84081d2b0266372817a1613f9d5ee6628237859f5d78e2c5a8babbe4d",
       "mode": "100644"
     },
     {

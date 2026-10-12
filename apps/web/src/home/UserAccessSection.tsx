@@ -111,7 +111,7 @@ export function UserAccessSection({session,revision,disabled,onBusyChange,onChan
    {!users.length&&<Text>Нет доступных пользователей</Text>}
    {user&&<Text>Статус входа: {user.status==='active'?'разрешён':'заблокирован'}</Text>}
    {user?.userId===session.user.id&&<Text>Нельзя заблокировать свой вход на платформу.</Text>}
-   <Button ref={buttonRef} variant={user?.status==='deactivated'?'primary':'danger'} disabled={saving||disabled||!user||user.userId===session.user.id} onClick={()=>setConfirm(true)}>
+   <Button ref={buttonRef} variant={!user||user.status==='deactivated'?'primary':'danger'} disabled={saving||disabled||!user||user.userId===session.user.id} onClick={()=>setConfirm(true)}>
     {saving?'Сохраняем…':user?.status==='deactivated'?'Разблокировать вход':'Заблокировать вход'}
    </Button>
   </>}
