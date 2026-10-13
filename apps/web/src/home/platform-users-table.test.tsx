@@ -3,9 +3,10 @@ import {BaseStyles,ThemeProvider} from '@primer/react'
 import {expect,it,vi} from 'vitest'
 import {PlatformUsersTable} from './PlatformUsersTable'
 import type {UserDirectorySummary} from './UserAccessSection'
-// Primer overlays and accessibility queries are CPU-heavy in jsdom, especially
-// when CI runs all UI files in parallel. Keep a bounded budget for this file.
-vi.setConfig({testTimeout:15000})
+// Primer overlays and accessibility queries are CPU-heavy in jsdom. The full
+// filter/focus scenario takes about 40s on the shared CI runner; bound this file
+// to 60s while retaining the default timeout for all other UI files.
+vi.setConfig({testTimeout:60000})
 const items:UserDirectorySummary[]=[
  {userId:'b',displayName:'Борис',status:'deactivated',version:1,organizations:[],platformRoles:[{id:'rb',userId:'b',roleCode:'platform_admin',status:'active',version:2}]},
  {userId:'a',displayName:'Анна',status:'active',version:1,organizations:[],platformRoles:[{id:'ra',userId:'a',roleCode:'platform_moderator',status:'active',version:1}]},
