@@ -37,7 +37,7 @@ it('block picker offers only active users across pages without status descriptio
 it('confirms block and unblock with current version and complete security headers',async()=>{
  const f=api((url,init)=>init?.method==='PATCH'?Response.json({item:{...active,status:JSON.parse(String(init.body)).status,version:url.endsWith(target)?Number(JSON.parse(new Headers(init.headers).get('If-Match')!))+1:0}}):undefined)
  vi.stubGlobal('fetch',f);page();await select();await confirm()
- expect(await screen.findByText(/Вход пользователя.*заблокирован\. Действующие сеансы завершены/)).toBeVisible()
+ expect(await screen.findByRole('status',{name:'Вход пользователя «Проверенный пользователь» заблокирован. Действующие сеансы завершены.'})).toHaveAttribute('data-variant','success')
  expect(screen.getByText('Статус входа: заблокирован')).toBeVisible()
  const call=f.mock.calls.find(([,init])=>init?.method==='PATCH')!,headers=new Headers(call[1]!.headers)
  expect(call[0]).toBe(`/api/iam/platform-user-access/${target}`)
@@ -47,7 +47,8 @@ it('confirms block and unblock with current version and complete security header
  expect(call[1]!.credentials).toBe('same-origin');expect(call[1]!.cache).toBe('no-store')
  expect(props.onChanged).toHaveBeenCalledWith(target,'deactivated')
  await confirm('Разблокировать вход')
- expect(await screen.findByText(/Для продолжения работы нужно войти заново/)).toBeVisible()
+ expect(await screen.findByRole('status',{name:'Вход пользователя «Проверенный пользователь» разрешён.'})).toHaveAttribute('data-variant','success')
+ expect(screen.queryByText(/Для продолжения работы нужно войти заново/)).not.toBeInTheDocument()
  expect(new Headers(f.mock.calls.filter(([,init])=>init?.method==='PATCH')[1][1]!.headers).get('If-Match')).toBe('"2"')
  expect(props.onChanged).toHaveBeenCalledWith(target,'active')
 })

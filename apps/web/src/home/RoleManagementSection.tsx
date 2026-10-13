@@ -81,7 +81,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  const [contexts,setContexts]=useState<RoleContext[]>([]),[key,setKey]=useState(''),[catalogue,setCatalogue]=useState<Role[]>([])
  const [companyLabels,setCompanyLabels]=useState<Record<string,string>>({})
  const [users,setUsers]=useState<PlatformUser[]>([]),[members,setMembers]=useState<Member[]>([]),[state,setState]=useState<State>('loading'),[attempt,setAttempt]=useState(0)
- const [selected,setSelected]=useState(''),[choices,setChoices]=useState<RoleCode[]>(['platform_moderator']),[duties,setDuties]=useState<RoleCode[]>([])
+ const [selected,setSelected]=useState(''),[choices,setChoices]=useState<RoleCode[]>([]),[duties,setDuties]=useState<RoleCode[]>([])
  const [reason,setReason]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saved,setSaved]=useState(false),[saveError,setSaveError]=useState('')
  const [pickerOpen,setPickerOpen]=useState(false),[search,setSearch]=useState('')
  const [tab,setTab]=useState('roles')
@@ -94,7 +94,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
  expired.current=onExpired
  const platform=key==='platform',user=users.find(u=>u.userId===selected),selectedMember=members.find(m=>m.id===selected)
  const newRoles=choices.filter(code=>!user?.platformRoles.some(role=>role.roleCode===code&&role.status==='active'))
- const dirty=!!reason.trim()||platform&&choices.join(',')!=='platform_moderator'||!!selectedMember&&duties.join(',')!==corporateRoles.filter(r=>selectedMember.roles.includes(r)).join(',')
+ const dirty=!!reason.trim()||platform&&choices.length>0||!!selectedMember&&duties.join(',')!==corporateRoles.filter(r=>selectedMember.roles.includes(r)).join(',')
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;controller.current?.abort();cancelUsersRefresh()}},[])
  useEffect(()=>{if(!dirty)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue=''};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[dirty])
  function cancelUsersRefresh(){++usersReadVersion.current;usersRefresh.current?.abort();usersRefresh.current=null}
@@ -113,7 +113,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   else if(interruptedUsersRefresh.current){interruptedUsersRefresh.current=false;refreshPlatformUsers()}
   setAccessSaving(busy)
  }
- function clearData(){interruptedUsersRefresh.current=false;cancelUsersRefresh();setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setPickerOpen(false);setSearch('');setChoices(['platform_moderator']);setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current.clear()}
+ function clearData(){interruptedUsersRefresh.current=false;cancelUsersRefresh();setDirectory({items:[],state:'loading',retry:()=>setAccessRevision(value=>value+1)});resolved.current=null;setUsers([]);setMembers([]);setSelected('');setPickerOpen(false);setSearch('');setChoices([]);setDuties([]);setReason('');setSaveError('');setSaved(false);idempotency.current.clear()}
  function failure(error:unknown){clearData();if(error instanceof Refusal&&error.status===401){setState('expired');expired.current()}else setState(error instanceof Refusal&&[403,404].includes(error.status)?'forbidden':error instanceof Refusal&&error.status===412?'stale':'unavailable')}
  // Authorization contexts are local to this view. Resolving one does not alter the shared session.
  useEffect(()=>{
@@ -161,7 +161,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   apply(next)
  }
  function apply(next:{key?:string;selected?:string}){
-  setReason('');setChoices(['platform_moderator']);setInvalid(false);setSaved(false);setSaveError('');idempotency.current.clear()
+  setReason('');setChoices([]);setInvalid(false);setSaved(false);setSaveError('');idempotency.current.clear()
   if(next.key!==undefined){controller.current?.abort();generation.current++;clearData();setKey(next.key);setState('loading');const url=new URL(location.href);url.searchParams.set('context',next.key);history.replaceState(history.state,'',url)}
   if(next.selected!==undefined){setSelected(next.selected);const m=members.find(x=>x.id===next.selected);setDuties(m?corporateRoles.filter(r=>m.roles.includes(r)):[])}
  }
@@ -198,7 +198,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
    }
    completed++;idempotency.current.delete(operation)
    }
-   setReason('');if(!platform||batch)setChoices(['platform_moderator']);setSaved(true)
+   setReason('');if(!platform||batch)setChoices([]);setSaved(true)
   }catch(error){if(mounted.current&&ticket===generation.current){if(error instanceof Refusal&&[401,403,404,412].includes(error.status))failure(error);else setSaveError(error instanceof Refusal&&error.code==='last_admin'?'Нельзя отозвать последнего действующего администратора':completed?`Назначено ролей: ${completed}. Не удалось назначить оставшиеся роли. Повторите попытку`:'Не удалось сохранить роли. Повторите попытку')}}
   finally{window.clearTimeout(timer);submitting.current=false;if(mounted.current){setSaving(false);if(refreshPending)refreshPlatformUsers()}}
  }
@@ -208,7 +208,7 @@ export function RoleManagementSection({session,onExpired}:{session:Session;onExp
   interruptedUsersRefresh.current=false;cancelUsersRefresh()
   if(status==='deactivated'){
    setUsers(previous=>previous.filter(item=>item.userId!==userId))
-   if(selected===userId){setSelected('');setChoices(['platform_moderator']);setSaved(false);setSaveError('');idempotency.current.clear()}
+   if(selected===userId){setSelected('');setChoices([]);setSaved(false);setSaveError('');idempotency.current.clear()}
    if(refreshPending)refreshPlatformUsers()
   }else refreshPlatformUsers()
  }

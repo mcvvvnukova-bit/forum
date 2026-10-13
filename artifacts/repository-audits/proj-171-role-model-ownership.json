@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "523a1b876e58f7edf52e2dea81a5eea94b56fb9f",
+  "sourceSha": "45d60279678915ea8ef18753d597bbd197bf715f",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "3436393d04f8c64bf3dcf94460d7514777879a0e924103d84993899985226859",
+      "candidateSha256": "432e878d4abc617560a9d3458a87e35e1117269591de5d68c3a05e245b604d78",
       "candidateMode": "100644"
     },
     {
@@ -272,12 +272,12 @@
     },
     {
       "path": "apps/web/src/home/RoleManagementSection.tsx",
-      "sha256": "358325602a08025dbbb756a19e154fba85b20c4a3494fff2ac6340197cb7596c",
+      "sha256": "279372d76c35205583d60efc6e16f23cef12949c6018dc1050df8f8c513a5863",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/roles.test.tsx",
-      "sha256": "6cdff674eaea52cdee6a9e75432e3ad60fa90f5e04331c61c54dddc5b0e48b3e",
+      "sha256": "3c7e0c29e4c6a1b8e95ffe1031b6fe1ae57fb90100458723834b18d3a228e27b",
       "mode": "100644"
     },
     {
@@ -322,12 +322,12 @@
     },
     {
       "path": "apps/web/src/home/UserAccessSection.tsx",
-      "sha256": "b52cf56af100802d0b6b8f8ef64652e620096e76a11793bfad277fc9dad23e62",
+      "sha256": "9c71ba33640e94422955b83747fb9dff8eea2a0f6b811d19f04d054bc09b9105",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/user-access.test.tsx",
-      "sha256": "130eff8501961fbb55e5a78394ce1bd7bc9e36f0d0b5e7559a78caf7a038316a",
+      "sha256": "a960ebd329f7a37b74d37928f0936e7f9f7e77f553aa9e9dffa231c6a9b8822a",
       "mode": "100644"
     },
     {

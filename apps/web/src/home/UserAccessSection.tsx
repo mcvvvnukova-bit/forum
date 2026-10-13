@@ -117,13 +117,13 @@ export function UserAccessSection({session,revision,disabled,onBusyChange,onChan
    const updated=userAccess(result.item)
    if(updated.userId!==target.userId||updated.status!==status||updated.version!==target.version+1)throw new Error('Invalid mutation result')
    setUsers(previous=>previous.map(item=>item.userId===updated.userId?{...item,...updated}:item));setConfirm(false);idempotency.current=null
-   setMessage(status==='deactivated'?`Вход пользователя «${target.displayName}» заблокирован. Действующие сеансы завершены.`:`Вход пользователя «${target.displayName}» разрешён. Для продолжения работы нужно войти заново.`)
+   setMessage(status==='deactivated'?`Вход пользователя «${target.displayName}» заблокирован. Действующие сеансы завершены.`:`Вход пользователя «${target.displayName}» разрешён.`)
    callbacks.current.onChanged(updated.userId,updated.status)
   }catch(reason){if(ticket===generation.current){setConfirm(false);refusal(reason)}}
   finally{window.clearTimeout(timer);if(ticket===generation.current){busy.current=false;callbacks.current.onBusyChange(false);setSaving(false)}}
  }
  return <section aria-label="Блокировка входа"><Stack>
-  {message&&<Text role="status">{message}</Text>}
+  {message&&<Banner variant="success" role="status" title={message}/>}
   {state==='loading'&&<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем доступ пользователей…</Text></Stack>}
   {state!=='loading'&&state!=='ready'&&<Banner variant={state==='forbidden'?'critical':'warning'} title={state==='stale'?'Доступ изменился. Загрузите актуальные данные':state==='forbidden'?'Нет доступа к блокировке пользователей':'Не удалось загрузить доступ пользователей'} primaryAction={<Button onClick={()=>setAttempt(value=>value+1)}>Загрузить доступ заново</Button>}/>}
   {error&&<Banner variant="critical" title={error}/>}
