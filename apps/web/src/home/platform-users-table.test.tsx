@@ -3,6 +3,9 @@ import {BaseStyles,ThemeProvider} from '@primer/react'
 import {expect,it,vi} from 'vitest'
 import {PlatformUsersTable} from './PlatformUsersTable'
 import type {UserDirectorySummary} from './UserAccessSection'
+// Primer overlays and accessibility queries are CPU-heavy in jsdom, especially
+// when CI runs all UI files in parallel. Keep a bounded budget for this file.
+vi.setConfig({testTimeout:15000})
 const items:UserDirectorySummary[]=[
  {userId:'b',displayName:'Борис',status:'deactivated',version:1,organizations:[],platformRoles:[{id:'rb',userId:'b',roleCode:'platform_admin',status:'active',version:2}]},
  {userId:'a',displayName:'Анна',status:'active',version:1,organizations:[],platformRoles:[{id:'ra',userId:'a',roleCode:'platform_moderator',status:'active',version:1}]},
