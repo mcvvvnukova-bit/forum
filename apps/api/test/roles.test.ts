@@ -116,6 +116,19 @@ test('platform administrator blocks every session and future login, then restore
  const audit=(await get('/api/iam/audit-events',alice,'platform')).json().items.filter((e:{action:string})=>e.action==='IAMUserAccessChanged');
  assert.equal(audit.length,2);assert.ok(audit.every((e:{data:{targetUserId:string}})=>e.data.targetUserId===bob.id));
 });
+test('blocking and unblocking accept safe bigint access versions beyond int32',async()=>{
+ await platformAdmin();
+ for(const version of [2147483648,9007199254740989]){
+  await pool.query('UPDATE public.users SET access_version=$2 WHERE id=$1',[bob.id,version]);
+  const listed=(await get('/api/iam/platform-user-access',alice,'platform')).json().items.find((item:{userId:string})=>item.userId===bob.id);
+  assert.equal(listed.version,version);
+  const blocked=await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':`"${version}"`});
+  assert.equal(blocked.statusCode,200,blocked.body);assert.equal(blocked.json().item.version,version+1);
+  const restored=await mutate(accessUrl(bob.id),{status:'active'},alice,'platform',{'if-match':`"${version+1}"`});
+  assert.equal(restored.statusCode,200,restored.body);assert.equal(restored.json().item.version,version+2);
+ }
+ assert.equal((await mutate(accessUrl(bob.id),{status:'deactivated'},alice,'platform',{'if-match':'"9007199254740992"'})).statusCode,400);
+});
 test('blocking is restricted to platform administrators and protects self, versions, input and security headers',async()=>{
  assert.equal((await get('/api/iam/platform-user-access',alice,'platform')).statusCode,403);
  await platformAdmin();await mutate('/api/iam/platform-role-assignments',grant(bob.id));
@@ -239,7 +252,7 @@ test('idempotency returns the original result rejects changed requests and reaut
 });
 test('If-Match rejects missing malformed and stale updates without changing the role',async()=>{
  await platformAdmin();const id=(await mutate('/api/iam/platform-role-assignments',grant(bob.id))).json().item.id;
- for(const [value,status] of [['',400],['1',400],['"0"',400],['"2"',412]] as const){
+ for(const [value,status] of [['',400],['1',400],['"0"',400],['"2147483648"',400],['"2"',412]] as const){
   const r=await mutate(`/api/iam/platform-role-assignments/${id}`,{status:'revoked',reason:'Retired'},alice,'platform',{'if-match':value});
   assert.equal(r.statusCode,status,r.body);
  }

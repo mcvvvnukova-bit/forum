@@ -24,9 +24,9 @@ export function headerValue(req:FastifyRequest,key:string):string|undefined{
  const value=req.headers[key];if(value===undefined)return undefined;
  if(typeof value!=='string'||value.includes(','))throw new AuthError('invalid_request');return value;
 }
-export function versionValue(value:string|undefined):number{
+export function versionValue(value:string|undefined,maximum=2147483647):number{
  if(!value||!/^"[1-9][0-9]*"$/.test(value))throw new AuthError('invalid_request');
- const version=Number(value.slice(1,-1));if(!Number.isSafeInteger(version)||version>2147483647)throw new AuthError('invalid_request');return version;
+ const version=Number(value.slice(1,-1));if(!Number.isSafeInteger(version)||version>maximum)throw new AuthError('invalid_request');return version;
 }
 export type PageRequest={limit:number;cursor?:string};
 export function pageValue(req:FastifyRequest):PageRequest{

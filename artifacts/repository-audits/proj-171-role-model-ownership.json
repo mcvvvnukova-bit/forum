@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "45d60279678915ea8ef18753d597bbd197bf715f",
+  "sourceSha": "dca7f11c1f060241d3da4843b4c2f40ddfec6202",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "432e878d4abc617560a9d3458a87e35e1117269591de5d68c3a05e245b604d78",
+      "candidateSha256": "85cf2969da087d4260385ab99fa74c4acd0a7ea2e054696d5a4dc51f8584bb86",
       "candidateMode": "100644"
     },
     {
@@ -252,7 +252,7 @@
     },
     {
       "path": "apps/api/src/iam/role-request.ts",
-      "sha256": "1117d71f4686ce6eacffd08e4ef8f3bf46ef022645fc839cafed229e4beab2a2",
+      "sha256": "1cc0c1762582593d87aa0f7219687b8f3d8ba070fe00d933ae239598a3012754",
       "mode": "100644"
     },
     {
@@ -262,12 +262,12 @@
     },
     {
       "path": "apps/api/src/iam/roles.controller.ts",
-      "sha256": "901d93235e52c8ae845689d931f25b3df18283251f169a0d7b49154bab8300e6",
+      "sha256": "3c5a03bea9f11ceec4a7ce1096ce0f87e09c083bda8ca5784f30f5454a770fb6",
       "mode": "100644"
     },
     {
       "path": "apps/api/test/roles.test.ts",
-      "sha256": "2f2cc58452f47912db0fa16f7b97b637ffd32a9a500a0522eb0426a40343ada1",
+      "sha256": "7394656f4f06b44bd1008af5276902193f717a8ec4f29961467e279925cdbe03",
       "mode": "100644"
     },
     {

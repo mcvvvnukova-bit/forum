@@ -45,14 +45,14 @@ export class RolesController {
  }
  @Get('/audit-events')
  async audit(@Req() req:FastifyRequest,@Res() reply:FastifyReply){return this.respond(reply,()=>this.store().audit(this.token(req),this.key(req),pageValue(req)))}
- private request(req:FastifyRequest,update=false):MutationRequest{
+ private request(req:FastifyRequest,update=false,maximumVersion=2147483647):MutationRequest{
   noQuery(req);const token=this.token(req);
   if(headerValue(req,'origin')!==this.runtime.config.publicOrigin)throw new AuthError('invalid_origin',403);
   const contextKey=this.key(req),csrfToken=headerValue(req,'x-forum-csrf');
   if(!csrfToken||!/^[\w-]{43}$/.test(csrfToken))throw new AuthError('invalid_csrf',403);
   const idempotencyKey=headerValue(req,'idempotency-key');if(!idempotencyKey||!/^[\w-]{8,128}$/.test(idempotencyKey))throw new AuthError('invalid_request');
   const match=headerValue(req,'if-match');
-  const version=update||match!==undefined?versionValue(match):undefined;
+  const version=update||match!==undefined?versionValue(match,maximumVersion):undefined;
   // Canonicalize recursively so a JSON property-order change is the same body.
   const requestHash=hashToken(JSON.stringify({method:req.method,path:req.url,contextKey,version,body:canonical(req.body)}));
   return {token,contextKey,csrfToken,idempotencyKey,requestHash,version};
@@ -79,7 +79,7 @@ export class RolesController {
  @Patch('/platform-user-access/:id')
  async updateUserAccess(@Param('id') id:string,@Req() req:FastifyRequest,@Res() reply:FastifyReply){
   return this.change(reply,()=>{
-   const request=this.request(req,true),body=bodyValue(req.body,['status']);
+   const request=this.request(req,true,Number.MAX_SAFE_INTEGER),body=bodyValue(req.body,['status']);
    if(!['active','deactivated'].includes(body.status as string))throw new AuthError('invalid_request');
    return new RoleMutations(this.runtime.pool!).updateUserAccess(request,uuidValue(id),body.status as 'active'|'deactivated');
   });
