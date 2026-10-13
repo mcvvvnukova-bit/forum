@@ -517,6 +517,7 @@ def local_ci_receipt():
         assert source.is_file() and not source.is_symlink(), 'PROJ-168 source missing'
         _, digest, _ = branch_integration_file(source, item['candidateSha256'], item['candidateMode'])
         _, digest, _ = compact_login_file(source, digest, item['candidateMode'])
+        _, digest, _ = role_model_file(source, digest, item['candidateMode'])
         assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-168 current source hash mismatch: ' + candidate
         assert not source.stat().st_mode & 0o111, 'PROJ-168 current mode mismatch'
     sources = receipt['newFiles']
@@ -744,6 +745,7 @@ def exact_file(path, digest, mode):
         path, digest, mode = local_ci_file(path, digest, mode)
         path, digest, mode = branch_integration_file(path, digest, mode)
         path, digest, mode = compact_login_file(path, digest, mode)
+        path, digest, mode = role_model_file(path, digest, mode)
     except AssertionError as error:
         raise AssertionError('PROJ-165: ' + str(error)) from error
     relative = path.relative_to(ROOT)
@@ -788,6 +790,7 @@ def verify_branch_integration():
         expected = item.get('candidateSha256', item.get('sha256'))
         mode = item.get('candidateMode', item.get('mode'))
         source, expected, mode = compact_login_file(source, expected, mode)
+        source, expected, mode = role_model_file(source, expected, mode)
         assert hashlib.sha256(source.read_bytes()).hexdigest() == expected, 'PROJ-169 current source hash mismatch: ' + candidate
         assert ('100755' if source.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-169 source mode mismatch: ' + candidate
 
@@ -838,8 +841,59 @@ def verify_compact_login():
         assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
                        for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-170 source symlink: ' + candidate
         assert path.is_file(), 'Missing PROJ-170 source: ' + candidate
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-170 current source hash mismatch: ' + candidate
-        assert ('100755' if path.stat().st_mode & 0o111 else '100644') == item['candidateMode'], 'PROJ-170 source mode mismatch: ' + candidate
+        path, digest, mode = role_model_file(path, item['candidateSha256'], item['candidateMode'])
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-170 current source hash mismatch: ' + candidate
+        assert ('100755' if path.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-170 source mode mismatch: ' + candidate
+
+
+# Exact successor for the reviewed IAM role model. Historical receipts are fixed.
+# Only this checker's candidate hash is omitted from the manifest to avoid a cycle.
+ROLE_MODEL_MANIFEST_SHA256 = 'dfc99fec5fafe20043ea53b2172b72a7ddd950d4ae20179c49e5184d675d228c'
+
+
+@lru_cache(maxsize=1)
+def role_model_receipt():
+    path = ROOT / 'artifacts/repository-audits/proj-171-role-model-ownership.json'
+    relative = path.relative_to(ROOT)
+    assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
+                   for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-171 receipt symlink'
+    assert path.is_file(), 'Missing PROJ-171 receipt'
+    receipt = json.loads(path.read_text())
+    manifest = dict(receipt)
+    manifest['changes'] = [dict(item) for item in receipt['changes']]
+    for item in manifest['changes']:
+        if item['candidatePath'] == 'scripts/verification/check-operational-sources.py':
+            del item['candidateSha256']
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    assert digest == ROLE_MODEL_MANIFEST_SHA256, 'PROJ-171 scope/predecessor/candidate pin mismatch'
+    return receipt
+
+
+def role_model_file(path, expected_hash, expected_mode):
+    candidate = path.relative_to(ROOT).as_posix()
+    item = next((x for x in role_model_receipt()['changes'] if x['candidatePath'] == candidate), None)
+    if item is None:
+        return path, expected_hash, expected_mode
+    assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['previousMode'], 'PROJ-171 predecessor mismatch: ' + candidate
+    return path, item['candidateSha256'], item['candidateMode']
+
+
+def verify_role_model():
+    receipt = role_model_receipt()
+    # Raw final bytes are verified here, including new IAM files that have no
+    # predecessor in older receipts. Historical receipts never pass a successor.
+    for item in receipt['changes'] + receipt['newFiles'] + receipt['historicalReceipts']:
+        candidate = item.get('candidatePath', item.get('path'))
+        relative = Path(candidate)
+        assert not relative.is_absolute() and '..' not in relative.parts, 'Unsafe PROJ-171 source path: ' + candidate
+        source = ROOT / relative
+        assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
+                       for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-171 source symlink: ' + candidate
+        assert source.is_file(), 'Missing PROJ-171 source: ' + candidate
+        digest = item.get('candidateSha256', item.get('sha256'))
+        mode = item.get('candidateMode', item.get('mode'))
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-171 current source hash mismatch: ' + candidate
+        assert ('100755' if source.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-171 source mode mismatch: ' + candidate
 
 
 def retirement_receipt(verify_sources=True):
@@ -1016,7 +1070,7 @@ def verify_provenance():
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, my_organizations_receipt, cabinet_settings_receipt, dev_organizations_receipt,
                     governance_receipt, ci_receipt, merged_verification_receipt, integration_receipt,
-                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt):
+                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt, role_model_receipt):
         receipt.cache_clear()
     retirement_receipt()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
@@ -1141,6 +1195,7 @@ def verify_provenance():
     local_ci_receipt()
     verify_branch_integration()
     verify_compact_login()
+    verify_role_model()
     return accepted
 
 

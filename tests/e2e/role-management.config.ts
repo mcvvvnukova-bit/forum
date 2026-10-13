@@ -1,0 +1,3 @@
+import {defineConfig} from '@playwright/test'
+import {fileURLToPath} from 'node:url'
+export default defineConfig({testDir:'.',testMatch:'role-management.spec.ts',workers:1,fullyParallel:false,timeout:30000,outputDir:fileURLToPath(new URL('../../.superpowers/sdd/2026-10-11-role-model/task-2-evidence/browser-results',import.meta.url)),use:{baseURL:'http://127.0.0.1:5191',browserName:'chromium',colorScheme:'light',screenshot:'only-on-failure'},webServer:{cwd:fileURLToPath(new URL('../../',import.meta.url)),command:'node tests/e2e/serve-role-management.mjs',url:'http://127.0.0.1:5191/__fixture/info',reuseExistingServer:true}})

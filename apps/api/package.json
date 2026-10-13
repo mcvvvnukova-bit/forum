@@ -12,7 +12,8 @@
     "test": "tsc -p tsconfig.test.json && node --test --test-concurrency=1 .test-build/test/*.test.js",
     "test:browser": "tsc -p tsconfig.test.json && node test/browser-smoke.mjs",
     "start": "node --env-file-if-exists=.env dist/main.js",
-    "migrate": "node --env-file-if-exists=.env dist/migrate.js"
+    "migrate": "node --env-file-if-exists=.env dist/migrate.js",
+    "bootstrap:platform-admin": "node --env-file-if-exists=.env dist/bootstrap-platform-admin.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",

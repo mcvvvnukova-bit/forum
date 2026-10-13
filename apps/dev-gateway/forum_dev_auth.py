@@ -7,6 +7,7 @@ import http.client
 import mimetypes
 import os
 import posixpath
+import re
 import time
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -58,6 +59,9 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
 
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
+            if path.startswith("/api/iam"):
+                self._handle_iam(path, send_body=send_body)
+                return
 
             if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session", "/api/profile", "/api/settings", "/api/me/organizations"}:
                 self._proxy_api(send_body=send_body)
@@ -99,6 +103,9 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
 
         def do_POST(self) -> None:
             path = urlsplit(self.path).path
+            if path.startswith("/api/iam"):
+                self._handle_iam(path, send_body=True)
+                return
 
             if path in {"/api/auth/logout", "/api/me/organizations"}:
                 self._proxy_api(send_body=True)
@@ -112,6 +119,27 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
                 self._redirect("/", clear_cookie=True)
                 return
 
+            self._send_text(HTTPStatus.NOT_FOUND, "Not found")
+
+        def _handle_iam(self, path: str, *, send_body: bool) -> None:
+            uuid = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+            allowed = {
+                "GET": [r"/api/iam/(?:roles|contexts|platform-users|platform-user-access|audit-events)", rf"/api/iam/organizations/{uuid}/members"],
+                "POST": [r"/api/iam/(?:context/resolve|platform-role-assignments)"],
+                "PATCH": [rf"/api/iam/platform-user-access/{uuid}", rf"/api/iam/platform-role-assignments/{uuid}", rf"/api/iam/organizations/{uuid}/members/{uuid}"],
+            }
+            if not any(re.fullmatch(pattern, path) for pattern in allowed.get(self.command, [])):
+                self._send_text(HTTPStatus.NOT_FOUND, "Not found", send_body=send_body)
+                return
+            self._proxy_api(send_body=send_body)
+
+        def do_PATCH(self) -> None:
+            self._handle_iam(urlsplit(self.path).path, send_body=True)
+
+        def do_DELETE(self) -> None:
+            self._send_text(HTTPStatus.NOT_FOUND, "Not found")
+
+        def do_OPTIONS(self) -> None:
             self._send_text(HTTPStatus.NOT_FOUND, "Not found")
 
         def do_PUT(self) -> None:
@@ -148,13 +176,14 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
                 return
             connection_type = http.client.HTTPSConnection if origin.scheme == "https" else http.client.HTTPConnection
             connection = connection_type(origin.hostname, origin.port, timeout=45)
-            headers = {key: self.headers[key] for key in ("Cookie", "Origin", "Accept", "Content-Type") if key in self.headers}
+            headers = {key: self.headers[key] for key in ("Cookie", "Origin", "Accept", "Content-Type", "X-Forum-Context", "X-Forum-CSRF", "Idempotency-Key", "If-Match") if key in self.headers}
             headers["X-Forwarded-For"] = self.client_address[0]
             try:
                 connection.request(self.command, self.path, body=self.rfile.read(length) if length else None, headers=headers)
                 response = connection.getresponse()
-                payload = response.read(65537)
-                if len(payload) > 65536:
+                response_cap = 8 * 1024 * 1024 if self.command == "GET" and urlsplit(self.path).path == "/api/iam/platform-user-access" else 65536
+                payload = response.read(response_cap + 1)
+                if len(payload) > response_cap:
                     raise ValueError("Oversized API response")
                 self.send_response(response.status)
                 for key, value in response.getheaders():

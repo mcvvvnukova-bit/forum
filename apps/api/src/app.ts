@@ -10,6 +10,7 @@ import {loadConfig, type ApiConfig} from './config.js';
 import {OrganizationsController} from './organizations/organizations.controller.js';
 import {AuthController, AuthRuntime} from './iam/auth.controller.js';
 import {SettingsController} from './iam/settings.controller.js';
+import {RolesController} from './iam/roles.controller.js';
 
 @Controller()
 class HealthController {
@@ -24,15 +25,30 @@ class HealthController {
         public.persons, public.participants, public.participant_memberships, public.role_assignments,
         public.sessions, public.authorization_attempts, public.outbox_events, public.audit_events,
         public.identity_providers, public.identity_profiles, public.organization_memberships,
-        public.organization_authorities LIMIT 0`);
+        public.organization_authorities,public.iam_role_assignments,public.iam_idempotency LIMIT 0`);
       const readiness=await this.runtime.pool.query(`SELECT
         EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships')
+        AND EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='008_iam_roles')
+        AND has_column_privilege(current_user,'public.users','access_version','UPDATE')
+        AND has_column_privilege(current_user,'public.sessions','csrf_token','SELECT')
+        AND has_table_privilege(current_user,'public.iam_role_assignments','SELECT')
+        AND has_table_privilege(current_user,'public.iam_role_assignments','INSERT')
+        AND NOT EXISTS(SELECT 1 FROM unnest(ARRAY['status','revoked_at','effective_from','effective_until','version','reason']) AS columns(name)
+          WHERE NOT has_column_privilege(current_user,'public.iam_role_assignments',columns.name,'UPDATE'))
+        AND NOT EXISTS(SELECT 1 FROM unnest(ARRAY['status','revoked_at','version']) AS columns(name)
+          WHERE NOT has_column_privilege(current_user,'public.organization_memberships',columns.name,'UPDATE'))
+        AND has_table_privilege(current_user,'public.iam_idempotency','SELECT')
+        AND has_table_privilege(current_user,'public.iam_idempotency','INSERT')
+        AND has_table_privilege(current_user,'public.audit_events','INSERT')
+        AND has_function_privilege(current_user,'public.guard_iam_role_owner()','EXECUTE')
+        AND has_function_privilege(current_user,'public.guard_organization_association()','EXECUTE')
         AND has_table_privilege(current_user,'public.identity_profiles','INSERT')
         AND has_table_privilege(current_user,'public.identity_profiles','UPDATE')
         AND has_column_privilege(current_user,'public.role_assignments','status','UPDATE')
         AND has_column_privilege(current_user,'public.role_assignments','revoked_at','UPDATE') AS ready`);
       if (readiness.rows[0]?.ready !== true) return reply.code(503).send({status: 'not_ready'});
       await this.runtime.pool.query("SELECT public.effective_business_access(NULL::uuid,NULL::uuid,'customer',true)");
+      await this.runtime.pool.query('SELECT role_code FROM public.effective_iam_roles(NULL::uuid,NULL::uuid)');
       return reply.send({status: 'ok', sberConfigured: Boolean(this.runtime.sber)});
     } catch { return reply.code(503).send({status: 'not_ready'}); }
   }
@@ -42,7 +58,7 @@ export async function createApp(config: ApiConfig = loadConfig(), existingPool?:
   const pool = existingPool ?? (config.databaseUrl ? new Pool({connectionString: config.databaseUrl,
     max: 10, connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000, statement_timeout: 10000}) : undefined);
   const runtime = new AuthRuntime(config, pool, !existingPool);
-  @Module({controllers: [HealthController, AuthController, SettingsController, OrganizationsController], providers: [{provide: AuthRuntime, useValue: runtime}]})
+  @Module({controllers: [HealthController, AuthController, SettingsController, OrganizationsController,RolesController], providers: [{provide: AuthRuntime, useValue: runtime}]})
   class AppModule {}
   const adapter = new FastifyAdapter({bodyLimit: 4096, logger: false,
     trustProxy: config.trustedProxyCidrs?.length ? config.trustedProxyCidrs : false});

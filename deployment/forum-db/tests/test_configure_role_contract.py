@@ -144,7 +144,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql((migrations / '002_profiles.sql').read_text())
         self.sql((migrations / '003_public_schema.sql').read_text())
         self.sql("INSERT INTO public.schema_migrations(name) VALUES ('003_public_schema');")
-        for name in ['005_public_individual_role','006_person_memberships','007_my_organizations']:
+        for name in ['005_public_individual_role','006_person_memberships','007_my_organizations','008_iam_roles']:
             self.sql((migrations / (name + '.sql')).read_text())
             self.sql(f"INSERT INTO public.schema_migrations(name) VALUES ('{name}');")
         self.sql("CREATE TABLE public.unrelated_data(id bigserial PRIMARY KEY);"
@@ -197,6 +197,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
             'role_assignments': {'SELECT', 'INSERT', 'DELETE'},
             'audit_events': {'SELECT', 'INSERT'}, 'outbox_events': {'SELECT', 'INSERT'},
             'schema_migrations': set(), 'unrelated_data': set(), 'organization_additions': {'SELECT', 'INSERT'},
+            'iam_role_assignments': {'SELECT', 'INSERT'}, 'iam_idempotency': {'SELECT', 'INSERT'},
         }
         for table, allowed in expected.items():
             for privilege in ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']:
@@ -205,6 +206,19 @@ class ConfigureRoleContractTest(unittest.TestCase):
         for table,column,privilege,allowed in [('schema_migrations','name','SELECT',True),('schema_migrations','applied_at','SELECT',False),('role_assignments','status','UPDATE',True),('role_assignments','revoked_at','UPDATE',True),('role_assignments','role','UPDATE',False)]:
             value=self.sql(f"SELECT has_column_privilege('forum_app','public.{table}','{column}','{privilege}');").stdout.strip()
             self.assertEqual(value,'t' if allowed else 'f',f'{table}.{column}/{privilege}')
+        # Table UPDATE denial alone does not detect leftover column grants.
+        # Pin every column against the hand-checked shared grant allowlist.
+        for table, writable in {
+            'organization_memberships': {'status', 'revoked_at', 'version'},
+            'organization_authorities': set(),
+            'iam_role_assignments': {'status', 'revoked_at', 'effective_from', 'effective_until', 'version', 'reason'},
+            'iam_idempotency': set(),
+        }.items():
+            rows = self.sql(f"SELECT a.attname,has_column_privilege('forum_app',a.attrelid,a.attnum,'UPDATE') "
+                            f"FROM pg_attribute a WHERE a.attrelid='public.{table}'::regclass "
+                            "AND a.attnum>0 AND NOT a.attisdropped ORDER BY a.attname;").stdout.splitlines()
+            actual = {name for name, allowed in (row.split('|') for row in rows) if allowed == 't'}
+            self.assertEqual(actual, writable, table + ' writable columns')
         for privilege in ['USAGE', 'SELECT', 'UPDATE']:
             value = self.sql(f"SELECT has_sequence_privilege('forum_app','public.outbox_events_sequence_seq','{privilege}');").stdout.strip()
             self.assertEqual(value, 'f' if privilege == 'UPDATE' else 't', 'outbox sequence/' + privilege)
@@ -222,6 +236,28 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.assertFalse((self.path / 'backups').exists())
         self.assertFalse((self.path / 'recreated').exists())
         self.assertEqual((self.path / 'pgadmin/servers.json').read_text(),json.dumps({'Servers': {'1': {'Name': 'Unrelated server'}}}))
+
+    def test_missing008_preflight_preserves_roles_password_acl_and_all_files(self):
+        # A late grant-script refusal is insufficient: by then role/password,
+        # database ACL and private backup/configuration files have changed.
+        self.sql("DELETE FROM public.schema_migrations WHERE name='008_iam_roles';")
+        password = self.path / 'pgadmin/secrets/forum_app_password'
+        for existing_password in [False, True]:
+            with self.subTest(existing_password=existing_password):
+                if existing_password:
+                    if password.exists():
+                        password.chmod(0o600)
+                    password.write_text('synthetic-existing-password')
+                    password.chmod(0o600)
+                before_db = self.privilege_snapshot()
+                before_files = self.filesystem_snapshot()
+                result = self.configure()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('migration008', result.stderr)
+                with self.subTest(state='database'):
+                    self.assertEqual(self.privilege_snapshot(), before_db, 'Partial role/password/ACL mutation')
+                with self.subTest(state='filesystem'):
+                    self.assertEqual(self.filesystem_snapshot(), before_files, 'Partial backup/config/password mutation')
 
     def test_repeated_configuration_reconciles_real_acl_and_future_objects(self):
         for _ in range(2):
@@ -263,6 +299,44 @@ class ConfigureRoleContractTest(unittest.TestCase):
             self.assertEqual(target['Username'], 'forum_app')
             self.assertEqual(target['ConnectionParameters']['passfile'], 'forum_app.pgpass')
 
+    def test_runtime_iam_lifecycle_and_protected_columns_use_real_acl(self):
+        result = self.configure()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assert_grants()
+        self.sql("INSERT INTO public.users(id,display_name) VALUES ('f0000000-0000-4000-8000-000000000001','Synthetic IAM user');"
+                 "INSERT INTO public.organizations(id,legal_status,inn,legal_name) VALUES ('f0000000-0000-4000-8000-000000000002','legal_entity','0000000001','Synthetic IAM company');"
+                 "INSERT INTO public.organization_memberships(id,user_id,organization_id,basis_type,basis_reference) VALUES "
+                 "('f0000000-0000-4000-8000-000000000003','f0000000-0000-4000-8000-000000000001','f0000000-0000-4000-8000-000000000002','synthetic','fixture');")
+        lifecycle = self.sql("BEGIN;"
+                 "INSERT INTO public.iam_role_assignments(id,user_id,scope_type,role_code,created_by_user_id,reason) VALUES "
+                 "('f0000000-0000-4000-8000-000000000004','f0000000-0000-4000-8000-000000000001','platform','platform_moderator','f0000000-0000-4000-8000-000000000001','synthetic grant');"
+                 "UPDATE public.iam_role_assignments SET status='revoked',revoked_at=now(),effective_from=now()-interval '1 day',effective_until=now(),version=version+1,reason='synthetic revoke';"
+                 "UPDATE public.organization_memberships SET status='revoked',revoked_at=now(),version=version+1;"
+                 "INSERT INTO public.iam_idempotency(actor_user_id,idempotency_key,request_hash,response_status,response_body) VALUES "
+                 "('f0000000-0000-4000-8000-000000000001','synthetic_key',repeat('0',64),201,'{}');"
+                 "SELECT status||':'||version||':'||reason FROM public.iam_role_assignments;"
+                 "SELECT status||':'||version FROM public.organization_memberships;"
+                 "SELECT response_status FROM public.iam_idempotency;ROLLBACK;", role='forum_app')
+        self.assertIn('revoked:2:synthetic revoke', lifecycle.stdout.splitlines())
+        self.assertIn('revoked:2', lifecycle.stdout.splitlines())
+        self.assertIn('201', lifecycle.stdout.splitlines())
+        denied = {
+            'iam_role_assignments': ['id', 'user_id', 'scope_type', 'scope_id', 'membership_id', 'role_code', 'created_by_user_id', 'created_at'],
+            'organization_memberships': ['user_id', 'organization_id', 'basis_type', 'basis_reference', 'approved_by_user_id', 'effective_from', 'effective_until'],
+            'organization_authorities': ['status', 'authority_type', 'basis_reference', 'approved_by_user_id', 'allowed_actions'],
+            'iam_idempotency': ['actor_user_id', 'request_hash', 'response_body', 'expires_at'],
+        }
+        statements = [f'UPDATE public.{table} SET {column}={column}'
+                      for table, columns in denied.items() for column in columns]
+        statements += ['DELETE FROM public.iam_role_assignments', 'DELETE FROM public.iam_idempotency',
+                       'DELETE FROM public.audit_events', 'DELETE FROM public.unrelated_data',
+                       "INSERT INTO public.organization_authorities(user_id) VALUES ('f0000000-0000-4000-8000-000000000001')"]
+        for statement in statements:
+            with self.subTest(statement=statement):
+                failure = self.sql(statement, role='forum_app', check=False)
+                self.assertNotEqual(failure.returncode, 0, statement)
+                self.assertIn('permission denied', failure.stderr)
+
     def test_missing_recreated_container_fails_before_inspect_or_sync(self):
         result = self.configure(MISSING_RECREATED_ID='1')
         self.assertNotEqual(result.returncode, 0)
@@ -298,7 +372,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql("DELETE FROM public.schema_migrations; GRANT DELETE ON public.persons TO forum_app_role;")
         result = self.sql(GRANTS.read_text(), check=False)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('migration006', result.stderr)
+        self.assertIn('migration008', result.stderr)
         # The precondition aborts the transaction without a partial ACL rewrite.
         self.assertEqual(self.sql("SELECT has_table_privilege('forum_app','public.persons','DELETE');").stdout.strip(), 't')
 
@@ -326,8 +400,9 @@ SELECT json_build_object(
 """).stdout
 
     def filesystem_snapshot(self):
-        return {str(p.relative_to(self.path)): hashlib.sha256(p.read_bytes()).hexdigest()
-                if p.is_file() else None for p in self.path.rglob('*')
+        return {str(p.relative_to(self.path)): (p.stat().st_mode & 0o777,
+                hashlib.sha256(p.read_bytes()).hexdigest() if p.is_file() else None)
+                for p in self.path.rglob('*')
                 if p.name != 'commands.jsonl'}
 
     def assert_global_defaults_rejected(self, object_type, grantee='forum_app_role', standalone=False):

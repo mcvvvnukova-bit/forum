@@ -267,12 +267,16 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         findings = json.loads(result.stdout)
-        # Preserve the 79 organizations predecessor warnings plus four compact-login
-        # composition advisories, and account separately for the Primer settings
-        # Stack/Spinner props accepted by the semantic gate.
+        # Keep predecessor advisories separate from the new administration
+        # composition's supported Primer Stack/AnchoredOverlay props. The
+        # semantic gate above still rejects unapproved values and primitives.
         settings = [f for f in findings if f['path'] == 'src/home/SettingsSection.tsx']
-        self.assertEqual(len(findings) - len(settings), 83)
+        administration = [f for f in findings if f['path'] in (
+            'src/home/PlatformUsersTable.tsx', 'src/home/RoleManagementSection.tsx')]
+        self.assertEqual(len(findings) - len(settings) - len(administration), 83)
         self.assertEqual(len(settings), 2)
+        self.assertEqual(sum(f['path'] == 'src/home/PlatformUsersTable.tsx' for f in administration), 4)
+        self.assertEqual(sum(f['path'] == 'src/home/RoleManagementSection.tsx' for f in administration), 2)
         self.assertEqual(sum(f['path'] == 'src/home/Cabinet.tsx' for f in findings), 1)
         self.assertTrue(all(f['code'] == 'PDS007' and f['severity'] == 'warning' for f in findings))
 

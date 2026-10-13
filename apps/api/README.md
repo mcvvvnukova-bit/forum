@@ -290,3 +290,75 @@ Official sources consulted:
 - [OIDC ID token validation](https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation)
 
 Product decisions and their exact historical source provenance are in [the migration register](../../artifacts/repository-audits/document-migration-manifest.json); canonical requirements remain in Outline.
+# Scoped IAM roles (PROJ-171)
+
+Platform administrators also manage account access through
+`GET /api/iam/platform-user-access` (all registered accounts, signed pagination)
+and `PATCH /api/iam/platform-user-access/:id` with `{status: "active" | "deactivated"}`.
+The returned `version` is the user's `access_version`; send it in `If-Match` along
+with the same platform context, Origin, CSRF and idempotency headers as role mutations.
+Blocking atomically revokes every session and records `IAMUserAccessChanged` in
+the audit log. Login and blocking serialize on the user row. Roles and memberships
+are retained; unblocking requires a fresh login and never restores old sessions.
+Self blocking and removal of the last effective platform administrator are refused.
+
+Migration `008_iam_roles` is additive. Apply it with `npm run migrate` or the owner
+entrypoint `deployment/forum-db/apply-public.psql`, then apply the explicit runtime
+allowlist `deployment/forum-api/grant-runtime.sql`. Readiness and IAM reads fail
+closed if the migration, typed contract or required permissions are incomplete.
+Business `provider`/`customer` grants remain independent of these six IAM roles.
+
+The session keeps `user`, `participant`, `roles`, `expiresAt` and adds
+`platformRoles`, `accessVersion`, `csrfToken`. Resolve a tab's personal,
+organization or platform context with `POST /api/iam/context/resolve`; this does
+not switch a shared session. Protected IAM requests pass `X-Forum-Context`.
+Role and member mutations additionally require the configured `Origin`, the
+session's `X-Forum-CSRF`, `Idempotency-Key` (8–128 URL-safe characters), and for
+PATCH `If-Match: "1"` with the current row version. POST
+`/api/iam/platform-role-assignments` creates a new assignment (201) or returns an
+already active assignment without changing it (200); neither needs `If-Match`.
+To reactivate a revoked assignment (200), send its current quoted version from
+`GET /api/iam/platform-users`, for example `If-Match: "2"`. Missing version on
+reactivation returns 400 `invalid_request`; a stale version returns 412
+`stale_version`. A supplied malformed version returns 400 even on creation or
+no-change requests. Valid supplied versions are compared only when POST changes
+an existing row. PATCH always requires and checks the current version.
+
+The idempotency fingerprint includes the parsed version (including its absence)
+for both POST and PATCH. Reuse the original headers and body to replay; changing
+or removing the version with the same key returns 409 `idempotency_conflict`
+after current authorization. Catalogue and context listing
+are authenticated; cursor pages default to 25 and permit at most 100. All replies
+use `Cache-Control: no-store`. A replay rechecks current permissions before
+returning the original response. Session, assignment, membership and authority
+expiry checks use current statement time. Mutations reauthorize after scope,
+idempotency and target-row lock waits; the last-admin decision uses fresh time
+after target locks. Journal rows persist for at least 24 hours.
+
+Only an owner can initialize the first platform administrator. Build first;
+use a privileged connection to the reviewed target database, and run:
+
+```sh
+npm run build
+npm run bootstrap:platform-admin -- --phone '+79010000001' --user-id '<verified-user-uuid>' --reason 'Owner-approved initial administrator'
+```
+
+The procedure creates no account, requires exactly one active canonical-phone
+match with a recorded Sber identity/profile, verifies the expected UUID and
+refuses a different existing admin. Repeat for the same active assignment is
+idempotent. Roles are stored by UUID; subsequent phone changes never transfer
+authority. CLI output contains only result status and IDs, never a DSN, phone or
+profile. Corporate access and signing are separate permissions; signing still
+requires current verified authority and document-specific scope checks in the
+consuming business module.
+
+Rollback application bytes while retaining this schema. The owner-only
+`deployment/forum-api/rollback-008-iam-roles.sql` is for a stopped, backed-up,
+unused installation; it refuses live assignments, IAM audit/idempotency data,
+changed versions or signer evidence. It never deletes IAM audit decisions.
+
+GET `/api/iam/platform-user-access` returns every registered account, including blocked and unidentified users. Every list item contains mandatory `platformRoles: [{id, userId, roleCode, status, version}]` with only platform-scope assignments (active and revoked), and mandatory `organizations: [{id, name, roles}]` (empty arrays when none exist). Each organization appears once; `id` is its UUID, `name` is its legal name with INN fallback, and `roles` contains sorted retained `organization_admin`, `organization_employee`, or `organization_signer` assignment codes. Organizations and role codes are deterministically sorted.
+
+Organizations include only current memberships: membership status active, no revoked timestamp, effective_from at or before the statement timestamp, effective_until absent or later, and organization registered and active. Corporate assignments must match that membership, user and organization scope, be active, and have valid effective dates. Blocked users retain this membership projection. These codes describe retained assignments, not effective permissions or proof of signing authority. Historical, pending, future, expired and revoked memberships are excluded.
+
+The existing read-only repeatable-read transaction, authorization and signed keyset pagination apply. One page-bounded membership query excludes lookahead users. The development gateway allows up to 8 MiB only for GET of the exact `/api/iam/platform-user-access` path (query parameters allowed), preserving all organizations without silent truncation; responses exceeding this cap fail with 502 `temporarily_unavailable`. Other methods/routes keep their 64 KiB response cap, and request bodies keep the 4096-byte guard. PATCH returns the unchanged bare access item `{userId, displayName, status, version}`, without directory arrays; clients merge it into their previous full directory record.
