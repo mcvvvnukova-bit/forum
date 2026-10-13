@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "taskCode": "PROJ-171",
   "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
-  "sourceSha": "dca7f11c1f060241d3da4843b4c2f40ddfec6202",
+  "sourceSha": "b470c54cb10f53ee76637600c4df864bc965b076",
   "changes": [
     {
       "previousCandidatePath": "apps/api/README.md",
@@ -193,7 +193,7 @@
       "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
       "previousMode": "100644",
       "candidatePath": "scripts/verification/check-operational-sources.py",
-      "candidateSha256": "85cf2969da087d4260385ab99fa74c4acd0a7ea2e054696d5a4dc51f8584bb86",
+      "candidateSha256": "28d3bd4ee649831bae08f9a1f3902e1613f049f6b0681dddd787c6eb3f88aad4",
       "candidateMode": "100644"
     },
     {
@@ -226,6 +226,14 @@
       "previousMode": "100644",
       "candidatePath": "apps/dev-gateway/README.md",
       "candidateSha256": "3e6093c3afa57f29e7cbe357aefd6d3381e061f49ac30e5e05cd987492a90f98",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/test_primer_ui_policy.py",
+      "previousSha256": "9c562fab33658603f6221241a8e1ad47cf97e5a42a940fdb063aa5115337c358",
+      "previousMode": "100644",
+      "candidatePath": "tests/integration/test_primer_ui_policy.py",
+      "candidateSha256": "c9b6df75b9120a523c0b9285a64d0ddfb43fc5b746b193837d2c19f0cb710720",
       "candidateMode": "100644"
     }
   ],
@@ -356,7 +364,7 @@
       "mode": "100644"
     },
     {
-      "path": "docs/superpowers/plans/2026-10-12-user-access-directory-controls.md",
+      "path": "docs/plans/2026-10-12-user-access-directory-controls.md",
       "sha256": "1c71bac222abfedd41beff811cc73e773ac4654f851b130e809d23b1bb7eda7a",
       "mode": "100644"
     }
