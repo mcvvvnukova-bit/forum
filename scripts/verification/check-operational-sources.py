@@ -898,7 +898,7 @@ def verify_role_model():
 
 
 # Narrow successor for the administrator directory; historical receipts stay fixed.
-OKVED_DIRECTORY_MANIFEST_SHA256 = '7e5c5ad088bb870e0991c083053b0027eb99e403a5f2d5613c8750922373b7ab'
+OKVED_DIRECTORY_MANIFEST_SHA256 = '7dcf1d1a94795c2c0effa575ebb76820f13ead734339932af43f97498bdfac47'
 
 
 @lru_cache(maxsize=1)

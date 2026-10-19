@@ -59,6 +59,13 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
 
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
+            if path.startswith("/api/references"):
+                if self.command == "GET" and path == "/api/references/okved":
+                    self._proxy_api(send_body=send_body)
+                else:
+                    self._send_text(HTTPStatus.NOT_FOUND, "Not found", send_body=send_body)
+                return
+
             if path.startswith("/api/iam"):
                 self._handle_iam(path, send_body=send_body)
                 return

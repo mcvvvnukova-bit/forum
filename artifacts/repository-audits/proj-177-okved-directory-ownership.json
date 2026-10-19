@@ -12,6 +12,14 @@
       "candidateMode": "100644"
     },
     {
+      "previousCandidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "candidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "previousSha256": "9e15086a946ce31dc6b68dc04c3165ff0e4960e39c2c34f47be6a25877a97f4f",
+      "candidateSha256": "d076414d536f547b28f01615e2e850c081cdc8697a385146982fee40d95836be",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
       "previousCandidatePath": "apps/profile-preview/src/ProfilePage.tsx",
       "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
       "previousSha256": "f594229e5a592418e9882bd73e4b8fd8444ff5de50550f946b80ff8132787188",
@@ -79,7 +87,7 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "f003be55c64aad6ed4d57ebee52343c9484e3560f0b117b678ab88cd35dd913b",
-      "candidateSha256": "ba3716899ec25c867bcfbe864cb07061e849f0e16380c7ae8a1c82d97870ea46",
+      "candidateSha256": "dd45dd67deb9ba7208818793ffdc09ba7af39b9d6a3039908d2b184ed4f78807",
       "previousMode": "100644",
       "candidateMode": "100644"
     }
@@ -93,6 +101,11 @@
     {
       "path": "apps/api/test/okved-directory.test.ts",
       "sha256": "810fb8004b4fa8c617b1b5056fa51100bb2a73370526439650093e148627e8c8",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/dev-gateway/tests/test_okved_proxy.py",
+      "sha256": "e4e5351694ba7fa9cd816dd0e1a84e0fac11ed7f3feabee5d4682237fe0b065f",
       "mode": "100644"
     },
     {
