@@ -4,9 +4,9 @@ import {Banner, Button, Dialog, Heading, Link, IconButton, NavList, Spinner, Sta
 import {BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PeopleIcon, PersonIcon, QuestionIcon, ShieldLockIcon, SignOutIcon, ThreeBarsIcon} from '@primer/octicons-react'
 import {buildProfileSections, type ProfileSection, type SberProfile} from './profile'
 
-type ProfileView = 'profile' | 'work' | 'settings' | 'organizations' | 'roles'
+type ProfileView = 'profile' | 'work' | 'settings' | 'organizations' | 'roles' | 'okved'
 type Account = {managePlatform?:boolean; root: string; logo: string; displayName: string; individual: boolean; onLogout: () => void; leaving: boolean; logoutFailed: boolean}
-export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView; account?: Account; settingsContent?:ReactNode; organizations?:ReactNode; rolesContent?:ReactNode; rolesTitle?:string}
+export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView; account?: Account; settingsContent?:ReactNode; organizations?:ReactNode; rolesContent?:ReactNode; rolesTitle?:string; okvedContent?:ReactNode}
 const icons = {personal: PersonIcon, identity: FileIcon, addresses: LocationIcon, tax: FileIcon, contacts: MailIcon, pension: ShieldLockIcon, work: BriefcaseIcon, education: BookIcon, 'self-employment': PersonIcon, 'international-passport': FileIcon, 'previous-passport': FileIcon}
 function ProfileNavigation({onNavigate, disabled = false, view, root, settings=false, live=false, managePlatform=false}: {onNavigate?: () => void; disabled?: boolean; view: ProfileView; root: string; settings?:boolean; live?:boolean; managePlatform?:boolean}) {
   const profileRoot = root
@@ -22,7 +22,7 @@ function ProfileNavigation({onNavigate, disabled = false, view, root, settings=f
       <NavList.Divider/>
       <NavList.Group hideDivider>
         <NavList.GroupHeading>Администрирование</NavList.GroupHeading>
-        <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><BookIcon/></NavList.LeadingVisual>Справочники</NavList.Item>
+        <NavList.Item href={`${root}references/okved/#main`} onClick={onNavigate} aria-current={view==='okved'?'page':undefined}><NavList.LeadingVisual><BookIcon/></NavList.LeadingVisual>Справочники</NavList.Item>
         <NavList.Item href={`${root}users/#main`} onClick={onNavigate} aria-current={view==='roles'?'page':undefined}><NavList.LeadingVisual><PeopleIcon/></NavList.LeadingVisual>Пользователи</NavList.Item>
       </NavList.Group>
       <NavList.Divider/>
@@ -40,7 +40,7 @@ function ProfileCard({section}: {section: ProfileSection}) {
     </div>)}</dl>
   </section>
 }
-export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile', account, settingsContent, organizations, rolesContent, rolesTitle='Управление пользователями'}: ProfilePageProps) {
+export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile', account, settingsContent, organizations, rolesContent, rolesTitle='Управление пользователями',okvedContent}: ProfilePageProps) {
   const profileRoot = account?.root ?? import.meta.env.BASE_URL
   const [dialog, setDialog] = useState<'edit' | 'menu' | 'support' | null>(null)
   const editRef = useRef<HTMLButtonElement>(null)
@@ -76,13 +76,13 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
           {!account && <Banner title="Демонстрационный профиль" description="Все показанные данные вымышлены. Подключение к Сбер ID отсутствует."/>}
           {account?.logoutFailed && <Banner title="Не удалось выйти. Повторите попытку" variant="warning"/>}
           <div className="page-heading">
-          <div>{view!=='roles' && view!=='settings' && view!=='organizations' && <Text as="p" size="small" className="eyebrow muted">Мой профиль</Text>}<Heading as="h1" variant="large" id={view==='organizations'?'organizations-heading':undefined}>{view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
-          {view!=='roles' && view!=='settings' && view!=='organizations' && <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>}
+          <div>{view==='okved'?<Text as="p" size="small" className="eyebrow muted">Администрирование / Справочники</Text>:view!=='roles' && view!=='settings' && view!=='organizations' && <Text as="p" size="small" className="eyebrow muted">Мой профиль</Text>}<Heading as="h1" variant="large" id={view==='organizations'?'organizations-heading':undefined}>{view==='okved'?'ОКВЭД2':view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
+          {view!=='okved' && view!=='roles' && view!=='settings' && view!=='organizations' && <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>}
           </div>
         </Stack>
         {state === 'loading' && <div className="state-content" role="status"><Spinner size="medium"/><Heading as="h2" variant="small">Загружаем профиль</Heading><Text className="muted">Подготавливаем ваши данные.</Text></div>}
         {state === 'error' && <div className="state-content"><Banner variant="critical" title="Не удалось загрузить профиль" description="Попробуйте ещё раз. Если ошибка повторится, обратитесь в поддержку." primaryAction={<Button onClick={onRetry}>Повторить</Button>}/></div>}
-        {state === 'ready' && (view==='roles'?rolesContent:view==='organizations'?organizations:view==='settings'?settingsContent:<div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>)}
+        {state === 'ready' && (view==='okved'?okvedContent:view==='roles'?rolesContent:view==='organizations'?organizations:view==='settings'?settingsContent:<div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>)}
         {!account && <footer className="profile-footer"><Text size="small" className="muted">© 2026 АСТ Форум</Text></footer>}
       </main>
     </div>

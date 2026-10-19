@@ -1,0 +1,8 @@
+.okved-directory {min-width: 0;}
+.okved-filters {display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--base-size-16);}
+.okved-filter-actions {grid-column: 1 / -1; flex-wrap: wrap;}
+.okved-name {overflow-wrap: anywhere;}
+.okved-pagination {display: flex; align-items: center; justify-content: space-between; gap: var(--base-size-8);}
+@media (max-width: 767px) {
+ .okved-filters {grid-template-columns: minmax(0, 1fr);}
+}

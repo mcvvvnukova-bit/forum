@@ -100,7 +100,7 @@ it('admin navigation groups users after My Organizations and resolves context be
  expect(dictionaries.compareDocumentPosition(users)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
  expect(users).toHaveAttribute('href','/cabinet/users/#main')
  expect(users).toHaveAttribute('aria-current','page')
- expect(within(nav).queryByRole('link',{name:'Справочники'})).not.toBeInTheDocument()
+ expect(within(nav).getByRole('link',{name:'Справочники'})).toHaveAttribute('href','/cabinet/references/okved/#main')
  expect(screen.getAllByText('Модератор платформы').length).toBeGreaterThan(0)
  expect(f.mock.calls.findIndex(([u])=>u==='/api/iam/context/resolve')).toBeLessThan(f.mock.calls.findIndex(([u])=>String(u).startsWith('/api/iam/platform-users')))
 })

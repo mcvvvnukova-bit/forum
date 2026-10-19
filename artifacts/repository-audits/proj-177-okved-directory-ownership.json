@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-177",
+  "baseSha": "7ecdb1c7e3b7ce79ea2eab5434a5e14481a5fef8",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/api/src/app.ts",
+      "candidatePath": "apps/api/src/app.ts",
+      "previousSha256": "0b4094dedb45791e6c2bc5d92b9d228ec611b8640f3206d603ead2f377bfdc98",
+      "candidateSha256": "7a15ebeaf8f0a4089f937d0a5e45d249f21b63a4c84a881c4d7d9a3c1f6177a8",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/profile-preview/src/ProfilePage.tsx",
+      "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
+      "previousSha256": "f594229e5a592418e9882bd73e4b8fd8444ff5de50550f946b80ff8132787188",
+      "candidateSha256": "ab5bee2dc6ef4842dd21ec00c2940c132ef7b5e2dceef6256cb5557a406c20b9",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/App.tsx",
+      "candidatePath": "apps/web/src/home/App.tsx",
+      "previousSha256": "80f18e869e28f32269b61f0bfdcfb3ed3356df2f6ab9c27927e8fccd03aa60fe",
+      "candidateSha256": "125d6a83ffdf294b3175e061d769bea62903396736ec46c698d7d7595187fdb0",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/Cabinet.tsx",
+      "candidatePath": "apps/web/src/home/Cabinet.tsx",
+      "previousSha256": "763772e1aabf2a2fd63af2168ac1bf0a356082b63510f90f31f7cb483df06c3a",
+      "candidateSha256": "e9602631ef3e0f7201266ea10a202ab8d6bf673b4cb52931319acb5a3e8c705e",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/roles.test.tsx",
+      "candidatePath": "apps/web/src/home/roles.test.tsx",
+      "previousSha256": "3c7e0c29e4c6a1b8e95ffe1031b6fe1ae57fb90100458723834b18d3a228e27b",
+      "candidateSha256": "42f03e75808e723e93b22781971daffa2059d30e76680c45253cd56f9929a235",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-api/grant-runtime.sql",
+      "candidatePath": "deployment/forum-api/grant-runtime.sql",
+      "previousSha256": "fba2c8e96e414ffd8daf3c9dc0580e5c197cf1eb6d40091339c49edd457fbe55",
+      "candidateSha256": "9df3d416cf0b2c00e25c302e0ec4fd7f952688c034cd40db9106a09641652579",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/release-manifest.schema.json",
+      "candidatePath": "deployment/release-manifest.schema.json",
+      "previousSha256": "28cae2e85df10f19bbf36bdc1cf9e0dc357beb503e273c91cc122f123d165bab",
+      "candidateSha256": "c5932fb7d192bd3d9d8f2183f912daec047eb4816f4d643401a09c195ee53c1b",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/build-web-release.mjs",
+      "candidatePath": "scripts/deployment/build-web-release.mjs",
+      "previousSha256": "be609c9e883b54de9dbcc710a8395760e35176e46bf25ef45d072db01fde8895",
+      "candidateSha256": "f4becbc6a63efdea722b9b8557c7c7f97bc4402df24d968723d0f5b51c4f5362",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/web_release.py",
+      "candidatePath": "scripts/deployment/web_release.py",
+      "previousSha256": "ba20961b7f2d2a28b6f2ecc88f9a803ac7b0ea8b031a0c440d745b09d7314c67",
+      "candidateSha256": "8ccb13504323f6a15e856afafc2b081c2eff8d2d6b4b8e8a4936df1685ab5bb1",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "f003be55c64aad6ed4d57ebee52343c9484e3560f0b117b678ab88cd35dd913b",
+      "candidateSha256": "ba3716899ec25c867bcfbe864cb07061e849f0e16380c7ae8a1c82d97870ea46",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/api/src/references/okved-directory.controller.ts",
+      "sha256": "aea4f73bc18c6d42e4e04d6911bc6a058a0628c9a1fe4fa0bc436b20154c9690",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okved-directory.test.ts",
+      "sha256": "810fb8004b4fa8c617b1b5056fa51100bb2a73370526439650093e148627e8c8",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/OkvedDirectory.tsx",
+      "sha256": "e6c156d23c7ce8abbc325e39476eec016b49271eb5f592285ebb2c651f9a52ed",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/okved-directory.css",
+      "sha256": "fad9f273261fe3b1fd483324b77eca86f6e3ee5b8ad42894f8d4c2c957808616",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/okved-directory.test.tsx",
+      "sha256": "5d4da11dd32cc49504459d24341e38153b959beee58d078a603120bcc1b457cf",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-19-PROJ-177-okved-admin-page.md",
+      "sha256": "67743f731fcd2b21c714506c2f185a512d93b88cb7b2653d2b27c3391615e6de",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/okved-directory-ownership.test.mjs",
+      "sha256": "aaa275030cac5797499123bb2848863ddc4789cade3866bc78adda8efa84630e",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/web-okved-routes.test.mjs",
+      "sha256": "6d5c4de26c5952197a1f35ca21ef161021e8743f28615a79953125fee01b2eb4",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/e2e/serve-okved-directory.mjs",
+      "sha256": "f33f18ca0f3df7480bc75e3ab2250263a430ff930ac813136eb4934541e2ff5e",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/integration/test_okved_web_routes.py",
+      "sha256": "f6ffec65668e114f137617d98a65a9b4a9ec7ac92fd1194838b2ac53d5b24f02",
+      "mode": "100644"
+    }
+  ]
+}
