@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-174",
+  "baseSha": "1baa3f82144579f0e814d72a49f2192db1710d57",
+  "changes": [
+    {
+      "previousCandidatePath": "deployment/mail/README.md",
+      "previousSha256": "38be3623ec0e51c293025b47b2135d64cc742093f10dce4db2cb9e79ea3fa68c",
+      "previousMode": "100644",
+      "candidatePath": "deployment/mail/README.md",
+      "candidateSha256": "948dded103967db7da71391cd1067ad7e3620072e411675d1c3efdaba1a6ce40",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/mail/compose.yaml",
+      "previousSha256": "0fa613a30ee043f02da48bbc2d82a462b5b646cf0083b29db4124cba8a43c22d",
+      "previousMode": "100644",
+      "candidatePath": "deployment/mail/compose.yaml",
+      "candidateSha256": "5a11e15060b68006c36ba8ec60acd574864b6ded6a1314489294435012597565",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "5809686fe135c2df9712ac1d9129e6dd57ecbb5d21e1bfdaf5177745d889ec6e",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "c4918fe9462d44b305e03cc77fdf9a25d83ad5e302ef8459a23c32f196df2023",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "36007e61b6cf01d9865699cbf9024e122c7834e50d17d20efbfec7d6655b41ec",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "f1542b071f9dabec4e607439c1c13eaaace66c151d0cc45f5dffb148a2b19626",
+      "candidateMode": "100644"
+    }
+  ]
+}

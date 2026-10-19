@@ -7,6 +7,31 @@ import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {test} from 'node:test'
 
+test('PROJ-174 approved mail DNS passes provenance', t => {
+  const result = provenance(fixture(t))
+  assert.equal(result.status, 0, result.stderr)
+})
+
+for (const mutation of ['candidate', 'predecessor', 'scope', 'path', 'mode', 'missing-receipt', 'source-bytes', 'checker-bytes']) {
+  test(`PROJ-174 mail DNS rejects ${mutation} tampering`, t => {
+    const path = fixture(t)
+    assert.equal(provenance(path).status, 0)
+    const file = join(path, 'artifacts/repository-audits/proj-174-mail-dns-ownership.json')
+    const receipt = JSON.parse(readFileSync(file, 'utf8'))
+    if (mutation === 'candidate') receipt.changes[0].candidateSha256 = '0'.repeat(64)
+    if (mutation === 'predecessor') receipt.changes[0].previousSha256 = '0'.repeat(64)
+    if (mutation === 'scope') receipt.changes.push({...receipt.changes[0], candidatePath: 'package.json'})
+    if (mutation === 'path') receipt.changes[0].candidatePath = '../package.json'
+    if (mutation === 'mode') receipt.changes[0].candidateMode = '100755'
+    if (mutation === 'missing-receipt') rmSync(file)
+    else if (mutation === 'source-bytes' || mutation === 'checker-bytes') {
+      const source = join(path, mutation === 'source-bytes' ? 'deployment/mail/compose.yaml' : 'scripts/verification/check-operational-sources.py')
+      writeFileSync(source, readFileSync(source, 'utf8') + '\n# unapproved mail DNS drift\n')
+    } else writeFileSync(file, JSON.stringify(receipt))
+    assert.notEqual(provenance(path).status, 0)
+  })
+}
+
 for (const mutation of ['candidate', 'predecessor', 'scope', 'path', 'mode', 'base', 'task', 'missing-receipt', 'source-bytes', 'checker-bytes']) {
   test(`PROJ-170 compact login rejects ${mutation} tampering`, t => {
     const path = fixture(t)
