@@ -41,6 +41,8 @@ Email delivery is disabled. No SMTP receipt test or actual microphone/camera/med
 
 Branch: `codex/PROJ-213-jitsi-admin`, based on `origin/main`. OpenProject: [PROJ-213](https://roadmap.astforum.ru/work_packages/213), authored/updated under user 8 `kuzmina`. PR [#46](https://github.com/mcvvvnukova-bit/forum/pull/46) is attached to the chat. The native OpenProject GitHub collection for work package 213 contains this PR (verified as kuzmina).
 
+The PR is ready for review and remains open; no merge was performed. GitHub Actions checks are queued, so successful CI is not claimed. The deployment task is marked **Сделано** with the live acceptance results and outstanding SMTP/media limits; the saved description and native PR relation were reopened and verified as kuzmina. All **19 managed deployment/test files** on `/opt/jitsi-admin` match the repository SHA-256 hashes; private runtime secrets are outside that comparison.
+
 ## Final review and fix
 
 The fresh whole-branch reviewer found one Important issue: an already-open Symfony staff session could continue issuing new moderator tokens after Keycloak disable/logout. A callback listener now retains the OAuth access token server-side; a controller listener checks Keycloak userinfo before staff actions, with a 30-second cache and subject/group checks. Invalid identities clear local authentication, IdP failure fails closed, and public participant flows remain available. Nine focused tests cover callback lifecycle, active/disabled/legacy sessions, wrong subject/group, IdP outage, public guests and cache revalidation. Missing guard was observed RED before implementation. No other Critical/Important issues or deferred minors were reported.

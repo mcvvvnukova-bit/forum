@@ -63,4 +63,4 @@
 - [x] Check existing Jitsi homepage, JVB health, ClearTopic and the other existing public endpoints.
 - [x] Document the exact operator URL, how to create accounts, where private credentials are stored, which tests passed and any unverified media/email behavior.
 - [x] Run applicable tests and configuration checks; inspect the final diff for secret material and unrelated changes.
-- [ ] Push the branch, create a PR with OP#PROJ-213 in its body, attach it to this chat, and verify the OpenProject GitHub tab shows the PR.
+- [x] Push the branch, create a PR with OP#PROJ-213 in its body, attach it to this chat, and verify the OpenProject GitHub tab shows the PR.
