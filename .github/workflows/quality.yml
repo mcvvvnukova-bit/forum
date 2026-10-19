@@ -54,8 +54,9 @@ jobs:
         run: node scripts/verification/check-repository-layout.mjs
       - name: Verification and CI regressions
         run: |
-          node --test scripts/verification/checks.test.mjs scripts/verification/ci-optimization.test.mjs scripts/verification/okpd2-ownership.test.mjs scripts/verification/web-okpd-routes.test.mjs
+          node --test scripts/verification/checks.test.mjs scripts/verification/ci-optimization.test.mjs scripts/verification/okpd2-ownership.test.mjs scripts/verification/web-okpd-routes.test.mjs scripts/verification/managed-reference-ownership.test.mjs scripts/verification/web-managed-reference-routes.test.mjs
           python3 -m unittest discover -s tests/integration -p test_okpd_web_routes.py -v
+          python3 -m unittest discover -s tests/integration -p test_managed_reference_routes.py -v
           python3 -m unittest discover -s scripts/verification -p test_local_ci.py -v
       - name: Install mail-check Chromium
         run: npx --no-install playwright install --with-deps chromium

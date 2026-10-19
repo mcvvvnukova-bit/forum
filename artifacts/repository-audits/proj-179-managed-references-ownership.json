@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-179",
+  "baseSha": "ab3e812d6fb37d54850f7e3098d2ce397c6d125b",
+  "changes": [
+    {
+      "previousCandidatePath": ".github/workflows/quality.yml",
+      "candidatePath": ".github/workflows/quality.yml",
+      "previousSha256": "b235151cd6e8767e89043f5e00e140c446566336537245b2392529fe961b0750",
+      "candidateSha256": "48ef6945d245ec65518fee91e482473bf22c863241f64f16a1f8a4d67506b591",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/app.ts",
+      "candidatePath": "apps/api/src/app.ts",
+      "previousSha256": "898255edd848e6e01b5691792a9c006ca6a35ae672e0d0c704ab7426abcad62c",
+      "candidateSha256": "8cd7de3a4f6e59aba60938257e134ced405f66316e01a6d460398b3556f4dfe3",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "candidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "previousSha256": "108662ad199027d0f495e558afe75a36b281826d039f7a730843c5c20c69fbe4",
+      "candidateSha256": "d3027e33db58d6ee80ca68c03e935b7a08b8e8271415e7c839155f6cd5e87d0e",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/profile-preview/src/ProfilePage.tsx",
+      "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
+      "previousSha256": "ce0dd329a7fcb639cef25bcd696724efd36aab86763d375f4c777b5e2a0b094d",
+      "candidateSha256": "86c8044d59a3142e08516a1277ec6d28de46072dc094d56c5142c7e04738bfb5",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/App.tsx",
+      "candidatePath": "apps/web/src/home/App.tsx",
+      "previousSha256": "fa3fafe03e0b7bf17f4b93101408012d5342daa5941cadf662647b2292147aec",
+      "candidateSha256": "1afa9fbc7db5ee0d612a96d1c10625874ea66211724bb0c67a02b4659db4cd4d",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/Cabinet.tsx",
+      "candidatePath": "apps/web/src/home/Cabinet.tsx",
+      "previousSha256": "4ffc77c1b56c1b43977a791aec532fda6f2bf7b12d01356d0a112cb8d607f72a",
+      "candidateSha256": "a936cefb160115763ec6ccbb838dd9eb5bcfc3c5dea39bbe3f7838792afb0c6e",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-api/grant-runtime.sql",
+      "candidatePath": "deployment/forum-api/grant-runtime.sql",
+      "previousSha256": "557ff6b230179a228ba4608a5d07a3b679329f6c594f7c87ee2f5c2d76b7c02c",
+      "candidateSha256": "7089bacdba4f2c72f54ac768d594196467b3819e61432396fc3db3e413a8124f",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/release-manifest.schema.json",
+      "candidatePath": "deployment/release-manifest.schema.json",
+      "previousSha256": "485464152f091dcec419599304dc09c488d7f6e8d878390d96f5955ea40cdb56",
+      "candidateSha256": "dc49bb2a4ee55c974fb8c5c1afbbd634c1eb1bedb36faa01574ea1bac86b467b",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/build-web-release.mjs",
+      "candidatePath": "scripts/deployment/build-web-release.mjs",
+      "previousSha256": "34e7db5001b0ff6fce8997d8f9c574385c0fea8a225325d35f2630150d7af11d",
+      "candidateSha256": "faf2207f67668dba9a63e1a0bee55da0423f7196c335f928b4e6fc71af5b68a6",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/web_release.py",
+      "candidatePath": "scripts/deployment/web_release.py",
+      "previousSha256": "7fb31b7573a9233fbbe950b792ec47ba59a9cf8c3142513bd507a87a3f23d1eb",
+      "candidateSha256": "14b093e7f399def0f45262ffab94b8a9dd169e2ee912e54687f3e23ee90162fe",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
+      "candidateSha256": "9926b0a18eb63dc13db03a2879f26c9048d6f95c6bd637c695b6823e926e52b2",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/api/migrations/references/002_managed_references.down.sql",
+      "sha256": "a9f0e1103e640152ccb38e47c68cfb2f697aefd4cea8358cce6ec57af207b082",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/migrations/references/002_managed_references.sql",
+      "sha256": "c0742adc3ac82df249dcc509ec5798e23230378728e73fe84ad8372f0ea3b916",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/managed-cli.ts",
+      "sha256": "8880deaead0fe92eaac7d847b99511e6934f3d4c36fb09815a57d0e6e065c6e4",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/managed-migrate.ts",
+      "sha256": "f3975e26bdece9b214645c3d58d1105998ea461a86eee862a5596a21b14a2eef",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/managed-model.ts",
+      "sha256": "14d1c64886e7826f712a7298eccecbdf4ad82bfb8a961f1d4b281a84d13a8e02",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/managed-store.ts",
+      "sha256": "54719bfb57811170c56e7b0df518e1ef180ea7a2079543b58df43743ecb7abc3",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/managed.controller.ts",
+      "sha256": "bda30990a1fa7c7f0325b7f1ad9ee9c5d20615e52269d50c2b8b7935b13f758d",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/managed-references.test.ts",
+      "sha256": "9a4b70a1ef19a1695b32eb03ac592b561fede47f2faffa9efab20613d24a52c0",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/dev-gateway/tests/test_managed_references_proxy.py",
+      "sha256": "a0272d4e5beae0b7882a7736593b9d256389e71c2da6486715bf58921c8b0a79",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/ManagedReferenceDirectory.tsx",
+      "sha256": "eef5ad1c8bff0b24eb806f9827d2ae3445ae20cffd3ae3ce37cb1efca640cb9b",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/managed-references.test.tsx",
+      "sha256": "b24a475664d64a485645f246fea1021025c412abe16fa7d6da5ad1978116a42f",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/forum-api/grant-managed-references.sql",
+      "sha256": "f027799c5823107835d8bb02198cf3f482328287e130814193ea6e66c6f87965",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-19-managed-references.md",
+      "sha256": "be62cea18f6c0d6d4578dfda14fc9b24846acc8c2a6148e12b8cef9d650f43e1",
+      "mode": "100644"
+    },
+    {
+      "path": "packages/managed-references.ts",
+      "sha256": "60eccca5b0892228079fc59975947a8d2d4df0e5d1ec48bf67ecaef3b22fcd0c",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/managed-reference-ownership.test.mjs",
+      "sha256": "f746ec5e16a192f77e2df142754766401a2947252b38e5bb74adda40be7d1807",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/web-managed-reference-routes.test.mjs",
+      "sha256": "06acb3dad780e64cc0c4d08bf7e6d3a15bd093d501b1e9d303008ceae1d5ed1f",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/integration/test_managed_reference_routes.py",
+      "sha256": "afbc2bc2b60504f9892330103b95f053650ad3848fb768355ebf86094926fee3",
+      "mode": "100644"
+    }
+  ],
+  "historicalReceipts": [
+    {
+      "path": "artifacts/repository-audits/proj-178-okpd2-ownership.json",
+      "sha256": "dde6b34557b5827259f40d1303a4d9dd2f7606cb9453518fdd3ae50342e088ce",
+      "mode": "100644"
+    }
+  ]
+}
