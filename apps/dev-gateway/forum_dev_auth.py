@@ -60,7 +60,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
             if path.startswith("/api/references"):
-                if self.command == "GET" and path in {"/api/references/okved", "/api/references/okpd"}:
+                if self._managed_reference_route(path) or self.command == "GET" and path in {"/api/references/okved", "/api/references/okpd"}:
                     self._proxy_api(send_body=send_body)
                 else:
                     self._send_text(HTTPStatus.NOT_FOUND, "Not found", send_body=send_body)
@@ -110,6 +110,9 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
 
         def do_POST(self) -> None:
             path = urlsplit(self.path).path
+            if path.startswith("/api/references/managed"):
+                self._handle_managed_reference(path)
+                return
             if path.startswith("/api/iam"):
                 self._handle_iam(path, send_body=True)
                 return
@@ -141,10 +144,29 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
             self._proxy_api(send_body=send_body)
 
         def do_PATCH(self) -> None:
-            self._handle_iam(urlsplit(self.path).path, send_body=True)
+            path = urlsplit(self.path).path
+            if path.startswith("/api/references/managed"):
+                self._handle_managed_reference(path)
+                return
+            self._handle_iam(path, send_body=True)
 
         def do_DELETE(self) -> None:
+            if urlsplit(self.path).path.startswith("/api/references/managed"):
+                self._handle_managed_reference(urlsplit(self.path).path)
+                return
             self._send_text(HTTPStatus.NOT_FOUND, "Not found")
+
+        def _managed_reference_route(self, path: str) -> bool:
+            root = r"/api/references/managed/(?:regions|offer-types|business-segments|commercial-roles|units|rejection-reasons|company-statuses)"
+            item = root + r"/[A-Za-z0-9][A-Za-z0-9_.-]{0,63}"
+            patterns = {"GET": [root, item], "POST": [root], "PATCH": [item], "DELETE": [item]}
+            return any(re.fullmatch(pattern, path) for pattern in patterns.get(self.command, []))
+
+        def _handle_managed_reference(self, path: str) -> None:
+            if self._managed_reference_route(path):
+                self._proxy_api(send_body=True)
+            else:
+                self._send_text(HTTPStatus.NOT_FOUND, "Not found")
 
         def do_OPTIONS(self) -> None:
             self._send_text(HTTPStatus.NOT_FOUND, "Not found")
@@ -188,7 +210,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
             try:
                 connection.request(self.command, self.path, body=self.rfile.read(length) if length else None, headers=headers)
                 response = connection.getresponse()
-                response_cap = 8 * 1024 * 1024 if self.command == "GET" and urlsplit(self.path).path == "/api/iam/platform-user-access" else 512 * 1024 if self.command == "GET" and urlsplit(self.path).path == "/api/references/okpd" else 65536
+                response_cap = 8 * 1024 * 1024 if self.command == "GET" and urlsplit(self.path).path == "/api/iam/platform-user-access" else 512 * 1024 if self.command == "GET" and (urlsplit(self.path).path == "/api/references/okpd" or urlsplit(self.path).path.startswith("/api/references/managed/")) else 65536
                 payload = response.read(response_cap + 1)
                 if len(payload) > response_cap:
                     raise ValueError("Oversized API response")
