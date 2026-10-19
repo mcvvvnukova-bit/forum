@@ -87,7 +87,7 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
-      "candidateSha256": "4c4142cccddb9050ad824991ab04e1d6bff6c3959ccf5da90e201cbfb7c05ffc",
+      "candidateSha256": "6113bc860655ea73fa6166528c4b4ec239bdf8e826b6b73c279d7e3a518adb3f",
       "previousMode": "100644",
       "candidateMode": "100644"
     }
@@ -140,7 +140,7 @@
     },
     {
       "path": "apps/web/src/home/ManagedReferenceDirectory.tsx",
-      "sha256": "c98e89bb2d69f13fff72ebfc27c43c421f186b840fccdb13d3d735982cf36bd4",
+      "sha256": "455426a2111c195e7c3ac63bde0749fc5b083a39032d9a92b8be9899d2a30e42",
       "mode": "100644"
     },
     {

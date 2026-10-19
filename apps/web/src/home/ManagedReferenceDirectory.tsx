@@ -56,7 +56,7 @@ function ReferenceDialog({editor,dictionary,csrfToken,onClose,onSaved,onDenied,o
     {definition.description&&<FormControl><FormControl.Label>Описание</FormControl.Label><Textarea value={description} maxLength={1000} disabled={pending} onChange={event=>setDescription(event.target.value)} block rows={4}/></FormControl>}
    </Stack></form>:<><Text as="p"><Text weight="semibold">Код: </Text>{item?.code}</Text><Text as="p"><Text weight="semibold">Наименование: </Text>{item?.name}</Text>{definition.symbol&&<Text as="p"><Text weight="semibold">Обозначение: </Text>{item?.symbol||'Не указано'}</Text>}{definition.description&&<Text as="p" className="okved-name">{item?.description||'Описание не указано'}</Text>}</>}
   </Stack></Dialog.Body>
-  <Dialog.Footer><Stack direction="horizontal" wrap="wrap" gap="condensed">
+  <Dialog.Footer><Stack direction="horizontal" wrap="wrap">
    <Button disabled={pending} onClick={onClose}>{mode==='view'?'Закрыть':'Отмена'}</Button>
    {mode==='view'?<><Button onClick={()=>setMode('edit')}>Редактировать</Button><Button variant="danger" onClick={()=>setMode('delete')}>Удалить значение</Button></>:mode==='delete'?<Button variant="danger" disabled={pending} onClick={()=>void save()}>{pending?'Удаляем…':'Удалить'}</Button>:<Button variant="primary" type="submit" form="reference-editor" disabled={pending||!code.trim()||!name.trim()}>{pending?'Сохраняем…':'Сохранить'}</Button>}
   </Stack></Dialog.Footer>
