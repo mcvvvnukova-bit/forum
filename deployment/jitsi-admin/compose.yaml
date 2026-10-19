@@ -83,6 +83,7 @@ services:
       - ./host-login/ForumHostLink.php:/var/www/html/src/Service/ForumHostLink.php:ro
       - ./host-login/ForumRoomService.php:/var/www/html/src/Service/ForumRoomService.php:ro
       - ./host-login/ForumHostController.php:/var/www/html/src/Controller/ForumHostController.php:ro
+      - ./host-login/ForumStaffSessionGuard.php:/var/www/html/src/EventSubscriber/ForumStaffSessionGuard.php:ro
       - uploads:/var/www/html/public/uploads
       - theme:/var/www/html/theme
       - theme-assets:/var/www/html/public/theme
@@ -111,6 +112,7 @@ services:
       - ./host-login/ForumHostLink.php:/var/www/html/src/Service/ForumHostLink.php:ro
       - ./host-login/ForumRoomService.php:/var/www/html/src/Service/ForumRoomService.php:ro
       - ./host-login/ForumHostController.php:/var/www/html/src/Controller/ForumHostController.php:ro
+      - ./host-login/ForumStaffSessionGuard.php:/var/www/html/src/EventSubscriber/ForumStaffSessionGuard.php:ro
       - uploads:/var/www/html/public/uploads:ro
       - theme:/var/www/html/theme:ro
       - theme-assets:/var/www/html/public/theme:ro

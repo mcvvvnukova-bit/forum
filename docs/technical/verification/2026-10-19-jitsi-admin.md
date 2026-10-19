@@ -39,4 +39,12 @@ Email delivery is disabled. No SMTP receipt test or actual microphone/camera/med
 
 ## Publication
 
-Branch: `codex/PROJ-213-jitsi-admin`, based on `origin/main`. OpenProject: [PROJ-213](https://roadmap.astforum.ru/work_packages/213), authored/updated under user 8 `kuzmina`. PR URL and final linkage proof are added after publication.
+Branch: `codex/PROJ-213-jitsi-admin`, based on `origin/main`. OpenProject: [PROJ-213](https://roadmap.astforum.ru/work_packages/213), authored/updated under user 8 `kuzmina`. PR [#46](https://github.com/mcvvvnukova-bit/forum/pull/46) is attached to the chat. The native OpenProject GitHub collection for work package 213 contains this PR (verified as kuzmina).
+
+## Final review and fix
+
+The fresh whole-branch reviewer found one Important issue: an already-open Symfony staff session could continue issuing new moderator tokens after Keycloak disable/logout. A callback listener now retains the OAuth access token server-side; a controller listener checks Keycloak userinfo before staff actions, with a 30-second cache and subject/group checks. Invalid identities clear local authentication, IdP failure fails closed, and public participant flows remain available. Nine focused tests cover callback lifecycle, active/disabled/legacy sessions, wrong subject/group, IdP outage, public guests and cache revalidation. Missing guard was observed RED before implementation. No other Critical/Important issues or deferred minors were reported.
+
+Live retained-cookie acceptance: the ordinary QA user created permanent conference #2 and obtained a moderator link (3600-second JWT). The account was disabled and its Keycloak sessions terminated at `2026-10-19T15:50:56Z`. Without signing out of the portal or clearing browser cookies, after at least 35 seconds the same browser requested its own `/admin/room/join/b/2`; it reached the Keycloak login form instead of receiving a meeting token. The same credentials were then explicitly rejected as disabled. Owner login and admin users console were restored; the QA account remains visibly disabled. This verifies revocation of further issuance, separately from the one-hour maximum lifetime of previously issued tokens.
+
+Final standard signaling suite after these changes: 11 passing checks; host-link cryptography 24; session guard 9; public HTTP 5; existing deployment checks 2. Existing ClearTopic and reconciliation endpoints return 200, DeepSeek Harness retains its expected 401 authentication challenge, Jitsi and JVB health return 200. GitNexus detected 21 staged files and zero indexed changed symbols before the initial runtime commit; that is an inventory result, not graph coverage of the adapters.
