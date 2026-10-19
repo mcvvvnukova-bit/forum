@@ -17,8 +17,8 @@ export type ReferenceQuery={code:string;name:string;page:number};
 export function managedKind(value:string):ManagedKind{
  if(!Object.hasOwn(managedReferences,value))throw new AuthError('not_found',404);return value as ManagedKind;
 }
-export function textValue(value:unknown,max:number,required=false):string{
- if(typeof value!=='string'||value.length>max||/[\u0000-\u001f\u007f]/.test(value))throw new AuthError('invalid_request');
+export function textValue(value:unknown,max:number,required=false,multiline=false):string{
+ if(typeof value!=='string'||value.length>max||(multiline?/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/:/[\u0000-\u001f\u007f]/).test(value))throw new AuthError('invalid_request');
  const result=value.normalize('NFC').trim();if(required&&!result)throw new AuthError('invalid_request');return result;
 }
 export function referenceCode(kind:ManagedKind,value:unknown):string{
@@ -30,7 +30,7 @@ export function referenceInput(kind:ManagedKind,value:unknown,create:boolean):Re
  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!allowed.includes(key)))throw new AuthError('invalid_request');
  const body=value as Record<string,unknown>,result:ReferenceInput={name:textValue(body.name,250,true)};
  if(create)result.code=referenceCode(kind,body.code);
- for(const key of ['description','symbol'] as const)if(schema[key])result[key]=body[key]===undefined||body[key]===null?null:textValue(body[key],key==='symbol'?32:1000)||null;
+ for(const key of ['description','symbol'] as const)if(schema[key])result[key]=body[key]===undefined||body[key]===null?null:textValue(body[key],key==='symbol'?32:1000,false,key==='description')||null;
  return result;
 }
 export function referenceQuery(url:string):ReferenceQuery{

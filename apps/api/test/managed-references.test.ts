@@ -139,3 +139,8 @@ test('runtime grants allow reference CRUD while prohibiting physical DELETE, cod
    await assert.rejects(restricted.query(sql),{code:'42501'});
  }finally{await service.close();await restricted.end()}
 });
+test('description accepts multiline text while code and name remain single line',async()=>{
+ const r=await change('POST','units',undefined,{code:'01',name:'Штука',description:'Первая строка\nВторая строка'});
+ assert.equal(r.statusCode,201,r.body);assert.equal((await get('units','/01')).json().item.description,'Первая строка\nВторая строка');
+ assert.equal((await change('POST','units',undefined,{code:'02',name:'Первая\nВторая'})).statusCode,400);
+});

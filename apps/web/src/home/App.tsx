@@ -9,6 +9,7 @@ import {destinations} from './config'
 import {useForumSession} from './useForumSession'
 import {AuthNotice} from './AuthNotice'
 import {usePublicPageUrl} from '../navigation'
+import {managedReferencePath} from '../../../../packages/managed-references'
 import {Cabinet} from './Cabinet'
 
 function DestinationPreview({path}: {path: string}) {
@@ -68,7 +69,7 @@ export function App() {
   const path = pathname.endsWith('/') ? pathname : `${pathname}/`
   // A documented, read-only preview state. This never asserts a real session.
   const authorizedPreview = import.meta.env.VITE_FORUM_SESSION !== 'true' && page.searchParams.get('previewSession') === 'authorized'
-  if (path === '/cabinet/references/okpd/' || path === '/cabinet/references/okved/' || path === '/cabinet/users/' || path === '/cabinet/' || path === '/cabinet/work/' || path === '/cabinet/settings/' || path === '/cabinet/organizations/') return <Cabinet />
+  if (managedReferencePath(path) || path === '/cabinet/references/okpd/' || path === '/cabinet/references/okved/' || path === '/cabinet/users/' || path === '/cabinet/' || path === '/cabinet/work/' || path === '/cabinet/settings/' || path === '/cabinet/organizations/') return <Cabinet />
   return (
     <>
       <SiteHeader authorized={authorized || authorizedPreview} />

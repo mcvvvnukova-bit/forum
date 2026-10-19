@@ -2,13 +2,14 @@ import {useRef, useState} from 'react'
 import type {ReactNode} from 'react'
 import {Banner, Button, Dialog, Heading, Link, IconButton, NavList, Spinner, Stack, Text} from '@primer/react'
 import {BookIcon, BriefcaseIcon, FileIcon, GearIcon, HomeIcon, InfoIcon, LocationIcon, MailIcon, OrganizationIcon, PeopleIcon, PersonIcon, QuestionIcon, ShieldLockIcon, SignOutIcon, ThreeBarsIcon} from '@primer/octicons-react'
+import {managedReferenceDefinitions,type ManagedReferenceKind} from '../../../packages/managed-references'
 import {buildProfileSections, type ProfileSection, type SberProfile} from './profile'
 
-type ProfileView = 'profile' | 'work' | 'settings' | 'organizations' | 'roles' | 'okved' | 'okpd'
-type Account = {managePlatform?:boolean; root: string; logo: string; displayName: string; individual: boolean; onLogout: () => void; leaving: boolean; logoutFailed: boolean}
-export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView; account?: Account; settingsContent?:ReactNode; organizations?:ReactNode; rolesContent?:ReactNode; rolesTitle?:string; okvedContent?:ReactNode}
+type ProfileView = 'profile' | 'work' | 'settings' | 'organizations' | 'roles' | 'okved' | 'okpd' | 'managed-reference'
+type Account = {moderateReferences?:boolean;managePlatform?:boolean; root: string; logo: string; displayName: string; individual: boolean; onLogout: () => void; leaving: boolean; logoutFailed: boolean}
+export type ProfilePageProps = {profile: SberProfile; approvedScopes: readonly string[]; state?: 'ready' | 'loading' | 'error'; onRetry?: () => void; view?: ProfileView; account?: Account; settingsContent?:ReactNode; organizations?:ReactNode; rolesContent?:ReactNode; rolesTitle?:string; okvedContent?:ReactNode;managedReference?:ManagedReferenceKind;managedReferenceContent?:ReactNode}
 const icons = {personal: PersonIcon, identity: FileIcon, addresses: LocationIcon, tax: FileIcon, contacts: MailIcon, pension: ShieldLockIcon, work: BriefcaseIcon, education: BookIcon, 'self-employment': PersonIcon, 'international-passport': FileIcon, 'previous-passport': FileIcon}
-function ProfileNavigation({onNavigate, disabled = false, view, root, settings=false, live=false, managePlatform=false}: {onNavigate?: () => void; disabled?: boolean; view: ProfileView; root: string; settings?:boolean; live?:boolean; managePlatform?:boolean}) {
+function ProfileNavigation({onNavigate, disabled = false, view, root, settings=false, live=false, managePlatform=false, moderateReferences=false, managedReference}: {onNavigate?: () => void; disabled?: boolean; view: ProfileView; root: string; settings?:boolean; live?:boolean; managePlatform?:boolean; moderateReferences?:boolean; managedReference?:ManagedReferenceKind}) {
   const profileRoot = root
   return <NavList aria-label="Навигация личного кабинета">
     <NavList.Group>
@@ -18,17 +19,18 @@ function ProfileNavigation({onNavigate, disabled = false, view, root, settings=f
     </NavList.Group>
     <NavList.Divider/>
     {live ? <NavList.Item href={`${root}organizations/#main`} onClick={onNavigate} aria-current={view === 'organizations' ? 'page' : undefined}><NavList.LeadingVisual><OrganizationIcon/></NavList.LeadingVisual>Мои организации</NavList.Item> : <NavList.Item inactiveText="Раздел пока недоступен"><NavList.LeadingVisual><OrganizationIcon/></NavList.LeadingVisual>Добавить компанию</NavList.Item>}
-    {managePlatform&&<>
+    {(managePlatform||moderateReferences)&&<>
       <NavList.Divider/>
       <NavList.Group hideDivider>
         <NavList.GroupHeading>Администрирование</NavList.GroupHeading>
         <NavList.Item><NavList.LeadingVisual><BookIcon/></NavList.LeadingVisual>Справочники
           <NavList.SubNav>
-            <NavList.Item href={`${root}references/okved/#main`} onClick={onNavigate} aria-current={view==='okved'?'page':undefined}>ОКВЭД2</NavList.Item>
-            <NavList.Item href={`${root}references/okpd/#main`} onClick={onNavigate} aria-current={view==='okpd'?'page':undefined}>ОКПД2</NavList.Item>
+            {managePlatform&&<><NavList.Item href={`${root}references/okved/#main`} onClick={onNavigate} aria-current={view==='okved'?'page':undefined}>ОКВЭД2</NavList.Item>
+            <NavList.Item href={`${root}references/okpd/#main`} onClick={onNavigate} aria-current={view==='okpd'?'page':undefined}>ОКПД2</NavList.Item></>}
+            {(Object.entries(managedReferenceDefinitions) as [ManagedReferenceKind,{title:string}][]).filter(([kind])=>managePlatform||kind==='rejection-reasons').map(([kind,definition])=><NavList.Item key={kind} href={`${root}references/${kind}/#main`} onClick={onNavigate} aria-current={managedReference===kind?'page':undefined}>{definition.title}</NavList.Item>)}
           </NavList.SubNav>
         </NavList.Item>
-        <NavList.Item href={`${root}users/#main`} onClick={onNavigate} aria-current={view==='roles'?'page':undefined}><NavList.LeadingVisual><PeopleIcon/></NavList.LeadingVisual>Пользователи</NavList.Item>
+        {managePlatform&&<NavList.Item href={`${root}users/#main`} onClick={onNavigate} aria-current={view==='roles'?'page':undefined}><NavList.LeadingVisual><PeopleIcon/></NavList.LeadingVisual>Пользователи</NavList.Item>}
       </NavList.Group>
       <NavList.Divider/>
     </>}
@@ -45,7 +47,7 @@ function ProfileCard({section}: {section: ProfileSection}) {
     </div>)}</dl>
   </section>
 }
-export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile', account, settingsContent, organizations, rolesContent, rolesTitle='Управление пользователями',okvedContent}: ProfilePageProps) {
+export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, view = 'profile', account, settingsContent, organizations, rolesContent, rolesTitle='Управление пользователями',okvedContent,managedReference,managedReferenceContent}: ProfilePageProps) {
   const profileRoot = account?.root ?? import.meta.env.BASE_URL
   const [dialog, setDialog] = useState<'edit' | 'menu' | 'support' | null>(null)
   const editRef = useRef<HTMLButtonElement>(null)
@@ -73,7 +75,7 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
     <div className="cabinet-body">
       <aside className="sidebar">
         <div className="workspace-heading"><HomeIcon size={20}/><Text weight="semibold">Личный кабинет</Text></div>
-        <ProfileNavigation disabled={state !== 'ready'} view={view} root={profileRoot} settings={Boolean(account && settingsContent)} live={!!account} managePlatform={account?.managePlatform}/>
+        <ProfileNavigation disabled={state !== 'ready'} view={view} root={profileRoot} settings={Boolean(account && settingsContent)} live={!!account} managePlatform={account?.managePlatform} moderateReferences={account?.moderateReferences} managedReference={managedReference}/>
         <div className="sidebar-bottom"><Button ref={supportRef} variant="invisible" leadingVisual={QuestionIcon} onClick={() => setDialog('support')}>Связаться с поддержкой</Button></div>
       </aside>
       <main className="profile-main" id="main" tabIndex={-1}>
@@ -81,20 +83,20 @@ export function ProfilePage({profile, approvedScopes, state = 'ready', onRetry, 
           {!account && <Banner title="Демонстрационный профиль" description="Все показанные данные вымышлены. Подключение к Сбер ID отсутствует."/>}
           {account?.logoutFailed && <Banner title="Не удалось выйти. Повторите попытку" variant="warning"/>}
           <div className="page-heading">
-          <div>{(view==='okved'||view==='okpd')?<Text as="p" size="small" className="eyebrow muted">Администрирование / Справочники</Text>:view!=='roles' && view!=='settings' && view!=='organizations' && <Text as="p" size="small" className="eyebrow muted">Мой профиль</Text>}<Heading as="h1" variant="large" id={view==='organizations'?'organizations-heading':undefined}>{view==='okpd'?'ОКПД2':view==='okved'?'ОКВЭД2':view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
-          {view!=='okpd' && view!=='okved' && view!=='roles' && view!=='settings' && view!=='organizations' && <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>}
+          <div>{(view==='okved'||view==='okpd'||view==='managed-reference')?<Text as="p" size="small" className="eyebrow muted">Администрирование / Справочники</Text>:view!=='roles' && view!=='settings' && view!=='organizations' && <Text as="p" size="small" className="eyebrow muted">Мой профиль</Text>}<Heading as="h1" variant="large" id={view==='organizations'?'organizations-heading':undefined}>{view==='managed-reference'&&managedReference?managedReferenceDefinitions[managedReference].title:view==='okpd'?'ОКПД2':view==='okved'?'ОКВЭД2':view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view === 'work' ? 'Работа' : 'Личные данные'}</Heading></div>
+          {view!=='managed-reference' && view!=='okpd' && view!=='okved' && view!=='roles' && view!=='settings' && view!=='organizations' && <Button ref={editRef} leadingVisual={InfoIcon} onClick={() => setDialog('edit')}>Как изменить данные</Button>}
           </div>
         </Stack>
         {state === 'loading' && <div className="state-content" role="status"><Spinner size="medium"/><Heading as="h2" variant="small">Загружаем профиль</Heading><Text className="muted">Подготавливаем ваши данные.</Text></div>}
         {state === 'error' && <div className="state-content"><Banner variant="critical" title="Не удалось загрузить профиль" description="Попробуйте ещё раз. Если ошибка повторится, обратитесь в поддержку." primaryAction={<Button onClick={onRetry}>Повторить</Button>}/></div>}
-        {state === 'ready' && ((view==='okved'||view==='okpd')?okvedContent:view==='roles'?rolesContent:view==='organizations'?organizations:view==='settings'?settingsContent:<div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>)}
+        {state === 'ready' && (view==='managed-reference'?managedReferenceContent:(view==='okved'||view==='okpd')?okvedContent:view==='roles'?rolesContent:view==='organizations'?organizations:view==='settings'?settingsContent:<div className={view === 'work' ? 'profile-grid work-grid' : 'profile-grid'}>{visibleSections.map(s => <ProfileCard key={s.id} section={s}/>)}</div>)}
         {!account && <footer className="profile-footer"><Text size="small" className="muted">© 2026 АСТ Форум</Text></footer>}
       </main>
     </div>
     {dialog === 'edit' && <Dialog title="Изменение данных профиля" onClose={close} returnFocusRef={editRef} width="large" footerButtons={[{content: 'Понятно', onClick: close}]}>
       <Stack gap="normal"><Text as="p">{account ? 'Профиль доступен для просмотра. Изменение этих сведений в системе пока недоступно.' : 'Это макет с вымышленными данными. Изменение данных в макете недоступно; подключение к Сбер ID отсутствует.'}</Text></Stack>
     </Dialog>}
-    {dialog === 'menu' && <Dialog title="Разделы профиля" onClose={close} returnFocusRef={menuRef} position={{narrow: 'bottom', regular: 'center', wide: 'center'}} width="large"><ProfileNavigation onNavigate={close} disabled={state !== 'ready'} view={view} root={profileRoot} settings={Boolean(account && settingsContent)} live={!!account} managePlatform={account?.managePlatform}/></Dialog>}
+    {dialog === 'menu' && <Dialog title="Разделы профиля" onClose={close} returnFocusRef={menuRef} position={{narrow: 'bottom', regular: 'center', wide: 'center'}} width="large"><ProfileNavigation onNavigate={close} disabled={state !== 'ready'} view={view} root={profileRoot} settings={Boolean(account && settingsContent)} live={!!account} managePlatform={account?.managePlatform} moderateReferences={account?.moderateReferences} managedReference={managedReference}/></Dialog>}
     {dialog === 'support' && <Dialog title="Поддержка АСТ Форум" onClose={close} returnFocusRef={supportRef} width="large" footerButtons={[{content: 'Закрыть', onClick: close}]}><Stack gap="normal"><Text as="p">По вопросам работы с профилем напишите в поддержку площадки.</Text><Link href="mailto:info@astforum.ru">info@astforum.ru</Link>{!account && <Text as="p" className="muted">В этом макете используются только вымышленные данные.</Text>}</Stack></Dialog>}
   </div>
 }
