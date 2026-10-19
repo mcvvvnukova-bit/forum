@@ -1,3 +1,4 @@
+.cabinet {isolation: isolate;}
 :root {color-scheme: light; --profile-header-height: 80px;}
 html {scroll-padding-top: calc(var(--profile-header-height) + var(--base-size-24));}
 body {margin: 0; background: var(--bgColor-default);}
@@ -11,7 +12,7 @@ p, h1, h2, dl, dd {margin: 0;}
 .brand-link img {object-fit: contain;}
 .account-link {color: var(--fgColor-default); white-space: nowrap;}
 .cabinet-body {display: grid; grid-template-columns: 244px minmax(0, 1fr); min-height: calc(100vh - var(--profile-header-height));}
-.sidebar {display: flex; flex-direction: column; gap: var(--base-size-24); padding: var(--base-size-32) var(--base-size-16) var(--base-size-24); border-right: var(--borderWidth-thin) solid var(--borderColor-default); background: var(--bgColor-muted); position: sticky; top: var(--profile-header-height); align-self: start; min-height: calc(100vh - var(--profile-header-height));}
+.sidebar {display: flex; flex-direction: column; gap: var(--base-size-24); padding: var(--base-size-32) var(--base-size-16) var(--base-size-24); border-right: var(--borderWidth-thin) solid var(--borderColor-default); background: var(--bgColor-muted); position: sticky; top: var(--profile-header-height); align-self: start; height: calc(100vh - var(--profile-header-height)); overflow-y: auto;}
 .workspace-heading {padding: 0 var(--base-size-12); color: var(--fgColor-default);}
 .sidebar-bottom {margin-top: auto; padding-top: var(--base-size-32);}
 .profile-main {max-width: 1250px; width: 100%; padding: var(--base-size-40) var(--base-size-40) var(--base-size-24); margin: 0 auto; min-width: 0; outline: none;}

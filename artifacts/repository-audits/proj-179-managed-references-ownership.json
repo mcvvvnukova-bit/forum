@@ -36,6 +36,14 @@
       "candidateMode": "100644"
     },
     {
+      "previousCandidatePath": "apps/profile-preview/src/layout.css",
+      "candidatePath": "apps/profile-preview/src/layout.css",
+      "previousSha256": "dbc47360f73e64005ace1c99a394cfaeb6220e3dcd7fe443e696c57341e630dd",
+      "candidateSha256": "ef45224982348c606d214a2a01a5b859438ec326abad5d8021e55c51516629b0",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
       "previousCandidatePath": "apps/web/src/home/App.tsx",
       "candidatePath": "apps/web/src/home/App.tsx",
       "previousSha256": "fa3fafe03e0b7bf17f4b93101408012d5342daa5941cadf662647b2292147aec",
@@ -48,6 +56,14 @@
       "candidatePath": "apps/web/src/home/Cabinet.tsx",
       "previousSha256": "4ffc77c1b56c1b43977a791aec532fda6f2bf7b12d01356d0a112cb8d607f72a",
       "candidateSha256": "a936cefb160115763ec6ccbb838dd9eb5bcfc3c5dea39bbe3f7838792afb0c6e",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/cabinet.css",
+      "candidatePath": "apps/web/src/home/cabinet.css",
+      "previousSha256": "347f0c9b1837e1b0cbad90706f92b8bc5fcac40aca5879e3feeda02e783aaa2f",
+      "candidateSha256": "f3c036ce444a7c6050bdbb1add6a01f64f9ae95f0d8225c0f7621d645604e09b",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
@@ -87,7 +103,7 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
-      "candidateSha256": "6113bc860655ea73fa6166528c4b4ec239bdf8e826b6b73c279d7e3a518adb3f",
+      "candidateSha256": "c2f14e1366a50a42cddbc3a644ed47d2ccff46cd1681903724e89924b2e0c8b5",
       "previousMode": "100644",
       "candidateMode": "100644"
     }
