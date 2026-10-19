@@ -1,6 +1,7 @@
 import {useEffect,useRef,useState,type RefObject} from 'react'
-import {Banner,Button,Dialog,FormControl,Spinner,Stack,Text,TextInput,Textarea} from '@primer/react'
+import {ActionList,ActionMenu,Banner,Button,Dialog,FormControl,IconButton,Spinner,Stack,Text,TextInput,Textarea} from '@primer/react'
 import {Table} from '@primer/react/experimental'
+import {KebabHorizontalIcon} from '@primer/octicons-react'
 import {managedReferenceDefinitions,type ManagedReferenceKind} from '../../../../packages/managed-references'
 import type {Session} from '../audience/intent'
 import './okved-directory.css'
@@ -74,10 +75,23 @@ function ReferenceDialog({editor,dictionary,csrfToken,onClose,onSaved,onDenied,o
  </Dialog>
 }
 
+function VerticalDotsIcon(){return <KebabHorizontalIcon className="reference-action-icon"/>}
+function ReferenceActions({code,pending,onAction}:{code:string;pending:boolean;onAction:(mode:'view'|'edit'|'delete',anchor:HTMLButtonElement|null)=>void}){
+ const anchor=useRef<HTMLButtonElement>(null)
+ return <ActionMenu anchorRef={anchor}>
+  <ActionMenu.Anchor><IconButton icon={VerticalDotsIcon} aria-label={'Действия значения '+code} data-reference-code={code} aria-busy={pending}/></ActionMenu.Anchor>
+  <ActionMenu.Overlay align="end"><ActionList>
+   <ActionList.Item disabled={pending} onSelect={()=>onAction('view',anchor.current)}>Просмотреть</ActionList.Item>
+   <ActionList.Item disabled={pending} onSelect={()=>onAction('edit',anchor.current)}>Редактировать</ActionList.Item>
+   <ActionList.Item disabled={pending} variant="danger" onSelect={()=>onAction('delete',anchor.current)}>Удалить</ActionList.Item>
+  </ActionList></ActionMenu.Overlay>
+ </ActionMenu>
+}
+
 export function ManagedReferenceDirectory({dictionary,session,onExpired}:{dictionary:ManagedReferenceKind;session:Session;onExpired:()=>void}){
  const definition=managedReferenceDefinitions[dictionary],allowed=session.platformRoles?.includes('platform_admin')||(dictionary==='rejection-reasons'&&session.platformRoles?.includes('platform_moderator'))
  const [code,setCode]=useState(''),[name,setName]=useState(''),[attempt,setAttempt]=useState(0),[state,setState]=useState<State>({kind:'loading'}),[editor,setEditor]=useState<Editor|null>(null),[opening,setOpening]=useState(false),[openError,setOpenError]=useState(''),[notice,setNotice]=useState('')
- const addButton=useRef<HTMLButtonElement>(null)
+ const addButton=useRef<HTMLButtonElement>(null),returnFocus=useRef<HTMLButtonElement>(null),directoryRef=useRef<HTMLElement>(null),focusAfterReload=useRef<string|null>(null)
  const expired=useRef(onExpired),openRequest=useRef<AbortController|null>(null),alive=useRef(true);expired.current=onExpired
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;openRequest.current?.abort()}},[])
  useEffect(()=>{
@@ -92,28 +106,41 @@ export function ManagedReferenceDirectory({dictionary,session,onExpired}:{dictio
   finally{window.clearTimeout(timer)}})()
   return()=>{active=false;controller.abort();window.clearTimeout(timer)}
  },[allowed,session.user.id,dictionary,attempt])
- const open=async(code:string)=>{
-  if(opening)return
-  setOpening(true);setOpenError('');openRequest.current=new AbortController();const timer=window.setTimeout(()=>openRequest.current?.abort(),10000)
-  try{const value=await request('/api/references/managed/'+dictionary+'/'+encodeURIComponent(code),{signal:openRequest.current.signal});if(alive.current)setEditor({mode:'view',item:valueOf(value.item)})}
-  catch(error){if(alive.current){if(error instanceof ResponseError&&error.status===401)expired.current();else if(error instanceof ResponseError&&error.status===403)setState({kind:'denied'});else {setOpenError(errorMessage(error));if(error instanceof ResponseError&&error.status===404)setAttempt(n=>n+1)}}}
-  finally{window.clearTimeout(timer);if(alive.current)setOpening(false)}
+ useEffect(()=>{
+  if(state.kind!=='ready'||focusAfterReload.current===null)return
+  const target=Array.from(directoryRef.current?.querySelectorAll<HTMLButtonElement>('button[data-reference-code]')??[]).find(button=>button.dataset.referenceCode===focusAfterReload.current)
+  ;(target??addButton.current)?.focus();focusAfterReload.current=null
+ },[state])
+ const closeEditor=()=>{
+  if(!returnFocus.current?.isConnected)returnFocus.current=Array.from(directoryRef.current?.querySelectorAll<HTMLButtonElement>('button[data-reference-code]')??[]).find(button=>button.dataset.referenceCode===editor?.item?.code)??addButton.current
+  setEditor(null)
+ }
+ const open=async(code:string,mode:'view'|'edit'|'delete',anchor:HTMLButtonElement|null)=>{
+  if(openRequest.current)return
+  const controller=new AbortController();openRequest.current=controller;returnFocus.current=anchor
+  setOpening(true);setOpenError('');const timer=window.setTimeout(()=>controller.abort(),10000)
+  try{
+   const value=await request('/api/references/managed/'+dictionary+'/'+encodeURIComponent(code),{signal:controller.signal})
+   controller.signal.throwIfAborted()
+   if(alive.current&&openRequest.current===controller)setEditor({mode,item:valueOf(value.item)})
+  }catch(error){if(alive.current&&openRequest.current===controller){if(error instanceof ResponseError&&error.status===401)expired.current();else if(error instanceof ResponseError&&error.status===403)setState({kind:'denied'});else {setOpenError(errorMessage(error));if(error instanceof ResponseError&&error.status===404)setAttempt(n=>n+1)}}}
+  finally{window.clearTimeout(timer);if(alive.current&&openRequest.current===controller){openRequest.current=null;setOpening(false)}}
  }
  if(!allowed||state.kind==='denied')return <Banner variant="warning" title="Нет доступа к справочнику" description="Обратитесь к администратору платформы."/>
  if(state.kind==='expired')return null
  const codeFilter=code.trim().normalize('NFC'),nameFilter=name.trim().normalize('NFC').toLocaleLowerCase('ru-RU')
  const rows=state.kind==='ready'?state.items.filter(item=>item.code.startsWith(codeFilter)&&item.name.normalize('NFC').toLocaleLowerCase('ru-RU').includes(nameFilter)):[]
- return <section className="okved-directory" aria-label={'Справочник '+definition.title}><Stack>
-  <Stack direction="horizontal" justify="end" wrap="wrap"><Button ref={addButton} variant="primary" onClick={()=>{setNotice('');setEditor({mode:'add'})}}>Добавить значение</Button></Stack>
-  {notice&&<Text role="status">{notice}</Text>}{openError&&<Banner variant="warning" title={openError} primaryAction={<Button onClick={()=>{setOpenError('');setAttempt(n=>n+1)}}>Обновить список</Button>}/>}
+ return <section ref={directoryRef} className="okved-directory" aria-label={'Справочник '+definition.title}><Stack>
+  <Stack direction="horizontal" justify="end" wrap="wrap"><Button ref={addButton} variant="primary" onClick={()=>{focusAfterReload.current=null;openRequest.current?.abort();openRequest.current=null;setOpening(false);setOpenError('');returnFocus.current=addButton.current;setNotice('');setEditor({mode:'add'})}}>Добавить значение</Button></Stack>
+  {opening&&<Text role="status">Загружаем значение…</Text>}{notice&&<Text role="status">{notice}</Text>}{openError&&<Banner variant="warning" title={openError} primaryAction={<Button onClick={()=>{setOpenError('');setAttempt(n=>n+1)}}>Обновить список</Button>}/>}
   <div className="okved-filters">
-   <FormControl><FormControl.Label>Код</FormControl.Label><TextInput value={code} maxLength={64} onChange={event=>setCode(event.target.value)} block/><FormControl.Caption>Начало кода</FormControl.Caption></FormControl>
-   <FormControl><FormControl.Label>Наименование</FormControl.Label><TextInput value={name} maxLength={250} onChange={event=>setName(event.target.value)} block/><FormControl.Caption>Вхождение без учёта регистра</FormControl.Caption></FormControl>
+   <FormControl><FormControl.Label>Код</FormControl.Label><TextInput value={code} maxLength={64} onChange={event=>setCode(event.target.value)} block/></FormControl>
+   <FormControl><FormControl.Label>Наименование</FormControl.Label><TextInput value={name} maxLength={250} onChange={event=>setName(event.target.value)} block/><FormControl.Caption>регистр не учитывается</FormControl.Caption></FormControl>
   </div>
   {state.kind==='loading'?<Stack direction="horizontal" align="center"><Spinner size="small"/><Text role="status">Загружаем справочник…</Text></Stack>:state.kind==='error'?<Banner variant="warning" title="Не удалось загрузить справочник" primaryAction={<Button onClick={()=>setAttempt(n=>n+1)}>Повторить</Button>}/>:state.kind==='ready'?<>
    <Text as="p" role="status">Найдено: {rows.length}</Text>
-   {!rows.length?<Text>По выбранным условиям ничего не найдено</Text>:<Table.Container><Table aria-label={'Значения '+definition.title} gridTemplateColumns="minmax(3rem, max-content) minmax(0, 1fr) max-content"><Table.Head><Table.Row><Table.Header>Код</Table.Header><Table.Header>Наименование</Table.Header><Table.Header>Действия</Table.Header></Table.Row></Table.Head><Table.Body>{rows.map(row=><Table.Row key={row.code}><Table.Cell scope="row"><Text className="okved-name">{row.code}</Text></Table.Cell><Table.Cell><Text className="okved-name">{row.name}</Text></Table.Cell><Table.Cell><Button disabled={opening} aria-label={'Открыть значение '+row.code} onClick={()=>void open(row.code)}>Открыть</Button></Table.Cell></Table.Row>)}</Table.Body></Table></Table.Container>}
+   {!rows.length?<Text>По выбранным условиям ничего не найдено</Text>:<Table.Container><Table aria-label={'Значения '+definition.title} gridTemplateColumns="minmax(3rem, max-content) minmax(0, 1fr) max-content"><Table.Head><Table.Row><Table.Header>Код</Table.Header><Table.Header>Наименование</Table.Header><Table.Header>Действия</Table.Header></Table.Row></Table.Head><Table.Body>{rows.map(row=><Table.Row key={row.code}><Table.Cell scope="row"><Text className="okved-name">{row.code}</Text></Table.Cell><Table.Cell><Text className="okved-name">{row.name}</Text></Table.Cell><Table.Cell><ReferenceActions code={row.code} pending={opening} onAction={(mode,anchor)=>void open(row.code,mode,anchor)}/></Table.Cell></Table.Row>)}</Table.Body></Table></Table.Container>}
   </>:null}
-  {editor&&<ReferenceDialog returnFocusRef={addButton} editor={editor} dictionary={dictionary} csrfToken={session.csrfToken} onClose={()=>setEditor(null)} onSaved={()=>{setNotice(editor.mode==='add'?'Значение добавлено':'Изменения сохранены');setEditor(null);setAttempt(n=>n+1)}} onNotFound={()=>{setEditor(null);setState({kind:'loading'});setNotice('Значение уже удалено другим пользователем.');setAttempt(n=>n+1)}} onDenied={()=>setState({kind:'denied'})} onExpired={()=>expired.current()}/>}
+  {editor&&<ReferenceDialog returnFocusRef={returnFocus} editor={editor} dictionary={dictionary} csrfToken={session.csrfToken} onClose={closeEditor} onSaved={()=>{focusAfterReload.current=editor.item?.code??null;returnFocus.current=addButton.current;setNotice(editor.mode==='add'?'Значение добавлено':'Изменения сохранены');setEditor(null);setAttempt(n=>n+1)}} onNotFound={()=>{returnFocus.current=addButton.current;setEditor(null);setState({kind:'loading'});setNotice('Значение уже удалено другим пользователем.');setAttempt(n=>n+1)}} onDenied={()=>setState({kind:'denied'})} onExpired={()=>expired.current()}/>}
  </Stack></section>
 }

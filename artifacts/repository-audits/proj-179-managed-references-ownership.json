@@ -68,6 +68,14 @@
       "candidateMode": "100644"
     },
     {
+      "previousCandidatePath": "apps/web/src/home/okved-directory.css",
+      "candidatePath": "apps/web/src/home/okved-directory.css",
+      "previousSha256": "fad9f273261fe3b1fd483324b77eca86f6e3ee5b8ad42894f8d4c2c957808616",
+      "candidateSha256": "17801cf5ccd65e295232ae4a9379348f0ac459e2c29cf0b7d8689a93453efe8a",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
       "previousCandidatePath": "deployment/forum-api/grant-runtime.sql",
       "candidatePath": "deployment/forum-api/grant-runtime.sql",
       "previousSha256": "557ff6b230179a228ba4608a5d07a3b679329f6c594f7c87ee2f5c2d76b7c02c",
@@ -103,7 +111,7 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
-      "candidateSha256": "5b0fb223bdd83ba2f7cdb3e72efd38df4cb9ab2c1e1be9e18291f1b72a45a734",
+      "candidateSha256": "3ff3acb8727e2c30ad5df637831880eb97d6944d6172d1e1bab8c3b7b9ee3a5c",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
@@ -164,12 +172,12 @@
     },
     {
       "path": "apps/web/src/home/ManagedReferenceDirectory.tsx",
-      "sha256": "8198e337c1edaaa5809132bbb050663719b70edd5125a8d9b2f388bad9dadaf6",
+      "sha256": "64bfbc01dd952a226be85a4f844b64843e76461710db8bc6f1bfd3c2bafbf946",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/managed-references.test.tsx",
-      "sha256": "9925653f34e548c8458d3871222bb11d9a2e05c436200b139c4fa354bbef6d98",
+      "sha256": "15b50e287e4c758bffd7e8573c798831fcad04202e1b2c027a21fca25f39922a",
       "mode": "100644"
     },
     {
