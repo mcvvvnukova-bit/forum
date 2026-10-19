@@ -10,7 +10,7 @@ node dist/okpd2-cli.js migrate
 node dist/okpd2-cli.js sync
 node dist/okpd2-cli.js list
 node dist/okpd2-cli.js show 7
-node dist/okpd2-cli.js approve 7 EXPECTED_SHA256 admin:8
+node dist/okpd2-cli.js approve 7 EXPECTED_SHA256 admin:8 'Сверено с официальным источником'
 node dist/okpd2-cli.js reject 7 EXPECTED_SHA256 admin:8 'Причина отказа'
 ```
 

@@ -14,10 +14,11 @@ export async function okpdCommand(args:string[]):Promise<unknown> {
     return {hash:snapshotHash(snapshot),codes:snapshot.items.length,sections:snapshot.sections.length,edition:snapshot.edition,publishedDate:snapshot.publishedDate,archiveHash:snapshot.archiveHash};
   }
   if(!['migrate','sync','list','show','approve','reject'].includes(command??'')) {
-    throw new Error('Usage: reference-cli preview | migrate | sync | list | show ID | approve ID HASH OPERATOR | reject ID HASH OPERATOR REASON');
+    throw new Error('Usage: okpd2-cli preview | migrate | sync | list | show ID | approve ID HASH OPERATOR REASON | reject ID HASH OPERATOR REASON');
   }
   if(['show','approve','reject'].includes(command) && !/^[1-9]\d*$/.test(id??''))throw new Error('Positive import ID required');
   if(['approve','reject'].includes(command) && (!/^[a-f0-9]{64}$/.test(hash??'') || !actor?.trim()))throw new Error('Expected SHA-256 hash and operator required');
+  if(['approve','reject'].includes(command) && !reason.join(' ').trim())throw new Error('Decision reason required');
   const databaseUrl=referenceDatabaseUrl();
   const pool=new Pool({connectionString:databaseUrl,max:4,connectionTimeoutMillis:10_000,statement_timeout:60_000});
   try {

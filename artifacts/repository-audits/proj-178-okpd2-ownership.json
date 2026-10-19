@@ -119,7 +119,7 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "dd45dd67deb9ba7208818793ffdc09ba7af39b9d6a3039908d2b184ed4f78807",
-      "candidateSha256": "ef4c9efb39c61efd80a099baa3eaf538666f07b475f9aacce908b4cc7820521c",
+      "candidateSha256": "5dae12c3141ce054ce8c64846ce2fe66138e8439a4ccaaaba911ddf3a44c9def",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
@@ -155,17 +155,17 @@
     },
     {
       "path": "apps/api/resources/rosstat_okpd2.py",
-      "sha256": "0686097ad126e0b94977bbbd8a336426eeb4e6921a72b7231c2655ec5d53ebb6",
+      "sha256": "f25bd185190214deb4fe5f206c8c1de6593ad67bb58f0915fdb57bcc597ede61",
       "mode": "100644"
     },
     {
       "path": "apps/api/resources/test_rosstat_okpd2.py",
-      "sha256": "7fdc367ff80fbc57d05c179385f4ed175c1a54a66fe7a95981b08d702dd18c4e",
+      "sha256": "52337224061d957ec448f087835e25863e4d99a6c6eb3908bedd54064f656e7b",
       "mode": "100644"
     },
     {
       "path": "apps/api/src/okpd2-cli.ts",
-      "sha256": "3c1e8cb504fcb5eb00b069c5824dafebe7f33128ac2d82b3c0632b52b7664393",
+      "sha256": "40428c857bb15f42810f9d53789a741036502dbfb99a9b9b67cd1cd4c7bdcf80",
       "mode": "100644"
     },
     {
@@ -200,7 +200,7 @@
     },
     {
       "path": "apps/api/src/references/okpd2-sync.ts",
-      "sha256": "507682a731343b9b1c0fa5d59fc6f9a83c6446c65b55c9613ae5e715d6ded5a6",
+      "sha256": "f8aaad5d8786815302da77cd7580c2ff21047b6cd1060a4b271695a7ba4934a8",
       "mode": "100644"
     },
     {
@@ -230,12 +230,12 @@
     },
     {
       "path": "apps/api/test/okpd2-source.test.ts",
-      "sha256": "fd3d1908fe537a00447c34d5d70ded0f369e4b6dd6a5a3c09bc23bb28abcd925",
+      "sha256": "55ec823c60c8cde0d512011849c8c09b567c2670da63d28718b2490fb97d85ba",
       "mode": "100644"
     },
     {
       "path": "apps/api/test/okpd2-sync.test.ts",
-      "sha256": "79b570e0a5d02b9ff7deb515f54c1b321c7fb87acb1defc6dbe6c23180151e77",
+      "sha256": "0fc91ee30f693800765509ab6adb32bbf14820c4c86e29051c795f2201789827",
       "mode": "100644"
     },
     {
@@ -275,7 +275,7 @@
     },
     {
       "path": "deployment/okpd2/README.md",
-      "sha256": "c89d377703039960cd585d9be227b3b158af2af07b7a73db147831ecf7966334",
+      "sha256": "eba4798685bad921b31549abddd17bf5cbfa305fc860ee725f721f0567248516",
       "mode": "100644"
     },
     {

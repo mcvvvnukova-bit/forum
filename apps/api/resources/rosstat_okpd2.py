@@ -3,7 +3,8 @@
 The added CA chain is scoped to this source, never installed system-wide.
 The archive edition is a source edition, not a legal effective-date claim.
 """
-import datetime,hashlib,html,io,json,os,re,selectors,ssl,subprocess,sys,tempfile,time,urllib.request,zipfile
+import datetime,hashlib,io,json,os,re,selectors,ssl,subprocess,sys,tempfile,time,urllib.request,zipfile
+from html.parser import HTMLParser
 import xml.etree.ElementTree as ET
 from pathlib import Path,PurePosixPath
 
@@ -15,19 +16,37 @@ CODE=re.compile(r'\d{2}(?:\.\d(?:\d(?:\.\d(?:\d(?:\.\d{3})?)?)?)?)?')
 clean=lambda value:re.sub(r'\s+',' ',value).strip()
 
 def page_metadata(text):
-    # Bind edition/date to the document item containing the exact official URL.
-    marker='href="/storage/mediabank/OKPD2.rar"'
-    if text.count(marker)!=1:raise ValueError('Source link missing or duplicated')
-    pos=text.index(marker)
-    start=text.rfind('<div class="document-list__item',0,pos)
-    end=text.find('<div class="document-list__item ',pos)
-    block=clean(html.unescape(re.sub('<[^>]+>',' ',text[start:end if end!=-1 else pos+3000])))
-    edition=re.search(r'по\s+(\d{1,4}/20\d{2})',block)
+    # Only a complete document item containing the official link supplies metadata.
+    class Items(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.divs=[];self.active=None;self.blocks=[];self.links=0
+        def handle_starttag(self,tag,attrs):
+            attrs=dict(attrs)
+            if tag=='div':
+                item='document-list__item' in attrs.get('class','').split()
+                if item:
+                    if self.active is not None:raise ValueError('Nested source document items')
+                    self.active={'text':[],'links':0}
+                self.divs.append(item)
+            if tag=='a' and attrs.get('href')=='/storage/mediabank/OKPD2.rar':
+                self.links+=1
+                if self.active is not None:self.active['links']+=1
+        def handle_data(self,data):
+            if self.active is not None:self.active['text'].append(data)
+        def handle_endtag(self,tag):
+            if tag=='div' and self.divs and self.divs.pop():
+                if self.active['links']:self.blocks.append(self.active)
+                self.active=None
+    parser=Items();parser.feed(text);parser.close()
+    if parser.links!=1 or len(parser.blocks)!=1:raise ValueError('Source document missing, incomplete or duplicated')
+    block=clean(' '.join(parser.blocks[0]['text']))
+    editions=re.findall(r'по\s+(\d{1,4}/20\d{2})',block)
     dates=re.findall(r'\b(\d{2}\.\d{2}\.20\d{2})\b',block)
-    if not edition or not dates:raise ValueError('Source edition/date missing')
-    date=datetime.datetime.strptime(dates[-1],'%d.%m.%Y').date()
+    if len(editions)!=1 or len(dates)!=1:raise ValueError('Source edition/date missing or ambiguous')
+    date=datetime.datetime.strptime(dates[0],'%d.%m.%Y').date()
     if date>datetime.datetime.now(datetime.timezone.utc).date():raise ValueError('Future source date')
-    return {'edition':edition[1],'publishedDate':date.isoformat()}
+    return {'edition':editions[0],'publishedDate':date.isoformat()}
 
 def command_bytes(args,limit,timeout):
     proc=subprocess.Popen(args,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,stdin=subprocess.DEVNULL)

@@ -47,6 +47,15 @@ class Parser(unittest.TestCase):
   html='<div class="document-list__item"><a href="/storage/mediabank/OKPD2.rar">RAR</a><div>ОКПД2 с учетом изменений с 1/2015 по 148/2026</div><div>1.1 Мб, 02.10.2026</div></div>'
   self.assertEqual(source.page_metadata(html),{'edition':'148/2026','publishedDate':'2026-10-02'})
   with self.assertRaises(ValueError):source.page_metadata(html.replace('OKPD2.rar','other.rar'))
+ def test_metadata_excludes_adjacent_documents_and_accepts_html_attribute_variations(self):
+  item="<div class='document-list__item extra'><a href='/storage/mediabank/OKPD2.rar'>RAR</a><div>ОКПД2 по 148/2026</div><div>02.10.2026</div></div>"
+  neighbor='<div class="document-list__item"><div>Другой документ по 150/2026</div><div>09.10.2026</div></div>'
+  for page in (item+neighbor,neighbor+item,item.replace("'",'"')+neighbor):
+   self.assertEqual(source.page_metadata(page),{'edition':'148/2026','publishedDate':'2026-10-02'})
+ def test_metadata_rejects_unbounded_or_ambiguous_document_items(self):
+  item='<div class="document-list__item"><a href="/storage/mediabank/OKPD2.rar">ОКПД2 по 148/2026</a><div>02.10.2026</div></div>'
+  for page in (item.replace('</div></div>','</div>'),item.replace('document-list__item','document-list__item-title'),item+item,item.replace('02.10.2026','02.10.2026 09.10.2026')):
+   with self.assertRaises(ValueError):source.page_metadata(page)
  def test_subprocess_output_and_time_are_bounded(self):
   self.assertTrue(hasattr(source,'command_bytes'),'Bounded subprocess is not implemented')
   import sys

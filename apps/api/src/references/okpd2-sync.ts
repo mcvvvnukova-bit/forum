@@ -88,7 +88,7 @@ export class OkpdSync {
   async decide(id:string,decision:'approve'|'reject',expectedHash:string,actor:string,reason?:string):Promise<ImportResult> {
     if (!['approve','reject'].includes(decision))throw new Error('Invalid decision');
     if (!/^[1-9]\d*$/.test(id) || !actor.trim() || actor.length>200) throw new Error('Import ID and operator are required');
-    if (decision==='reject' && !reason?.trim()) throw new Error('Rejection reason required');
+    if (!reason?.trim()) throw new Error('Decision reason required');
     const client=await this.pool.connect();let locked=false;
     try {
       locked=(await client.query(LOCK)).rows[0].locked;if(!locked)throw new Error('Import busy; retry later');
@@ -98,7 +98,7 @@ export class OkpdSync {
       if (candidate.snapshot_hash!==expectedHash) throw new Error('Snapshot hash mismatch');
       const baseline=await current(client);
       if (candidate.base_revision!==baseline.revision || candidate.baseline_hash!==snapshotHash(baseline.snapshot)) throw new Error('Candidate is stale; run a new import');
-      await client.query('UPDATE public.okpd_imports SET decided_by=$2,decided_at=now(),decision_reason=$3 WHERE id=$1',[id,actor,reason??null]);
+      await client.query('UPDATE public.okpd_imports SET decided_by=$2,decided_at=now(),decision_reason=$3 WHERE id=$1',[id,actor,reason.trim()]);
       if (decision==='approve') {
         const s=normalizeSnapshot(candidate.snapshot);
         if(snapshotHash(s)!==expectedHash)throw new Error('Stored snapshot hash mismatch');
