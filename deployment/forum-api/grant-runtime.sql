@@ -58,6 +58,13 @@ WHERE d.defaclnamespace='public'::regnamespace AND d.defaclobjtype IN ('r','S')
 
 GRANT USAGE ON SCHEMA public TO :"app_role";
 GRANT SELECT(name) ON public.schema_migrations TO :"app_role";
+-- The FNS classifier is installed separately (PROJ-172). Grant only the
+-- published directory columns after that migration; runtime cannot edit codes.
+SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass('public.okveds')
+  AND attname='is_active' AND NOT attisdropped) AS okved_directory_installed \gset
+\if :okved_directory_installed
+  GRANT SELECT(okved,name,is_active) ON public.okveds TO :"app_role";
+\endif
 GRANT SELECT, INSERT, UPDATE ON public.users, public.external_identities,
   public.persons, public.identity_profiles, public.organizations, public.participants, public.participant_memberships TO :"app_role";
 GRANT SELECT ON public.identity_providers,public.organization_memberships,public.organization_authorities TO :"app_role";

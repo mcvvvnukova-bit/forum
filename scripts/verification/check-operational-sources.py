@@ -873,9 +873,9 @@ def role_model_file(path, expected_hash, expected_mode):
     candidate = path.relative_to(ROOT).as_posix()
     item = next((x for x in role_model_receipt()['changes'] if x['candidatePath'] == candidate), None)
     if item is None:
-        return path, expected_hash, expected_mode
+        return okved_directory_file(path, expected_hash, expected_mode)
     assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['previousMode'], 'PROJ-171 predecessor mismatch: ' + candidate
-    return path, item['candidateSha256'], item['candidateMode']
+    return okved_directory_file(path, item['candidateSha256'], item['candidateMode'])
 
 
 def verify_role_model():
@@ -892,8 +892,51 @@ def verify_role_model():
         assert source.is_file(), 'Missing PROJ-171 source: ' + candidate
         digest = item.get('candidateSha256', item.get('sha256'))
         mode = item.get('candidateMode', item.get('mode'))
+        source, digest, mode = okved_directory_file(source, digest, mode)
         assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-171 current source hash mismatch: ' + candidate
         assert ('100755' if source.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-171 source mode mismatch: ' + candidate
+
+
+# Narrow successor for the administrator directory; historical receipts stay fixed.
+OKVED_DIRECTORY_MANIFEST_SHA256 = '7dcf1d1a94795c2c0effa575ebb76820f13ead734339932af43f97498bdfac47'
+
+
+@lru_cache(maxsize=1)
+def okved_directory_receipt():
+    path = ROOT / 'artifacts/repository-audits/proj-177-okved-directory-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing or unsafe PROJ-177 receipt'
+    receipt = json.loads(path.read_text())
+    manifest = dict(receipt)
+    manifest['changes'] = [dict(item) for item in receipt['changes']]
+    for item in manifest['changes']:
+        if item['candidatePath'] == 'scripts/verification/check-operational-sources.py':
+            del item['candidateSha256']
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    assert digest == OKVED_DIRECTORY_MANIFEST_SHA256, 'PROJ-177 scope/predecessor/candidate pin mismatch'
+    return receipt
+
+
+def okved_directory_file(path, expected_hash, expected_mode):
+    candidate = path.relative_to(ROOT).as_posix()
+    item = next((x for x in okved_directory_receipt()['changes'] if x['candidatePath'] == candidate), None)
+    if item is None:
+        return path, expected_hash, expected_mode
+    assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['previousMode'], 'PROJ-177 predecessor mismatch: ' + candidate
+    return path, item['candidateSha256'], item['candidateMode']
+
+
+def verify_okved_directory():
+    receipt = okved_directory_receipt()
+    for item in receipt['changes'] + receipt['newFiles']:
+        candidate = item.get('candidatePath', item.get('path'))
+        relative = Path(candidate)
+        assert not relative.is_absolute() and '..' not in relative.parts, 'Unsafe PROJ-177 path'
+        source = ROOT / relative
+        assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
+                       for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-177 symlink: ' + candidate
+        assert source.is_file(), 'Missing PROJ-177 source: ' + candidate
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item.get('candidateSha256', item.get('sha256')), 'PROJ-177 source hash mismatch: ' + candidate
+        assert ('100755' if source.stat().st_mode & 0o111 else '100644') == item.get('candidateMode', item.get('mode')), 'PROJ-177 source mode mismatch: ' + candidate
 
 
 def retirement_receipt(verify_sources=True):
@@ -1070,7 +1113,7 @@ def verify_provenance():
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, my_organizations_receipt, cabinet_settings_receipt, dev_organizations_receipt,
                     governance_receipt, ci_receipt, merged_verification_receipt, integration_receipt,
-                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt, role_model_receipt):
+                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt, role_model_receipt, okved_directory_receipt):
         receipt.cache_clear()
     retirement_receipt()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
@@ -1196,6 +1239,7 @@ def verify_provenance():
     verify_branch_integration()
     verify_compact_login()
     verify_role_model()
+    verify_okved_directory()
     return accepted
 
 
