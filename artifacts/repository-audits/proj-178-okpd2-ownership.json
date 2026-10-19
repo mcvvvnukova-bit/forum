@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-178",
+  "baseSha": "7962188b75c5b685a051c888b0217384d02c5511",
+  "changes": [
+    {
+      "previousCandidatePath": ".github/workflows/quality.yml",
+      "candidatePath": ".github/workflows/quality.yml",
+      "previousSha256": "a7f91427aa0877a72ae8dbf602c35d3b71c91102e9b8dba2150a0b224182c43d",
+      "candidateSha256": "b235151cd6e8767e89043f5e00e140c446566336537245b2392529fe961b0750",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/Dockerfile",
+      "candidatePath": "apps/api/Dockerfile",
+      "previousSha256": "da8a510fdab41bffa9e77d66012b654389008a667e54878eb08aa7a4d9878b38",
+      "candidateSha256": "7ae191c955537b40e7dc18565d446c3b1807564ded84bcc6054eabe2def56330",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/package.json",
+      "candidatePath": "apps/api/package.json",
+      "previousSha256": "d67dcc8ae79e5ba606fbe90d0481f0a49064082f25ec1f854f1241c3de1ab928",
+      "candidateSha256": "a776a7adb34ee1920f72972d5bfd15605e2f001a7d475857c9c7231230e2194c",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/app.ts",
+      "candidatePath": "apps/api/src/app.ts",
+      "previousSha256": "7a15ebeaf8f0a4089f937d0a5e45d249f21b63a4c84a881c4d7d9a3c1f6177a8",
+      "candidateSha256": "898255edd848e6e01b5691792a9c006ca6a35ae672e0d0c704ab7426abcad62c",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "candidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "previousSha256": "d076414d536f547b28f01615e2e850c081cdc8697a385146982fee40d95836be",
+      "candidateSha256": "108662ad199027d0f495e558afe75a36b281826d039f7a730843c5c20c69fbe4",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/profile-preview/src/ProfilePage.tsx",
+      "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
+      "previousSha256": "ab5bee2dc6ef4842dd21ec00c2940c132ef7b5e2dceef6256cb5557a406c20b9",
+      "candidateSha256": "ce0dd329a7fcb639cef25bcd696724efd36aab86763d375f4c777b5e2a0b094d",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/App.tsx",
+      "candidatePath": "apps/web/src/home/App.tsx",
+      "previousSha256": "125d6a83ffdf294b3175e061d769bea62903396736ec46c698d7d7595187fdb0",
+      "candidateSha256": "fa3fafe03e0b7bf17f4b93101408012d5342daa5941cadf662647b2292147aec",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/Cabinet.tsx",
+      "candidatePath": "apps/web/src/home/Cabinet.tsx",
+      "previousSha256": "e9602631ef3e0f7201266ea10a202ab8d6bf673b4cb52931319acb5a3e8c705e",
+      "candidateSha256": "4ffc77c1b56c1b43977a791aec532fda6f2bf7b12d01356d0a112cb8d607f72a",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/OkvedDirectory.tsx",
+      "candidatePath": "apps/web/src/home/OkvedDirectory.tsx",
+      "previousSha256": "e6c156d23c7ce8abbc325e39476eec016b49271eb5f592285ebb2c651f9a52ed",
+      "candidateSha256": "2ec7478915f92d8caddf20960bb0db0966d934b75d913c3952335dfaae9fc0ef",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/okved-directory.test.tsx",
+      "candidatePath": "apps/web/src/home/okved-directory.test.tsx",
+      "previousSha256": "5d4da11dd32cc49504459d24341e38153b959beee58d078a603120bcc1b457cf",
+      "candidateSha256": "2c877f34b8b11120b9d480ae62cb301cf44fd3645c4aae6ba73e075437801669",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/roles.test.tsx",
+      "candidatePath": "apps/web/src/home/roles.test.tsx",
+      "previousSha256": "42f03e75808e723e93b22781971daffa2059d30e76680c45253cd56f9929a235",
+      "candidateSha256": "789b2094ea5635f10b98c22e262e16d1e539fb7f506838495eaacdbd88df6821",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-api/grant-runtime.sql",
+      "candidatePath": "deployment/forum-api/grant-runtime.sql",
+      "previousSha256": "9df3d416cf0b2c00e25c302e0ec4fd7f952688c034cd40db9106a09641652579",
+      "candidateSha256": "557ff6b230179a228ba4608a5d07a3b679329f6c594f7c87ee2f5c2d76b7c02c",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/release-manifest.schema.json",
+      "candidatePath": "deployment/release-manifest.schema.json",
+      "previousSha256": "c5932fb7d192bd3d9d8f2183f912daec047eb4816f4d643401a09c195ee53c1b",
+      "candidateSha256": "485464152f091dcec419599304dc09c488d7f6e8d878390d96f5955ea40cdb56",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "package-lock.json",
+      "candidatePath": "package-lock.json",
+      "previousSha256": "001c8b83f831a6c61137b5205c145845e15b4bfd26acee99d5002491284a77ad",
+      "candidateSha256": "e81550c6cbb7c32137d8b3bb018e1134e5a71088629ea29a7e34cd008c53ae5a",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/build-web-release.mjs",
+      "candidatePath": "scripts/deployment/build-web-release.mjs",
+      "previousSha256": "f4becbc6a63efdea722b9b8557c7c7f97bc4402df24d968723d0f5b51c4f5362",
+      "candidateSha256": "34e7db5001b0ff6fce8997d8f9c574385c0fea8a225325d35f2630150d7af11d",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/web_release.py",
+      "candidatePath": "scripts/deployment/web_release.py",
+      "previousSha256": "8ccb13504323f6a15e856afafc2b081c2eff8d2d6b4b8e8a4936df1685ab5bb1",
+      "candidateSha256": "7fb31b7573a9233fbbe950b792ec47ba59a9cf8c3142513bd507a87a3f23d1eb",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "dd45dd67deb9ba7208818793ffdc09ba7af39b9d6a3039908d2b184ed4f78807",
+      "candidateSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/test_web_release.py",
+      "candidatePath": "tests/integration/test_web_release.py",
+      "previousSha256": "3eefd2dd0c0b7501d6ffd04ed54554a2fb9b172c48f7d19e643ff340f51b322f",
+      "candidateSha256": "4e3af960e97d8fdc194f629911a96f28319ee03617442532063dbe0355c72254",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/api/migrations/references/001_okpd2_rosstat.down.sql",
+      "sha256": "b5b275949bdd48e7cc6af61468e6848bbb876909f7e755ad80f063b9da5a82af",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/migrations/references/001_okpd2_rosstat.sql",
+      "sha256": "e4da584e98ea0f7132f81e4db7649438f762ddffc6466cf81117a5504347e39f",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/resources/certs/root.pem",
+      "sha256": "0819977502d9aed2234830f6ffb91f82f401d3674c6e51dd19e16d8b3dbf0eb4",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/resources/certs/sub2024.pem",
+      "sha256": "6f9d829c8e6712444fce3624658d8788672849c5d5b7b53fd9cf7e83eac4193e",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/resources/rosstat_okpd2.py",
+      "sha256": "f25bd185190214deb4fe5f206c8c1de6593ad67bb58f0915fdb57bcc597ede61",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/resources/test_rosstat_okpd2.py",
+      "sha256": "52337224061d957ec448f087835e25863e4d99a6c6eb3908bedd54064f656e7b",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/okpd2-cli.ts",
+      "sha256": "40428c857bb15f42810f9d53789a741036502dbfb99a9b9b67cd1cd4c7bdcf80",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/okpd2-worker.ts",
+      "sha256": "3c4c683bf6743472e046990854ec446239e37afb58af57e1eb15219e93b449b7",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okpd-directory.controller.ts",
+      "sha256": "31822690cfa0d28e4b2e82d49e89ef0b72bdc6f77ba4116ad8f2b4dcfc1282fb",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okpd2-config.ts",
+      "sha256": "0b06c26d4f3acd8451b3e5d8c010992de6bdaa7c744ab86238b38bf2005231a1",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okpd2-migrate.ts",
+      "sha256": "f97292a3ec02ca5c37fa03862731b978e5157c92b6ef90e486ddcff108ecc37d",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okpd2-model.ts",
+      "sha256": "d3e16826e82635c70f9f5bfdb24deb304b41d821bc31ab0ab84437129b9e9e5a",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okpd2-source.ts",
+      "sha256": "0d309d2d02fa83e752a9955c1f40090e740970c7b8cd6fccc6e73143c84dc813",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okpd2-sync.ts",
+      "sha256": "f8aaad5d8786815302da77cd7580c2ff21047b6cd1060a4b271695a7ba4934a8",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/references/okpd2-worker.ts",
+      "sha256": "e4cdf69027a220e5691b6a2a2af88e588d35fb48c7eac41fc33c7856abc481a6",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okpd-directory.test.ts",
+      "sha256": "63621b7b24aa4968766240337dc6912ca3fae4b0ae6d6eb3cca854563dbb10fa",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okpd2-fixture.ts",
+      "sha256": "5b0241605324ab53e8d4a11424505bbcd01bbb74ff29733312a387352cfaf3c8",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okpd2-model.test.ts",
+      "sha256": "bf7fc3c2299843614ea8688e803e922f75f784c8ede95eda89199d3ccc496cc7",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okpd2-permissions.test.ts",
+      "sha256": "4dfba686ceee26d8ade16a4d6e1cf27c087351870132abb364983e5bc19976d4",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okpd2-source.test.ts",
+      "sha256": "55ec823c60c8cde0d512011849c8c09b567c2670da63d28718b2490fb97d85ba",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okpd2-sync.test.ts",
+      "sha256": "0fc91ee30f693800765509ab6adb32bbf14820c4c86e29051c795f2201789827",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okpd2-test-database.ts",
+      "sha256": "1f159b76234f2accc1677adc5d8c5abc60f23a50f30ca610deecbfda5c073454",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/okpd2-worker.test.ts",
+      "sha256": "f936efc7f030ddd10c713962d0cdbd69342d8ed295e20a38efd66a42016e0609",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/dev-gateway/tests/test_okpd_proxy.py",
+      "sha256": "2e7c878c670d3629098bc73db898ccc7c0400994e1427d2ace85313d7083e24c",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/ClassifierDirectory.tsx",
+      "sha256": "7b8960f4b710f2dc0ab50db6730a38578e770cdb0b0157cf84118312270ca2a9",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/OkpdDirectory.tsx",
+      "sha256": "179bca710b63deb189cb0a1c47715e9ca391d3a0b39417c5ddb28c8610695b7d",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/okpd-directory.test.tsx",
+      "sha256": "2d63856330a259fa588bf713330dcaa8f859572fcb7b7cdff52d95b06923b1cd",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/local/okpd2.compose.yml",
+      "sha256": "5ab66fde1d3b2588afb64b11ce64c0436dd1fdf7651da941f775b4f08279c905",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/okpd2/README.md",
+      "sha256": "eba4798685bad921b31549abddd17bf5cbfa305fc860ee725f721f0567248516",
+      "mode": "100644"
+    },
+    {
+      "path": "deployment/okpd2/grant-worker.sql",
+      "sha256": "f5b62ef6b869a6a55189410a1a4cd0ca095d4669e10987865726a6b648baccd7",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-19-PROJ-178-okpd2.md",
+      "sha256": "379091cb8eb419266bb4d8b8f25421b1d7c76b9f135ced73b26b9e85854c7b49",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/deployment/build-okpd2-local.sh",
+      "sha256": "fe8d0207b7e97e52ddae8b9fd5b1db05e87cbc55f56db18acc279d2c3ef1bb99",
+      "mode": "100755"
+    },
+    {
+      "path": "scripts/verification/okpd2-ownership.test.mjs",
+      "sha256": "405819f93b0e7a802c94622ca025b4912fc6757d8178b747c749fc2ec50a5e7e",
+      "mode": "100644"
+    },
+    {
+      "path": "scripts/verification/web-okpd-routes.test.mjs",
+      "sha256": "d4a9b533574e0be7dd63ef5e31b4cf4f2b4d7dc9140830d776dd704a318bca27",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/integration/test_okpd_web_routes.py",
+      "sha256": "5b99a9683ac21f5d29dfb3569aea7a37329128b6fa93565841c73a40714621c9",
+      "mode": "100644"
+    }
+  ],
+  "historicalReceipts": [
+    {
+      "path": "artifacts/repository-audits/proj-177-okved-directory-ownership.json",
+      "sha256": "cdd74760d99a5797e63f5aaf2bd2de176bef7b47174b3e35869c268158a1e1d9",
+      "mode": "100644"
+    }
+  ]
+}

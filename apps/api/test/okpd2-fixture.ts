@@ -1,0 +1,1 @@
+export function fixture(name='Root',includeLeaf=true){return {edition:'148/2026',publishedDate:'2026-10-02',url:'https://rosstat.gov.ru/storage/mediabank/OKPD2.rar',archiveHash:'a'.repeat(64),sections:[{code:'A',name:'Agriculture'}],items:[{code:'01',section:'A',name},...(includeLeaf?[{code:'01.1',section:'A',name:'Child'}]:[])]};}

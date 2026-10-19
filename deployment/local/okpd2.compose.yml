@@ -1,0 +1,32 @@
+# Build exact local source first with scripts/deployment/build-okpd2-local.sh.
+name: forum-okpd2-local
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: forum_okpd2_local_test
+      POSTGRES_PASSWORD: local-okpd2-tests-only
+    ports: ["127.0.0.1:55479:5432"]
+    volumes: ["okpd2-data:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  worker:
+    image: forum-okpd2-local:latest
+    command: ["node", "dist/okpd2-worker.js"]
+    environment:
+      DATABASE_URL_FILE: /run/secrets/worker_dsn
+    secrets: [worker_dsn]
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      postgres: {condition: service_healthy}
+volumes:
+  okpd2-data:
+secrets:
+  worker_dsn:
+    file: ${OKPD2_WORKER_DSN_FILE:?Set path to private worker DSN after migrations and narrow grants}

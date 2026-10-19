@@ -62,8 +62,11 @@ def validate_artifact(artifact, source_sha, environment):
     if fingerprint(manifest['inputs']) != manifest['sourceFingerprint'] or fingerprint(manifest['config']) != manifest['configFingerprint']:
         raise ValueError('Input/config fingerprint mismatch')
     routes = ['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/cabinet/', '/cabinet/work/', '/cabinet/settings/','/cabinet/organizations/','/cabinet/users/'] if environment == 'dev' else ['/']
-    if environment == 'dev' and manifest['routes'] == routes + ['/cabinet/references/okved/']:
-        routes = routes + ['/cabinet/references/okved/']
+    if environment == 'dev':
+        for suffix in (['/cabinet/references/okved/'], ['/cabinet/references/okved/','/cabinet/references/okpd/']):
+            if manifest['routes'] == routes + suffix:
+                routes = routes + suffix
+                break
     if manifest['routes'] != routes:
         raise ValueError('Route inventory mismatch')
     pages = {('index.html' if route == '/' else route.strip('/') + '/index.html') for route in routes}
@@ -167,7 +170,7 @@ def rollback(target, release_backup, backups, *, expected_target, verifier):
         os.chmod(receipt, 0o700)
         prepared = target.parent / ('.web-rollback-' + operation)
         shutil.copytree(target, prepared)
-        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register','cabinet','cabinet/work','cabinet/settings','cabinet/organizations','cabinet/users','cabinet/references/okved']]
+        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register','cabinet','cabinet/work','cabinet/settings','cabinet/organizations','cabinet/users','cabinet/references/okved','cabinet/references/okpd']]
         for name in pages + ['.public-auth.json', '.web-release.json']:
             source = before_source / name
             if source.exists(): atomic_write(prepared / name, source.read_bytes())
