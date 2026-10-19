@@ -63,7 +63,7 @@
       "previousCandidatePath": "apps/web/src/home/cabinet.css",
       "candidatePath": "apps/web/src/home/cabinet.css",
       "previousSha256": "347f0c9b1837e1b0cbad90706f92b8bc5fcac40aca5879e3feeda02e783aaa2f",
-      "candidateSha256": "f3c036ce444a7c6050bdbb1add6a01f64f9ae95f0d8225c0f7621d645604e09b",
+      "candidateSha256": "62603d3c574c1685ae9e048a0706aab5154ff09ec3cf4aaa8d415735d014ceee",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
@@ -103,7 +103,7 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
-      "candidateSha256": "c2f14e1366a50a42cddbc3a644ed47d2ccff46cd1681903724e89924b2e0c8b5",
+      "candidateSha256": "5d3ee444175188eefe261e21cbbfb3ab47e8719a719bcd4f70a91392d79cf113",
       "previousMode": "100644",
       "candidateMode": "100644"
     }
@@ -156,12 +156,12 @@
     },
     {
       "path": "apps/web/src/home/ManagedReferenceDirectory.tsx",
-      "sha256": "455426a2111c195e7c3ac63bde0749fc5b083a39032d9a92b8be9899d2a30e42",
+      "sha256": "8198e337c1edaaa5809132bbb050663719b70edd5125a8d9b2f388bad9dadaf6",
       "mode": "100644"
     },
     {
       "path": "apps/web/src/home/managed-references.test.tsx",
-      "sha256": "e2fc8ea247889098f8896af3543c9fc1a82d5982542298ff03808607fdca5421",
+      "sha256": "9925653f34e548c8458d3871222bb11d9a2e05c436200b139c4fa354bbef6d98",
       "mode": "100644"
     },
     {
@@ -172,6 +172,11 @@
     {
       "path": "docs/plans/2026-10-19-managed-references.md",
       "sha256": "be62cea18f6c0d6d4578dfda14fc9b24846acc8c2a6148e12b8cef9d650f43e1",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/plans/2026-10-20-reference-browser-feedback.md",
+      "sha256": "2aadf5a8567393ff1ddc27d2b44f791eff0d0f16436a7354e166c9f1ca61a9c4",
       "mode": "100644"
     },
     {
