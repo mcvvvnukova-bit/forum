@@ -150,7 +150,15 @@ for(const width of [320,390,1440])test(`built personal profile, work, reload and
  await expect(page.locator('footer.profile-footer')).toHaveCount(0)
  const accountLogo=page.locator('.account-brand img')
  await expect(accountLogo).toBeVisible()
- expect(await accountLogo.evaluate(image=>image.getBoundingClientRect().width)).toBe(width<768?192:256)
+ expect(await accountLogo.evaluate(image=>image.getBoundingClientRect().width)).toBe(width<768?160:192)
+ const headerBounds=await page.locator('.cabinet-header').evaluate(header=>{
+  const box=header.getBoundingClientRect()
+  return {height:box.height,containsControls:Array.from(header.querySelectorAll('.account-brand img,.header-account')).every(control=>{
+   const bounds=control.getBoundingClientRect();return bounds.top>=box.top&&bounds.bottom<=box.bottom&&bounds.left>=box.left&&bounds.right<=box.right
+  })}
+ })
+ expect(headerBounds.height).toBe(width<768?128:80)
+ expect(headerBounds.containsControls).toBe(true)
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
  await page.getByRole('button',{name:'Выйти',exact:true}).click()
  await expect(page).toHaveURL(new URL('/',page.url()).href)

@@ -103,7 +103,15 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
-      "candidateSha256": "5d3ee444175188eefe261e21cbbfb3ab47e8719a719bcd4f70a91392d79cf113",
+      "candidateSha256": "5b0fb223bdd83ba2f7cdb3e72efd38df4cb9ab2c1e1be9e18291f1b72a45a734",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/e2e/public-site.spec.ts",
+      "candidatePath": "tests/e2e/public-site.spec.ts",
+      "previousSha256": "a2e7beb766478a5099faf2e890a98c54c0cdbed4feba89b8fc0d3718380cbee1",
+      "candidateSha256": "39581c5e664e845da0faa683eb11583c834c64abbdc1650e293890c0afa87a2a",
       "previousMode": "100644",
       "candidateMode": "100644"
     }
