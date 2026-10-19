@@ -209,6 +209,25 @@ Stalwart хранит конфигурацию в `stalwart/config`, данны�
 
 Origin Caddy: `/opt/outline/Caddyfile`. Блок почтовых маршрутов ограничен маркерами `astforum-mail:start/end`; исходная копия сохранена в `/opt/astforum-mail/backups/`. Для mail-маршрута Caddy принимает реальный IP только от наблюдаемого внешнего шлюза 172.16.160.13, удаляет входящий Forwarded и передаёт очищенный X-Forwarded-For. В Stalwart включён useXForwarded. Это устранило блокировку собственного Caddy из-за внешнего сканирования.
 
+## DNS контейнера Stalwart
+
+Для сервиса `stalwart` в `compose.yaml` явно задан штатный DNS шлюза VM `172.16.160.1`. Docker сохраняет встроенный DNS `127.0.0.11` для внутренних имён и пересылает внешние запросы шлюзу. Из сетевого пространства Stalwart должны быть доступны UDP и TCP 53 к этому адресу. При переносе VM проверьте и обновите адрес DNS под новую сеть.
+
+19 октября 2026 года встроенный DNS контейнера отвечал `SERVFAIL` на `gmail.com MX`. В `/etc/resolv.conf` контейнера было `NO EXTERNAL NAMESERVERS DEFINED`; внешние письма оставались в очереди. Публичные DNS `1.1.1.1` и `8.8.8.8` отвечали на MX-запросы, но запросы A для Gmail MX по UDP к ним завершались таймаутом; шлюз отвечал на оба типа запросов по UDP и TCP. Поэтому проверять только MX недостаточно. Работа DNS на самой VM и наличие письма в «Отправленных» также не подтверждают внешнюю доставку.
+
+Перед применением сохраните текущий `/opt/astforum-mail/compose.yaml` в приватном каталоге резервных копий. После установки проверенной конфигурации выполните:
+
+```sh
+sudo docker compose --project-directory /opt/astforum-mail config --quiet
+sudo docker compose --project-directory /opt/astforum-mail up -d --no-deps --pull never stalwart
+mail_pid=$(sudo docker inspect -f '{{.State.Pid}}' astforum-mail-stalwart-1)
+sudo nsenter -t "$mail_pid" -n dig @127.0.0.11 gmail.com MX
+sudo nsenter -t "$mail_pid" -n dig @127.0.0.11 gmail-smtp-in.l.google.com A
+sudo nsenter -t "$mail_pid" -n dig @127.0.0.11 astforum-stalwart A
+```
+
+Простого `restart` недостаточно для применения Compose `dns`: контейнер должен быть пересоздан. Проверяйте его healthcheck, SMTP/IMAP TLS и новую отправку через Twake Mail. Подтверждение внешней доставки — ответ принимающего MX `250` и событие Stalwart `delivery.completed` для того же сообщения; папку «Входящие» или «Спам» проверяйте отдельно. Для отката восстановите сохранённый Compose и повторите команду `up` только для `stalwart`.
+
 ## Резервная копия
 
 Создавайте согласованную копию в выбранном приватном каталоге `/var/backups/astforum-mail/`. Проверяйте контрольные суммы, оглавление архивов и читаемость PostgreSQL dump; результаты и расположение конкретной копии храните вне Git.

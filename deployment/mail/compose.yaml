@@ -10,6 +10,9 @@ services:
   stalwart:
     image: stalwartlabs/stalwart:v0.16.21
     restart: unless-stopped
+    # Use the VM gateway resolver; direct public DNS loses Gmail A queries.
+    dns:
+      - 172.16.160.1
     environment:
       STALWART_PUBLIC_URL: https://mail.astforum.ru
       TZ: Europe/Moscow
