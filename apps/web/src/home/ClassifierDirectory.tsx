@@ -1,5 +1,5 @@
 import {useEffect,useId,useRef,useState} from 'react'
-import {Banner,Button,FormControl,Link,Spinner,Stack,Text,TextInput,UnderlineNav} from '@primer/react'
+import {Banner,Button,FormControl,Link,Spinner,Stack,Text,TextInput} from '@primer/react'
 import {SearchIcon} from '@primer/octicons-react'
 import {Table} from '@primer/react/experimental'
 import type {Session} from '../audience/intent'
@@ -47,7 +47,6 @@ export function ClassifierDirectory({classifier,session,onExpired}:DirectoryProp
  if(state.kind==='expired')return null
  const loading=state.kind==='loading'
  return <section className="okved-directory" aria-label={"Справочник "+definition.title}><Stack>
-  <UnderlineNav aria-label="Справочники"><UnderlineNav.Item href="/cabinet/references/okved/#main" aria-current={classifier==='okved'?'page':undefined}>ОКВЭД2</UnderlineNav.Item><UnderlineNav.Item href="/cabinet/references/okpd/#main" aria-current={classifier==='okpd'?'page':undefined}>ОКПД2</UnderlineNav.Item></UnderlineNav>
   <Text as="p" className="muted">{definition.description}</Text>
   {classifier==='okpd'&&state.kind==='ready'&&state.result.source?<Text as="p" className="muted"><Link href="https://rosstat.gov.ru/classification" target="_blank" rel="noopener noreferrer">Источник: Росстат</Link>. Редакция {state.result.source.edition}, опубликована {state.result.source.publishedDate.split('-').reverse().join('.')}. Проверено {new Intl.DateTimeFormat('ru-RU',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Moscow'}).format(new Date(state.result.source.checkedAt))} МСК.</Text>:null}
   <form className="okved-filters" onSubmit={event=>{event.preventDefault();setQuery({code:code.trim(),name:name.trim(),page:1})}}>

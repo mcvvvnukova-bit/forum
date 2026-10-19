@@ -1,4 +1,4 @@
-import {act,fireEvent,render,screen,waitFor} from '@testing-library/react'
+import {act,fireEvent,render,screen,waitFor,within} from '@testing-library/react'
 import {BaseStyles,ThemeProvider} from '@primer/react'
 import {afterEach,expect,it,vi} from 'vitest'
 import {Cabinet} from './Cabinet'
@@ -18,7 +18,12 @@ function page(options:{roles?:string[];reply?:(url:string)=>Response|Promise<Res
 afterEach(()=>vi.unstubAllGlobals())
 it('administrator opens active references navigation and reads codes without requesting profile',async()=>{
  const f=page();expect(await screen.findByRole('heading',{name:'ОКВЭД2'})).toBeVisible();expect(await screen.findByText(result.items[0].name)).toBeVisible()
- expect(screen.getByRole('link',{name:'Справочники'})).toHaveAttribute('aria-current','page')
+ const nav=within(screen.getByRole('navigation',{name:'Навигация личного кабинета'}))
+ expect(nav.getByRole('button',{name:'Справочники'})).toHaveAttribute('aria-expanded','true')
+ expect(nav.getByRole('link',{name:'ОКВЭД2'})).toHaveAttribute('aria-current','page')
+ expect(nav.getByRole('link',{name:'ОКПД2'})).not.toHaveAttribute('aria-current')
+ expect(within(screen.getByRole('main')).queryByRole('navigation',{name:'Справочники'})).not.toBeInTheDocument()
+ expect(within(screen.getByRole('main')).queryByRole('link',{name:'ОКПД2'})).not.toBeInTheDocument()
  expect(screen.getByRole('columnheader',{name:'Код'})).toBeVisible();expect(screen.getByRole('columnheader',{name:'Наименование'})).toBeVisible()
  expect(f.mock.calls.some(([url])=>url==='/api/profile')).toBe(false)
 })

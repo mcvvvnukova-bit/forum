@@ -22,7 +22,12 @@ function ProfileNavigation({onNavigate, disabled = false, view, root, settings=f
       <NavList.Divider/>
       <NavList.Group hideDivider>
         <NavList.GroupHeading>Администрирование</NavList.GroupHeading>
-        <NavList.Item href={`${root}references/okved/#main`} onClick={onNavigate} aria-current={(view==='okved'||view==='okpd')?'page':undefined}><NavList.LeadingVisual><BookIcon/></NavList.LeadingVisual>Справочники</NavList.Item>
+        <NavList.Item><NavList.LeadingVisual><BookIcon/></NavList.LeadingVisual>Справочники
+          <NavList.SubNav>
+            <NavList.Item href={`${root}references/okved/#main`} onClick={onNavigate} aria-current={view==='okved'?'page':undefined}>ОКВЭД2</NavList.Item>
+            <NavList.Item href={`${root}references/okpd/#main`} onClick={onNavigate} aria-current={view==='okpd'?'page':undefined}>ОКПД2</NavList.Item>
+          </NavList.SubNav>
+        </NavList.Item>
         <NavList.Item href={`${root}users/#main`} onClick={onNavigate} aria-current={view==='roles'?'page':undefined}><NavList.LeadingVisual><PeopleIcon/></NavList.LeadingVisual>Пользователи</NavList.Item>
       </NavList.Group>
       <NavList.Divider/>

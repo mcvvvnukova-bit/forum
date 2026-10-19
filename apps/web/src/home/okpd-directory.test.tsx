@@ -1,4 +1,4 @@
-import {act,fireEvent,render,screen,waitFor} from '@testing-library/react'
+import {act,fireEvent,render,screen,waitFor,within} from '@testing-library/react'
 import {BaseStyles,ThemeProvider} from '@primer/react'
 import {afterEach,expect,it,vi} from 'vitest'
 import {Cabinet} from './Cabinet'
@@ -18,10 +18,30 @@ function page(options:{roles?:string[];reply?:(url:string)=>Response|Promise<Res
 afterEach(()=>vi.unstubAllGlobals())
 it('administrator opens active references navigation and reads codes without requesting profile',async()=>{
  const f=page();expect(await screen.findByRole('heading',{name:'ОКПД2'})).toBeVisible();expect(await screen.findByText(result.items[0].name)).toBeVisible()
- expect(screen.getByRole('link',{name:'Справочники'})).toHaveAttribute('aria-current','page')
- expect(screen.getByText(/Редакция 148\/2026/)).toBeVisible();expect(screen.getByRole('link',{name:'ОКВЭД2'})).toHaveAttribute('href','/cabinet/references/okved/#main')
+ const nav=within(screen.getByRole('navigation',{name:'Навигация личного кабинета'}))
+ expect(nav.getByRole('button',{name:'Справочники'})).toHaveAttribute('aria-expanded','true')
+ expect(nav.getByRole('link',{name:'ОКПД2'})).toHaveAttribute('aria-current','page')
+ expect(nav.getByRole('link',{name:'ОКВЭД2'})).not.toHaveAttribute('aria-current')
+ expect(within(screen.getByRole('main')).queryByRole('navigation',{name:'Справочники'})).not.toBeInTheDocument()
+ expect(within(screen.getByRole('main')).queryByRole('link',{name:'ОКВЭД2'})).not.toBeInTheDocument()
+ expect(screen.getByText(/Редакция 148\/2026/)).toBeVisible();expect(nav.getByRole('link',{name:'ОКВЭД2'})).toHaveAttribute('href','/cabinet/references/okved/#main')
  expect(screen.getByRole('columnheader',{name:'Код'})).toBeVisible();expect(screen.getByRole('columnheader',{name:'Наименование'})).toBeVisible()
  expect(f.mock.calls.some(([url])=>url==='/api/profile')).toBe(false)
+})
+it('directory group collapses without leaving the screen or clearing its data',async()=>{
+ page();await screen.findByText(result.items[0].name)
+ const nav=within(screen.getByRole('navigation',{name:'Навигация личного кабинета'})),toggle=nav.getByRole('button',{name:'Справочники'})
+ const before=location.href;fireEvent.click(toggle)
+ expect(toggle).toHaveAttribute('aria-expanded','false');expect(toggle).toHaveAttribute('aria-controls',nav.getByRole('list',{name:'Справочники'}).id)
+ expect(location.href).toBe(before);expect(screen.getByText(result.items[0].name)).toBeVisible()
+ fireEvent.click(toggle);expect(toggle).toHaveAttribute('aria-expanded','true');expect(nav.getByRole('link',{name:'ОКПД2'})).toBeVisible()
+})
+it('expanding dictionaries in the mobile menu keeps the menu open',async()=>{
+ page();await screen.findByText(result.items[0].name);fireEvent.click(screen.getByRole('button',{name:'Открыть меню профиля'}))
+ const dialog=screen.getByRole('dialog',{name:'Разделы профиля'}),menu=within(dialog),toggle=menu.getByRole('button',{name:'Справочники'})
+ expect(toggle).toHaveAttribute('aria-expanded','true');fireEvent.click(toggle)
+ expect(dialog).toBeVisible();expect(toggle).toHaveAttribute('aria-expanded','false')
+ fireEvent.click(toggle);expect(menu.getByRole('link',{name:'ОКПД2'})).toHaveAttribute('aria-current','page');expect(dialog).toBeVisible()
 })
 it('search combines fields and reset restores the full directory',async()=>{
  page();await screen.findByText(result.items[0].name)

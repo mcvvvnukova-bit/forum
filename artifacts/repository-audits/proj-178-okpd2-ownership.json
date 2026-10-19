@@ -47,7 +47,7 @@
       "previousCandidatePath": "apps/profile-preview/src/ProfilePage.tsx",
       "candidatePath": "apps/profile-preview/src/ProfilePage.tsx",
       "previousSha256": "ab5bee2dc6ef4842dd21ec00c2940c132ef7b5e2dceef6256cb5557a406c20b9",
-      "candidateSha256": "5cac1fa51456c001a8e6176a5c4df0ca5fe98b6b6d3a4fb886f8092d5ca338ae",
+      "candidateSha256": "ce0dd329a7fcb639cef25bcd696724efd36aab86763d375f4c777b5e2a0b094d",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
@@ -72,6 +72,22 @@
       "candidatePath": "apps/web/src/home/OkvedDirectory.tsx",
       "previousSha256": "e6c156d23c7ce8abbc325e39476eec016b49271eb5f592285ebb2c651f9a52ed",
       "candidateSha256": "2ec7478915f92d8caddf20960bb0db0966d934b75d913c3952335dfaae9fc0ef",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/okved-directory.test.tsx",
+      "candidatePath": "apps/web/src/home/okved-directory.test.tsx",
+      "previousSha256": "5d4da11dd32cc49504459d24341e38153b959beee58d078a603120bcc1b457cf",
+      "candidateSha256": "2c877f34b8b11120b9d480ae62cb301cf44fd3645c4aae6ba73e075437801669",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/roles.test.tsx",
+      "candidatePath": "apps/web/src/home/roles.test.tsx",
+      "previousSha256": "42f03e75808e723e93b22781971daffa2059d30e76680c45253cd56f9929a235",
+      "candidateSha256": "789b2094ea5635f10b98c22e262e16d1e539fb7f506838495eaacdbd88df6821",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
@@ -119,7 +135,7 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "dd45dd67deb9ba7208818793ffdc09ba7af39b9d6a3039908d2b184ed4f78807",
-      "candidateSha256": "5dae12c3141ce054ce8c64846ce2fe66138e8439a4ccaaaba911ddf3a44c9def",
+      "candidateSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
@@ -255,7 +271,7 @@
     },
     {
       "path": "apps/web/src/home/ClassifierDirectory.tsx",
-      "sha256": "6333ec88a77c09b45f30d0471cf6a9cbb5391bc6063ea7e546a54cc000a30407",
+      "sha256": "7b8960f4b710f2dc0ab50db6730a38578e770cdb0b0157cf84118312270ca2a9",
       "mode": "100644"
     },
     {
@@ -265,7 +281,7 @@
     },
     {
       "path": "apps/web/src/home/okpd-directory.test.tsx",
-      "sha256": "eef8e2e1f925a576eba066201c5fd5802812bf312ed1e4212a1639fdd5d880d9",
+      "sha256": "2d63856330a259fa588bf713330dcaa8f859572fcb7b7cdff52d95b06923b1cd",
       "mode": "100644"
     },
     {

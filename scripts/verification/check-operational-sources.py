@@ -942,7 +942,7 @@ def verify_okved_directory():
 
 # Exact task successor. Only the checker's own candidate hash is omitted from
 # the canonical scope digest, preventing a hash cycle without widening scope.
-OKPD2_MANIFEST_SHA256 = 'ab3ac276035609a464f0217857f011c4a9c1aeab51c114e19b8ff4ef4e584c9d'
+OKPD2_MANIFEST_SHA256 = 'e3494bc2c478ae597b74a014fd9e080a76570402783d43900f3d49e153cba189'
 
 @lru_cache(maxsize=1)
 def okpd2_receipt():
