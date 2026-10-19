@@ -60,7 +60,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
             if path.startswith("/api/references"):
-                if self.command == "GET" and path == "/api/references/okved":
+                if self.command == "GET" and path in {"/api/references/okved", "/api/references/okpd"}:
                     self._proxy_api(send_body=send_body)
                 else:
                     self._send_text(HTTPStatus.NOT_FOUND, "Not found", send_body=send_body)
@@ -188,7 +188,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
             try:
                 connection.request(self.command, self.path, body=self.rfile.read(length) if length else None, headers=headers)
                 response = connection.getresponse()
-                response_cap = 8 * 1024 * 1024 if self.command == "GET" and urlsplit(self.path).path == "/api/iam/platform-user-access" else 65536
+                response_cap = 8 * 1024 * 1024 if self.command == "GET" and urlsplit(self.path).path == "/api/iam/platform-user-access" else 512 * 1024 if self.command == "GET" and urlsplit(self.path).path == "/api/references/okpd" else 65536
                 payload = response.read(response_cap + 1)
                 if len(payload) > response_cap:
                     raise ValueError("Oversized API response")

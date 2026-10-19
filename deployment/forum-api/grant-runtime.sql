@@ -81,3 +81,10 @@ GRANT EXECUTE ON FUNCTION public.profile_birthdate(text), public.valid_sber_prof
   public.guard_role_assignment(),public.guard_identity_owner(),public.guard_organization_association(),
   public.effective_business_access(uuid,uuid,text,boolean),public.guard_iam_role_owner(),public.effective_iam_roles(uuid,uuid) TO :"app_role";
 COMMIT;
+
+-- Optional published OKPD2 contract; importer journals and hierarchy remain private.
+SELECT to_regclass('public.okpds') IS NOT NULL AND to_regclass('public.okpd_reference_state') IS NOT NULL AS okpd_directory_installed \gset
+\if :okpd_directory_installed
+  GRANT SELECT(okpd,name,is_active) ON public.okpds TO :"app_role";
+  GRANT SELECT(id,revision,source_metadata,last_checked_at) ON public.okpd_reference_state TO :"app_role";
+\endif

@@ -11,6 +11,7 @@ COPY apps/api/src ./apps/api/src
 RUN npm run build --workspace @astforum/api && npm prune --omit=dev --workspace @astforum/api --include-workspace-root=false
 
 FROM node:24-alpine
+RUN apk add --no-cache python3 libarchive-tools
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3001
 WORKDIR /app
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
@@ -18,6 +19,7 @@ COPY --from=build --chown=node:node /app/apps/api ./apps/api
 COPY --from=build --chown=node:node /app/apps/api/dist ./dist
 COPY --chown=node:node apps/api/package.json ./
 COPY --chown=node:node apps/api/migrations ./migrations
+COPY --chown=node:node apps/api/resources ./resources
 USER node
 EXPOSE 3001
 CMD ["node", "dist/main.js"]

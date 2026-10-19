@@ -8,6 +8,7 @@ import {Organizations} from './Organizations'
 import {canManagePlatform,RoleManagementSection} from './RoleManagementSection'
 import './cabinet.css'
 import {SettingsSection} from './SettingsSection'
+import {OkpdDirectory} from './OkpdDirectory'
 import {OkvedDirectory} from './OkvedDirectory'
 
 type ProfileState = {kind:'loading'|'error'|'expired'} | {kind:'ready'; profile:SberProfile}
@@ -25,11 +26,11 @@ function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; 
   expiredRef.current=onExpired
   const userId=session.user.id
   const path=location.pathname.replace(/\/$/,'')
-  const view=path==='/cabinet/references/okved'?'okved':path==='/cabinet/users'?'roles':path==='/cabinet/organizations'?'organizations':path==='/cabinet/settings'?'settings':path==='/cabinet/work'?'work':'profile'
+  const view=path==='/cabinet/references/okpd'?'okpd':path==='/cabinet/references/okved'?'okved':path==='/cabinet/users'?'roles':path==='/cabinet/organizations'?'organizations':path==='/cabinet/settings'?'settings':path==='/cabinet/work'?'work':'profile'
   const rolesTitle=new URLSearchParams(location.search).get('context')?.startsWith('organization:')?'Управление ролями':'Управление пользователями'
-  useEffect(()=>{document.title=`${view==='okved'?'ОКВЭД2':view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view==='work'?'Работа':'Личные данные'} | АСТ Форум`},[view,rolesTitle])
+  useEffect(()=>{document.title=`${view==='okpd'?'ОКПД2':view==='okved'?'ОКВЭД2':view==='roles'?rolesTitle:view==='organizations'?'Мои организации':view==='settings'?'Настройки':view==='work'?'Работа':'Личные данные'} | АСТ Форум`},[view,rolesTitle])
   useEffect(()=>{
-    if(view==='okved'||view==='roles'||view==='settings'||view==='organizations')return
+    if(view==='okpd'||view==='okved'||view==='roles'||view==='settings'||view==='organizations')return
     const controller=new AbortController()
     const timer=window.setTimeout(()=>controller.abort(),10_000)
     let active=true
@@ -59,8 +60,8 @@ function AuthenticatedCabinet({session, onExpired, navigate}: {session:Session; 
   }
   if(value.kind==='expired')return null
   return <ProfilePage profile={value.kind==='ready'?value.profile:{}} approvedScopes={profileScopes}
-    state={view==='okved'||view==='roles'||view==='settings'||view==='organizations'?'ready':value.kind==='ready'?'ready':value.kind==='error'?'error':'loading'} view={view}
-    okvedContent={view==='okved'?<OkvedDirectory session={session} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:undefined}
+    state={view==='okpd'||view==='okved'||view==='roles'||view==='settings'||view==='organizations'?'ready':value.kind==='ready'?'ready':value.kind==='error'?'error':'loading'} view={view}
+    okvedContent={view==='okpd'?<OkpdDirectory session={session} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:view==='okved'?<OkvedDirectory session={session} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:undefined}
     rolesTitle={rolesTitle} rolesContent={view==='roles'?<RoleManagementSection session={session} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:undefined}
     organizations={view==='organizations'?<Organizations key={userId} userId={userId} roleSession={session} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>:undefined}
     settingsContent={<SettingsSection userId={userId} onExpired={()=>{setValue({kind:'expired'});expiredRef.current()}}/>}
