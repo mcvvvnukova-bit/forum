@@ -13,6 +13,7 @@ import {SettingsController} from './iam/settings.controller.js';
 import {RolesController} from './iam/roles.controller.js';
 import {OkpdDirectoryController} from './references/okpd-directory.controller.js';
 import {OkvedDirectoryController} from './references/okved-directory.controller.js';
+import {ManagedReferenceController} from './references/managed.controller.js';
 
 @Controller()
 class HealthController {
@@ -60,7 +61,7 @@ export async function createApp(config: ApiConfig = loadConfig(), existingPool?:
   const pool = existingPool ?? (config.databaseUrl ? new Pool({connectionString: config.databaseUrl,
     max: 10, connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000, statement_timeout: 10000}) : undefined);
   const runtime = new AuthRuntime(config, pool, !existingPool);
-  @Module({controllers: [HealthController, AuthController, SettingsController, OrganizationsController,RolesController,OkvedDirectoryController,OkpdDirectoryController], providers: [{provide: AuthRuntime, useValue: runtime}]})
+  @Module({controllers: [HealthController, AuthController, SettingsController, OrganizationsController,RolesController,OkvedDirectoryController,OkpdDirectoryController,ManagedReferenceController], providers: [{provide: AuthRuntime, useValue: runtime}]})
   class AppModule {}
   const adapter = new FastifyAdapter({bodyLimit: 4096, logger: false,
     trustProxy: config.trustedProxyCidrs?.length ? config.trustedProxyCidrs : false});

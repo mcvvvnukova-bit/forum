@@ -1112,6 +1112,7 @@
               "routes": {
                 "description": "Current builds also own the administrator OKVED directory; historical receipts remain valid.",
                 "enum": [
+                  ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/", "/cabinet/organizations/", "/cabinet/users/", "/cabinet/references/okved/", "/cabinet/references/okpd/", "/cabinet/references/regions/", "/cabinet/references/offer-types/", "/cabinet/references/business-segments/", "/cabinet/references/commercial-roles/", "/cabinet/references/units/", "/cabinet/references/rejection-reasons/", "/cabinet/references/company-statuses/"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/", "/cabinet/organizations/", "/cabinet/users/", "/cabinet/references/okved/", "/cabinet/references/okpd/"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/", "/cabinet/organizations/", "/cabinet/users/", "/cabinet/references/okved/"],
                   ["/", "/customers/", "/suppliers/", "/work/", "/participate/", "/login", "/cabinet/", "/cabinet/work/", "/cabinet/settings/", "/cabinet/organizations/", "/cabinet/users/"],

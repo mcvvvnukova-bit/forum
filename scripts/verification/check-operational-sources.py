@@ -964,9 +964,9 @@ def okpd2_file(path, expected_hash, expected_mode):
     candidate = path.relative_to(ROOT).as_posix()
     item = next((x for x in okpd2_receipt()['changes'] if x['candidatePath'] == candidate), None)
     if item is None:
-        return path, expected_hash, expected_mode
+        return managed_reference_file(path, expected_hash, expected_mode)
     assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['previousMode'], 'PROJ-178 predecessor mismatch: ' + candidate
-    return path, item['candidateSha256'], item['candidateMode']
+    return managed_reference_file(path, item['candidateSha256'], item['candidateMode'])
 
 
 def verify_okpd2():
@@ -979,8 +979,50 @@ def verify_okpd2():
         assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
                        for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-178 symlink: ' + candidate
         assert source.is_file(), 'Missing PROJ-178 source: ' + candidate
-        assert hashlib.sha256(source.read_bytes()).hexdigest() == item.get('candidateSha256', item.get('sha256')), 'PROJ-178 source hash mismatch: ' + candidate
-        assert ('100755' if source.stat().st_mode & 0o111 else '100644') == item.get('candidateMode', item.get('mode')), 'PROJ-178 source mode mismatch: ' + candidate
+        source, digest, mode = managed_reference_file(source, item.get('candidateSha256', item.get('sha256')), item.get('candidateMode', item.get('mode')))
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == digest, 'PROJ-178 source hash mismatch: ' + candidate
+        assert ('100755' if source.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-178 source mode mismatch: ' + candidate
+
+
+MANAGED_REFERENCES_MANIFEST_SHA256 = 'c617952c5f530660882031bb20099bb9cd22afbab0d5030841e8c4e4906b0ae7'
+
+@lru_cache(maxsize=1)
+def managed_reference_receipt():
+    path = ROOT / 'artifacts/repository-audits/proj-179-managed-references-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing or unsafe PROJ-179 receipt'
+    receipt = json.loads(path.read_text())
+    assert receipt['schemaVersion'] == 1 and receipt['taskCode'] == 'PROJ-179' and receipt['baseSha'] == 'ab3e812d6fb37d54850f7e3098d2ce397c6d125b', 'PROJ-179 identity mismatch'
+    manifest = dict(receipt)
+    manifest['changes'] = [dict(item) for item in receipt['changes']]
+    for item in manifest['changes']:
+        if item['candidatePath'] == 'scripts/verification/check-operational-sources.py':
+            del item['candidateSha256']
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    assert digest == MANAGED_REFERENCES_MANIFEST_SHA256, 'PROJ-179 scope/predecessor/candidate pin mismatch'
+    return receipt
+
+
+def managed_reference_file(path, expected_hash, expected_mode):
+    candidate = path.relative_to(ROOT).as_posix()
+    item = next((x for x in managed_reference_receipt()['changes'] if x['candidatePath'] == candidate), None)
+    if item is None:
+        return path, expected_hash, expected_mode
+    assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['previousMode'], 'PROJ-179 predecessor mismatch: ' + candidate
+    return path, item['candidateSha256'], item['candidateMode']
+
+
+def verify_managed_references():
+    receipt = managed_reference_receipt()
+    for item in receipt['changes'] + receipt['newFiles'] + receipt['historicalReceipts']:
+        candidate = item.get('candidatePath', item.get('path'))
+        relative = Path(candidate)
+        assert not relative.is_absolute() and '..' not in relative.parts, 'Unsafe PROJ-179 path'
+        source = ROOT / relative
+        assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
+                       for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-179 symlink: ' + candidate
+        assert source.is_file(), 'Missing PROJ-179 source: ' + candidate
+        assert hashlib.sha256(source.read_bytes()).hexdigest() == item.get('candidateSha256', item.get('sha256')), 'PROJ-179 source hash mismatch: ' + candidate
+        assert ('100755' if source.stat().st_mode & 0o111 else '100644') == item.get('candidateMode', item.get('mode')), 'PROJ-179 source mode mismatch: ' + candidate
 
 
 def retirement_receipt(verify_sources=True):
@@ -1157,7 +1199,7 @@ def verify_provenance():
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, my_organizations_receipt, cabinet_settings_receipt, dev_organizations_receipt,
                     governance_receipt, ci_receipt, merged_verification_receipt, integration_receipt,
-                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt, role_model_receipt, okved_directory_receipt, okpd2_receipt):
+                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt, role_model_receipt, okved_directory_receipt, okpd2_receipt, managed_reference_receipt):
         receipt.cache_clear()
     retirement_receipt()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
@@ -1285,6 +1327,7 @@ def verify_provenance():
     verify_role_model()
     verify_okved_directory()
     verify_okpd2()
+    verify_managed_references()
     return accepted
 
 

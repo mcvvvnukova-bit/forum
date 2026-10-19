@@ -6,3 +6,4 @@
 @media (max-width: 767px) {
  .okved-filters {grid-template-columns: minmax(0, 1fr);}
 }
+.reference-action-icon {transform: rotate(90deg);}

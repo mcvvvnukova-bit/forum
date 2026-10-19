@@ -63,7 +63,7 @@ def validate_artifact(artifact, source_sha, environment):
         raise ValueError('Input/config fingerprint mismatch')
     routes = ['/', '/customers/', '/suppliers/', '/work/', '/participate/', '/login', '/cabinet/', '/cabinet/work/', '/cabinet/settings/','/cabinet/organizations/','/cabinet/users/'] if environment == 'dev' else ['/']
     if environment == 'dev':
-        for suffix in (['/cabinet/references/okved/'], ['/cabinet/references/okved/','/cabinet/references/okpd/']):
+        for suffix in (['/cabinet/references/okved/'], ['/cabinet/references/okved/','/cabinet/references/okpd/'], ['/cabinet/references/okved/','/cabinet/references/okpd/','/cabinet/references/regions/','/cabinet/references/offer-types/','/cabinet/references/business-segments/','/cabinet/references/commercial-roles/','/cabinet/references/units/','/cabinet/references/rejection-reasons/','/cabinet/references/company-statuses/']):
             if manifest['routes'] == routes + suffix:
                 routes = routes + suffix
                 break
@@ -170,7 +170,7 @@ def rollback(target, release_backup, backups, *, expected_target, verifier):
         os.chmod(receipt, 0o700)
         prepared = target.parent / ('.web-rollback-' + operation)
         shutil.copytree(target, prepared)
-        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register','cabinet','cabinet/work','cabinet/settings','cabinet/organizations','cabinet/users','cabinet/references/okved','cabinet/references/okpd']]
+        pages = ['index.html'] + [name+'/index.html' for name in ['customers','suppliers','work','participate','login','register','cabinet','cabinet/work','cabinet/settings','cabinet/organizations','cabinet/users','cabinet/references/okved','cabinet/references/okpd','cabinet/references/regions','cabinet/references/offer-types','cabinet/references/business-segments','cabinet/references/commercial-roles','cabinet/references/units','cabinet/references/rejection-reasons','cabinet/references/company-statuses']]
         for name in pages + ['.public-auth.json', '.web-release.json']:
             source = before_source / name
             if source.exists(): atomic_write(prepared / name, source.read_bytes())
