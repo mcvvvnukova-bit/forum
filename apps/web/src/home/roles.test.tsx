@@ -336,7 +336,7 @@ it.each(['active','deactivated'])('table revokes explicit row B (%s) while retai
  const init=f.mock.calls.find(([url])=>String(url).endsWith(`/platform-role-assignments/${assignmentId}`))![1]!
  expect(init.method).toBe('PATCH');expect(new Headers(init.headers).get('If-Match')).toBe('"4"');expect(new Headers(init.headers).get('X-Forum-Context')).toBe('platform');expect(new Headers(init.headers).get('X-Forum-CSRF')).toBe(session.csrfToken)
  expect(screen.getByRole('button',{name:'Пользователь'})).toHaveTextContent(a.displayName);expect(screen.getByRole('checkbox',{name:'Администратор платформы'})).toBeChecked();expect(screen.queryByRole('button',{name:/Отозвать роль .* у Другой пользователь/})).not.toBeInTheDocument()
- expect(screen.getByText('Нет пользователей со служебными ролями')).toBeVisible();expect(screen.getByRole('heading',{name:'Пользователи со служебными ролями'})).toHaveFocus()
+ expect(screen.getByText('Нет пользователей со служебными ролями')).toBeVisible();await waitFor(()=>expect(screen.getByRole('heading',{name:'Пользователи со служебными ролями'})).toHaveFocus())
 })
 it('retains uncertain partial-grant identity across an independent B row revoke with A draft intact',async()=>{
  let fail=true,moderatorGranted=false,bRevoked=false

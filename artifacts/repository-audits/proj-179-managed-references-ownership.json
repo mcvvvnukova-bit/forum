@@ -76,6 +76,14 @@
       "candidateMode": "100644"
     },
     {
+      "previousCandidatePath": "apps/web/src/home/roles.test.tsx",
+      "candidatePath": "apps/web/src/home/roles.test.tsx",
+      "previousSha256": "789b2094ea5635f10b98c22e262e16d1e539fb7f506838495eaacdbd88df6821",
+      "candidateSha256": "8330c57c9b601cd6cc7d3c9e3ec7fae5216e4b2df7ffdf4c07943fd48a414c5a",
+      "previousMode": "100644",
+      "candidateMode": "100644"
+    },
+    {
       "previousCandidatePath": "deployment/forum-api/grant-runtime.sql",
       "candidatePath": "deployment/forum-api/grant-runtime.sql",
       "previousSha256": "557ff6b230179a228ba4608a5d07a3b679329f6c594f7c87ee2f5c2d76b7c02c",
@@ -111,7 +119,7 @@
       "previousCandidatePath": "scripts/verification/check-operational-sources.py",
       "candidatePath": "scripts/verification/check-operational-sources.py",
       "previousSha256": "911439b2ff20f96a9d625b51468262e94dc1250999e73ff1ed9214b355a7f227",
-      "candidateSha256": "3ff3acb8727e2c30ad5df637831880eb97d6944d6172d1e1bab8c3b7b9ee3a5c",
+      "candidateSha256": "e18e8a541e31a9009ecd9158d50fa6a1ec071cf30390abdef28faccc1fb166d7",
       "previousMode": "100644",
       "candidateMode": "100644"
     },
