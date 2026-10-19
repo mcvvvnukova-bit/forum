@@ -34,17 +34,23 @@ it.each(definitions)('%s opens its own screen and active sidebar item',async(kin
  const f=page(kind);expect(await screen.findByRole('heading',{name:title})).toBeVisible();await screen.findByText('Проверочное значение')
  const nav=within(screen.getByRole('navigation',{name:'Навигация личного кабинета'}));expect(nav.getByRole('link',{name:title})).toHaveAttribute('aria-current','page')
  for(const [,name] of definitions)expect(nav.getByRole('link',{name})).toBeVisible()
+ await rowAction();const view=within(await screen.findByRole('dialog',{name:'Просмотр значения'}))
+ expect(view.getByRole('button',{name:'Закрыть'})).toBeVisible()
+ for(const action of ['Редактировать','Удалить значение','Сохранить'])expect(view.queryByRole('button',{name:action})).not.toBeInTheDocument()
+ expect(view.queryByRole('textbox')).not.toBeInTheDocument()
+ expect(f.mock.calls.some(([,init])=>init?.method&&init.method!=='GET')).toBe(false)
  expect(f.mock.calls.some(([u])=>u==='/api/profile')).toBe(false)
 })
 it('views, edits immutable code, and soft deletes through explicit confirmation',async()=>{
  const f=page();await screen.findByText('Проверочное значение');await rowAction()
  const view=await screen.findByRole('dialog',{name:'Просмотр значения'});expect(await within(view).findByText('Описание')).toBeVisible()
- fireEvent.click(within(view).getByRole('button',{name:'Редактировать'}))
- const edit=screen.getByRole('dialog',{name:'Редактирование значения'});expect(within(edit).getByLabelText(/^Код/)).toBeDisabled()
+ expect(within(view).queryByRole('button',{name:'Редактировать'})).not.toBeInTheDocument();expect(within(view).queryByRole('button',{name:'Удалить значение'})).not.toBeInTheDocument()
+ fireEvent.click(within(view).getByRole('button',{name:'Закрыть'}));await rowAction('Редактировать')
+ const edit=await screen.findByRole('dialog',{name:'Редактирование значения'});expect(within(edit).getByLabelText(/^Код/)).toBeDisabled()
  fireEvent.change(within(edit).getByLabelText(/^Наименование/),{target:{value:'Изменённое значение'}});fireEvent.click(within(edit).getByRole('button',{name:'Сохранить'}))
  await screen.findByText('Изменённое значение');expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
  await waitFor(()=>expect(screen.getByRole('button',{name:'Действия значения 01'})).toHaveFocus())
- await rowAction();fireEvent.click(await screen.findByRole('button',{name:'Удалить значение'}))
+ await rowAction('Удалить');await screen.findByRole('dialog',{name:'Удаление значения'})
  const confirmation=screen.getByRole('dialog',{name:'Удаление значения'});expect(within(confirmation).getByText(/Значение будет скрыто/)).toBeVisible()
  fireEvent.click(within(confirmation).getByRole('button',{name:'Удалить'}));await waitFor(()=>expect(screen.queryByText('Изменённое значение')).not.toBeInTheDocument())
  const patch=f.mock.calls.find(([,o])=>o?.method==='PATCH')!,del=f.mock.calls.find(([,o])=>o?.method==='DELETE')!
@@ -54,7 +60,7 @@ it('views, edits immutable code, and soft deletes through explicit confirmation'
 it('creates with required fields, measurement symbol and a retry identity',async()=>{
  const f=page();await screen.findByText('Проверочное значение');fireEvent.click(screen.getByRole('button',{name:'Добавить значение'}))
  const dialog=screen.getByRole('dialog',{name:'Добавление значения'}),form=within(dialog)
- expect(form.getByLabelText(/^Код/)).toBeRequired();expect(form.getByLabelText(/^Наименование/)).toBeRequired()
+ expect(form.getByLabelText(/^Код/)).toHaveAccessibleDescription(/После создания код изменить нельзя/);expect(form.getByLabelText(/^Код/)).toBeRequired();expect(form.getByLabelText(/^Наименование/)).toBeRequired()
  fireEvent.change(form.getByLabelText(/^Код/),{target:{value:'02'}});fireEvent.change(form.getByLabelText(/^Наименование/),{target:{value:'Метр'}});fireEvent.change(form.getByLabelText('Обозначение'),{target:{value:'м'}})
  fireEvent.click(form.getByRole('button',{name:'Сохранить'}));await screen.findByText('Метр')
  const call=f.mock.calls.find(([,o])=>o?.method==='POST')!;expect(JSON.parse(String(call[1]?.body))).toMatchObject({code:'02',name:'Метр',symbol:'м'})
@@ -62,7 +68,7 @@ it('creates with required fields, measurement symbol and a retry identity',async
 })
 it.each(definitions)('%s filters immediately while typing and clearing fields restores values',async kind=>{
  const f=page(kind);await screen.findByText('Проверочное значение');const requests=f.mock.calls.length
- expect(screen.getByLabelText(/^Код/)).not.toHaveAccessibleDescription();expect(screen.getByLabelText(/^Наименование/)).toHaveAccessibleDescription('регистр не учитывается')
+ expect(screen.getByLabelText(/^Код/)).not.toHaveAccessibleDescription();expect(screen.getByLabelText(/^Наименование/)).not.toHaveAccessibleDescription()
  expect(screen.queryByText('Просмотр и управление значениями справочника')).not.toBeInTheDocument()
  expect(screen.queryByRole('button',{name:'Найти'})).not.toBeInTheDocument();expect(screen.queryByRole('button',{name:'Сбросить фильтры'})).not.toBeInTheDocument()
  fireEvent.change(screen.getByLabelText(/^Код/),{target:{value:'02'}});expect(screen.queryByText('Проверочное значение')).not.toBeInTheDocument();expect(screen.getByText('Найдено: 0')).toBeVisible()
@@ -106,7 +112,7 @@ it('server denial clears values and mutation controls',async()=>{
 })
 
 it.each([409,412])('mutation error %i retains the form and entered values',async status=>{
- page('units',['platform_admin'],200,status);await screen.findByText('Проверочное значение');await rowAction();fireEvent.click(await screen.findByRole('button',{name:'Редактировать'}))
+ page('units',['platform_admin'],200,status);await screen.findByText('Проверочное значение');await rowAction('Редактировать');await screen.findByRole('dialog',{name:'Редактирование значения'})
  const form=within(screen.getByRole('dialog',{name:'Редактирование значения'}));fireEvent.change(form.getByLabelText(/^Наименование/),{target:{value:'Моя правка'}});fireEvent.click(form.getByRole('button',{name:'Сохранить'}))
  await form.findByText(status===412?/Значение изменено другим пользователем/:/Код или наименование уже заняты/);expect(form.getByLabelText(/^Наименование/)).toHaveValue('Моя правка');expect(form.getByRole('button',{name:'Сохранить'})).toBeEnabled()
 })
@@ -115,10 +121,15 @@ it.each(definitions)('%s exposes only its configured editable fields',async(kind
  const form=within(screen.getByRole('dialog',{name:'Добавление значения'}))
  expect(Boolean(form.queryByLabelText('Описание'))).toBe(!['regions','company-statuses'].includes(kind))
  expect(Boolean(form.queryByLabelText('Обозначение'))).toBe(kind==='units')
+ expect(form.getByLabelText(/^Код/)).toHaveAccessibleDescription(/После создания код изменить нельзя/)
+ fireEvent.click(form.getByRole('button',{name:'Отмена'}));await rowAction('Редактировать')
+ const edit=within(await screen.findByRole('dialog',{name:'Редактирование значения'}))
+ expect(edit.getByLabelText(/^Код/)).toBeDisabled();expect(edit.getByLabelText(/^Код/)).not.toHaveAccessibleDescription()
+ expect(edit.getByLabelText(/^Наименование/)).toBeEnabled()
 })
 
 it('a confirmed concurrent deletion closes the stale form and clears deleted values',async()=>{
- const f=page('units',['platform_admin'],200,404);await screen.findByText('Проверочное значение');await rowAction();fireEvent.click(await screen.findByRole('button',{name:'Редактировать'}))
+ const f=page('units',['platform_admin'],200,404);await screen.findByText('Проверочное значение');await rowAction('Редактировать');await screen.findByRole('dialog',{name:'Редактирование значения'})
  fireEvent.click(within(screen.getByRole('dialog',{name:'Редактирование значения'})).getByRole('button',{name:'Сохранить'}))
  await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());expect(screen.queryByText('Проверочное значение')).not.toBeInTheDocument()
  await screen.findByText('Найдено: 0');expect(f.mock.calls.filter(([u,o])=>String(u).includes('?')&&(!o?.method||o.method==='GET')).length).toBe(2)
