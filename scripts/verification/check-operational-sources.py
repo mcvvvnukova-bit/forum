@@ -984,7 +984,7 @@ def verify_okpd2():
         assert ('100755' if source.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-178 source mode mismatch: ' + candidate
 
 
-MANAGED_REFERENCES_MANIFEST_SHA256 = '3ccb03037a22d949a914df8a49c7a0d1c9d107cb9f284ef17981bc6834e964a6'
+MANAGED_REFERENCES_MANIFEST_SHA256 = '8060f7b9962262204abe86b336c68947dfd1d1f45572034495ddb36bee78581f'
 
 @lru_cache(maxsize=1)
 def managed_reference_receipt():

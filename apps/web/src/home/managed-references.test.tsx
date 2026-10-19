@@ -13,7 +13,8 @@ function page(kind='units',roles=['platform_admin'],status=200,mutationStatus=20
   if(url==='/api/profile')return Response.json({userId:session.user.id,profile:{}})
   if(!url.startsWith('/api/references/managed/'+kind))throw new Error('Unexpected '+url)
   if(status!==200)return Response.json({code:status===412?'stale_version':'forbidden'},{status})
-  if(method!=='GET'&&mutationStatus!==200)return Response.json({code:'stale_version'},{status:mutationStatus})
+  if(method!=='GET'&&mutationStatus!==200){if(mutationStatus===404)item=null;return Response.json({code:'stale_version'},{status:mutationStatus})}
+  if(method==='DELETE'&&(init?.headers as Record<string,string>)?.['Content-Type']==='application/json'&&!init?.body)return Response.json({code:'FST_ERR_CTP_EMPTY_JSON_BODY'},{status:400})
   if(method==='DELETE'){item=null;return Response.json({item:{code:'01',version:3,deleted:true}})}
   if(method==='POST'||method==='PATCH'){
    const body=JSON.parse(String(init?.body));item={code:body.code??'01',description:null,symbol:null,...body,version:method==='POST'?1:2};
@@ -79,4 +80,11 @@ it.each(definitions)('%s exposes only its configured editable fields',async(kind
  const form=within(screen.getByRole('dialog',{name:'Добавление значения'}))
  expect(Boolean(form.queryByLabelText('Описание'))).toBe(!['regions','company-statuses'].includes(kind))
  expect(Boolean(form.queryByLabelText('Обозначение'))).toBe(kind==='units')
+})
+
+it('a confirmed concurrent deletion closes the stale form and clears deleted values',async()=>{
+ const f=page('units',['platform_admin'],200,404);await screen.findByText('Проверочное значение');fireEvent.click(screen.getByRole('button',{name:'Открыть значение 01'}));fireEvent.click(await screen.findByRole('button',{name:'Редактировать'}))
+ fireEvent.click(within(screen.getByRole('dialog',{name:'Редактирование значения'})).getByRole('button',{name:'Сохранить'}))
+ await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());expect(screen.queryByText('Проверочное значение')).not.toBeInTheDocument()
+ await screen.findByText('Найдено: 0');expect(f.mock.calls.filter(([u,o])=>String(u).includes('?')&&(!o?.method||o.method==='GET')).length).toBe(2)
 })

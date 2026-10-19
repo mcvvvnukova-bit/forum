@@ -24,7 +24,7 @@ async function request(url:string,init:RequestInit={}){
 }
 const errorMessage=(error:unknown)=>error instanceof ResponseError?({409:'Код или наименование уже заняты. Код удалённого значения нельзя использовать повторно.',412:'Значение изменено другим пользователем. Закройте форму и откройте запись заново.',404:'Значение уже удалено. Закройте форму и обновите список.',403:'Нет доступа к изменению справочника.',401:'Сессия завершена. Войдите снова.'}[error.status]??'Не удалось сохранить значение. Повторите попытку.'):'Не удалось выполнить запрос. Повторите попытку.'
 
-function ReferenceDialog({editor,dictionary,csrfToken,onClose,onSaved,onDenied,onExpired,returnFocusRef}: {returnFocusRef:RefObject<HTMLButtonElement|null>;editor:Editor;dictionary:ManagedReferenceKind;csrfToken?:string;onClose:()=>void;onSaved:()=>void;onDenied:()=>void;onExpired:()=>void}){
+function ReferenceDialog({editor,dictionary,csrfToken,onClose,onSaved,onDenied,onExpired,onNotFound,returnFocusRef}: {returnFocusRef:RefObject<HTMLButtonElement|null>;editor:Editor;dictionary:ManagedReferenceKind;csrfToken?:string;onClose:()=>void;onSaved:()=>void;onDenied:()=>void;onExpired:()=>void;onNotFound:()=>void}){
  const definition=managedReferenceDefinitions[dictionary],item=editor.item
  const [mode,setMode]=useState(editor.mode),[code,setCode]=useState(item?.code??''),[name,setName]=useState(item?.name??''),[description,setDescription]=useState(item?.description??''),[symbol,setSymbol]=useState(item?.symbol??'')
  const [pending,setPending]=useState(false),[error,setError]=useState(''),identity=useRef<{payload:string;key:string}|null>(null),controller=useRef<AbortController|null>(null),alive=useRef(true)
@@ -40,10 +40,10 @@ function ReferenceDialog({editor,dictionary,csrfToken,onClose,onSaved,onDenied,o
   try{
    if(!csrfToken)throw new ResponseError(403)
    await request('/api/references/managed/'+dictionary+(mode==='add'?'':'/'+encodeURIComponent(code)),{method,
-    headers:{'Content-Type':'application/json','X-Forum-CSRF':csrfToken,'Idempotency-Key':identity.current.key,...(mode==='add'?{}:{'If-Match':`"${item!.version}"`})},
+    headers:{...(body?{'Content-Type':'application/json'}:{}),'X-Forum-CSRF':csrfToken,'Idempotency-Key':identity.current.key,...(mode==='add'?{}:{'If-Match':`"${item!.version}"`})},
     ...(body?{body:JSON.stringify(body)}:{}),signal:controller.current.signal})
    if(alive.current)onSaved()
-  }catch(e){if(alive.current){if(e instanceof ResponseError&&e.status===401){onExpired();onClose()}else if(e instanceof ResponseError&&e.status===403){onDenied();onClose()}else setError(errorMessage(e))}}
+  }catch(e){if(alive.current){if(e instanceof ResponseError&&e.status===401){onExpired();onClose()}else if(e instanceof ResponseError&&e.status===403){onDenied();onClose()}else if(e instanceof ResponseError&&e.status===404&&mode!=='add')onNotFound();else setError(errorMessage(e))}}
   finally{window.clearTimeout(timer);if(alive.current)setPending(false)}
  }
  return <Dialog returnFocusRef={returnFocusRef} title={title} onClose={()=>{if(!pending)onClose()}} width="large" position={{narrow:'bottom',regular:'center',wide:'center'}}>
@@ -105,6 +105,6 @@ export function ManagedReferenceDirectory({dictionary,session,onExpired}:{dictio
    {!state.page.items.length?<Text>По выбранным условиям ничего не найдено</Text>:<Table.Container><Table aria-label={'Значения '+definition.title} gridTemplateColumns="minmax(3rem, max-content) minmax(0, 1fr) max-content"><Table.Head><Table.Row><Table.Header>Код</Table.Header><Table.Header>Наименование</Table.Header><Table.Header>Действия</Table.Header></Table.Row></Table.Head><Table.Body>{state.page.items.map(row=><Table.Row key={row.code}><Table.Cell scope="row"><Text className="okved-name">{row.code}</Text></Table.Cell><Table.Cell><Text className="okved-name">{row.name}</Text></Table.Cell><Table.Cell><Button disabled={opening} aria-label={'Открыть значение '+row.code} onClick={()=>void open(row.code)}>Открыть</Button></Table.Cell></Table.Row>)}</Table.Body></Table></Table.Container>}
    <nav aria-label="Страницы справочника" className="okved-pagination"><Button disabled={query.page===1} onClick={()=>setQuery(q=>({...q,page:q.page-1}))} aria-label="Предыдущая страница">Назад</Button><Text>Страница {query.page}</Text><Button disabled={query.page*50>=state.page.total} onClick={()=>setQuery(q=>({...q,page:q.page+1}))} aria-label="Следующая страница">Далее</Button></nav>
   </>:null}
-  {editor&&<ReferenceDialog returnFocusRef={addButton} editor={editor} dictionary={dictionary} csrfToken={session.csrfToken} onClose={()=>setEditor(null)} onSaved={()=>{setNotice(editor.mode==='add'?'Значение добавлено':'Изменения сохранены');setEditor(null);setAttempt(n=>n+1)}} onDenied={()=>setState({kind:'denied'})} onExpired={()=>expired.current()}/>}
+  {editor&&<ReferenceDialog returnFocusRef={addButton} editor={editor} dictionary={dictionary} csrfToken={session.csrfToken} onClose={()=>setEditor(null)} onSaved={()=>{setNotice(editor.mode==='add'?'Значение добавлено':'Изменения сохранены');setEditor(null);setAttempt(n=>n+1)}} onNotFound={()=>{setEditor(null);setState({kind:'loading'});setNotice('Значение уже удалено другим пользователем.');setAttempt(n=>n+1)}} onDenied={()=>setState({kind:'denied'})} onExpired={()=>expired.current()}/>}
  </Stack></section>
 }
