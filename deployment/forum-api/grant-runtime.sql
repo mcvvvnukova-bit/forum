@@ -65,6 +65,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.sessions, public.authorization_at
 GRANT SELECT, INSERT, DELETE ON public.role_assignments TO :"app_role";
 GRANT UPDATE(status,revoked_at) ON public.role_assignments TO :"app_role";
 GRANT SELECT, INSERT ON public.organization_additions, public.outbox_events, public.audit_events TO :"app_role";
+GRANT SELECT, INSERT ON public.organization_verifications TO :"app_role";
+GRANT UPDATE(status,source,reason,evidence,checked_at) ON public.organization_verifications TO :"app_role";
 GRANT USAGE, SELECT ON SEQUENCE public.outbox_events_sequence_seq TO :"app_role";
 GRANT EXECUTE ON FUNCTION public.profile_birthdate(text), public.valid_sber_profile(jsonb),
   public.touch_updated_at(), public.guard_participant(), public.guard_membership(),

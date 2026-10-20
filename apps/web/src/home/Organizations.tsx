@@ -3,6 +3,7 @@ import {Banner,Button,FormControl,Spinner,Stack,Text,TextInput} from '@primer/re
 import {ClockIcon} from '@primer/octicons-react'
 import {DataTable,Table} from '@primer/react/experimental'
 import './organizations.css'
+import {OrganizationVerification} from './OrganizationVerification'
 type Role='organization_admin'|'organization_signer'|'organization_employee'
 type Organization={id:string;inn:string;name:string|null;status:'pending'|'active';members:{userId:string;fullName:string;roles:Role[]}[]}
 const labels:Record<Role,string>={organization_admin:'Администратор компании',organization_signer:'Лицо с правом подписи',organization_employee:'Сотрудник компании'}
@@ -25,6 +26,8 @@ function merge(previous:Organization[],incoming:Organization[]){
  return [...cards.values()].sort((a,b)=>a.inn.localeCompare(b.inn))
 }
 export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>void}){
+ const [verificationEnabled,setVerificationEnabled]=useState(false),[verificationInn,setVerificationInn]=useState<string|null>(null)
+ const verificationTrigger=useRef<HTMLButtonElement|null>(null)
  const [items,setItems]=useState<Organization[]>([]),[cursor,setCursor]=useState<string|null>(null)
  const [loading,setLoading]=useState(true),[error,setError]=useState(false),[attempt,setAttempt]=useState(0)
  const [inn,setInn]=useState(''),[invalid,setInvalid]=useState(false),[saving,setSaving]=useState(false),[saveError,setSaveError]=useState(false),[saved,setSaved]=useState(false)
@@ -32,6 +35,13 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
  const generation=useRef(0),requestController=useRef<AbortController|null>(null)
  const loadedThrough=useRef(''),savedCards=useRef(new Map<string,Organization>())
  expired.current=onExpired
+ useEffect(()=>{
+  const abort=new AbortController();let live=true
+  void fetch('/api/me/organizations/verification/options',{credentials:'same-origin',cache:'no-store',signal:abort.signal})
+   .then(async response=>{if(response.status===401){if(live)expired.current();return}if(response.status!==200)return;const body=await response.json() as {userId:unknown;enabled:unknown};if(live)setVerificationEnabled(body.userId===userId&&body.enabled===true)})
+   .catch(()=>{if(live)setVerificationEnabled(false)})
+  return()=>{live=false;abort.abort()}
+ },[userId])
  useEffect(()=>{active.current=true;return()=>{active.current=false;requestController.current?.abort()}},[])
  function beginRequest(){
   requestController.current?.abort()
@@ -129,7 +139,9 @@ export function Organizations({userId,onExpired}:{userId:string;onExpired:()=>vo
    {header:'ИНН',field:'inn',rowHeader:true,width:'auto'},
    {header:'Название организации',field:'name',renderCell:item=><Stack gap="condensed"><Text>{item.name??'Название появится после подтверждения'}</Text>{item.status==='pending'&&<Stack direction="horizontal" align="center" gap="condensed" className="muted"><ClockIcon aria-hidden="true"/><Text size="small">Ожидает подтверждения</Text></Stack>}</Stack>},
    {header:'Пользователи и роли',field:'members',renderCell:item=>item.status==='pending'?<Text className="muted">Доступ появится после подтверждения</Text>:<Stack gap="normal">{item.members.map(member=><Stack key={member.userId} gap="condensed"><Text weight="semibold">{member.fullName}</Text>{member.roles.length?member.roles.map(role=><Text size="small" key={role}>{labels[role]}</Text>):<Text size="small" className="muted">Роль не назначена</Text>}</Stack>)}</Stack>},
+   ...(verificationEnabled?[{header:'Подтверждение',field:'id' as const,renderCell:(item:Organization)=>item.status==='pending'?<Button size="small" aria-label={'Подтвердить организацию '+item.inn} onClick={event=>{verificationTrigger.current=event.currentTarget;setVerificationInn(item.inn)}}>Подтвердить</Button>:null}]:[]),
   ]}/></Table.Container></div>}
+  {verificationEnabled&&verificationInn&&<OrganizationVerification key={userId+verificationInn} inn={verificationInn} userId={userId} onExpired={()=>expired.current()} onClose={()=>{setVerificationInn(null);verificationTrigger.current?.focus()}}/>}
   {cursor&&<Button disabled={loading||saving} onClick={()=>void more()}>Показать ещё</Button>}
  </Stack>
 }

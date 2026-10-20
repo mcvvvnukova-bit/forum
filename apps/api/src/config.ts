@@ -24,6 +24,7 @@ export interface ApiConfig {
   secureCookies: boolean;
   sessionTtlSeconds: number;
   trustedProxyCidrs?: string[];
+  organizationVerificationEnabled?: boolean;
   sber?: SberConfig;
 }
 
@@ -61,6 +62,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     databaseUrl: env.DATABASE_URL_FILE ? secret(env, 'DATABASE_URL') : env.DATABASE_URL ?? '',
     secureCookies: origin.protocol === 'https:',
     sessionTtlSeconds: ttl,
+    organizationVerificationEnabled: env.ORGANIZATION_VERIFICATION_ENABLED === 'true',
     trustedProxyCidrs: env.TRUSTED_PROXY_CIDRS?.split(',').map(value => value.trim()).filter(Boolean),
   };
   if (env.SBER_ID_ENABLED !== 'true') return config;

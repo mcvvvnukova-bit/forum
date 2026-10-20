@@ -59,7 +59,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def _handle_get(self, *, send_body: bool) -> None:
             path = urlsplit(self.path).path
 
-            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session", "/api/profile", "/api/settings", "/api/me/organizations"}:
+            if path in {"/auth/sber-id/start", "/auth/sber-id/callback", "/authorization", "/api/auth/session", "/api/profile", "/api/settings", "/api/me/organizations", "/api/me/organizations/verification", "/api/me/organizations/verification/options"}:
                 self._proxy_api(send_body=send_body)
                 return
 
@@ -100,7 +100,7 @@ def create_handler(config: GatewayConfig) -> type[BaseHTTPRequestHandler]:
         def do_POST(self) -> None:
             path = urlsplit(self.path).path
 
-            if path in {"/api/auth/logout", "/api/me/organizations"}:
+            if path in {"/api/auth/logout", "/api/me/organizations", "/api/me/organizations/verification"}:
                 self._proxy_api(send_body=True)
                 return
 
