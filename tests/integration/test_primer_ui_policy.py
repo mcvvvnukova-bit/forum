@@ -269,10 +269,12 @@ export const Example = () => <Layout gap="normal"><Panel padding="none" borderRa
         findings = json.loads(result.stdout)
         # Preserve the 79 organizations predecessor warnings plus four compact-login
         # composition advisories, and account separately for the Primer settings
-        # Stack/Spinner props accepted by the semantic gate.
+        # and verification Stack/Spinner props accepted by the semantic gate.
         settings = [f for f in findings if f['path'] == 'src/home/SettingsSection.tsx']
-        self.assertEqual(len(findings) - len(settings), 83)
+        verification = [f for f in findings if f['path'] == 'src/home/OrganizationVerification.tsx']
+        self.assertEqual(len(findings) - len(settings) - len(verification), 83)
         self.assertEqual(len(settings), 2)
+        self.assertEqual(len(verification), 4)
         self.assertEqual(sum(f['path'] == 'src/home/Cabinet.tsx' for f in findings), 1)
         self.assertTrue(all(f['code'] == 'PDS007' and f['severity'] == 'warning' for f in findings))
 

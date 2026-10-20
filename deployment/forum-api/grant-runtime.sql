@@ -1,4 +1,4 @@
--- Execute as the schema owner against the main Forum database after migration 006.
+-- Execute as the schema owner against the main Forum database after migration 008.
 -- Sandbox uses its separate runtime role and deployment configuration.
 \set ON_ERROR_STOP on
 \if :{?app_role}
@@ -12,6 +12,10 @@ DO $$ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships') THEN
     RAISE EXCEPTION 'Apply migration006 before granting runtime access';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='008_organization_verifications')
+     OR to_regclass('public.organization_verifications') IS NULL THEN
+    RAISE EXCEPTION 'Apply migration008 before granting runtime access';
   END IF;
 END $$;
 
