@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="de" target-language="ru" datatype="plaintext" original="file.ext">
+    <body>
+      <trans-unit id="PVBIN9w" resname="Planen">
+        <source>Planen</source>
+        <target state="translated">Запланировать</target>
+      </trans-unit>
+      <trans-unit id="EiLjBAz" resname="Einen Termin finden">
+        <source>Einen Termin finden</source>
+        <target state="translated">Опрос о времени встречи</target>
+      </trans-unit>
+      <trans-unit id="cb3viG6" resname="status.online">
+        <source>status.online</source>
+        <target state="translated">В сети</target>
+      </trans-unit>
+      <trans-unit id="7mSrGiR" resname="status.away">
+        <source>status.away</source>
+        <target state="translated">Нет на месте</target>
+      </trans-unit>
+      <trans-unit id="sIWTG7_" resname="status.offline">
+        <source>status.offline</source>
+        <target state="translated">Не в сети</target>
+      </trans-unit>
+      <trans-unit id="zNaAAEv" resname="status.inMeeting">
+        <source>status.inMeeting</source>
+        <target state="translated">На встрече</target>
+      </trans-unit>
+      <trans-unit id="WJQ_sl9" resname="deputy.mydebutys">
+        <source>deputy.mydebutys</source>
+        <target state="translated">Мои заместители</target>
+      </trans-unit>
+      <trans-unit id=".ri8qck" resname="Meetling Pro Tip">
+        <source>Meetling Pro Tip</source>
+        <target state="translated">Совет Meetling</target>
+      </trans-unit>
+      <trans-unit id="forum_6f01a4c3e70a" resname="Neue Konferenz erstellen">
+        <source>Neue Konferenz erstellen</source>
+        <target state="translated">Создание конференции</target>
+      </trans-unit>
+      <trans-unit id="forum_2374c9a01e04" resname="Konferenz bearbeiten">
+        <source>Konferenz bearbeiten</source>
+        <target state="translated">Редактирование конференции</target>
+      </trans-unit>
+      <trans-unit id="forum_b7d04abe4048" resname="Erweiterte Optionen">
+        <source>Erweiterte Optionen</source>
+        <target state="translated">Дополнительные параметры</target>
+      </trans-unit>
+      <trans-unit id="forum_41012ac0e979" resname="Zeit und Datum auswählen">
+        <source>Zeit und Datum auswählen</source>
+        <target state="translated">Выберите дату и время</target>
+      </trans-unit>
+      <trans-unit id="forum_f6b2ff39f540" resname="Speichern">
+        <source>Speichern</source>
+        <target state="translated">Сохранить</target>
+      </trans-unit>
+      <trans-unit id="forum_4aa9731bc1a3" resname="room.new.help.server">
+        <source>room.new.help.server</source>
+        <target state="translated">Выберите сервер, на котором будет проходить конференция.</target>
+      </trans-unit>
+      <trans-unit id="forum_e30550009b2e" resname="room.new.help.tag">
+        <source>room.new.help.tag</source>
+        <target state="translated">Выберите категорию конференции.</target>
+      </trans-unit>
+      <trans-unit id="forum_5a89cf253283" resname="room.new.help.manager">
+        <source>room.new.help.manager</source>
+        <target state="translated">Вы можете создавать конференции от имени другого пользователя. Выберите организатора: себя или пользователя, которого вы замещаете.</target>
+      </trans-unit>
+      <trans-unit id="forum_c09680a81b86" resname="room.new.help.name">
+        <source>room.new.help.name</source>
+        <target state="translated">Введите короткое и понятное название конференции.</target>
+      </trans-unit>
+      <trans-unit id="forum_12cf3fc8b6db" resname="room.new.help.agenda">
+        <source>room.new.help.agenda</source>
+        <target state="translated">Укажите повестку и цель конференции, чтобы участники могли подготовиться.</target>
+      </trans-unit>
+      <trans-unit id="forum_338d54eea574" resname="room.new.help.persistant">
+        <source>room.new.help.persistant</source>
+        <target state="translated">Постоянная конференция доступна приглашённым без заданного времени начала и продолжительности. Сообщите участникам о начале встречи отдельно, например по телефону или в чате.</target>
+      </trans-unit>
+      <trans-unit id="forum_548fde43ef6b" resname="room.new.help.start">
+        <source>room.new.help.start</source>
+        <target state="translated">Выберите дату и время начала конференции с помощью календаря и часов.</target>
+      </trans-unit>
+      <trans-unit id="forum_f0ff64fd6ea3" resname="room.new.help.duration">
+        <source>room.new.help.duration</source>
+        <target state="translated">Укажите плановую продолжительность конференции.</target>
+      </trans-unit>
+      <trans-unit id="forum_06f65f78f3b9" resname="room.new.help.lobby">
+        <source>room.new.help.lobby</source>
+        <target state="translated">Участники сначала попадут в комнату ожидания. Организатор сможет допускать каждого из них в конференцию отдельно.</target>
+      </trans-unit>
+      <trans-unit id="forum_1036092bc20c" resname="room.new.help.isE2EEEnabled">
+        <source>room.new.help.isE2EEEnabled</source>
+        <target state="translated">Включает сквозное шифрование (E2EE) для этой конференции.</target>
+      </trans-unit>
+      <trans-unit id="forum_0084c216d361" resname="Wählen Sie hier die Zeitzone aus in welcher das Meeting geplant werden soll. Benutzer in anderen Zeitzonen erhalten die Konferenz in Ihrer lokalen Zeitzone.">
+        <source>Wählen Sie hier die Zeitzone aus in welcher das Meeting geplant werden soll. Benutzer in anderen Zeitzonen erhalten die Konferenz in Ihrer lokalen Zeitzone.</source>
+        <target state="translated">Выберите часовой пояс конференции. Участники в других часовых поясах увидят время встречи по своему местному времени.</target>
+      </trans-unit>
+      <trans-unit id="forum_48027bece3d3" resname="Es wird eine Terminumfrage erstellt, keine Konferenz.">
+        <source>Es wird eine Terminumfrage erstellt, keine Konferenz.</source>
+        <target state="translated">Будет создан опрос для выбора времени встречи. Сама конференция на этом шаге не создаётся.</target>
+      </trans-unit>
+      <trans-unit id="forum_d70c90387d36" resname="Nur Nutzer, welche einen Account auf der Plattform haben können diesem Meeting beitreten. Es ist somit der Benutzername und das Passwort erforderlich. Damit wird ein zusätzlicher Schutz eingeführt.">
+        <source>Nur Nutzer, welche einen Account auf der Plattform haben können diesem Meeting beitreten. Es ist somit der Benutzername und das Passwort erforderlich. Damit wird ein zusätzlicher Schutz eingeführt.</source>
+        <target state="translated">Присоединиться смогут только пользователи с учётной записью на платформе. Для входа потребуются имя пользователя и пароль.</target>
+      </trans-unit>
+      <trans-unit id="forum_f545fd57d680" resname="Es wird ein Link erstellt, welchen Sie weitergeben können. Über diesen Link können sich Teilnehmer, selber auf die Teilnehmerliste eintragen. Sie können die Teilnerliste bearbeiten und Teilnehmer entfernen.">
+        <source>Es wird ein Link erstellt, welchen Sie weitergeben können. Über diesen Link können sich Teilnehmer, selber auf die Teilnehmerliste eintragen. Sie können die Teilnerliste bearbeiten und Teilnehmer entfernen.</source>
+        <target state="translated">Будет создана ссылка, по которой участники смогут самостоятельно зарегистрироваться на конференцию. Вы сможете редактировать список участников и удалять из него записи.</target>
+      </trans-unit>
+      <trans-unit id="forum_0bd330646c6e" resname="Maximale Anzahl an Teilnehmer, die sich per Selbsteinschreibung bei der Konferenz anmelden können">
+        <source>Maximale Anzahl an Teilnehmer, die sich per Selbsteinschreibung bei der Konferenz anmelden können</source>
+        <target state="translated">Максимальное число участников, которые могут самостоятельно зарегистрироваться на конференцию по ссылке.</target>
+      </trans-unit>
+      <trans-unit id="forum_deb4643d15c1" resname="Wenn es eine begrenzte Anzahl von Teilnehmer gibt dann können sich Teilnehmer auf einer Warteliste einschreiben und der Moderator kann diese manuell akzeptieren">
+        <source>Wenn es eine begrenzte Anzahl von Teilnehmer gibt dann können sich Teilnehmer auf einer Warteliste einschreiben und der Moderator kann diese manuell akzeptieren</source>
+        <target state="translated">При ограниченном числе мест участники смогут записаться в список ожидания. Организатор сможет вручную подтвердить их участие.</target>
+      </trans-unit>
+      <trans-unit id="forum_a4526bb4adcd" resname="Teilnehmende, die sich per Selbsteinschreibung anmelden, müssen nicht zuerst in einer Double-Opt-In-E-Mail auf einen Link klicken, um auf die Teilnehmerliste zu gelangen.">
+        <source>Teilnehmende, die sich per Selbsteinschreibung anmelden, müssen nicht zuerst in einer Double-Opt-In-E-Mail auf einen Link klicken, um auf die Teilnehmerliste zu gelangen.</source>
+        <target state="translated">При самостоятельной регистрации участники будут сразу добавлены в список. Подтверждать регистрацию по ссылке из письма не потребуется.</target>
+      </trans-unit>
+      <trans-unit id="forum_fbcf7d6331b8" resname="Auf der Beitretenseite eines Servers wird diese Konferenz angezeigt.">
+        <source>Auf der Beitretenseite eines Servers wird diese Konferenz angezeigt.</source>
+        <target state="translated">Конференция будет отображаться на странице «Присоединиться» выбранного сервера.</target>
+      </trans-unit>
+      <trans-unit id="forum_b1d7fd63f6d1" resname="Teilnehmer dürfen Ihren Bildschirm nicht teilen. Dies kann in der Teilnehmerübersicht für jeden Teilnehmer individuell angepasst werden">
+        <source>Teilnehmer dürfen Ihren Bildschirm nicht teilen. Dies kann in der Teilnehmerübersicht für jeden Teilnehmer individuell angepasst werden</source>
+        <target state="translated">Демонстрировать экран сможет только организатор. Он сможет отдельно разрешить демонстрацию экрана другим пользователям в списке участников.</target>
+      </trans-unit>
+      <trans-unit id="forum_a1f4550f28c2" resname="Es gibt keine Teilnehmerliste. Die Teilnehmer können der Konferenz durch den generierten Link beitreten.">
+        <source>Es gibt keine Teilnehmerliste. Die Teilnehmer können der Konferenz durch den generierten Link beitreten.</source>
+        <target state="translated">Список участников не используется. Присоединиться к конференции можно по созданной ссылке.</target>
+      </trans-unit>
+      <trans-unit id="forum_a38ea5b07d58" resname="Teilnehmer können bei der Abstimmung mit &quot;Vielleicht&quot; abstimmen.">
+        <source>Teilnehmer können bei der Abstimmung mit "Vielleicht" abstimmen.</source>
+        <target state="translated">Участники смогут выбрать ответ «Возможно» в опросе о времени встречи.</target>
+      </trans-unit>
+      <trans-unit id="forum_f3a53b8ebd3b" resname="rooms.help.setmaxparticipantsHardLimit">
+        <source>rooms.help.setmaxparticipantsHardLimit</source>
+        <target state="translated">Максимальное число участников, которые могут одновременно находиться в конференции. При достижении лимита новые участники не смогут подключиться, даже если они приглашены.</target>
+      </trans-unit>
+      <trans-unit id="forum_becd4a2e1547" resname="newRoom.error.noServer.addServer">
+        <source>newRoom.error.noServer.addServer</source>
+        <target state="translated">У вас нет доступного сервера для конференций. Добавьте сервер в настройках или обратитесь к администратору.</target>
+      </trans-unit>
+      <trans-unit id="forum_dashboard_noconference" resname="dashboard.noconference">
+        <source>dashboard.noconference</source>
+        <target state="translated"><![CDATA[Пока нет запланированных конференций. Создайте <u><a href="{url}" class="loadContent">новую конференцию</a></u>.]]></target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

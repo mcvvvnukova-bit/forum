@@ -16,6 +16,23 @@
       "attachmentId": "b4266bac-20f2-4694-91e6-245b972d55e7",
       "originalDownloadSha256": "e1c03592544e0bcd6b1fe7433dcf996543fda46c6c088cb0a4726462826e7562",
       "originalDownloadBytes": 8734
+    },
+    {
+      "sourcePath": "docs/technical/verification/2026-10-22-jitsi-admin-russian.md",
+      "sourceSha256": "44cd8cd1fa6d57e991f31abddc9e288247c58e34e93b0dc0caea6fa2568f3b53",
+      "pageId": "78399255-212b-4fe0-bbf1-de09b5f3bd0c",
+      "pageUrl": "https://docs.astforum.ru/doc/jitsi-admin-russkij-interfejs-i-proverka-perevoda-2026-10-22-6il9O3oG8q",
+      "revision": 4,
+      "sourceBytes": 10863,
+      "readableReopened": true,
+      "readableComparison": "equal after list-marker, table-padding and whitespace serialization",
+      "attachmentId": "dc8e65b3-6e45-474d-8e77-680835c3dada",
+      "originalDownloadSha256": "44cd8cd1fa6d57e991f31abddc9e288247c58e34e93b0dc0caea6fa2568f3b53",
+      "originalDownloadBytes": 10863
     }
+  ],
+  "tasks": [
+    "OP#PROJ-175",
+    "OP#PROJ-181"
   ]
 }
