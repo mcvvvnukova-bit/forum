@@ -6,6 +6,10 @@
         <source>Planen</source>
         <target state="translated">Запланировать</target>
       </trans-unit>
+      <trans-unit id="EiLjBAz" resname="Einen Termin finden">
+        <source>Einen Termin finden</source>
+        <target state="translated">Опрос о времени встречи</target>
+      </trans-unit>
       <trans-unit id="cb3viG6" resname="status.online">
         <source>status.online</source>
         <target state="translated">В сети</target>
