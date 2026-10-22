@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><title>PROJ-182 — тест записи Jibri</title>
+<body style="font:18px system-ui;max-width:1000px;margin:32px auto">
+<h1>Тест записи Jibri</h1>
+<p>Синтетические изображение и русская речь. Камера и микрофон пользователя не используются.</p>
+<button id="join">Подключить тестового участника</button>
+<button id="record" disabled>Начать запись</button>
+<button id="stop" disabled>Остановить запись</button>
+<button id="leave" disabled>Завершить встречу</button>
+<p id="status" role="status">Готов к тесту</p>
+<canvas id="picture" width="1280" height="720" style="width:100%;background:#142638"></canvas>
+<pre id="log" style="white-space:pre-wrap"></pre>
+<pre id="transport" style="white-space:pre-wrap"></pre>
+<script src="/lib-jitsi-meet.min.js"></script>
+<script>
+let connection, room, recording, audioContext, source, ticker, diagnostics;
+const picture = document.querySelector('#picture');
+const context = picture.getContext('2d');
+function report(message) {
+  document.querySelector('#status').textContent = message;
+  document.querySelector('#log').textContent += new Date().toISOString() + ' ' + message + '\n';
+}
+function paint() {
+  context.fillStyle='#142638';context.fillRect(0,0,1280,720);
+  context.fillStyle='#fff';context.font='52px sans-serif';
+  context.fillText('PROJ-182 · Тест записи Jibri',64,140);
+  context.font='36px sans-serif';context.fillText(new Date().toLocaleString('ru-RU'),64,250);
+  context.fillText('720p · синтетический участник',64,340);
+  context.fillStyle='#46d4ad';context.fillRect(64,440,80+(Date.now()/20)%1050,40);
+  context.fillStyle='#fff';context.font='26px sans-serif';
+  context.fillText('Проверка видео, русской речи и нагрузки VPS',64,590);
+}
+paint();
+document.querySelector('#join').onclick=async()=>{
+ try {
+  audioContext = new AudioContext(); await audioContext.resume();
+  const settings = await (await fetch('/settings')).json();
+  const speech = await audioContext.decodeAudioData(await (await fetch('/speech.wav')).arrayBuffer());
+  const destination = audioContext.createMediaStreamDestination();
+  source=audioContext.createBufferSource();source.buffer=speech;source.loop=true;source.connect(destination);source.start();
+  ticker=setInterval(paint,100);
+  JitsiMeetJS.init({disableAudioLevels:true});
+  JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
+  const tracks = await JitsiMeetJS.createLocalTracksFromMediaStreams([
+   {stream:destination.stream,mediaType:'audio'},
+   {stream:picture.captureStream(15),mediaType:'video',videoType:'camera'}
+  ]);
+  connection = new JitsiMeetJS.JitsiConnection(null, settings.token, {
+   hosts:{domain:'meet.jitsi',muc:'muc.meet.jitsi',focus:'focus.meet.jitsi'},
+   serviceUrl:location.origin+'/http-bind',clientNode:'http://jitsi.org/jitsimeet'
+  });
+  connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_FAILED, (error)=>report('Ошибка соединения: '+String(error)));
+  connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED, async()=>{
+   // The pinned bundle's iceServersOverride only rewrites existing services.
+   // The server has no extdisco service. Supply the local QA TURN through the
+   // same parser, also when a later empty private-message update arrives.
+   if(settings.iceServers) {
+    const jingle=connection.xmpp.connection.jingle;
+    const receive=jingle.onReceiveStunAndTurnCredentials.bind(jingle);
+    const services=settings.iceServers.map(server=>{
+     const url=new URL(server.urls.replace(/^turn:/,'http://'));
+     return {type:'turn',host:url.hostname,port:url.port,transport:'tcp',username:server.username,password:server.credential};
+    });
+    jingle.onReceiveStunAndTurnCredentials=()=>receive({services});
+    jingle.onReceiveStunAndTurnCredentials();
+   }
+   room=connection.initJitsiConference(settings.room,{p2p:{enabled:false},forceTurnRelay:!!settings.iceServers,disableSimulcast:true,enableLayerSuspension:false});
+   room.setDisplayName('PROJ-182 · синтетический участник');
+   room.on(JitsiMeetJS.events.conference.CONFERENCE_FAILED,(error)=>report('Ошибка конференции: '+String(error)));
+   room.on(JitsiMeetJS.events.conference.USER_ROLE_CHANGED,(id,role)=>report('Роль обновлена: '+role));
+   room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED,()=>{
+    report('Участник подключён. Роль: '+(room.isModerator()?'moderator':'participant'));
+    document.querySelector('#record').disabled=false;document.querySelector('#leave').disabled=false;
+    diagnostics=setInterval(async()=>{
+     try {
+      const pc=room.getActivePeerConnection()?.peerconnection;
+      const selected=[];
+      if(pc) for(const row of (await pc.getStats()).values()) {
+       if(row.type==='outbound-rtp') selected.push({type:row.type,kind:row.kind,bytesSent:row.bytesSent,packetsSent:row.packetsSent,framesEncoded:row.framesEncoded});
+       if(row.type==='candidate-pair') selected.push({type:row.type,state:row.state,requestsSent:row.requestsSent,responsesReceived:row.responsesReceived,bytesSent:row.bytesSent,bytesReceived:row.bytesReceived});
+       if(row.type==='local-candidate'||row.type==='remote-candidate')selected.push({type:row.type,protocol:row.protocol,candidateType:row.candidateType});
+      }
+      document.querySelector('#transport').textContent=JSON.stringify({ice:pc?.iceConnectionState,gathering:pc?.iceGatheringState,connection:pc?.connectionState,iceServers:pc?.getConfiguration().iceServers?.length,audioContext:audioContext.state,tracks:room.getLocalTracks().map(t=>({type:t.getType(),muted:t.isMuted(),ready:t.getTrack().readyState})),stats:selected},null,2);
+     }catch(error){document.querySelector('#transport').textContent='Диагностика: '+error.message;}
+    },2000);
+   });
+   room.on(JitsiMeetJS.events.conference.RECORDER_STATE_CHANGED,(session,error)=>{
+    recording=session;
+    report('Запись: '+session.getStatus()+(error?' · '+String(error):''));
+    document.querySelector('#stop').disabled=!['on','pending'].includes(session.getStatus());
+   });
+   for(const track of tracks) await room.addTrack(track);
+   room.join();
+  });
+  report('Подключение к реальной конференции…');connection.connect();document.querySelector('#join').disabled=true;
+ }catch(error){report('Ошибка теста: '+error.message);}
+};
+document.querySelector('#record').onclick=async()=>{
+ try {recording=await room.startRecording({mode:'file'});report('Запрошена запись: '+recording.getStatus());}
+ catch(error){report('Ошибка запуска записи: '+String(error));}
+};
+document.querySelector('#stop').onclick=async()=>{
+ try{await room.stopRecording(recording.getID());report('Остановка записи запрошена');}
+ catch(error){report('Ошибка остановки: '+String(error));}
+};
+document.querySelector('#leave').onclick=async()=>{
+ await room.leave();connection.disconnect();source.stop();await audioContext.close();clearInterval(ticker);clearInterval(diagnostics);
+ report('Тестовая встреча завершена');
+};
+</script></body></html>

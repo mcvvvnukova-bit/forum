@@ -1,0 +1,23 @@
+[Unit]
+Description=VKS automatic Jibri recording controller
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/jitsi-recording/controller.py
+WorkingDirectory=/opt/jitsi-recording
+Restart=always
+RestartSec=10
+UMask=0077
+MemoryMax=192M
+CPUQuota=25%
+TasksMax=32
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/jitsi-recording/state
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
