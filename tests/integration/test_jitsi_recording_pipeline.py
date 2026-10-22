@@ -102,6 +102,31 @@ class SummaryTests(unittest.TestCase):
             self.assertEqual(second['status'],'complete')
             self.assertEqual(first['documentId'],second['documentId'])
             self.assertEqual(fake.creates,1)
+            # Codex supplies a validated cache; this mode must never call Polza's text API.
+            from unittest.mock import Mock
+            codex_folder=Path(directory)/'codex-recording';codex_folder.mkdir()
+            (codex_folder/'a.mp4').write_bytes(b'fixture')
+            codex=Fake();codex.config={'summaryMode':'codex'}
+            codex.summarize=Mock(side_effect=AssertionError('External text model called'))
+            pending=codex.process(codex_folder)
+            codex.summarize.assert_not_called()
+            self.assertEqual(pending['status'],'awaiting-summary')
+            self.assertIn('ежедневной обработки Codex',codex.docs[pending['documentId']]['text'])
+            pipeline.save(Path(directory)/'work/codex-recording/summary.json',
+                {'key_points':[],'decisions':[],'tasks':[]})
+            done=codex.process(codex_folder)
+            self.assertEqual(done['status'],'complete')
+            self.assertEqual(pending['documentId'],done['documentId'])
+            self.assertIn('Codex',codex.docs[done['documentId']]['text'])
+            self.assertNotIn('через Polza. Автоматическое',codex.docs[done['documentId']]['text'])
+
+    def test_cached_daily_summaries_resume_pending_jobs_and_respect_completed_jobs(self):
+        pipeline=load('pipeline')
+        self.assertFalse(pipeline.job_due({},10,100,200))
+        self.assertTrue(pipeline.job_due({'status':'awaiting-summary','retryAt':300},10,100,200,True))
+        self.assertFalse(pipeline.job_due({'status':'awaiting-summary','retryAt':300},10,100,200,False))
+        self.assertTrue(pipeline.job_due({'status':'awaiting-summary','retryAt':100},10,100,200))
+        self.assertFalse(pipeline.job_due({'status':'complete'},150,100,200,True,True))
 
     def test_rejects_invented_evidence_and_task_owners(self):
         pipeline = load('pipeline')

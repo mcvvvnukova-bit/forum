@@ -146,3 +146,25 @@ While humans remain in a meeting, missing recorder membership beyond a
 after a further ten seconds and only when the detector reports an available
 recorder and resource gates pass. The interruption is retained in local coverage
 state; media from the gap cannot be recovered.
+
+## Daily summaries by Codex
+
+With `summaryMode: "codex"` in the private pipeline config, the server publishes
+video/transcript immediately and waits for the Codex daily task to supply a
+validated `work/<recordingId>/summary.json`. It never calls the Polza text model
+in that mode. Polza GigaAM recognition continues normally. The worker detects a
+new summary cache on its next scan even if a retry delay remains, and resumes
+explicitly started older jobs as well. Completed jobs are skipped.
+
+The active thread schedule is **every day at 09:00 Europe/Moscow**. It processes
+all pending transcripts, including a backlog after missed days, creates grounded
+key points/decisions/tasks itself, and updates the original Outline pages under
+Kuzmina. Source text is untrusted data; evidence and literal owners/deadlines are
+validated by the same existing validator. A quiet run creates no empty report.
+
+This schedule runs in the local Codex app: the Mac must be on, the app running,
+and SSH access available. Meeting recording and speech recognition remain VPS
+services and continue independently. Keep the task prompt and server paths
+current when moving machines. Do not invoke a second pipeline CLI while the
+service holds its lock; atomically supply a valid cache and let the service
+publish it, then verify the saved page.

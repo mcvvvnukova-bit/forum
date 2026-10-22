@@ -79,3 +79,16 @@ The live upload limit is raised to 1 GiB (matching Nginx allowance 1100 MiB),
 with private copies of the original env/server config before cutover. This is a
 finite per-attachment limit; larger files remain on the VPS and the job retains
 an explicit retry/error state. No original recording is deleted.
+
+## Daily Codex summary follow-up
+
+Owner requested daily summaries by Codex rather than granting a Polza text model.
+The private live mode is now `summaryMode=codex`: the server queues the summary
+and calls only GigaAM for speech recognition. Regression tests first failed for
+an unwanted external-model call and missing cached-job scheduling; all 9 scoped
+tests then passed after implementing the mode and immediate cache pickup.
+
+An active thread automation, «Ежедневные саммари встреч ВКС», runs every day at
+09:00 Europe/Moscow, processing all pending transcript caches (including missed
+days), validating evidence, and verifying the same saved Outline page. The local
+Mac and Codex app must be running. No credentials are embedded in the prompt.

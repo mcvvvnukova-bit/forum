@@ -63,6 +63,19 @@ def clock(seconds):
     return f'{seconds//3600:02d}:{seconds%3600//60:02d}:{seconds%60:02d}'
 
 
+def job_due(state, finalized_at, not_before, now, cached_summary=False, force=False):
+    if state.get('status') == 'complete':
+        return False
+    if force:
+        return True
+    # Explicitly started older jobs must also finish after a daily summary arrives.
+    if not state and finalized_at < not_before:
+        return False
+    if state.get('status') == 'awaiting-summary' and cached_summary:
+        return True
+    return now >= state.get('retryAt', 0)
+
+
 class Pipeline:
     def __init__(self):
         self.config = read(BASE / 'secrets/pipeline.private.json')
@@ -175,7 +188,7 @@ class Pipeline:
         duration = state.setdefault('duration', self.probe(movie))
         segments = self.transcribe(movie, work, duration)
         summary = read(work / 'summary.json')
-        if summary is None:
+        if summary is None and self.config.get('summaryMode') != 'codex':
             try:
                 summary = self.summarize(segments)
                 save(work / 'summary.json', summary)
@@ -183,6 +196,8 @@ class Pipeline:
                 state.update(summaryErrorType=type(error).__name__,summaryHttpStatus=getattr(error,'status',None))
         if summary is not None:
             validate_summary(summary, segments)
+            state.pop('summaryHttpStatus', None)
+            state.pop('summaryErrorType', None)
         self.identity()
         # Outline's schema accepts UUIDv5, but its ORM only permits version 4.
         # Deterministic version-4-shaped IDs recover an uncertain create response.
@@ -211,8 +226,11 @@ class Pipeline:
             'Временные интервалы указывают на сегмент расшифровки, а не на точный момент фразы.',
             f'[Скачать запись]({video_url}) · [Скачать расшифровку]({text_url})']
         if summary is None:
-            lines.append('**Саммари пока недоступно.** Запись и расшифровка сохранены; обработчик повторит запрос. '
-                'Доступ к текстовой модели Polza может требовать разрешения для API-ключа.')
+            if self.config.get('summaryMode') == 'codex':
+                lines.append('**Саммари ожидает ежедневной обработки Codex.** Запись и расшифровка сохранены.')
+            else:
+                lines.append('**Саммари пока недоступно.** Запись и расшифровка сохранены; обработчик повторит запрос. '
+                    'Доступ к текстовой модели Polza может требовать разрешения для API-ключа.')
         for group, heading in (('key_points','Ключевые моменты'),('decisions','Решения'),('tasks','Задачи')):
             lines.append('## ' + heading)
             if summary is None:
@@ -229,8 +247,9 @@ class Pipeline:
                     + '  > ' + markdown(item['evidence']))
         lines.append('## Расшифровка')
         lines.extend(f"**{clock(s['start'])}–{clock(s['end'])}**\n\n{markdown(s['text'] or 'Речь не распознана.')}" for s in segments)
-        lines.append('Распознавание: Polza GigaAM-v3. Модель саммари: '
-            + markdown(self.config.get('summaryModel','google/gemini-2.5-flash')) + ' через Polza. '
+        summary_source = 'Codex, ежедневная обработка' if self.config.get('summaryMode') == 'codex' else (
+            markdown(self.config.get('summaryModel','google/gemini-2.5-flash')) + ' через Polza')
+        lines.append('Распознавание: Polza GigaAM-v3. Саммари: ' + summary_source + '. '
             'Автоматическое определение говорящих не выполнялось.')
         self.api('documents.update', {'id':document_id, 'text':'\n\n'.join(lines), 'publish':True})
         verified = self.api('documents.info', {'id':document_id})
@@ -259,11 +278,12 @@ def main():
         while True:
             for folder in completed_recordings(RECORDINGS):
                 if options.recording and folder.name != options.recording:continue
-                if not options.recording and max(file.stat().st_mtime for file in folder.glob('*.mp4')) < pipeline.config['notBefore']:
-                    continue
                 state_path = BASE / 'state/jobs' / (folder.name + '.json')
                 state = read(state_path, {})
-                if state.get('status') == 'complete' or (not options.recording and time.time() < state.get('retryAt', 0)):continue
+                finalized_at = max(file.stat().st_mtime for file in folder.glob('*.mp4'))
+                cached = (BASE / 'work' / folder.name / 'summary.json').is_file()
+                if not job_due(state, finalized_at, pipeline.config['notBefore'], time.time(), cached, bool(options.recording)):
+                    continue
                 try:pipeline.process(folder)
                 except Exception as error:
                     state = read(state_path, state)
