@@ -136,8 +136,17 @@ def tick():
         entry = state.setdefault(meeting, {'room':jid.split('@')[0], 'firstSeen':time.time()})
         has_recorder = any(member.get('is_jibri') for member in conference.get('chat_room', {}).get('members', {}).values())
         if has_recorder:
-            entry.update(status='observed' if entry.get('status') != 'started' else 'started', lastSeen=time.time())
+            entry.update(status='observed' if entry.get('status') != 'started' else 'started',
+                lastSeen=time.time(), lastRecorderSeen=time.time())
             continue
+        if entry.get('status') in ('started', 'observed', 'requested'):
+            reference = max(entry.get('startedAt', 0), entry.get('lastRecorderSeen', 0),
+                entry.get('firstSeen', 0))
+            if time.time() - reference < 45:
+                continue  # Accepted startup and brief membership gaps need a grace period.
+            entry.update(status='retry', reason='recorder-disappeared', interruptedAt=time.time(),
+                interruptions=entry.get('interruptions', 0)+1, retryAt=time.time()+10)
+            print(json.dumps({'event':'recording-interrupted', 'meetingId':meeting}), flush=True)
         if not should_start(conference, entry, available, free, memory):
             if entry.get('status') not in ('started', 'observed', 'requested'):
                 entry.update(status='waiting', reason='recorder-busy-or-resource-limit', lastSeen=time.time())

@@ -132,3 +132,17 @@ systemctl disable --now vks-recording-controller vks-recording-pipeline
 Stop those services before the Jibri rollback described above. Keep `state/`,
 `work/`, recordings and database backups to preserve recovery and avoid duplicate
 publication.
+
+The current Outline deployment allows **1 GiB per attachment**:
+`FILE_STORAGE_UPLOAD_MAX_SIZE=1073741824` in `/opt/outline/.env` and
+`client_max_body_size 1100m` in the target Nginx server. Retain private copies of
+both files before changes, validate Compose and Nginx, recreate only Outline,
+and reload Nginx. Larger recordings are retained on the VPS and publication
+remains in a persisted error/retry state; no part of a recording is silently
+truncated. This limit and disk headroom must be considered for long meetings.
+
+While humans remain in a meeting, missing recorder membership beyond a
+45-second startup/reconnect grace records an interruption. The controller retries
+after a further ten seconds and only when the detector reports an available
+recorder and resource gates pass. The interruption is retained in local coverage
+state; media from the gap cannot be recovered.

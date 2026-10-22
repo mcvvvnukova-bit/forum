@@ -15,6 +15,37 @@ def load(name):
 
 
 class ControllerTests(unittest.TestCase):
+    def test_recovers_after_failed_startup_or_recorder_loss_without_duplicate_requests(self):
+        from unittest.mock import patch, Mock
+        from types import SimpleNamespace
+        import copy
+        controller=load('controller')
+        meeting='fixture-meeting';jid='fixture@muc.meet.jitsi'
+        conference={'meeting_id':meeting,'chat_room':{'members':{'human':{'jid':'person@meet.jitsi/client'}}}}
+        live={'focus_manager':{jid:1},'jibri_detector':{'recorder':{'reports_available':True}}}
+        for previous in ({'status':'started','startedAt':50}, {'status':'observed','lastRecorderSeen':50}):
+            with self.subTest(previous=previous):
+                state={meeting:{'room':'fixture','firstSeen':40,**previous}}
+                bot=Mock();bot.start.return_value='recording-session'
+                def persist(path,value):state.clear();state.update(copy.deepcopy(value))
+                with patch.object(controller,'read',side_effect=lambda path,*_:copy.deepcopy(state)), \
+                     patch.object(controller,'save',side_effect=persist), \
+                     patch.object(controller,'debug',side_effect=lambda path='':conference if path else live), \
+                     patch.object(controller,'Path',return_value=SimpleNamespace(read_text=lambda:'MemAvailable: 2097152 kB')), \
+                     patch.object(controller.shutil,'disk_usage',return_value=SimpleNamespace(free=10*1024**3)), \
+                     patch.object(controller,'jwt',return_value='fixture'), \
+                     patch.object(controller,'Bosh',return_value=bot), \
+                     patch.object(controller.time,'time',return_value=200) as now:
+                    controller.tick()
+                    self.assertEqual(state[meeting]['status'],'retry')
+                    self.assertEqual(state[meeting]['interruptions'],1)
+                    bot.start.assert_not_called()
+                    now.return_value=220;controller.tick()
+                    bot.start.assert_called_once_with('fixture')
+                    self.assertEqual(state[meeting]['status'],'started')
+                    now.return_value=225;controller.tick()
+                    bot.start.assert_called_once()
+
     def test_only_humans_trigger_recording_and_meeting_ids_are_required(self):
         controller = load('controller')
         room = {'meeting_id': 'meeting-1', 'chat_room': {'members': {

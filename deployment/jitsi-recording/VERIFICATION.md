@@ -58,3 +58,24 @@ completed live AI summary until that succeeds.
 
 Mac-origin public HTTP checks experienced timeouts before any cutover; the same
 checks on the VPS passed. Do not classify those as deployment regressions.
+
+## Saved attachment integrity and recovery review
+
+Authenticated downloads of both pilot pages' MP4/TXT attachments have SHA256
+values identical to their originals (2,443,275 and 2,563,466 byte videos).
+Each page has exactly two native attachments, authored by Kuzmina. Both systemd
+services have zero automatic restarts; their steady host memory was about
+27 MiB for the controller and 17 MiB for the processor.
+
+The final independent branch review found one important controller recovery
+issue: a persisted started/observed flag could suppress retries after Jibri
+failed. A regression test reproduced failed startup and recorder loss, then
+passed after reconciling against current room membership with a 45-second grace
+period and a 10-second recovery delay. Eight scoped tests now pass. No additional
+critical or minor findings were reported.
+
+Outline's initial 100 MiB file limit was too small for ordinary meeting videos.
+The live upload limit is raised to 1 GiB (matching Nginx allowance 1100 MiB),
+with private copies of the original env/server config before cutover. This is a
+finite per-attachment limit; larger files remain on the VPS and the job retains
+an explicit retry/error state. No original recording is deleted.
