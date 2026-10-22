@@ -54,7 +54,7 @@
 
 ### Task 3: Acceptance, persistence and publication
 
-**Files:** Update deployment/jitsi-admin/README.md and create docs/technical/verification/2026-10-19-jitsi-admin.md with a sanitized release receipt.
+**Files:** Update deployment/jitsi-admin/README.md and preserve the sanitized release receipt in [Outline](https://docs.astforum.ru/doc/jitsi-admin-ustanovka-i-proverka-dostupa-2026-10-19-4KQW2uHg5s).
 
 **Interfaces:** Consumes completed portal/identity/Jitsi tests. Produces a usable operator handoff, backup/restore commands and an auditable PR/OpenProject connection.
 
