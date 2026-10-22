@@ -1,0 +1,133 @@
+name: jitsi-admin
+
+x-core: &core
+  image: reg.h2-invent.com/meetling/core:1.5.20@sha256:2b5d29023ead30bdb539ae7ef04f219414b721cc2320f618aa2c6b9b764d7ee9
+  restart: unless-stopped
+  env_file: ./secrets/app.env
+  environment:
+    TZ: Europe/Moscow
+    date_timezone: Europe/Moscow
+    memory_limit: 192M
+    MERCURE_PUBLIC_URL: https://vks.mvpspace.ru
+    STARTUP_COMMAND_0: "sed -i -E 's@access_log[^;]*;@access_log off;@g' /etc/nginx/nginx.conf"
+  extra_hosts:
+    # The pinned vendor release sends installation statistics by default.
+    # Keep this unrequested outbound telemetry inside the container.
+    stats.jitsi-admin.de: 127.0.0.1
+  networks: [portal]
+  logging:
+    driver: json-file
+    options: {max-size: 5m, max-file: "2"}
+
+services:
+  database:
+    image: mariadb:11.4@sha256:250e1609e93c0e6aecf64bfbab2d84d5e89d2481540fe77447ff6c855c3b1873
+    restart: unless-stopped
+    env_file: ./secrets/database.env
+    command: [--innodb-buffer-pool-size=64M, --max-connections=40, --performance-schema=OFF]
+    mem_limit: 256m
+    volumes:
+      - database:/var/lib/mysql
+      - ./secrets/10-apps.sql:/docker-entrypoint-initdb.d/10-apps.sql:ro
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    networks: [portal]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244
+    restart: unless-stopped
+    command: [start, --import-realm]
+    env_file: ./secrets/keycloak.env
+    environment:
+      KC_DB: mariadb
+      KC_DB_URL: jdbc:mariadb://database:3306/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_POOL_INITIAL_SIZE: "1"
+      KC_DB_POOL_MIN_SIZE: "1"
+      KC_DB_POOL_MAX_SIZE: "8"
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: /admin/auth
+      KC_HOSTNAME: https://vks.mvpspace.ru/admin/auth
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_CACHE: local
+      JAVA_OPTS_KC_HEAP: -Xms64m -Xmx256m
+      TZ: Europe/Moscow
+    mem_limit: 512m
+    ports: [127.0.0.1:18080:8080]
+    volumes:
+      - ./secrets/vks-realm.json:/opt/keycloak/data/import/vks-realm.json:ro
+    depends_on:
+      database: {condition: service_healthy}
+    networks: [portal]
+
+  websocket:
+    image: reg.h2-invent.com/meetling/websocket:1.5.20@sha256:0df4b12588610336ad33c5b6034aa59910229588628e77103135572bf2ce0cbc
+    restart: unless-stopped
+    env_file: ./secrets/websocket.env
+    environment: {TZ: Europe/Moscow, NODE_OPTIONS: --max-old-space-size=64}
+    mem_limit: 96m
+    ports: [127.0.0.1:18091:3000]
+    networks: [portal]
+
+  app:
+    <<: *core
+    mem_limit: 512m
+    ports: [127.0.0.1:18090:8080]
+    volumes:
+      - ./framework-proxy.yaml:/var/www/html/config/packages/zz-forum-proxy.yaml:ro
+      - ./host-login/ForumHostLink.php:/var/www/html/src/Service/ForumHostLink.php:ro
+      - ./host-login/ForumRoomService.php:/var/www/html/src/Service/ForumRoomService.php:ro
+      - ./host-login/ForumHostController.php:/var/www/html/src/Controller/ForumHostController.php:ro
+      - ./host-login/ForumStaffSessionGuard.php:/var/www/html/src/EventSubscriber/ForumStaffSessionGuard.php:ro
+      - ./host-login/ForumKeycloakAuthenticator.php:/var/www/html/src/Security/ForumKeycloakAuthenticator.php:ro
+      - uploads:/var/www/html/public/uploads
+      - theme:/var/www/html/theme
+      - theme-assets:/var/www/html/public/theme
+    healthcheck:
+      test: [CMD, curl, -fsS, -H, 'Host: vks.mvpspace.ru', http://127.0.0.1:8080/health/check]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
+    depends_on:
+      database: {condition: service_healthy}
+
+  worker:
+    <<: *core
+    # The image's HTTP check does not apply to its foreground CLI worker.
+    healthcheck:
+      test: [CMD, php, -r, 'exit(str_contains(file_get_contents("/proc/1/cmdline"), "messenger:consume") ? 0 : 1);']
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    command: [php, /var/www/html/bin/console, messenger:consume, async, --memory-limit=96M, --time-limit=3600, --no-interaction]
+    mem_limit: 128m
+    volumes:
+      - ./framework-proxy.yaml:/var/www/html/config/packages/zz-forum-proxy.yaml:ro
+      - ./host-login/ForumHostLink.php:/var/www/html/src/Service/ForumHostLink.php:ro
+      - ./host-login/ForumRoomService.php:/var/www/html/src/Service/ForumRoomService.php:ro
+      - ./host-login/ForumHostController.php:/var/www/html/src/Controller/ForumHostController.php:ro
+      - ./host-login/ForumStaffSessionGuard.php:/var/www/html/src/EventSubscriber/ForumStaffSessionGuard.php:ro
+      - ./host-login/ForumKeycloakAuthenticator.php:/var/www/html/src/Security/ForumKeycloakAuthenticator.php:ro
+      - uploads:/var/www/html/public/uploads:ro
+      - theme:/var/www/html/theme:ro
+      - theme-assets:/var/www/html/public/theme:ro
+    depends_on:
+      app: {condition: service_healthy}
+
+networks:
+  portal:
+    ipam:
+      config: [{subnet: 172.30.213.0/24}]
+
+volumes:
+  database:
+  uploads:
+  theme:
+  theme-assets:

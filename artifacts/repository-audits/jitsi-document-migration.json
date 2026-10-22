@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "task": "OP#PROJ-175",
+  "sourceCommit": "7e1a202eabd42f6523cc8d1b773eb4d5307b4778",
+  "verifiedAs": "667e07ed-3c9f-4c1b-ad8e-5755f022a668",
+  "documents": [
+    {
+      "sourcePath": "docs/technical/verification/2026-10-19-jitsi-admin.md",
+      "sourceSha256": "e1c03592544e0bcd6b1fe7433dcf996543fda46c6c088cb0a4726462826e7562",
+      "pageId": "d0ea7bf2-74ae-4fd5-8275-d4c29e47de78",
+      "pageUrl": "https://docs.astforum.ru/doc/jitsi-admin-ustanovka-i-proverka-dostupa-2026-10-19-4KQW2uHg5s",
+      "revision": 5,
+      "sourceBytes": 8734,
+      "readableReopened": true,
+      "readableComparison": "equal after list-marker, table-padding and whitespace serialization; relative operator-guide link resolved to immutable Git source",
+      "attachmentId": "b4266bac-20f2-4694-91e6-245b972d55e7",
+      "originalDownloadSha256": "e1c03592544e0bcd6b1fe7433dcf996543fda46c6c088cb0a4726462826e7562",
+      "originalDownloadBytes": 8734
+    }
+  ]
+}

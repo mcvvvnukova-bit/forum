@@ -1,0 +1,106 @@
+{
+  "realm": "vks",
+  "displayName": "VKS Forum",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "resetPasswordAllowed": false,
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "passwordPolicy": "length(12)",
+  "defaultGroups": [
+    "/vks-organizers"
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "organizer"
+      },
+      {
+        "name": "ROLE_ADMIN"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "vks-organizers",
+      "realmRoles": [
+        "organizer"
+      ]
+    },
+    {
+      "name": "vks-administrators",
+      "realmRoles": [
+        "ROLE_ADMIN"
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "jitsi-admin",
+      "name": "jitsi-admin",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "__GENERATE_PRIVATE_OIDC_CLIENT_SECRET__",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "https://vks.mvpspace.ru/admin/login/keycloak_login/check",
+        "https://vks.mvpspace.ru/admin/de/login/keycloak_login/check",
+        "https://vks.mvpspace.ru/admin/en/login/keycloak_login/check",
+        "https://vks.mvpspace.ru/admin/fr/login/keycloak_login/check",
+        "https://vks.mvpspace.ru/admin/es/login/keycloak_login/check",
+        "https://vks.mvpspace.ru/admin/vi/login/keycloak_login/check",
+        "https://vks.mvpspace.ru/admin/zh/login/keycloak_login/check",
+        "https://vks.mvpspace.ru/admin/ja/login/keycloak_login/check",
+        "https://vks.mvpspace.ru/admin/pt/login/keycloak_login/check"
+      ],
+      "webOrigins": [
+        "https://vks.mvpspace.ru"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://vks.mvpspace.ru/admin/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "full.path": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "claim.name": "groups"
+          }
+        },
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [],
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "ru",
+    "en"
+  ],
+  "defaultLocale": "ru"
+}

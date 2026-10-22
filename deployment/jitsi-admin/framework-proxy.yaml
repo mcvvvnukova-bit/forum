@@ -1,0 +1,16 @@
+framework:
+    trusted_proxies: '127.0.0.1,172.30.213.1'
+    trusted_hosts: ['^vks\.mvpspace\.ru$']
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix']
+    router:
+        default_uri: 'https://vks.mvpspace.ru/admin/'
+    session:
+        name: VKSADMINSESSID
+        cookie_path: /admin
+        cookie_secure: true
+        cookie_httponly: true
+        cookie_samesite: lax
+
+knpu_oauth2_client:
+    http_client_options:
+        timeout: 5
