@@ -89,3 +89,9 @@ docker compose ps
 Базы нового проекта и его секреты сохраняйте до подтверждения отката. Для дальнейших backups выгружайте **обе** MariaDB базы в защищённый каталог, сохраняйте uploads/theme volumes и private env/realm. Не используйте `docker compose down -v` для отката.
 
 Источники: [Jitsi Admin 1.5.20](https://github.com/H2-invent/jitsi-admin/releases/tag/1.5.20), [docker-jitsi-meet](https://github.com/jitsi/docker-jitsi-meet), [Keycloak containers](https://www.keycloak.org/server/containers).
+
+## План и результаты проверки
+
+[Технический план](../../docs/plans/2026-10-19-jitsi-admin.md), [проектирование установки](../../docs/plans/2026-10-19-jitsi-admin-design.md), [отчёт установки в Outline](https://docs.astforum.ru/doc/jitsi-admin-ustanovka-i-proverka-dostupa-2026-10-19-4KQW2uHg5s). Оригинал отчёта сохранён вложением и проверен повторным скачиванием по SHA-256; подтверждение — `artifacts/repository-audits/jitsi-document-migration.json`.
+
+[Проверка русского интерфейса в Outline](https://docs.astforum.ru/doc/jitsi-admin-russkij-interfejs-i-proverka-perevoda-2026-10-22-6il9O3oG8q); оригинал также сохранён вложением с подтверждённым SHA-256.

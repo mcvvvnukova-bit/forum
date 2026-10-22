@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "task": "OP#PROJ-175",
+  "sourceCommit": "7e1a202eabd42f6523cc8d1b773eb4d5307b4778",
+  "verifiedAs": "667e07ed-3c9f-4c1b-ad8e-5755f022a668",
+  "documents": [
+    {
+      "sourcePath": "docs/technical/verification/2026-10-19-jitsi-admin.md",
+      "sourceSha256": "e1c03592544e0bcd6b1fe7433dcf996543fda46c6c088cb0a4726462826e7562",
+      "pageId": "d0ea7bf2-74ae-4fd5-8275-d4c29e47de78",
+      "pageUrl": "https://docs.astforum.ru/doc/jitsi-admin-ustanovka-i-proverka-dostupa-2026-10-19-4KQW2uHg5s",
+      "revision": 5,
+      "sourceBytes": 8734,
+      "readableReopened": true,
+      "readableComparison": "equal after list-marker, table-padding and whitespace serialization; relative operator-guide link resolved to immutable Git source",
+      "attachmentId": "b4266bac-20f2-4694-91e6-245b972d55e7",
+      "originalDownloadSha256": "e1c03592544e0bcd6b1fe7433dcf996543fda46c6c088cb0a4726462826e7562",
+      "originalDownloadBytes": 8734
+    },
+    {
+      "sourcePath": "docs/technical/verification/2026-10-22-jitsi-admin-russian.md",
+      "sourceSha256": "44cd8cd1fa6d57e991f31abddc9e288247c58e34e93b0dc0caea6fa2568f3b53",
+      "pageId": "78399255-212b-4fe0-bbf1-de09b5f3bd0c",
+      "pageUrl": "https://docs.astforum.ru/doc/jitsi-admin-russkij-interfejs-i-proverka-perevoda-2026-10-22-6il9O3oG8q",
+      "revision": 4,
+      "sourceBytes": 10863,
+      "readableReopened": true,
+      "readableComparison": "equal after list-marker, table-padding and whitespace serialization",
+      "attachmentId": "dc8e65b3-6e45-474d-8e77-680835c3dada",
+      "originalDownloadSha256": "44cd8cd1fa6d57e991f31abddc9e288247c58e34e93b0dc0caea6fa2568f3b53",
+      "originalDownloadBytes": 10863
+    }
+  ],
+  "tasks": [
+    "OP#PROJ-175",
+    "OP#PROJ-181"
+  ]
+}
