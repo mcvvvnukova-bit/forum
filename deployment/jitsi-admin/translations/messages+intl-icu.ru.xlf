@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="de" target-language="ru" datatype="plaintext" original="file.ext">
+    <body>
+      <trans-unit id="PVBIN9w" resname="Planen">
+        <source>Planen</source>
+        <target state="translated">Запланировать</target>
+      </trans-unit>
+      <trans-unit id="cb3viG6" resname="status.online">
+        <source>status.online</source>
+        <target state="translated">В сети</target>
+      </trans-unit>
+      <trans-unit id="7mSrGiR" resname="status.away">
+        <source>status.away</source>
+        <target state="translated">Нет на месте</target>
+      </trans-unit>
+      <trans-unit id="sIWTG7_" resname="status.offline">
+        <source>status.offline</source>
+        <target state="translated">Не в сети</target>
+      </trans-unit>
+      <trans-unit id="zNaAAEv" resname="status.inMeeting">
+        <source>status.inMeeting</source>
+        <target state="translated">На встрече</target>
+      </trans-unit>
+      <trans-unit id="WJQ_sl9" resname="deputy.mydebutys">
+        <source>deputy.mydebutys</source>
+        <target state="translated">Мои заместители</target>
+      </trans-unit>
+      <trans-unit id=".ri8qck" resname="Meetling Pro Tip">
+        <source>Meetling Pro Tip</source>
+        <target state="translated">Совет Meetling</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
