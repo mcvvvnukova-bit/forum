@@ -81,6 +81,7 @@ services:
     volumes:
       - ./framework-proxy.yaml:/var/www/html/config/packages/zz-forum-proxy.yaml:ro
       - ./translations/messages+intl-icu.ru.xlf:/var/www/html/translations/custom/messages+intl-icu.ru.xlf:ro
+      - ./translations/form.ru.yml:/var/www/html/translations/custom/form.ru.yml:ro
       - ./host-login/ForumHostLink.php:/var/www/html/src/Service/ForumHostLink.php:ro
       - ./host-login/ForumRoomService.php:/var/www/html/src/Service/ForumRoomService.php:ro
       - ./host-login/ForumHostController.php:/var/www/html/src/Controller/ForumHostController.php:ro
@@ -111,6 +112,7 @@ services:
     volumes:
       - ./framework-proxy.yaml:/var/www/html/config/packages/zz-forum-proxy.yaml:ro
       - ./translations/messages+intl-icu.ru.xlf:/var/www/html/translations/custom/messages+intl-icu.ru.xlf:ro
+      - ./translations/form.ru.yml:/var/www/html/translations/custom/form.ru.yml:ro
       - ./host-login/ForumHostLink.php:/var/www/html/src/Service/ForumHostLink.php:ro
       - ./host-login/ForumRoomService.php:/var/www/html/src/Service/ForumRoomService.php:ro
       - ./host-login/ForumHostController.php:/var/www/html/src/Controller/ForumHostController.php:ro
