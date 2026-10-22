@@ -142,6 +142,10 @@
         <source>newRoom.error.noServer.addServer</source>
         <target state="translated">У вас нет доступного сервера для конференций. Добавьте сервер в настройках или обратитесь к администратору.</target>
       </trans-unit>
+      <trans-unit id="forum_dashboard_noconference" resname="dashboard.noconference">
+        <source>dashboard.noconference</source>
+        <target state="translated"><![CDATA[Пока нет запланированных конференций. Создайте <u><a href="{url}" class="loadContent">новую конференцию</a></u>.]]></target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
