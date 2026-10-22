@@ -10,3 +10,7 @@ framework:
         cookie_secure: true
         cookie_httponly: true
         cookie_samesite: lax
+
+knpu_oauth2_client:
+    http_client_options:
+        timeout: 5

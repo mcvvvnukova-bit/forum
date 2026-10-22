@@ -5,6 +5,8 @@ namespace App\EventSubscriber;
 
 use App\Entity\User;
 use App\Security\KeycloakAuthenticator;
+use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
+use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,6 +30,7 @@ final class ForumStaffSessionGuard
         private UrlGeneratorInterface $router,
         private HttpClientInterface $http,
         private CacheInterface $cache,
+        private ClientRegistry $clients,
     ) {}
 
     public function onLogin(LoginSuccessEvent $event): void
@@ -36,7 +39,11 @@ final class ForumStaffSessionGuard
         // Pinned vendor authenticator uses the access token as its UserBadge ID.
         $badge = $event->getPassport()->getBadge(UserBadge::class);
         if ($badge instanceof UserBadge) {
-            $event->getRequest()->getSession()->set('forum_oauth_access_token', $badge->getUserIdentifier());
+            $session = $event->getRequest()->getSession();
+            $session->set('forum_oauth_access_token', $badge->getUserIdentifier());
+            $session->remove('forum_oauth_refresh_token');
+            $refresh = $event->getPassport()->getAttribute('forum_refresh_token');
+            if (is_string($refresh) && $refresh !== '') $session->set('forum_oauth_refresh_token', $refresh);
         }
     }
 
@@ -55,12 +62,28 @@ final class ForumStaffSessionGuard
         $identity = null;
         if (is_string($credential) && $credential !== '') {
             try {
-                $identity = $this->cache->get('forum_staff_' . hash('sha256', $credential), function (ItemInterface $item) use ($credential): array {
-                    $item->expiresAfter(30);
-                    return $this->http->request('GET', 'https://vks.mvpspace.ru/admin/auth/realms/vks/protocol/openid-connect/userinfo', [
-                        'auth_bearer' => $credential, 'timeout' => 5,
-                    ])->toArray();
-                });
+                try {
+                    $identity = $this->identity($credential);
+                } catch (HttpExceptionInterface $expired) {
+                    $refresh = $session->get('forum_oauth_refresh_token');
+                    if ($expired->getResponse()->getStatusCode() !== 401 || !is_string($refresh) || $refresh === '') throw $expired;
+                    $renewed = $this->clients->getClient('keycloak_main')->refreshAccessToken($refresh);
+                    $credential = $renewed->getToken();
+                    if ($credential === '') throw new \UnexpectedValueException('Missing renewed access token');
+                    // Keep rotated credentials even if the subsequent userinfo call has an outage.
+                    $session->set('forum_oauth_access_token', $credential);
+                    $nextRefresh = $renewed->getRefreshToken();
+                    if (is_string($nextRefresh) && $nextRefresh !== '') $session->set('forum_oauth_refresh_token', $nextRefresh);
+                    $idToken = $renewed->getValues()['id_token'] ?? null;
+                    if (is_string($idToken) && $idToken !== '') $session->set('id_token', $idToken);
+                    $identity = $this->identity($credential);
+                }
+            } catch (IdentityProviderException $error) {
+                $body = $error->getResponseBody();
+                if (!is_array($body) || ($body['error'] ?? null) !== 'invalid_grant') {
+                    $event->setController(static fn() => new Response('Identity provider temporarily unavailable', 503, ['Cache-Control'=>'no-store']));
+                    return;
+                }
             } catch (HttpExceptionInterface $error) {
                 if (!in_array($error->getResponse()->getStatusCode(), [401, 403], true)) {
                     $event->setController(static fn() => new Response('Identity provider temporarily unavailable', 503, ['Cache-Control'=>'no-store']));
@@ -82,5 +105,15 @@ final class ForumStaffSessionGuard
         if (!in_array('/vks-organizers', (array) ($identity['groups'] ?? []), true)) {
             $event->setController(static fn() => new Response('Organizer membership is required', 403, ['Cache-Control'=>'no-store']));
         }
+    }
+
+    private function identity(string $credential): array
+    {
+        return $this->cache->get('forum_staff_' . hash('sha256', $credential), function (ItemInterface $item) use ($credential): array {
+            $item->expiresAfter(30);
+            return $this->http->request('GET', 'https://vks.mvpspace.ru/admin/auth/realms/vks/protocol/openid-connect/userinfo', [
+                'auth_bearer' => $credential, 'timeout' => 5,
+            ])->toArray();
+        });
     }
 }
