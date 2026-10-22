@@ -51,13 +51,20 @@ document.querySelector('#join').onclick=async()=>{
   });
   connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_FAILED, (error)=>report('Ошибка соединения: '+String(error)));
   connection.addEventListener(JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED, async()=>{
-   // A loopback-only TURN tunnel isolates recording tests from the desktop
-   // network's blocked UDP path. This affects this synthetic client only.
+   // The pinned bundle's iceServersOverride only rewrites existing services.
+   // The server has no extdisco service. Supply the local QA TURN through the
+   // same parser, also when a later empty private-message update arrives.
    if(settings.iceServers) {
-    connection.xmpp.connection.jingle.jvbIceConfig.iceServers=settings.iceServers;
-    connection.xmpp.connection.jingle.jvbIceConfig.iceTransportPolicy='relay';
+    const jingle=connection.xmpp.connection.jingle;
+    const receive=jingle.onReceiveStunAndTurnCredentials.bind(jingle);
+    const services=settings.iceServers.map(server=>{
+     const url=new URL(server.urls.replace(/^turn:/,'http://'));
+     return {type:'turn',host:url.hostname,port:url.port,transport:'tcp',username:server.username,password:server.credential};
+    });
+    jingle.onReceiveStunAndTurnCredentials=()=>receive({services});
+    jingle.onReceiveStunAndTurnCredentials();
    }
-   room=connection.initJitsiConference(settings.room,{p2p:{enabled:false},disableSimulcast:true,enableLayerSuspension:false});
+   room=connection.initJitsiConference(settings.room,{p2p:{enabled:false},forceTurnRelay:!!settings.iceServers,disableSimulcast:true,enableLayerSuspension:false});
    room.setDisplayName('PROJ-182 · синтетический участник');
    room.on(JitsiMeetJS.events.conference.CONFERENCE_FAILED,(error)=>report('Ошибка конференции: '+String(error)));
    room.on(JitsiMeetJS.events.conference.USER_ROLE_CHANGED,(id,role)=>report('Роль обновлена: '+role));
@@ -73,7 +80,7 @@ document.querySelector('#join').onclick=async()=>{
        if(row.type==='candidate-pair') selected.push({type:row.type,state:row.state,requestsSent:row.requestsSent,responsesReceived:row.responsesReceived,bytesSent:row.bytesSent,bytesReceived:row.bytesReceived});
        if(row.type==='local-candidate'||row.type==='remote-candidate')selected.push({type:row.type,protocol:row.protocol,candidateType:row.candidateType});
       }
-      document.querySelector('#transport').textContent=JSON.stringify({ice:pc?.iceConnectionState,connection:pc?.connectionState,audioContext:audioContext.state,tracks:room.getLocalTracks().map(t=>({type:t.getType(),muted:t.isMuted(),ready:t.getTrack().readyState})),stats:selected},null,2);
+      document.querySelector('#transport').textContent=JSON.stringify({ice:pc?.iceConnectionState,gathering:pc?.iceGatheringState,connection:pc?.connectionState,iceServers:pc?.getConfiguration().iceServers?.length,audioContext:audioContext.state,tracks:room.getLocalTracks().map(t=>({type:t.getType(),muted:t.isMuted(),ready:t.getTrack().readyState})),stats:selected},null,2);
      }catch(error){document.querySelector('#transport').textContent='Диагностика: '+error.message;}
     },2000);
    });

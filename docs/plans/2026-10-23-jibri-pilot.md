@@ -17,7 +17,7 @@
 - All browser interaction uses the Codex in-app browser. Test media is synthetic and clearly identified.
 - Record at 1280×720, 15 fps, CRF 28; Jibri limit 2 GiB RAM and 2.5 CPUs. These are pilot settings, subject to measurement.
 - New Outline is a distinct workspace. Provision/verify Kuzmina there before any publication; do not use the owner's personal account.
-- External recognition/LLM provider is pending the owner's answer. No meeting audio is sent to an arbitrary provider.
+- Owner supplied Polza credentials for GigaAM. Use Polza only; default summary model google/gemini-2.5-flash. Keep credentials outside Git and logs.
 
 ## Task 1: Reproducible bounded installation
 
@@ -55,7 +55,7 @@
 
 **Files:**
 - Create: `deployment/jitsi-recording/README.md`
-- Create: `docs/technical/verification/2026-10-23-jibri-pilot.md`
+- Create: `deployment/jitsi-recording/VERIFICATION.md`
 
 - [ ] Save the commands, observed results, rollback paths and remaining limits.
 - [ ] Run the focused tests, repository layout check and GitNexus detect_changes; commit only this task's files with PROJ-182.
@@ -65,3 +65,33 @@
 ## Review focus
 
 No secret leakage through URLs/logs; no cutover during a real meeting; a valid MP4 is not by itself proof of sound; finalization must not block Jibri availability; do not confuse docs.astforum.ru with outline.mvpspace.ru.
+
+## Task 4: Conditional automatic recording and meeting protocols
+
+After Task 2 passes, use Jicofo's existing private debug endpoints to discover live
+rooms and stable meeting IDs. This avoids modifying Prosody or restarting meetings.
+A bounded host service joins briefly as a clearly named recording controller,
+requests file recording through authenticated BOSH, then disconnects. Poll every
+five seconds; verify current meeting ID and humans before any request. One Jibri
+means overlapping meetings cannot all be recorded from their beginning. Persist
+coverage failures and retry while a room remains live; never claim retrospective
+recording. Do not start below 5 GiB free disk or 512 MiB available RAM.
+
+- [ ] Add tests for exclusion of recorder/controller-only rooms, session reuse,
+  pending/active recording deduplication, unknown states, safe XML/JWT, and
+  grounded summary validation. Observe RED before implementation.
+- [ ] Implement controller, local durable state, separate postprocessor, systemd
+  services, and a narrow-scope Outline bootstrap under Kuzmina.
+- [ ] Finalized files only: convert sequential 120-second mono WAV segments,
+  transcribe using Polza ai-sage/gigaam-v3, cache completed segments, summarize
+  through google/gemini-2.5-flash. Treat transcripts as untrusted input and reject
+  summary evidence not present in cited segments. Mark AI output for review.
+- [ ] Verify Outline auth.info as Kuzmina on outline.mvpspace.ru. Create a private
+  meeting collection, grant the existing owner access, publish one page per
+  recording with native transcript/video attachments and read it again.
+- [ ] Test a new synthetic meeting without pressing Start recording. Leave the
+  meeting and verify automatic finalization, transcription, summary publication,
+  stable page/attachment IDs on retry, and service recovery.
+- [ ] Run focused tests, layout, GitNexus change gate, one fresh branch review,
+  update PR #51 and verify its OpenProject link. Record operational limits and
+  cleanup the isolated QA TURN/tunnels without affecting Jibri.
