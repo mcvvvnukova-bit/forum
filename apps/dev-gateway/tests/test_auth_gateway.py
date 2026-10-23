@@ -271,6 +271,30 @@ class AuthGatewayTest(unittest.TestCase):
         self.assertEqual(requests, [('GET', '/api/settings', 'forum_dev_auth=synthetic', None, ''),
             ('PUT', '/api/settings', 'forum_session=opaque', 'https://dev.astforum.ru', '{"workAsIndividual":true}')])
 
+    def test_verification_proxy_has_an_exact_allowlist(self):
+        requests = []
+        class ApiHandler(BaseHTTPRequestHandler):
+            def respond(self):
+                body = self.rfile.read(int(self.headers.get('Content-Length', '0'))).decode()
+                requests.append((self.command, self.path, self.headers.get('Cookie'), self.headers.get('Origin'), body))
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"enabled":false}')
+            do_GET = do_POST = respond
+            def log_message(self, *_):
+                pass
+        with GatewayServer(ApiHandler) as api, GatewayServer(self.make_handler(f'http://127.0.0.1:{api.port}')) as gateway:
+            for path in ['/api/me/organizations/verification/options', '/api/me/organizations/verification?inn=9709128511']:
+                status, headers, _ = gateway.request('GET', path, headers={'Cookie':'forum_session=owner'})
+                self.assertEqual(status, 200)
+                self.assertEqual(headers['cache-control'], 'no-store')
+            self.assertEqual(gateway.request('POST', '/api/me/organizations/verification', '{}', {'Cookie':'forum_session=owner','Origin':'https://dev.astforum.ru'})[0], 200)
+            for method, path in [('POST','/api/me/organizations/verification/options'), ('GET','/api/me/organizations/verification/foreign'), ('POST','/api/me/organizations/verification/'), ('PUT','/api/me/organizations/verification')]:
+                self.assertEqual(gateway.request(method,path,'{}')[0],404)
+        self.assertEqual(len(requests),3)
+        self.assertEqual(requests[-1],('POST','/api/me/organizations/verification','forum_session=owner','https://dev.astforum.ru','{}'))
+
     def test_organizations_proxy_exact_methods_preserves_contract_and_errors(self):
         requests = []
         class ApiHandler(BaseHTTPRequestHandler):

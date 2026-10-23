@@ -4,6 +4,7 @@
 .organization-form-fields > .organization-add {grid-column: 2;}
 .organizations-table {overflow-x: auto; max-width: 100%;}
 .organizations-view {min-width: 0;}
+.organization-verification {border: var(--borderWidth-thin) solid var(--borderColor-default); border-radius: var(--borderRadius-medium); padding: var(--base-size-16);}
 @media (max-width: 767px) {
  .organization-form-fields {grid-template-columns: minmax(0, 1fr);}
  .organization-form-fields > .organization-add {grid-column: 1; justify-self: start;}

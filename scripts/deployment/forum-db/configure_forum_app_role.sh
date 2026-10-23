@@ -72,6 +72,10 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships') THEN
     RAISE EXCEPTION 'Apply migration006 before granting runtime access';
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='008_organization_verifications')
+     OR to_regclass('public.organization_verifications') IS NULL THEN
+    RAISE EXCEPTION 'Apply migration008 before granting runtime access';
+  END IF;
 END $$;
 SELECT EXISTS (
   SELECT 1 FROM pg_default_acl d, LATERAL aclexplode(d.defaclacl) acl

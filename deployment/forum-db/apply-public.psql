@@ -56,4 +56,9 @@ SELECT NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='007_my_org
   \ir ../../apps/api/migrations/007_my_organizations.sql
   INSERT INTO public.schema_migrations(name) VALUES ('007_my_organizations');
 \endif
+SELECT NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='008_organization_verifications') AS apply_verifications \gset
+\if :apply_verifications
+  \ir ../../apps/api/migrations/008_organization_verifications.sql
+  INSERT INTO public.schema_migrations(name) VALUES ('008_organization_verifications');
+\endif
 COMMIT;

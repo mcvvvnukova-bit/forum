@@ -870,9 +870,9 @@ def mail_dns_file(path, expected_hash, expected_mode):
     candidate = path.relative_to(ROOT).as_posix()
     item = next((x for x in mail_dns_receipt()['changes'] if x['candidatePath'] == candidate), None)
     if item is None:
-        return path, expected_hash, expected_mode
+        return diadoc_file(path, expected_hash, expected_mode)
     assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['candidateMode'], 'PROJ-174 predecessor mismatch: ' + candidate
-    return path, item['candidateSha256'], item['candidateMode']
+    return diadoc_file(path, item['candidateSha256'], item['candidateMode'])
 
 
 def verify_mail_dns():
@@ -883,8 +883,51 @@ def verify_mail_dns():
         assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
                        for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-174 source symlink: ' + candidate
         assert path.is_file(), 'Missing PROJ-174 source: ' + candidate
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == item['candidateSha256'], 'PROJ-174 current source hash mismatch: ' + candidate
-        assert ('100755' if path.stat().st_mode & 0o111 else '100644') == item['candidateMode'], 'PROJ-174 source mode mismatch: ' + candidate
+        path, digest, mode = diadoc_file(path, item['candidateSha256'], item['candidateMode'])
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, 'PROJ-174 current source hash mismatch: ' + candidate
+        assert ('100755' if path.stat().st_mode & 0o111 else '100644') == mode, 'PROJ-174 source mode mismatch: ' + candidate
+
+
+# Bounded successor for the pre-access organization verification package.
+# Only this checker's candidate hash is excluded to avoid a manifest/hash cycle.
+DIADOC_MANIFEST_SHA256 = '7ec0ae4f0f5977c326c6192df7c52d6b08d2d652435cba5a48b3a861042630bf'
+
+
+@lru_cache(maxsize=1)
+def diadoc_receipt():
+    path = ROOT / 'artifacts/repository-audits/proj-180-diadoc-pre-staging-ownership.json'
+    assert path.is_file() and not path.is_symlink(), 'Missing PROJ-180 receipt'
+    receipt = json.loads(path.read_text())
+    manifest = dict(receipt)
+    manifest['changes'] = [dict(item) for item in receipt['changes']]
+    for item in manifest['changes']:
+        if item['candidatePath'] == 'scripts/verification/check-operational-sources.py':
+            del item['candidateSha256']
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    assert digest == DIADOC_MANIFEST_SHA256, 'PROJ-180 scope/predecessor/candidate pin mismatch'
+    return receipt
+
+
+def diadoc_file(path, expected_hash, expected_mode):
+    candidate = path.relative_to(ROOT).as_posix()
+    item = next((x for x in diadoc_receipt()['changes'] if x['candidatePath'] == candidate), None)
+    if item is None:
+        return path, expected_hash, expected_mode
+    assert expected_hash in {item['previousSha256'], item['candidateSha256']} and expected_mode == item['candidateMode'], 'PROJ-180 predecessor mismatch: ' + candidate
+    return path, item['candidateSha256'], item['candidateMode']
+
+
+def verify_diadoc():
+    receipt = diadoc_receipt()
+    for item in receipt['changes'] + receipt['newFiles']:
+        candidate = item.get('candidatePath', item.get('path'))
+        path = ROOT / candidate
+        relative = path.relative_to(ROOT)
+        assert not any((ROOT / Path(*relative.parts[:index])).is_symlink()
+                       for index in range(1, len(relative.parts) + 1)), 'Unsafe PROJ-180 source symlink: ' + candidate
+        assert path.is_file(), 'Missing PROJ-180 source: ' + candidate
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == item.get('candidateSha256', item.get('sha256')), 'PROJ-180 current source hash mismatch: ' + candidate
+        assert ('100755' if path.stat().st_mode & 0o111 else '100644') == item.get('candidateMode', item.get('mode')), 'PROJ-180 source mode mismatch: ' + candidate
 
 
 def retirement_receipt(verify_sources=True):
@@ -1061,7 +1104,7 @@ def verify_provenance():
                     logout_home_receipt, cabinet_profile_receipt,
                     person_memberships_receipt, my_organizations_receipt, cabinet_settings_receipt, dev_organizations_receipt,
                     governance_receipt, ci_receipt, merged_verification_receipt, integration_receipt,
-                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt, mail_dns_receipt):
+                    trading_logo_receipt, local_ci_receipt, branch_integration_receipt, compact_login_receipt, mail_dns_receipt, diadoc_receipt):
         receipt.cache_clear()
     retirement_receipt()
     matrix = json.loads((ROOT / 'artifacts/repository-audits/accepted-source-matrix.json').read_text())
@@ -1187,6 +1230,7 @@ def verify_provenance():
     verify_branch_integration()
     verify_compact_login()
     verify_mail_dns()
+    verify_diadoc()
     return accepted
 
 

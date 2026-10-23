@@ -144,7 +144,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.sql((migrations / '002_profiles.sql').read_text())
         self.sql((migrations / '003_public_schema.sql').read_text())
         self.sql("INSERT INTO public.schema_migrations(name) VALUES ('003_public_schema');")
-        for name in ['005_public_individual_role','006_person_memberships','007_my_organizations']:
+        for name in ['005_public_individual_role','006_person_memberships','007_my_organizations','008_organization_verifications']:
             self.sql((migrations / (name + '.sql')).read_text())
             self.sql(f"INSERT INTO public.schema_migrations(name) VALUES ('{name}');")
         self.sql("CREATE TABLE public.unrelated_data(id bigserial PRIMARY KEY);"
@@ -197,6 +197,7 @@ class ConfigureRoleContractTest(unittest.TestCase):
             'role_assignments': {'SELECT', 'INSERT', 'DELETE'},
             'audit_events': {'SELECT', 'INSERT'}, 'outbox_events': {'SELECT', 'INSERT'},
             'schema_migrations': set(), 'unrelated_data': set(), 'organization_additions': {'SELECT', 'INSERT'},
+            'organization_verifications': {'SELECT', 'INSERT'},
         }
         for table, allowed in expected.items():
             for privilege in ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN']:
@@ -211,6 +212,23 @@ class ConfigureRoleContractTest(unittest.TestCase):
         self.assertEqual(self.sql("SELECT has_sequence_privilege('forum_app','public.unrelated_data_id_seq','USAGE');").stdout.strip(), 'f')
         self.assertEqual(self.sql("SELECT has_table_privilege('unrelated_role','public.unrelated_data','SELECT') AND has_table_privilege('forum_app','other.keep_access','SELECT');").stdout.strip(), 't')
         self.assertEqual(self.sql("SELECT has_column_privilege('forum_app','public.audit_events','data','UPDATE');").stdout.strip(), 'f')
+        for column in ['status', 'source', 'reason', 'evidence', 'checked_at', 'id', 'user_id', 'inn', 'method', 'request_id', 'created_at', 'expires_at']:
+            allowed = column in ['status', 'source', 'reason', 'evidence', 'checked_at']
+            actual = self.sql(f"SELECT has_column_privilege('forum_app','public.organization_verifications','{column}','UPDATE');").stdout.strip()
+            self.assertEqual(actual, 't' if allowed else 'f', 'organization_verifications.' + column)
+
+    def test_missing008_preflight_preserves_roles_acl_and_configuration(self):
+        self.sql("DELETE FROM public.schema_migrations WHERE name='008_organization_verifications';")
+        before_db, before_files = self.privilege_snapshot(), self.filesystem_snapshot()
+        result = self.configure()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('migration008', result.stderr)
+        self.assertEqual(self.privilege_snapshot(), before_db)
+        self.assertEqual(self.filesystem_snapshot(), before_files)
+        result = self.sql(GRANTS.read_text(), check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('migration008', result.stderr)
+        self.assertEqual(self.privilege_snapshot(), before_db)
 
     def test_missing006_preflight_preserves_roles_acl_and_configuration(self):
         self.sql("DELETE FROM public.schema_migrations WHERE name='006_person_memberships';")

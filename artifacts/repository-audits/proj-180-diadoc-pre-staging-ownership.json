@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "taskCode": "PROJ-180",
+  "baseSha": "5937f25d4db8746da37450f2851aaf5812a08e32",
+  "changes": [
+    {
+      "previousCandidatePath": "apps/api/src/app.ts",
+      "previousSha256": "6f39e9dca14ab034afc50e6122baa96559c32f76e5e2057c6154df720b0d7126",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/app.ts",
+      "candidateSha256": "3762dcd997ce35e8b42a07d5d97f392a71c21b502904c05604e2da17a2313b75",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/config.ts",
+      "previousSha256": "5f06290c92a8eb53ca7bccf908b1da3fe0421f43b9d20b2bb1795df319fd449b",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/config.ts",
+      "candidateSha256": "3ebf428e88bb2a5a31f53410cfbee3fdc90fc69ba3b474acbad6137ba9c1de2f",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/src/migrate.ts",
+      "previousSha256": "8b7d9487c49e2f3eae1752e46a53b3bbca0e3faecaa64e36acb11bb4d4751cd4",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/src/migrate.ts",
+      "candidateSha256": "35bbec77e22606426cabbc0d2247704546af9dc2ce87772fce0a46c07e6eed24",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/auth.test.ts",
+      "previousSha256": "399116de9d68042e695166978380ac879b7cf00e98b0cf13420a9a063e189651",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/auth.test.ts",
+      "candidateSha256": "b08c225817edbeefa2c6baed58d7889ad0781beeb049a556453909d037fbf55c",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/api/test/consolidation.test.ts",
+      "previousSha256": "ecd5fe7acd90e98f2e7e4c8dad1bc4f8c930a76ed458d2bd4ea2d84714223f6d",
+      "previousMode": "100644",
+      "candidatePath": "apps/api/test/consolidation.test.ts",
+      "candidateSha256": "e4f7ffa475f425e9c873f49f9ac9a4448500420497db6808fa40ffebaaad8d85",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "previousSha256": "8908448268a14522e1a6bb29180b248c92c6f109d336b782a6f6edb9fba0d2bf",
+      "previousMode": "100644",
+      "candidatePath": "apps/dev-gateway/forum_dev_auth.py",
+      "candidateSha256": "8e7cc1838532ae9358cfb87c7128f49f38a0c5312df57eecb7dd53adbe49b88e",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/dev-gateway/tests/test_auth_gateway.py",
+      "previousSha256": "1d3865edd67d4466122b813284968d467746e8f7c4a2eb1c3d4e8fe21ed225f4",
+      "previousMode": "100644",
+      "candidatePath": "apps/dev-gateway/tests/test_auth_gateway.py",
+      "candidateSha256": "dd778f785ecd816f80dfecbea16a2eb8791467806d25691990fbefa539af6a25",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/Organizations.test.tsx",
+      "previousSha256": "ef14f7fcd5837eed35740ac4489271d65a4181c4fee5dc4d1570c97732ed95ba",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/Organizations.test.tsx",
+      "candidateSha256": "78888b2d35ba74a5e3ac030c6f0a51fec67b6df2feba6ccb277cc48c96a46ec5",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/Organizations.tsx",
+      "previousSha256": "9a65d5cc4831859554b2a417bce20e6865f16513aa8022ae67a8b1541bf3034f",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/Organizations.tsx",
+      "candidateSha256": "d06e0698428afd93d2bc66c05fcd1703f48148b17ecd4eb29c4c43f3cf8e05f0",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "apps/web/src/home/organizations.css",
+      "previousSha256": "daf61c88921a8ef67abed8942ce6a84f7ad6f5179ffbeefda17d837e0f90b73b",
+      "previousMode": "100644",
+      "candidatePath": "apps/web/src/home/organizations.css",
+      "candidateSha256": "615e70aebe61b041fc9a807bd11853eb436734e9736de154cc47801a4e96e2f0",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-api/.env.example",
+      "previousSha256": "38f0ffab3fdd9c9e5d5921eb9c3d8194198f363b7712f510d2581246248e1b17",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-api/.env.example",
+      "candidateSha256": "5178e70ff7ad5a353b781488c4f93eb2db22f6bca0cb20a36cbe6845d9f8777a",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-api/grant-runtime.sql",
+      "previousSha256": "a6bfe7f60808ebf624a521211b03032be612b81ed7a8f8207f3184943123f2fd",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-api/grant-runtime.sql",
+      "candidateSha256": "63bb0bd37a8e94929e1dafbf7955a5c165b24654008af74ae904ae9cfa2634c6",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-db/apply-public.psql",
+      "previousSha256": "0c60c96bd131cdee65e6a209f82373f821e538e0839f884d345bc0cefe6a3695",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-db/apply-public.psql",
+      "candidateSha256": "0f67e161d363933d66a138bf7ef9604638b1cc16b6389997a7257a8f4168fb35",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "previousSha256": "7d20fcad2a8af4f5df49d749d1c643edeeefb445808fc18388fb07230c5762cf",
+      "previousMode": "100644",
+      "candidatePath": "deployment/forum-db/tests/test_configure_role_contract.py",
+      "candidateSha256": "bfa06006330a4784cbcb8b958d2eb7239dbf9b935668c9d80508c51b0769962a",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
+      "previousSha256": "9dda236c2869836832776f4f2f8214739a70f86a6f9d5e617fd954550e930c44",
+      "previousMode": "100755",
+      "candidatePath": "scripts/deployment/forum-db/configure_forum_app_role.sh",
+      "candidateSha256": "5498dad5407171ef64e6073b97b69080fe6ed88eab7fbb3072e6d1541eb29a76",
+      "candidateMode": "100755"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/check-operational-sources.py",
+      "previousSha256": "c4918fe9462d44b305e03cc77fdf9a25d83ad5e302ef8459a23c32f196df2023",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/check-operational-sources.py",
+      "candidateSha256": "7a36bb2ae3f09f02f8a28d1fb63db55be48913667de20a3bcd8b9ddcfc0eec77",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "scripts/verification/checks.test.mjs",
+      "previousSha256": "f1542b071f9dabec4e607439c1c13eaaace66c151d0cc45f5dffb148a2b19626",
+      "previousMode": "100644",
+      "candidatePath": "scripts/verification/checks.test.mjs",
+      "candidateSha256": "333f85c0ec8a8e35ad26af7b46dd6901daa797f25a391201f533aef6e71e2f09",
+      "candidateMode": "100644"
+    },
+    {
+      "previousCandidatePath": "tests/integration/test_primer_ui_policy.py",
+      "previousSha256": "9c562fab33658603f6221241a8e1ad47cf97e5a42a940fdb063aa5115337c358",
+      "previousMode": "100644",
+      "candidatePath": "tests/integration/test_primer_ui_policy.py",
+      "candidateSha256": "c423b37ff9d09cf163e7bcef3aad6290612d3e5ad2e36c775727e2c326be23d3",
+      "candidateMode": "100644"
+    }
+  ],
+  "newFiles": [
+    {
+      "path": "apps/api/diagnostics/verification-preview.mjs",
+      "sha256": "3a4a1752ee3bbe0f9cc6fe4a82824fcb675be125cdd908a662140aad6bcf6427",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/migrations/008_organization_verifications.sql",
+      "sha256": "62a2dddb92d71d2f5363437f5b1cb3e802b9b06d831f65eeea8f71e165baa4e8",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/organizations/diadoc-client.ts",
+      "sha256": "bfcbfeccb1853451e804657a37114f5cc7f1303b78aba7c03a7e35a79fcdc071",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/organizations/verification.controller.ts",
+      "sha256": "3f402f97916ef3cd9faea3789c962094abc118a827001da5d5d12b2bdc13adfc",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/src/organizations/verification.ts",
+      "sha256": "e1e50865336e96c6d449eba2303d32d94dcd078913cabf84914acb31720db97c",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/diadoc-client.test.ts",
+      "sha256": "ce02201bba47aaa784cd1a3204e7a93576ab07ba6b53bbc5bc6c283022eb319f",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/fixtures/diadoc-simulator.ts",
+      "sha256": "6be9d326bd0b317ead3661f5333e088f78c946601d75cfe293b3350813940cbb",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/api/test/organization-verification.test.ts",
+      "sha256": "2c8f6b9e60f2044d2ae58416018cfb3ece438b7577aed934f6546de6d2f9890c",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/OrganizationVerification.test.tsx",
+      "sha256": "3ec790bf687ba2e6e0065e4459516f7e847abf3dbd17739f4ac3f50e0b38e607",
+      "mode": "100644"
+    },
+    {
+      "path": "apps/web/src/home/OrganizationVerification.tsx",
+      "sha256": "390f3f9555e6553f0b19da91eae68708b26727934ef0401b1ee6a1a0f1d491a9",
+      "mode": "100644"
+    }
+  ]
+}

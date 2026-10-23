@@ -8,6 +8,8 @@ import rateLimit from '@fastify/rate-limit';
 import type {FastifyReply} from 'fastify';
 import {loadConfig, type ApiConfig} from './config.js';
 import {OrganizationsController} from './organizations/organizations.controller.js';
+import {VerificationController, VerificationRuntime} from './organizations/verification.controller.js';
+import type {VerificationProvider} from './organizations/verification.js';
 import {AuthController, AuthRuntime} from './iam/auth.controller.js';
 import {SettingsController} from './iam/settings.controller.js';
 
@@ -38,11 +40,12 @@ class HealthController {
   }
 }
 
-export async function createApp(config: ApiConfig = loadConfig(), existingPool?: Pool): Promise<NestFastifyApplication> {
+export async function createApp(config: ApiConfig = loadConfig(), existingPool?: Pool, verificationProvider?:VerificationProvider): Promise<NestFastifyApplication> {
   const pool = existingPool ?? (config.databaseUrl ? new Pool({connectionString: config.databaseUrl,
     max: 10, connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000, statement_timeout: 10000}) : undefined);
   const runtime = new AuthRuntime(config, pool, !existingPool);
-  @Module({controllers: [HealthController, AuthController, SettingsController, OrganizationsController], providers: [{provide: AuthRuntime, useValue: runtime}]})
+  const verification=new VerificationRuntime(runtime,verificationProvider);
+  @Module({controllers: [HealthController, AuthController, SettingsController, OrganizationsController,VerificationController], providers: [{provide: AuthRuntime, useValue: runtime},{provide:VerificationRuntime,useValue:verification}]})
   class AppModule {}
   const adapter = new FastifyAdapter({bodyLimit: 4096, logger: false,
     trustProxy: config.trustedProxyCidrs?.length ? config.trustedProxyCidrs : false});

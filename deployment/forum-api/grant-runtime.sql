@@ -1,4 +1,4 @@
--- Execute as the schema owner against the main Forum database after migration 006.
+-- Execute as the schema owner against the main Forum database after migration 008.
 -- Sandbox uses its separate runtime role and deployment configuration.
 \set ON_ERROR_STOP on
 \if :{?app_role}
@@ -12,6 +12,10 @@ DO $$ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='006_person_memberships') THEN
     RAISE EXCEPTION 'Apply migration006 before granting runtime access';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE name='008_organization_verifications')
+     OR to_regclass('public.organization_verifications') IS NULL THEN
+    RAISE EXCEPTION 'Apply migration008 before granting runtime access';
   END IF;
 END $$;
 
@@ -65,6 +69,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.sessions, public.authorization_at
 GRANT SELECT, INSERT, DELETE ON public.role_assignments TO :"app_role";
 GRANT UPDATE(status,revoked_at) ON public.role_assignments TO :"app_role";
 GRANT SELECT, INSERT ON public.organization_additions, public.outbox_events, public.audit_events TO :"app_role";
+GRANT SELECT, INSERT ON public.organization_verifications TO :"app_role";
+GRANT UPDATE(status,source,reason,evidence,checked_at) ON public.organization_verifications TO :"app_role";
 GRANT USAGE, SELECT ON SEQUENCE public.outbox_events_sequence_seq TO :"app_role";
 GRANT EXECUTE ON FUNCTION public.profile_birthdate(text), public.valid_sber_profile(jsonb),
   public.touch_updated_at(), public.guard_participant(), public.guard_membership(),

@@ -5,7 +5,11 @@ import {Cabinet} from './Cabinet'
 const user={id:'owner-one',displayName:'Анна Иванова'}
 const pending={id:'addition-1',inn:'9709128511',name:null,status:'pending',members:[]}
 afterEach(()=>{vi.unstubAllGlobals();vi.restoreAllMocks()})
-function page(){vi.stubGlobal('scrollTo',vi.fn());history.replaceState(null,'','/cabinet/organizations/');return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><Cabinet/></BaseStyles></ThemeProvider>)}
+function page(){
+ const fetch=globalThis.fetch
+ vi.stubGlobal('fetch',(url:string,options?:RequestInit)=>url==='/api/me/organizations/verification/options'?Promise.resolve(Response.json({userId:user.id,enabled:false})):fetch(url,options))
+ vi.stubGlobal('scrollTo',vi.fn());history.replaceState(null,'','/cabinet/organizations/');return render(<ThemeProvider colorMode="light" dayScheme="light"><BaseStyles><Cabinet/></BaseStyles></ThemeProvider>)
+}
 describe('my organizations',()=>{
  it('loads independently from provider profile and saves a single pending row with Enter form submit',async()=>{
   let saved=false
