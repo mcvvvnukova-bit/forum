@@ -16,7 +16,7 @@ def load(name):
 
 class ControllerTests(unittest.TestCase):
     def test_recovers_after_failed_startup_or_recorder_loss_without_duplicate_requests(self):
-        from unittest.mock import patch, Mock
+        from unittest.mock import ANY, patch, Mock
         from types import SimpleNamespace
         import copy
         controller=load('controller')
@@ -29,6 +29,7 @@ class ControllerTests(unittest.TestCase):
                 bot=Mock();bot.start.return_value='recording-session'
                 def persist(path,value):state.clear();state.update(copy.deepcopy(value))
                 with patch.object(controller,'read',side_effect=lambda path,*_:copy.deepcopy(state)), \
+                     patch.object(controller,'sync_controls'), \
                      patch.object(controller,'save',side_effect=persist), \
                      patch.object(controller,'debug',side_effect=lambda path='':conference if path else live), \
                      patch.object(controller,'Path',return_value=SimpleNamespace(read_text=lambda:'MemAvailable: 2097152 kB')), \
@@ -41,7 +42,7 @@ class ControllerTests(unittest.TestCase):
                     self.assertEqual(state[meeting]['interruptions'],1)
                     bot.start.assert_not_called()
                     now.return_value=220;controller.tick()
-                    bot.start.assert_called_once_with('fixture')
+                    bot.start.assert_called_once_with('fixture', before_start=ANY)
                     self.assertEqual(state[meeting]['status'],'started')
                     now.return_value=225;controller.tick()
                     bot.start.assert_called_once()

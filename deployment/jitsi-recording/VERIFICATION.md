@@ -92,3 +92,34 @@ An active thread automation, «Ежедневные саммари встреч 
 09:00 Europe/Moscow, processing all pending transcript caches (including missed
 days), validating evidence, and verifying the same saved Outline page. The local
 Mac and Codex app must be running. No credentials are embedded in the prompt.
+# Manual Stop regression — 25 October 2026
+
+- The old controller failed the regression by sending a new recording start
+  after a confirmed manual Stop. The fixed controller passes 19 recording
+  tests, including restart persistence, delayed recorder departure, manual
+  resume, failure recovery, event replay/order, meeting isolation, log failures,
+  and Stop during moderator acquisition immediately before the start IQ.
+- All 63 Python integration tests runnable on the local host pass. Plain
+  discovery also imports `test_web_release.py`, which requires its dedicated
+  Docker runner, built artifact and `/repo` mount; that standalone container
+  suite was not rerun for this controller-only change.
+- A candidate on the VPS replayed actual Jicofo publications into isolated
+  state and correctly paused `vvvconf-922`; replay was idempotent. The server
+  controller file has SHA-256
+  `138e0206d2daac174fd93dca8d50d6d7a38151e16c0962c5af68f01821a6c23f`.
+- Deployment at 20:59:46 Europe/Moscow replaced only the controller, retaining
+  its original source/state under
+  `/root/jitsi-recording-backups/manual-stop-20261025T175946Z`. Jicofo, Jibri,
+  Prosody and JVB container start timestamps stayed unchanged. The live
+  controller persisted the manual pause; the recording pipeline remained active.
+- After 92 seconds (beyond the former 45+10-second retry interval), the pause
+  still held through an additional controller restart. There were zero new
+  automatic recording requests, controller errors or Jitsi container restarts.
+  All five public HTTP deployment checks passed.
+- Review found a start race during BOSH connection/moderator acquisition. A
+  second RED→GREEN regression covers the added guard immediately before the
+  start IQ. Simultaneous signaling operations still follow Jicofo's ordering;
+  this change does not add signaling-side locks. Existing persisted pauses
+  survive log rotation; missed events already removed while the controller was
+  offline cannot be reconstructed. Host power-loss/fsync guarantees are those
+  of the existing atomic state writer.

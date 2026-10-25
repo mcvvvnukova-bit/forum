@@ -147,6 +147,23 @@ after a further ten seconds and only when the detector reports an available
 recorder and resource gates pass. The interruption is retained in local coverage
 state; media from the gap cannot be recovered.
 
+Manual **Stop recording** pauses automatic recording for that `meeting_id`.
+The pause survives controller restarts and remains set while the departing
+recorder is still visible. A successful manual **Start recording** clears the
+pause; a new meeting ID starts with the normal automatic policy.
+
+The controller consumes confirmed `jibri-recording-status` publications from
+the existing private Jicofo Docker logs, rather than incoming requests which
+may be rejected. For `off`, Jicofo reports the stop initiator; failures and
+controller actors do not change the manual choice. Choices are stored in
+`state/controller.json` before `state/recording-controls.json` advances the
+Docker log checkpoint. Replayed events cannot undo a newer choice. Raw logs
+and participant identities are not persisted. A log-read or publication-parse
+error prevents automatic starts and produces a `controller-error` event.
+Keep the vendor INFO publication logging enabled, and recheck its format when
+upgrading Jicofo. If logs rotate while the controller is offline, events no
+longer retained by Docker cannot be recovered; already persisted pauses remain.
+
 ## Daily summaries by Codex
 
 With `summaryMode: "codex"` in the private pipeline config, the server publishes

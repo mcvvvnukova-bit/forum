@@ -5,8 +5,10 @@ import hashlib
 import hmac
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -18,6 +20,55 @@ from vks_common import read, save
 
 BASE = Path('/opt/jitsi-recording')
 STATE = BASE / 'state/controller.json'
+CONTROL_STATE = BASE / 'state/recording-controls.json'
+
+
+def recording_controls(lines):
+    """Read confirmed publications, not requests (which may be unauthorized)."""
+    marker = 'Publishing new jibri-recording-status: '
+    for line in lines:
+        if 'JibriRecorder.publishJibriRecordingStatus' not in line or marker not in line:
+            continue
+        context = re.search(r'\[room=([^\s\]]+) meeting_id=([^\s\]]+)\]', line)
+        stamp = line.split(' ', 1)[0]
+        if context is None or not re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{9}Z', stamp):
+            raise ValueError('Unrecognized recording control event')
+        status = ET.fromstring(line.split(marker, 1)[1].split(' in: ', 1)[0])
+        if status.tag != '{http://jitsi.org/protocol/jibri}jibri-recording-status':
+            raise ValueError('Unrecognized recording control status')
+        room, meeting = context.groups()
+        actor_room, _, actor = status.get('initiator', '').partition('/')
+        if (status.get('recording_mode') != 'file' or status.get('failure_reason')
+            or status.get('status') not in ('on', 'off') or actor_room != room
+            or not actor or actor.startswith('vks_recorder_')):
+            continue
+        yield stamp, meeting, room.split('@')[0], status.get('status')
+
+
+def sync_controls(state):
+    """Persist manual choices before checkpointing; overlap makes replay safe."""
+    checkpoint = time.time()
+    since = read(CONTROL_STATE, {}).get('since',
+        min((entry.get('firstSeen', checkpoint) for entry in state.values()), default=checkpoint-60))
+    # Stream to a private temporary file so initial replay cannot exhaust RAM.
+    with tempfile.TemporaryFile(mode='w+t') as output:
+        subprocess.run(['docker', 'logs', '--timestamps', '--since', str(max(0, since-2)),
+            'jitsi-meet-jicofo-1'], stdout=output, stderr=subprocess.STDOUT, timeout=15, check=True)
+        output.seek(0)
+        for stamp, meeting, room, status in sorted(recording_controls(output)):
+            entry = state.setdefault(meeting, {'room': room, 'firstSeen': checkpoint})
+            if stamp <= entry.get('lastControlEvent', ''):
+                continue
+            paused = status == 'off'
+            entry.update(manualPaused=paused, lastControlEvent=stamp,
+                status='paused' if paused else 'observed',
+                reason='manual-stop' if paused else 'manual-start')
+            if not paused:
+                entry['lastRecorderSeen'] = checkpoint
+            print(json.dumps({'event': 'recording-manually-paused' if paused else 'recording-manually-resumed',
+                'meetingId': meeting}), flush=True)
+    save(STATE, state)
+    save(CONTROL_STATE, {'since': checkpoint})
 
 
 def humans(conference):
@@ -29,6 +80,7 @@ def humans(conference):
 def should_start(conference, state, available, free_disk, mem_available):
     members = conference.get('chat_room', {}).get('members', {}).values()
     return bool(conference.get('meeting_id') and humans(conference)
+        and not state.get('manualPaused')
         and not any(member.get('is_jibri') for member in members)
         and state.get('status') not in ('started', 'requested', 'observed')
         and available is True and free_disk >= 5 * 1024**3 and mem_available >= 512 * 1024**2)
@@ -48,6 +100,10 @@ def jwt(secret, room):
     encode = lambda value: base64.urlsafe_b64encode(value).rstrip(b'=')
     body = b'.'.join([encode(b'{"alg":"HS256","typ":"JWT"}'), encode(json.dumps(data).encode())])
     return (body + b'.' + encode(hmac.new(secret['jwt_secret'].encode(), body, hashlib.sha256).digest())).decode()
+
+
+class RecordingCancelled(RuntimeError):
+    """Eligibility changed while the control participant was connecting."""
 
 
 class Bosh:
@@ -84,7 +140,7 @@ class Bosh:
         if not any(element.tag.endswith('jid') for element in root.iter()):
             raise RuntimeError('Recording controller resource binding failed')
 
-    def start(self, room):
+    def start(self, room, before_start=None):
         occupant = room + '@muc.meet.jitsi/' + self.resource
         root = self.post('<presence xmlns="jabber:client" to=' + quoteattr(occupant) + '>'
             '<x xmlns="http://jabber.org/protocol/muc"/>'
@@ -97,6 +153,8 @@ class Bosh:
             root = self.post()
         else:
             raise RuntimeError('Recording controller did not obtain moderator role')
+        if before_start is not None and not before_start():
+            raise RecordingCancelled('Recording eligibility changed')
         identifier = 'record-' + uuid.uuid4().hex
         root = self.post('<iq xmlns="jabber:client" type="set" id=' + quoteattr(identifier)
             + ' to=' + quoteattr(room + '@muc.meet.jitsi/focus') + '>'
@@ -120,6 +178,7 @@ class Bosh:
 
 def tick():
     state = read(STATE, {})
+    sync_controls(state)  # No automatic starts when the control event source is unavailable.
     live = debug()
     detector = live.get('jibri_detector') or {}
     available = any(isinstance(value, dict) and value.get('reports_available') is True for value in detector.values())
@@ -134,6 +193,9 @@ def tick():
         if not meeting or not humans(conference):
             continue
         entry = state.setdefault(meeting, {'room':jid.split('@')[0], 'firstSeen':time.time()})
+        if entry.get('manualPaused'):
+            entry.update(status='paused', reason='manual-stop', lastSeen=time.time())
+            continue
         has_recorder = any(member.get('is_jibri') for member in conference.get('chat_room', {}).get('members', {}).values())
         if has_recorder:
             entry.update(status='observed' if entry.get('status') != 'started' else 'started',
@@ -155,15 +217,20 @@ def tick():
             continue
         client = Bosh(jwt(read('/opt/jitsi-admin/secrets/access.private.json'), entry['room']))
         try:
-            # Recheck identity and occupancy immediately before creating a control participant.
-            current = debug('/conference/' + urllib.parse.quote(jid, safe='@'))
-            if current.get('meeting_id') != meeting or not humans(current):
+            def eligible():
+                sync_controls(state)
+                current = debug('/conference/' + urllib.parse.quote(jid, safe='@'))
+                return current.get('meeting_id') == meeting and should_start(current, entry, available, free, memory)
+            if not eligible():
                 continue
             client.connect()
-            entry['recordingSessionId'] = client.start(entry['room'])
+            # Connecting/joining may take seconds: honour Stop again immediately before the start IQ.
+            entry['recordingSessionId'] = client.start(entry['room'], before_start=eligible)
             entry.update(status='started', startedAt=time.time())
             available = False
             print(json.dumps({'event':'recording-requested', 'meetingId':meeting}), flush=True)
+        except RecordingCancelled:
+            pass
         except Exception as error:
             attempts = entry.get('attempts', 0) + 1
             entry.update(status='retry', attempts=attempts, errorType=type(error).__name__,
