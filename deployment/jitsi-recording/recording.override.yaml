@@ -1,0 +1,26 @@
+services:
+  jibri:
+    extends:
+      file: jibri.yml
+      service: jibri
+    image: ghcr.io/jitsi/jibri:stable-11248@sha256:04c937a3a208bef00e65614fa6c1708e65ba40fd600e18fff74eec7182adcb9d
+    mem_limit: 2g
+    memswap_limit: 3g
+    cpus: 2.5
+    # The pinned image refuses to start with less than 2 GiB of /dev/shm.
+    # This is a capacity ceiling, not a reservation in addition to mem_limit.
+    shm_size: 2g
+    pids_limit: 512
+    volumes:
+      - @RECORDING_ROOT@/finalize.sh:/usr/local/bin/finalize-recording:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:2222/jibri/api/v1.0/health]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 90s

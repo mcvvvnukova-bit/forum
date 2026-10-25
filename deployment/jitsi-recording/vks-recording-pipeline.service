@@ -1,0 +1,24 @@
+[Unit]
+Description=VKS GigaAM transcription and Outline meeting protocols
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/jitsi-recording/pipeline.py
+WorkingDirectory=/opt/jitsi-recording
+Restart=always
+RestartSec=30
+UMask=0077
+MemoryMax=256M
+CPUQuota=50%
+TasksMax=32
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/jitsi-recording/state /opt/jitsi-recording/work
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
