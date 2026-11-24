@@ -22,19 +22,13 @@ final class ForumHostController extends AbstractController
         $user = $this->getUser();
         $session = $request->getSession();
         if (!$user instanceof User || !$session->get('id_token')) {
-            $session->set('_security.main.target_path', $request->getRequestUri());
-            $response = $this->redirectToRoute('login_keycloak');
-            $response->headers->add($headers);
-            return $response;
+            return $this->redirectToKeycloak($request, $headers);
         }
         try {
             $jwks = $http->request('GET', 'https://vks.mvpspace.ru/admin/auth/realms/vks/protocol/openid-connect/certs', ['timeout' => 5])->toArray();
             $identity = ForumHostLink::validateIdentity($session->get('id_token'), $jwks, (string) $user->getKeycloakId(), time());
         } catch (\UnexpectedValueException $error) {
-            $session->set('_security.main.target_path', $request->getRequestUri());
-            $response = $this->redirectToRoute('login_keycloak');
-            $response->headers->add($headers);
-            return $response;
+            return $this->redirectToKeycloak($request, $headers);
         } catch (\Throwable $error) {
             return new Response('Identity provider temporarily unavailable', 503, $headers);
         }
@@ -52,5 +46,14 @@ final class ForumHostController extends AbstractController
         } catch (\UnexpectedValueException $error) {
             return new Response('Meeting server is not configured', 503, $headers);
         }
+    }
+
+    private function redirectToKeycloak(Request $request, array $headers): Response
+    {
+        $target = $this->generateUrl('forum_host', ['room' => $request->query->getString('room')]);
+        $request->getSession()->set('_security.main.target_path', $target);
+        $response = $this->redirectToRoute('login_keycloak');
+        $response->headers->add($headers);
+        return $response;
     }
 }
